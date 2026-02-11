@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+    <!-- Add Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Add Axios for HTTP requests -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #0078d4;
+            --primary-hover: #0056b3;
+            --bg-color: #f0f0f0;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* Header Styling */
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0 30px;
+            height: 70px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .brand-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+        }
+
+        .user-details {
+            text-align: right;
+            line-height: 1.2;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 15px;
+            display: block;
+        }
+
+        .access-level {
+            font-size: 11px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            background-color: var(--danger-color);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .logout-btn:hover {
+            background-color: var(--danger-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Content Grid */
+        .content {
+            flex: 1;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Dashboard Cards (formerly buttons) */
+        .dashboard-card {
+            background-color: var(--card-bg);
+            border: none;
+            border-radius: 12px;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-decoration: none;
+            color: var(--text-color);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: var(--primary-color);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .dashboard-card:hover::before {
+            opacity: 1;
+        }
+
+        .dashboard-card:active {
+            transform: translateY(-2px);
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            fill: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        /* Disabled State */
+        .dashboard-card.disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.7;
+        }
+
+        .dashboard-card.disabled .card-icon {
+            fill: #999;
+        }
+
+        .dashboard-card.disabled .card-title {
+            color: #999;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 13px;
+            background-color: var(--bg-color);
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* Loaders and Modals */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(2px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .header {
+                padding: 10px 15px;
+                flex-direction: column;
+                height: auto;
+                gap: 10px;
+            }
+
+            .user-profile {
+                width: 100%;
+                justify-content: space-between;
+                box-sizing: border-box;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="loader"></div>
+        <p>Loading System...</p>
+    </div>
+
+    <div class="header">
+        <div class="brand-title">
+            <!-- Simple SVG Logo placeholder -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+            </svg>
+            ADMIN System
+        </div>
+        <div class="user-profile">
+            <div class="user-details">
+                <span class="user-name" id="userName">Admin</span>
+                <span class="access-level" id="accessLevel">Loading...</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="dashboard-grid">
+            <!-- Generate File -->
+            <button id="generateFileBtn" class="dashboard-card" onclick="navigateTo('FileGenerator.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                </svg>
+                <span class="card-title">Generate New File</span>
+            </button>
+
+            <!-- Add Part -->
+            <button id="addPartBtn" class="dashboard-card" onclick="navigateTo('addPart.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                <span class="card-title">Add Part</span>
+            </button>
+
+            <!-- Revision -->
+            <button id="revisionBtn" class="dashboard-card" onclick="navigateTo('revision.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+                <span class="card-title">Revision</span>
+            </button>
+
+            <!-- Update JO -->
+            <button id="updateJOBtn" class="dashboard-card" onclick="navigateTo('UpdateJO.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                </svg>
+                <span class="card-title">Update JO</span>
+            </button>
+
+            <!-- Users -->
+            <button id="usersBtn" class="dashboard-card" onclick="navigateTo('user.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                </svg>
+                <span class="card-title">User Management</span>
+            </button>
+
+            <!-- Remove Folder -->
+            <button id="removeFolderBtn" class="dashboard-card" onclick="navigateTo('removefolder.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
+                </svg>
+                <span class="card-title">Remove Folder</span>
+            </button>
+
+            <!-- Generate Report -->
+            <button id="generateReport" class="dashboard-card" onclick="navigateTo('generateReport.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
+                </svg>
+                <span class="card-title">Generate Report</span>
+            </button>
+
+            <!-- Notify Email Page -->
+            <button id="notifyEmailBtn" class="dashboard-card" onclick="navigateTo('teamsNotification.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path
+                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V8l7 5 7-5v9zm-7-6.5L5 6h14l-7 4.5z" />
+                </svg>
+                <span class="card-title">Notify Teams Channel</span>
+            </button>
+
+            <!-- Job Order Summarry Report -->
+            <!-- <button id="generateReport" class="dashboard-card" onclick="navigateTo('jobOrderSummary.html')">
+                <svg class="card-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                <span class="card-title">Job Order Summary Report</span>
+            </button> -->
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd.. All rights reserved.
+    </div>
+
+    <!-- Confirmation modal for back navigation -->
+    <div id="backConfirmOverlay"
+        style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);z-index:2000;justify-content:center;align-items:center;">
+        <div
+            style="background:#fff;padding:30px;border-radius:12px;max-width:400px;width:90%;text-align:center;box-shadow:0 15px 30px rgba(0,0,0,0.2);">
+            <h3 style="margin-top:0; color:#333;">Leave page?</h3>
+            <p style="margin:12px 0; color:#666; line-height:1.5;">Do you want to log out and leave this page? Selecting
+                "Stay" will keep you on this page with your current session.</p>
+            <div style="margin-top:20px;display:flex;gap:15px;justify-content:center;">
+                <button id="confirmLogoutBtn"
+                    style="padding:10px 20px;background:var(--danger-color);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Log
+                    out & Leave</button>
+                <button id="cancelLogoutBtn"
+                    style="padding:10px 20px;background:#6c757d;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Stay</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'http://192.168.0.5:8000';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+
+        // Initialize Supabase client
+        const supabaseClient = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            }
+        });
+
+        // Function to handle button navigation
+        function navigateTo(url) {
+            // Check if button is disabled
+            // Note: In the redesign we are clicking the .dashboard-card, but sometimes the click target is the svg inside
+            const buttonElement = event.currentTarget; // Use currentTarget to get the button element
+
+            if (buttonElement && buttonElement.classList.contains('disabled')) {
+                alert('You do not have permission to access this feature.');
+                return;
+            }
+
+            window.location.href = url;
+        }
+
+        // Function to fetch user access level from Supabase
+        async function fetchUserAccessLevel(userId) {
+            try {
+                const response = await supabaseClient.get('/rest/v1/AdminCredential', {
+                    params: {
+                        select: 'Access',
+                        UserId: `eq.${userId}`
+                    }
+                });
+
+                if (response.data && response.data.length > 0) {
+                    return response.data[0].Access;
+                } else {
+                    throw new Error('User not found in database');
+                }
+            } catch (error) {
+                console.error('Error fetching user access level:', error);
+                return null;
+            }
+        }
+
+        // Function to set button access based on user role
+        function setButtonAccess(accessLevel) {
+            // Default - disable all buttons
+            document.getElementById('generateFileBtn').classList.add('disabled');
+            document.getElementById('addPartBtn').classList.add('disabled');
+            document.getElementById('revisionBtn').classList.add('disabled');
+            document.getElementById('updateJOBtn').classList.add('disabled');
+            document.getElementById('usersBtn').classList.add('disabled');
+            document.getElementById('removeFolderBtn').classList.add('disabled');
+            document.getElementById('generateReport').classList.add('disabled');
+
+            // Update buttons based on access level
+            switch (accessLevel) {
+                case 'ALL':
+                    // ALL access can see everything
+                    document.getElementById('generateFileBtn').classList.remove('disabled');
+                    document.getElementById('addPartBtn').classList.remove('disabled');
+                    document.getElementById('revisionBtn').classList.remove('disabled');
+                    document.getElementById('updateJOBtn').classList.remove('disabled');
+                    document.getElementById('usersBtn').classList.remove('disabled');
+                    document.getElementById('removeFolderBtn').classList.remove('disabled');
+                    document.getElementById('generateReport').classList.remove('disabled');
+                    break;
+
+                case 'ENGINEER':
+                    // ENGINEER can access Generate File and Remove Folder
+                    document.getElementById('generateFileBtn').classList.remove('disabled');
+                    document.getElementById('removeFolderBtn').classList.remove('disabled');
+                    // document.getElementById('generateReport').classList.remove('disabled');
+                    break;
+
+                case 'PRODUCTION':
+                    // PRODUCTION can access Update JO
+                    document.getElementById('updateJOBtn').classList.remove('disabled');
+                    break;
+
+                case 'REGISTER':
+                    // REGISTER can access Add Part and Revision
+                    document.getElementById('addPartBtn').classList.remove('disabled');
+                    document.getElementById('revisionBtn').classList.remove('disabled');
+                    document.getElementById('generateReport').classList.remove('disabled');
+                    break;
+
+                default:
+                    // If unknown access level, don't enable any buttons
+                    console.error('Unknown access level:', accessLevel);
+                    alert('Unknown access level. Please contact administrator.');
+            }
+        }
+
+        // Function to check if user is logged in and set up the UI
+        async function checkLogin() {
+            // Get login data from sessionStorage
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            const userId = sessionStorage.getItem('userId');
+            const userPassword = sessionStorage.getItem('userPassword');
+
+            // Also check URL parameters (alternative method)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlUserId = urlParams.get('userId');
+            const urlPassword = urlParams.get('password');
+
+            // Use sessionStorage values or URL parameters
+            const loggedInUserId = userId || urlUserId;
+            const password = userPassword || urlPassword;
+
+            // Update the UI to show logged in user
+            if (isLoggedIn === 'true' && loggedInUserId) {
+                document.getElementById('userName').textContent = loggedInUserId;
+
+                // Clear the URL parameters for security (so credentials aren't visible in URL)
+                if (urlUserId || urlPassword) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+
+                try {
+                    // Fetch the user's access level from Supabase
+                    const accessLevel = await fetchUserAccessLevel(loggedInUserId);
+
+                    if (accessLevel) {
+                        document.getElementById('accessLevel').textContent = accessLevel;
+                        setButtonAccess(accessLevel);
+                    } else {
+                        throw new Error('Could not determine access level');
+                    }
+                } catch (error) {
+                    console.error('Error setting up user access:', error);
+                    alert('Error loading access permissions. Please try logging in again.');
+                    logout();
+                }
+            } else {
+                // Redirect to main page if not logged in
+                alert('You must be logged in to access this page.');
+                window.location.href = 'index.html';
+            }
+
+            // Hide loading overlay
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+
+        // Function to handle logout
+        function logout() {
+            // Clear session storage
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('userId');
+            sessionStorage.removeItem('userPassword');
+
+            // Redirect to main page
+            window.location.href = 'index.html';
+        }
+
+        // Perform logout from modal (keeps duality clear)
+        function performLogoutFromModal() {
+            // Clear session and navigate away
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('userId');
+            sessionStorage.removeItem('userPassword');
+            // Allow the back navigation to proceed by navigating to index
+            window.location.href = 'index.html';
+        }
+
+        // Back-button intercept logic
+        (function () {
+            let modalOpen = false;
+            const overlay = document.getElementById('backConfirmOverlay');
+            const confirmBtn = document.getElementById('confirmLogoutBtn');
+            const cancelBtn = document.getElementById('cancelLogoutBtn');
+
+            function showBackConfirm() {
+                overlay.style.display = 'flex';
+                modalOpen = true;
+            }
+
+            function hideBackConfirm() {
+                overlay.style.display = 'none';
+                modalOpen = false;
+            }
+
+            confirmBtn.addEventListener('click', function () {
+                // User chose to log out and leave
+                hideBackConfirm();
+                performLogoutFromModal();
+            });
+
+            cancelBtn.addEventListener('click', function () {
+                // User chose to stay; re-push a history state so they remain here
+                hideBackConfirm();
+                try {
+                    history.pushState(null, '', window.location.href);
+                } catch (e) {
+                    // ignore
+                }
+            });
+
+            // Push an initial state so back button triggers popstate
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    history.replaceState({ initial: true }, '', window.location.href);
+                    history.pushState(null, '', window.location.href);
+                } catch (e) {
+                    // ignore
+                }
+            });
+
+            // Listen for popstate (back button)
+            window.addEventListener('popstate', function (e) {
+                // If modal already open, do nothing
+                if (modalOpen) return;
+                // Show confirmation modal instead of leaving
+                showBackConfirm();
+                // Re-push same state to prevent immediate navigation away in some browsers
+                try {
+                    history.pushState(null, '', window.location.href);
+                } catch (err) {
+                    // ignore
+                }
+            }, false);
+        })();
+
+        // Run login check when page loads
+        document.addEventListener('DOMContentLoaded', checkLogin);
+    </script>
+</body>
+
+</html>

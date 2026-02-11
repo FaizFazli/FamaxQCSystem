@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Inspection Report | Summary</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f3f4f6;
+            padding: 40px;
+        }
+
+        .report-page {
+            background: white;
+            width: 1000px;
+            margin: 0 auto;
+            padding: 50px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .pdf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 5px solid #fbbf24;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pdf-title {
+            font-size: 32px;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #000;
+            letter-spacing: -1px;
+        }
+
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        .pdf-table th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 15px 10px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .pdf-table td {
+            padding: 18px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            color: black;
+        }
+
+        .sig-box {
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 60px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .report-page {
+                box-shadow: none;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!-- Navigation Header -->
+        <div class="max-w-[1000px] mx-auto mb-6 flex justify-between items-center no-print">
+            <a href="inspectionCheckerForm.html" class="text-sm font-bold text-gray-500 hover:text-black">← Back to New
+                Entry</a>
+            <button @click="downloadPDF"
+                class="bg-yellow-400 text-black px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-yellow-500 transition-colors">
+                Download PDF Report
+            </button>
+        </div>
+
+        <!-- Report Content -->
+        <div id="report-content" class="report-page">
+            <div class="pdf-header">
+                <div>
+                    <div class="pdf-title">Quality Inspection Report</div>
+                    <div class="text-[11px] text-gray-400 font-bold mt-1 uppercase tracking-widest">FAMAX INDUSTRIAL
+                        SOLUTIONS | v2.0</div>
+                </div>
+                <div class="text-right text-sm font-black uppercase">
+                    DATE: {{ reportDate }}<br>
+                    TIME: {{ reportTime }}
+                </div>
+            </div>
+
+            <table class="pdf-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Type / JO</th>
+                        <th style="width: 25%">Part Name</th>
+                        <th style="width: 20%">Parameter</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">OK</th>
+                        <th class="text-center">RWK/SCP</th>
+                        <th class="text-right">Inspector</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(r, index) in records" :key="index">
+                        <td>
+                            <div class="font-black">{{ r.Inspection_Type }}</div>
+                            <div class="text-[11px] text-gray-400">{{ r.JO_Number }}</div>
+                        </td>
+                        <td class="font-bold">{{ r.Part_Name }}</td>
+                        <td>{{ r.Parameter }}</td>
+                        <td class="text-center font-black">{{ r.TotalCheck }}</td>
+                        <td class="text-center text-green-600 font-black">{{ r.AcceptQty }}</td>
+                        <td class="text-center text-xs text-gray-400">{{ r.ReworkQty }}/{{ r.ScrapQty }}</td>
+                        <td class="text-right font-bold">{{ r.InspectBy }}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="grid grid-cols-2 gap-20">
+                <div>
+                    <div class="sig-box">Verified By Supervisor</div>
+                    <div class="mt-2 font-bold">{{ records[0]?.FinalizeBy || '________________' }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="sig-box">Quality Control Dept.</div>
+                    <div class="text-[10px] text-gray-400 mt-2">Authorized digital document. Data synced to master
+                        server.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Global Modal Box -->
+        <div v-if="modal.isOpen"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print">
+            <div
+                class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden transform transition-all scale-100">
+                <div class="p-8 text-center">
+                    <div v-if="modal.isSuccess"
+                        class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+                        <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>
+                    </div>
+                    <div v-else class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                        <svg class="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-black text-gray-900 mb-2 uppercase">{{ modal.title }}</h3>
+                    <p class="text-gray-500 text-sm font-medium">{{ modal.message }}</p>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 flex justify-center">
+                    <button @click="closeModal"
+                        :class="modal.isSuccess ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+                        class="w-full text-white font-bold py-3 rounded-xl transition-colors uppercase text-xs tracking-widest">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+        createApp({
+            setup() {
+                const records = ref([]);
+                const reportDate = ref(new Date().toLocaleDateString('en-GB'));
+                const reportTime = ref(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }));
+
+                // Modal State
+                const modal = ref({
+                    isOpen: false,
+                    title: '',
+                    message: '',
+                    isSuccess: true,
+                    redirectTo: null
+                });
+
+                const showModal = (title, message, isSuccess, redirect = null) => {
+                    modal.value = { isOpen: true, title, message, isSuccess, redirectTo: redirect };
+                };
+
+                const closeModal = () => {
+                    modal.value.isOpen = false;
+                    if (modal.value.redirectTo) {
+                        window.location.href = modal.value.redirectTo;
+                    }
+                };
+
+                const loadLatestData = () => {
+                    const data = localStorage.getItem('last_inspection_submission');
+                    if (data) {
+                        records.value = JSON.parse(data);
+                    }
+                };
+
+                const downloadPDF = async () => {
+                    if (records.value.length === 0) return;
+
+                    const element = document.getElementById('report-content');
+                    const firstRecord = records.value[0];
+                    const fileName = `QC_HUB_${firstRecord.JO_Number || 'Report'}.pdf`;
+
+                    const opt = {
+                        margin: 0.5,
+                        filename: fileName,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+                    };
+
+                    try {
+                        // 1. Trigger local download
+                        html2pdf().set(opt).from(element).save();
+
+                        // 2. Prepare for server upload
+                        const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                        const formData = new FormData();
+                        formData.append("pdf", pdfBlob, fileName);
+                        formData.append("supervisorName", firstRecord.FinalizeBy || "Unassigned");
+                        formData.append("personName", firstRecord.InspectBy || "Unknown");
+                        formData.append("joNumber", firstRecord.JO_Number || "N/A");
+
+                        const response = await fetch('/FamaxQCSystem/QCHUBInspectionSummary', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showModal("Success", "Report downloaded and archived to QC HUB Server.", true, "inspectionCheckerForm.html");
+                        } else {
+                            showModal("Server Error", result.message, false);
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showModal("Error", "Could not complete the request.", false);
+                    }
+                };
+
+                onMounted(loadLatestData);
+                return { records, reportDate, reportTime, downloadPDF, modal, closeModal };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

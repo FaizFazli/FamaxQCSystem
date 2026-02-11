@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OQC Checking - Summary</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+    <style>
+        :root {
+            --primary-color: #1976D2;
+            --primary-light: #42a5f5;
+            --primary-dark: #0d47a1;
+            --accent-color: #FF5722;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --background-light: #f5f5f5;
+            --background-white: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --disabled-color: #cccccc;
+            --exceeded-color: #D32F2F;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            height: 70px;
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            box-shadow: 0 2px 10px var(--shadow-color);
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 1rem;
+            background-color: var(--background-white);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .info-card {
+            background-color: var(--primary-light);
+            color: var(--text-light);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            font-weight: normal;
+            margin-bottom: 0.3rem;
+            opacity: 0.9;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .exceeded {
+            background-color: #D32F2F;
+            color: white;
+        }
+
+        .exceeded-value {
+            background-color: #FFE6E6;
+            color: #D32F2F;
+            font-weight: bold;
+        }
+
+        .detail-table {
+            font-size: 12px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .detail-table th, .detail-table td {
+            padding: 6px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-table th {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .detail-table th.exceeded {
+            background-color: #D32F2F;
+            color: #ffffff;
+        }
+
+        .detail-table .range-row td {
+            background-color: #E3F2FD;
+            font-weight: 500;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        /* Visual inspection section styles */
+        .visual-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #F5F5F5;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+
+        .visual-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--primary-light);
+        }
+
+        .visual-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .visual-item {
+            background-color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .rating-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .rating-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .rating-low {
+            color: #D32F2F;
+        }
+
+        .decision-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #E3F2FD;
+            border-radius: 4px;
+        }
+
+        .remark-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #FAFAFA;
+            border-radius: 4px;
+            border: 1px solid #EEEEEE;
+        }
+
+        @media print {
+            body {
+                width: 210mm;
+                height: 297mm;
+                margin: 0;
+                padding: 0;
+            }
+
+            header, .footer, .button-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <span>OQC Checking System</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">Inspection Summary</h2>
+        
+        <div class="info-card">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Part:</span>
+                    <span class="info-value" id="selected-part"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Process:</span>
+                    <span class="info-value" id="selected-process"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Job Order:</span>
+                    <span class="info-value" id="selected-jo"></span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Person Name:</span>
+                    <span class="info-value" id="person-name"></span>
+                </div>
+            </div>
+        </div>
+    
+        <div id="summary-container">
+            <!-- Inspection summary will be added dynamically -->
+        </div>
+
+        <div id="visual-container" class="visual-section">
+            <h3 class="visual-title">Visual Inspection Results</h3>
+            <div class="visual-grid" id="visual-grid">
+                <!-- Visual inspection results will be added dynamically -->
+            </div>
+            <div class="decision-section" id="decision-section">
+                <!-- QC Decision will be added dynamically -->
+            </div>
+            <div class="remark-section" id="remark-section">
+                <!-- QC Remark will be added dynamically -->
+            </div>
+        </div>
+    
+        <div class="button-container">
+            <button id="finish-btn" class="btn btn-primary">Finish</button>
+        </div>
+    </div>
+    
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const partName = urlParams.get('part');
+            const processName = urlParams.get('process');
+            const joNumber = urlParams.get('jo');
+            const personName = urlParams.get('name');
+    
+            // Display the values in elements
+            document.getElementById('selected-part').textContent = partName || 'Not provided';
+            document.getElementById('selected-process').textContent = processName || 'Not provided';
+            document.getElementById('selected-jo').textContent = joNumber || 'Not provided';
+            document.getElementById('person-name').textContent = personName || 'Not provided';
+    
+            // Get submitted readings from URL parameters
+            //const readings = JSON.parse(decodeURIComponent(urlParams.get('readings') || '[]'));
+            
+            // Get visual inspection data from URL parameters
+            //const visualData = urlParams.get('visualData') ? JSON.parse(decodeURIComponent(urlParams.get('visualData'))) : null;
+
+
+
+            const readings = JSON.parse(localStorage.getItem('oqcReadings') || '[]');
+            const visualData = JSON.parse(localStorage.getItem('oqcVisualData') || 'null');
+    
+            // Display inspection summary
+            const summaryContainer = document.getElementById('summary-container');
+            readings.forEach((zone, index) => {
+                const zoneElement = document.createElement('div');
+                zoneElement.innerHTML = `
+                    <h3>Zone ${index + 1}: ${zone.Point_DWG_Zone || (index + 1)}</h3>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Measurement</th>
+                                ${['Reading_1', 'Reading_2', 'Reading_3', 'Reading_4', 'Reading_5'].map(key => {
+                                    // Convert values to numbers for comparison
+                                    const reading = parseFloat(zone[key]);
+                                    const min = parseFloat(zone.Min);
+                                    const max = parseFloat(zone.Max);
+                                    
+                                    // Check if the reading is out of range
+                                    const isExceeded = !isNaN(reading) && 
+                                        ((!isNaN(min) && reading < min) || (!isNaN(max) && reading > max));
+                                    
+                                    // Special case for text comparisons like 'OK' and 'NG'
+                                    const isTextExceeded = typeof zone[key] === 'string' && typeof zone.Min === 'string' && 
+                                        (zone.Min.toLowerCase() === 'ok' && zone[key].toLowerCase() !== 'ok') ||
+                                        (typeof zone.Max === 'string' && zone.Max.toLowerCase() === 'ng' && zone[key].toLowerCase() === 'ng');
+                                    
+                                    return `
+                                        <th${(isExceeded || isTextExceeded) ? ' class="exceeded"' : ''}>
+                                            ${key.replace('_', ' ')}
+                                        </th>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Range: ${zone.Min || 'N/A'} - ${zone.Max || 'N/A'}</td>
+                                ${['Reading_1', 'Reading_2', 'Reading_3', 'Reading_4', 'Reading_5'].map(key => {
+                                    // Convert values to numbers for comparison
+                                    const reading = parseFloat(zone[key]);
+                                    const min = parseFloat(zone.Min);
+                                    const max = parseFloat(zone.Max);
+                                    
+                                    // Check if the reading is out of range
+                                    const isExceeded = !isNaN(reading) && 
+                                        ((!isNaN(min) && reading < min) || (!isNaN(max) && reading > max));
+                                    
+                                    // Special case for text comparisons like 'OK' and 'NG'
+                                    const isTextExceeded = typeof zone[key] === 'string' && typeof zone.Min === 'string' && 
+                                        (zone.Min.toLowerCase() === 'ok' && zone[key].toLowerCase() !== 'ok') ||
+                                        (typeof zone.Max === 'string' && zone.Max.toLowerCase() === 'ng' && zone[key].toLowerCase() === 'ng');
+                                    
+                                    return `
+                                        <td${(isExceeded || isTextExceeded) ? ' class="exceeded-value"' : ''}>
+                                            ${zone[key] || 'N/A'}
+                                        </td>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                summaryContainer.appendChild(zoneElement);
+            });
+
+            // Display visual inspection results if available
+            if (visualData) {
+                const visualGrid = document.getElementById('visual-grid');
+                const decisionSection = document.getElementById('decision-section');
+                const remarkSection = document.getElementById('remark-section');
+
+                // Create visual inspection criteria items
+                const criteria = [
+                    { id: 'hardness', label: 'Hardness' },
+                    { id: 'finishing', label: 'Finishing' },
+                    { id: 'noBurr', label: 'No Burr' },
+                    { id: 'noDented', label: 'No Dented' },
+                    { id: 'noScratches', label: 'No Scratches' },
+                    { id: 'plating', label: 'Plating' },
+                    { id: 'flatness', label: 'Flatness' },
+                    { id: 'roundness', label: 'Roundness' }
+                ];
+
+                criteria.forEach(item => {
+                    const rating = parseInt(visualData[item.id]);
+                    const visualItem = document.createElement('div');
+                    visualItem.className = 'visual-item';
+                    visualItem.innerHTML = `
+                        <div class="rating-label">${item.label}:</div>
+                        <div class="rating-value ${rating < 3 ? 'rating-low' : ''}">
+                            ${rating}/5
+                        </div>
+                    `;
+                    visualGrid.appendChild(visualItem);
+                });
+
+
+                // Add QC Remark
+                remarkSection.innerHTML = `
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">QC Remark:</div>
+                    <div style="font-style: italic;">
+                        "${visualData.qcRemark}"
+                    </div>
+                `;
+            } else {
+                // Hide visual section if no data available
+                document.getElementById('visual-container').style.display = 'none';
+            }
+
+            // Add event listener to finish button
+            document.getElementById('finish-btn').addEventListener('click', function() {
+                window.print();
+
+                // Wait for a short delay to allow the print dialog to appear
+                setTimeout(function() {
+                    // Clear localStorage
+                    localStorage.removeItem('oqcReadings');
+                    localStorage.removeItem('oqcVisualData');
+
+                    // Redirect to mainpage1.html
+                    window.location.href = 'index.html';
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

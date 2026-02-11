@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Order Management</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --focus-ring: rgba(0, 120, 212, 0.25);
+            --input-height: 46px;
+            --radius: 8px;
+            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Navigation --- */
+        .nav-top {
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        /* --- Tab Switcher --- */
+        .tab-container {
+            background: #e5e7eb;
+            padding: 4px;
+            border-radius: 10px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Main Card --- */
+        .main-card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 900px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .main-card.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header */
+        .card-header {
+            background: var(--primary);
+            padding: 24px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-badge {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        /* --- Form Elements --- */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            height: var(--input-height);
+            padding: 0 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-family: "Inter", sans-serif;
+            font-size: 14px;
+            color: var(--text-main);
+            background-color: #fff;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        /* --- Select2 Overrides --- */
+        .select2-container .select2-selection--single {
+            height: var(--input-height) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--radius) !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-left: 12px !important;
+            color: var(--text-main) !important;
+            font-size: 14px !important;
+        }
+
+        /* --- New Process Selector UI --- */
+        .process-selection-container {
+            grid-column: span 2;
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .process-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .process-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .process-item:hover {
+            border-color: var(--primary);
+        }
+
+        .process-item input {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+
+        .process-item span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* --- Buttons --- */
+        .btn-action {
+            width: 100%;
+            height: 48px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+        }
+
+        /* --- Table --- */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f9fafb;
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 600;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            vertical-align: middle;
+        }
+
+        .badge-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-completed {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        /* --- Loading Overlay --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- Modal --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 450px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loading-text" style="font-size: 14px; color: var(--text-muted)">
+            Loading...
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-top">
+        <a onclick="goBack()" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </a>
+
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="switchView('update')">
+                Update JO
+            </button>
+            <button class="tab-btn" onclick="switchView('create')">
+                Create New
+            </button>
+            <button class="tab-btn" onclick="switchView('history')">History</button>
+        </div>
+    </div>
+
+    <!-- CARD 1: Update JO -->
+    <div id="card-update" class="main-card active">
+        <div class="card-header">
+            <h1>Update Job Order</h1>
+            <div class="user-badge" id="userName">Admin</div>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label>Search Part Name (Active Only)</label>
+                <select id="part-name" class="select2">
+                    <option value=""></option>
+                </select>
+            </div>
+
+            <div id="jo-results" style="display: none">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40px">
+                                    <input type="checkbox" id="select-all" />
+                                </th>
+                                <th>JO Number</th>
+                                <th>Part Name</th>
+                                <th>Process</th>
+                                <th>Qty</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jo-table-body"></tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end">
+                    <button class="btn-action btn-success" style="width: auto; padding: 0 25px"
+                        onclick="confirmUpdateStatus()">
+                        Mark Completed
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD 2: Create JO -->
+    <div id="card-create" class="main-card">
+        <div class="card-header">
+            <h1>Create Job Order</h1>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>JO Number</label>
+                    <input type="text" id="new-jo-number" placeholder="e.g. JO-2023-001" />
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="new-quantity" placeholder="0" />
+                </div>
+                <div class="form-group" style="grid-column: span 2">
+                    <label>Part Name</label>
+                    <select id="new-part-name" class="select2">
+                        <option></option>
+                    </select>
+                </div>
+
+                <!-- PROCESS SELECTOR -->
+                <div class="process-selection-container">
+                    <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+                        <label style="margin: 0">Select Processes to Create</label>
+                        <button type="button" class="btn-refresh" onclick="selectAllProcesses(true)"
+                            style="font-size: 11px">
+                            Select All
+                        </button>
+                    </div>
+                    <div id="process-grid" class="process-grid">
+                        <div style="
+                  color: var(--text-muted);
+                  font-size: 13px;
+                  font-style: italic;
+                ">
+                            Select a Part Name First...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-action" onclick="confirmAddJobOrder()">
+                Create Job Orders
+            </button>
+        </div>
+    </div>
+
+    <!-- CARD 3: History -->
+    <div id="card-history" class="main-card">
+        <div class="card-header">
+            <h1>Job Order History</h1>
+        </div>
+        <div class="card-body">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px">
+                <input type="text" id="history-search" placeholder="Search..." style="flex: 1"
+                    onkeyup="if(event.key === 'Enter') loadHistory()" />
+                <button class="btn-action" style="width: auto; padding: 0 25px" onclick="loadHistory()">
+                    Search
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>JO Number</th>
+                            <th>Part Name</th>
+                            <th>Date Created</th>
+                            <th>Date Completed</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle" style="font-weight: 700; font-size: 18px; margin-bottom: 10px">
+                Confirm
+            </div>
+            <div class="modal-body" id="modalMessage">Are you sure?</div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-confirm" id="modalConfirmBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) System.</div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const supabaseClient = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+                Prefer: "return=representation",
+            },
+        });
+
+        let currentUser = { userId: null };
+        let jobOrdersData = [];
+
+        $(document).ready(function () {
+            $("#loading-overlay").css("display", "flex");
+            checkLogin();
+            $(".select2").select2({
+                width: "100%",
+                placeholder: "Select...",
+                allowClear: true,
+            });
+             $(".select2").on("select2:open", function () {
+                setTimeout(function () {
+                    document
+                        .querySelector(".select2-container--open .select2-search__field")
+                        ?.focus();
+                }, 0);
+            });
+
+            $("#part-name").on("select2:select", searchJobOrders);
+
+            // UPDATED: Listen for change on part name. 
+            // If empty (cleared), reset the process grid.
+            $("#new-part-name").on("change", function () {
+                const val = $(this).val();
+                if (!val) {
+                    $("#process-grid").html(
+                        '<div style="color: var(--text-muted); font-size: 13px; font-style: italic;">Select a Part Name First...</div>'
+                    );
+                } else {
+                    loadProcessesUI(val);
+                }
+            });
+
+            $("#select-all").change(function () {
+                $(".jo-checkbox").prop("checked", $(this).prop("checked"));
+            });
+        });
+
+        async function checkLogin() {
+            const userId = sessionStorage.getItem("userId");
+            if (!userId) {
+                window.location.href = "index.html";
+                return;
+            }
+            $("#userName").text(userId);
+            currentUser.userId = userId;
+            loadPartNames();
+            $("#loading-overlay").hide();
+        }
+
+        async function loadPartNames() {
+            try {
+                const [joRes, partsRes] = await Promise.all([
+                    supabaseClient.get("/rest/v1/JobOrder", {
+                        params: { select: "Part_Name", Status: "eq.active" },
+                    }),
+                    supabaseClient.get("/rest/v1/Parts", {
+                        params: { select: "Part_Name" },
+                    }),
+                ]);
+                const activeParts = [
+                    ...new Set(joRes.data.map((i) => i.Part_Name)),
+                ].sort();
+                activeParts.forEach((p) => $("#part-name").append(new Option(p, p)));
+                const allParts = [
+                    ...new Set(partsRes.data.map((i) => i.Part_Name)),
+                ].sort();
+                allParts.forEach((p) => $("#new-part-name").append(new Option(p, p)));
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadProcessesUI(partName) {
+            const container = $("#process-grid");
+            container.html(
+                '<div style="font-size:13px;">Fetching processes...</div>'
+            );
+
+            try {
+                const { data } = await supabaseClient.get("/rest/v1/Parts", {
+                    params: { select: "Process", Part_Name: `eq.${partName}` },
+                });
+
+                container.empty();
+                if (data.length > 0 && data[0].Process) {
+                    let proc = data[0].Process;
+                    if (typeof proc === "string") {
+                        try {
+                            proc = JSON.parse(proc);
+                        } catch (e) {
+                            proc = [proc];
+                        }
+                    }
+
+                    if (Array.isArray(proc)) {
+                        proc.forEach((p, idx) => {
+                            container.append(`
+                                <label class="process-item">
+                                    <input type="checkbox" class="process-check" value="${p}" checked>
+                                    <span>${p}</span>
+                                </label>
+                            `);
+                        });
+                    }
+                } else {
+                    container.html(
+                        '<div style="color:red; font-size:13px;">No processes defined for this part.</div>'
+                    );
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function selectAllProcesses(val) {
+            $(".process-check").prop("checked", val);
+        }
+
+        async function searchJobOrders() {
+            const part = $("#part-name").val();
+            if (!part) return;
+            $("#loading-overlay").css("display", "flex");
+            try {
+                const { data } = await supabaseClient.get("/rest/v1/JobOrder", {
+                    params: {
+                        select: "*",
+                        Status: "eq.active",
+                        Part_Name: `eq.${part}`,
+                    },
+                });
+                jobOrdersData = data;
+                const tbody = $("#jo-table-body").empty();
+                data.forEach((jo, idx) => {
+                    tbody.append(`
+                        <tr>
+                            <td><input type="checkbox" class="jo-checkbox" data-idx="${idx}"></td>
+                            <td style="font-weight:600;">${jo.JO_Number}</td>
+                            <td>${jo.Part_Name}</td>
+                            <td>${jo.Process}</td>
+                            <td>${jo.Quantity}</td>
+                            <td><span class="badge-status status-active">Active</span></td>
+                        </tr>
+                    `);
+                });
+                $("#jo-results").fadeIn();
+            } catch (e) {
+                showToast("Error", "error");
+            }
+            $("#loading-overlay").hide();
+        }
+
+        function confirmAddJobOrder() {
+            const joNum = $("#new-jo-number").val();
+            const part = $("#new-part-name").val();
+            const qty = $("#new-quantity").val();
+            const selectedProcs = [];
+            $(".process-check:checked").each(function () {
+                selectedProcs.push($(this).val());
+            });
+
+            if (!joNum || !part || !qty || selectedProcs.length === 0) {
+                return showToast(
+                    "Fill all fields and select at least one process",
+                    "error"
+                );
+            }
+
+            openModal(
+                "Create Job Orders",
+                `This will create <b>${selectedProcs.length}</b> rows (one for each process). Continue?`,
+                async () => {
+                    closeModal();
+                    $("#loading-overlay").css("display", "flex");
+                    $("#loading-text").text(
+                        `Creating ${selectedProcs.length} records...`
+                    );
+
+                    try {
+                        for (const proc of selectedProcs) {
+                            await supabaseClient.post("/rest/v1/JobOrder", {
+                                JO_Number: joNum,
+                                Part_Name: part,
+                                Process: proc,
+                                Quantity: qty,
+                                Status: "active",
+                                Created_By: currentUser.userId,
+                            });
+                        }
+
+                        showToast(
+                            `Successfully created ${selectedProcs.length} Job Orders`,
+                            "success"
+                        );
+
+                        $("#new-jo-number, #new-quantity").val("");
+                        $("#new-part-name").val(null).trigger("change");
+
+                        switchView("update");
+                    } catch (e) {
+                        showToast("Failed to create some orders", "error");
+                    }
+                    $("#loading-overlay").hide();
+                    $("#loading-text").text("Loading...");
+                }
+            );
+        }
+
+        async function confirmUpdateStatus() {
+            const selected = $(".jo-checkbox:checked");
+            if (selected.length === 0)
+                return showToast("Select at least one JO", "error");
+
+            openModal(
+                "Complete JO",
+                `Mark ${selected.length} orders as Completed?`,
+                async () => {
+                    closeModal();
+                    $("#loading-overlay").css("display", "flex");
+                    try {
+                        const now = new Date().toISOString();
+                        for (let i = 0; i < selected.length; i++) {
+                            const idx = $(selected[i]).data("idx");
+                            const jo = jobOrdersData[idx];
+                            await supabaseClient.patch(
+                                "/rest/v1/JobOrder",
+                                { Status: "Completed", completed_at: now },
+                                { params: { id: `eq.${jo.id}` } }
+                            );
+                        }
+                        showToast("Updated Successfully", "success");
+                        searchJobOrders();
+                    } catch (e) {
+                        showToast("Error", "error");
+                    }
+                    $("#loading-overlay").hide();
+                }
+            );
+        }
+
+        async function loadHistory() {
+            const search = $("#history-search").val();
+            try {
+                const params = {
+                    select: "*",
+                    Status: "eq.Completed",
+                    order: "completed_at.desc",
+                    limit: 50,
+                };
+                if (search)
+                    params.or = `(JO_Number.ilike.*${search}*,Part_Name.ilike.*${search}*)`;
+
+                const { data } = await supabaseClient.get("/rest/v1/JobOrder", {
+                    params,
+                });
+                const tbody = $("#history-table-body").empty();
+                data.forEach((item) => {
+                    tbody.append(`
+                        <tr>
+                            <td>${item.JO_Number}</td>
+                            <td>${item.Part_Name} <br><small>${item.Process
+                        }</small></td>
+                            <td>${new Date(
+                            item.created_at
+                        ).toLocaleDateString()}</td>
+                            <td>${new Date(
+                            item.completed_at
+                        ).toLocaleDateString()}</td>
+                            <td><span class="badge-status status-completed">Completed</span></td>
+                        </tr>
+                    `);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function switchView(view) {
+            $(".main-card").removeClass("active");
+            $(`#card-${view}`).addClass("active");
+            $(".tab-btn").removeClass("active");
+            $(
+                `.tab-btn:contains('${view === "create"
+                    ? "Create"
+                    : view === "update"
+                        ? "Update"
+                        : "History"
+                }')`
+            ).addClass("active");
+            if (view === "history") loadHistory();
+        }
+
+        function openModal(title, msg, action) {
+            $("#modalTitle").text(title);
+            $("#modalMessage").html(msg);
+            $("#modalConfirmBtn").off("click").on("click", action);
+            $("#confirmModal").css("display", "flex");
+        }
+        function closeModal() {
+            $("#confirmModal").hide();
+        }
+        function showToast(msg, type) {
+            Toastify({
+                text: msg,
+                duration: 3000,
+                style: { background: type === "error" ? "#ef4444" : "#10b981" },
+            }).showToast();
+        }
+        function goBack() {
+            window.location.href = "AdminLogin.html";
+        }
+    </script>
+</body>
+
+</html>

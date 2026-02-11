@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Generate Report</title>
+  <!-- Add /FamaxQCSystem to the beginning of the path -->
+  <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- JQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Select2 CSS & JS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <!-- Axios & ExcelJS -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #005a9e;
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --danger: #ef4444;
+      --focus-ring: rgba(0, 120, 212, 0.25);
+      --input-height: 46px;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .nav-top {
+      width: 100%;
+      max-width: 550px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+    }
+
+    .report-card {
+      background: var(--bg-card);
+      width: 100%;
+      max-width: 550px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .card-header {
+      background: var(--primary);
+      padding: 24px 30px;
+      color: white;
+    }
+
+    .card-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-body {
+      padding: 30px;
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0 0 24px 0;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .btn-link-small {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+
+    .type-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      background: #f0f9ff;
+      padding: 10px;
+      border-radius: var(--radius);
+      border: 1px solid #bae6fd;
+    }
+
+    .type-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-dark);
+      cursor: pointer;
+    }
+
+    .period-toggle {
+      display: flex;
+      background-color: #f3f4f6;
+      padding: 4px;
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+    }
+
+    .period-option {
+      flex: 1;
+      position: relative;
+    }
+
+    .period-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .period-option span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .period-option input[type="radio"]:checked+span {
+      background-color: white;
+      color: var(--primary);
+      font-weight: 600;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    input[type="date"],
+    input[type="month"] {
+      width: 100%;
+      height: var(--input-height);
+      padding: 0 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 14px;
+    }
+
+    .select2-container {
+      width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--single {
+      height: var(--input-height) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: var(--radius) !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: var(--border-color);
+      margin: 20px 0;
+    }
+
+    button#btnDownload {
+      width: 100%;
+      height: 48px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button#btnDownload:disabled {
+      background-color: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .preview-box {
+      background-color: #eff6ff;
+      border-left: 4px solid var(--primary);
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1e3a8a;
+    }
+
+    .error-message {
+      color: var(--danger);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .stat {
+      font-size: 13px;
+      color: #059669;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: white;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      max-height: 80vh;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .active-part-item {
+      display: block;
+      padding: 10px;
+      margin-bottom: 6px;
+      background-color: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="nav-top">
+    <a onclick="goBack()" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Dashboard
+    </a>
+  </div>
+
+  <div class="report-card">
+    <div class="card-header">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        Report Generator
+      </h1>
+    </div>
+
+    <div class="card-body">
+      <form id="reportForm" novalidate>
+        <div class="type-toggle">
+          <label class="type-option"><input type="radio" name="reportType" value="detail" checked
+              onchange="toggleReportType()" /><span>Detailed Check Sheet</span></label>
+          <label class="type-option"><input type="radio" name="reportType" value="summary"
+              onchange="toggleReportType()" /><span>Monthly Summary</span></label>
+        </div>
+
+        <fieldset>
+          <label>Select Period</label>
+          <div class="period-toggle">
+            <label class="period-option"><input type="radio" name="period" value="daily"
+                checked /><span>Daily</span></label>
+            <label class="period-option"><input type="radio" name="period" value="weekly" /><span>Weekly</span></label>
+            <label class="period-option"><input type="radio" name="period"
+                value="monthly" /><span>Monthly</span></label>
+          </div>
+        </fieldset>
+
+        <fieldset id="partSelectionContainer">
+          <div class="form-group">
+            <div class="label-row">
+              <label for="part-name">Select Part Name</label>
+              <button type="button" class="btn-link-small" onclick="openActivePartsModal()">Show Active Parts</button>
+            </div>
+            <select id="part-name" class="searchable-dropdown">
+              <option value=""></option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset id="controls">
+          <div class="control" data-for="daily"><label>Date</label><input type="date" id="day" /></div>
+          <div class="control" data-for="weekly" hidden><label>From Date</label><input type="date"
+              id="weekFrom" /><label>To Date</label><input type="date" id="weekTo" /></div>
+          <div class="control" data-for="monthly" hidden><label>Month & Year</label><input type="month" id="month" />
+          </div>
+        </fieldset>
+
+        <div id="rangePreview" class="preview-box" hidden></div>
+        <div id="errors" class="error-message"></div>
+        <div class="divider"></div>
+
+        <div class="actions">
+          <button type="submit" id="btnDownload" disabled>Download Report</button>
+          <div id="stats" class="stat" hidden></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="partsModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>Active Parts</h3>
+          <span style="cursor: pointer; font-size: 24px;" onclick="closeActivePartsModal()">&times;</span>
+        </div>
+        <!-- Added the counter here -->
+        <div id="activePartsCount"
+          style="font-size: 13px; color: var(--primary); font-weight: 600; margin-bottom: 8px;">Total Items: 0</div>
+        <input type="date" id="modalSearchDate" style="width: 100%;" />
+      </div>
+      <div id="activePartsList" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
+    const SUPABASE_URL = "http://192.168.0.5:8000";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+    const api = axios.create({
+      baseURL: SUPABASE_URL,
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+    });
+
+    const qs = (s) => document.querySelector(s);
+    const $$ = (s) => Array.from(document.querySelectorAll(s));
+    function goBack() { window.location.href = "AdminLogin.html"; }
+    function parseYMD(s) { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+    function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    function safeNum(v) { if (v === 0 || v === "0") return 0; if (v == null || v === "") return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
+    function getMYTHour(iso) {
+      if (!iso) return 0;
+      // This extracts the "14" directly from "2025-12-29 14:12:06..."
+      try {
+        const timePart = iso.split(' ')[1]; // Get "14:12:06"
+        return parseInt(timePart.split(':')[0], 10); // Get 14
+      } catch (e) {
+        return new Date(iso).getHours();
+      }
+    }
+    async function getImageBuffer(url) { const response = await fetch(url); if (!response.ok) throw new Error(`Could not load image: ${url}`); return await response.arrayBuffer(); }
+
+    $(document).ready(() => {
+      $(".searchable-dropdown").select2({ placeholder: "Search Part Name", allowClear: true });
+      loadPartsList();
+      const now = new Date().toISOString().split("T")[0];
+      $("#day, #weekFrom, #weekTo").val(now);
+      $("#month").val(now.substring(0, 7));
+      updateUI();
+      $("#modalSearchDate").on("change", function () {
+        const selectedDate = this.value;
+        $("#day").val(selectedDate).trigger("input"); // Sync main page date and trigger UI update
+        fetchActiveParts(selectedDate);
+      });
+      // $("#modalSearchDate").on("change", function () { fetchActiveParts(this.value); });
+    });
+
+    async function loadPartsList() {
+      try {
+        const res = await api.get("/rest/v1/Parts?select=Part_Name");
+        const unique = [...new Set(res.data.map((i) => i.Part_Name))].sort();
+        const $sel = $("#part-name");
+        // $sel.append(new Option("-- ALL PARTS --", "ALL"));
+        unique.forEach((p) => $sel.append(new Option(p, p)));
+      } catch (e) { console.error("Parts load error", e); }
+    }
+
+    function openActivePartsModal() { const modal = qs("#partsModal"); const mainDate = qs("#day").value; qs("#modalSearchDate").value = mainDate; modal.classList.add("open"); fetchActiveParts(mainDate); }
+    function closeActivePartsModal() { qs("#partsModal").classList.remove("open"); }
+
+    async function fetchActiveParts(dateStr) {
+      const list = qs("#activePartsList");
+      const countDisplay = qs("#activePartsCount"); // Get the counter element
+
+      list.innerHTML = "Loading...";
+      if (!dateStr) {
+        countDisplay.textContent = "Total Items: 0";
+        return;
+      }
+
+      try {
+        const start = parseYMD(dateStr);
+        const end = addDays(start, 1);
+        const res = await api.get(`/rest/v1/Data_IPQC?select=Part_Name&created_at=gte.${start.toISOString()}&created_at=lt.${end.toISOString()}`);
+
+        const unique = [...new Set(res.data.map((i) => i.Part_Name))].sort();
+
+        // Update the counter
+        countDisplay.textContent = `Total Items: ${unique.length}`;
+
+        if (unique.length === 0) {
+          list.innerHTML = "No active parts for this date.";
+          return;
+        }
+
+        list.innerHTML = "";
+        unique.forEach((name) => {
+          const btn = document.createElement("button");
+          btn.className = "active-part-item";
+          btn.textContent = name;
+          btn.onclick = () => {
+            $("#part-name").val(name).trigger("change");
+            closeActivePartsModal();
+          };
+          list.appendChild(btn);
+        });
+      } catch (e) {
+        list.innerHTML = "Error loading active parts.";
+        countDisplay.textContent = "Total Items: 0";
+      }
+    }
+
+    function toggleReportType() {
+      const type = qs('input[name="reportType"]:checked').value; const isSummary = type === "summary";
+      qs("#partSelectionContainer").hidden = isSummary;
+      $$('input[name="period"]').forEach((r) => { r.disabled = isSummary && r.value !== "monthly"; if (isSummary && r.value === "monthly") r.checked = true; });
+      setVisiblePeriod(qs('input[name="period"]:checked').value); updateUI();
+    }
+
+    function setVisiblePeriod(p) { $$("#controls [data-for]").forEach((el) => (el.hidden = el.getAttribute("data-for") !== p)); }
+    function updateUI() {
+      const period = qs('input[name="period"]:checked').value; const type = qs('input[name="reportType"]:checked').value;
+      const { start, errs } = computeRange(period); const partVal = $("#part-name").val();
+      qs("#btnDownload").disabled = !!errs.length || (type === "detail" && !partVal);
+      qs("#errors").textContent = errs.join(" "); qs("#rangePreview").hidden = !start;
+      if (start) qs("#rangePreview").textContent = `${type === "summary" ? "Monthly Summary" : "Check Sheet"} • ${period}`;
+    }
+
+    function computeRange(period) {
+      let start, end, errs = [];
+      if (period === "daily") { start = parseYMD($("#day").val()); if (!start) errs.push("Select date"); else end = addDays(start, 1); }
+      else if (period === "weekly") { start = parseYMD($("#weekFrom").val()); end = addDays(parseYMD($("#weekTo").val()), 1); if (!start || !$("#weekTo").val()) errs.push("Select range"); }
+      else { const v = $("#month").val(); if (!v) errs.push("Select month"); else { const [y, m] = v.split("-").map(Number); start = new Date(y, m - 1, 1); end = new Date(y, m, 1); } }
+      return { start, end, errs };
+    }
+
+    $$('input[name="period"]').forEach((r) => r.addEventListener("change", (e) => { setVisiblePeriod(e.target.value); updateUI(); }));
+    $("#day, #weekFrom, #weekTo, #month").on("input", updateUI);
+    $("#part-name").on("change", updateUI);
+
+    qs("#reportForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const type = qs('input[name="reportType"]:checked').value; const period = qs('input[name="period"]:checked').value;
+      const part = $("#part-name").val(); const { start, end } = computeRange(period);
+      try {
+        qs("#btnDownload").disabled = true; qs("#stats").hidden = false; qs("#stats").textContent = "Processing...";
+        if (type === "summary") { const rows = await fetchData(start, end, null); await buildMonthlySummaryExcel(rows, $("#month").val()); }
+        else if (period === "daily" && part !== "ALL") {
+          const [resRows, resMeta] = await Promise.all([fetchData(start, end, part), api.get(`/rest/v1/Parts?Part_Name=eq.${part}&select=*`)]);
+          if (!resRows.length) throw new Error("No records found."); await buildProcessCategorizedExcel(resRows, resMeta.data[0] || {});
+        } else {
+          const rows = await fetchData(start, end, part === "ALL" ? null : part);
+          if (!rows.length) throw new Error("No records found."); await buildAndDownloadDynamicExcel(rows, `${period}_${part}`, period);
+        }
+        qs("#stats").textContent = "Download Complete!";
+      } catch (err) { qs("#errors").textContent = err.message; } finally { qs("#btnDownload").disabled = false; }
+    });
+
+    async function fetchData(start, end, part) {
+      let url = `/rest/v1/Data_IPQC?select=*&created_at=gte.${start.toISOString()}&created_at=lt.${end.toISOString()}&order=created_at.asc`;
+      if (part) url += `&Part_Name=eq.${part}`;
+      const res = await api.get(url); return res.data;
+    }
+
+    // --- MAIN EXCEL GENERATOR ---
+    async function buildProcessCategorizedExcel(rows, meta) {
+      const resp = await fetch(TEMPLATE_URL);
+      const arrayBuffer = await resp.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+      const templateSheet = workbook.worksheets[0];
+      let dateInspect = "";
+
+      const [famaxBuf, confBuf] = await Promise.all([
+        getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
+        getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
+      ]);
+      const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
+      const logoConfidential = workbook.addImage({ buffer: confBuf, extension: "png" });
+
+      const rawProcessData = meta.Process_Sequence || meta.process || meta.Process || "[]";
+      let processList = [];
+      try {
+        processList = typeof rawProcessData === "string" ? JSON.parse(rawProcessData) : rawProcessData;
+      } catch (e) { }
+      const totalProcessCount = Array.isArray(processList) ? processList.length : 0;
+
+      const dataByGroup = {};
+      rows.forEach((r) => {
+        const m = r.Machine || "N/A", p = r.Process || "Unknown", i = r.Person || "";
+        const key = `${p} | ${m}`;
+        if (!dataByGroup[key]) dataByGroup[key] = { process: p, machine: m, records: [], inspector: i };
+        dataByGroup[key].records.push(r);
+      });
+
+      Object.keys(dataByGroup).forEach((groupKey, idx) => {
+        let ws;
+        // 1. Clean the name of invalid characters
+        let baseName = groupKey.replace(/[:\\/?*\[\]]/g, "_");
+
+        // 2. Logic to prevent duplicate names and stay under 31 characters
+        let finalName = baseName.substring(0, 31);
+        let counter = 1;
+
+        // While a sheet with this name already exists, try a new name with a suffix (e.g. _1)
+        while (workbook.getWorksheet(finalName)) {
+          let suffix = `_${counter}`;
+          // Cut the base name shorter to make room for the suffix
+          finalName = baseName.substring(0, 31 - suffix.length) + suffix;
+          counter++;
+        }
+
+        // 3. Add the worksheet with the unique name
+        ws = workbook.addWorksheet(finalName);
+        copySheetFormat(templateSheet, ws);
+
+        const group = dataByGroup[groupKey];
+        const currentProcessName = (group.process || "").trim().toUpperCase();
+        let currentProcessIndex = Array.isArray(processList) ? processList.findIndex((p) => String(p).trim().toUpperCase() === currentProcessName) : -1;
+        const currentProcessNumber = currentProcessIndex !== -1 ? currentProcessIndex + 1 : "";
+
+        const ptGroups = {};
+        group.records.forEach((r) => {
+          const pt = r.Point_DWG_Zone || "Unknown";
+          if (!ptGroups[pt]) ptGroups[pt] = [];
+          ptGroups[pt].push(r);
+        });
+        const sortedPts = Object.keys(ptGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+        const pointsPerTable = 12;
+        const totalTablesNeeded = Math.ceil(sortedPts.length / pointsPerTable);
+        const rowsPerTableBlock = 50;
+
+        for (let tableIdx = 0; tableIdx < totalTablesNeeded; tableIdx++) {
+          const rowOffset = tableIdx * rowsPerTableBlock;
+          if (tableIdx > 0) copyTemplateToBottom(ws, 1, 46, rowOffset + 1);
+
+          ws.addImage(logoFamax, { tl: { col: 0, row: rowOffset }, ext: { width: 125, height: 51 } });
+          ws.addImage(logoConfidential, { tl: { col: 18, row: rowOffset }, ext: { width: 189, height: 56 } });
+
+          // --- RESTORED ALL YOUR INPUT DATA FIELDS ---
+          ws.getCell(4 + rowOffset, 3).value = meta.Part_Name || "";
+          ws.getCell(5 + rowOffset, 3).value = meta.Part_Number || "";
+          ws.getCell(6 + rowOffset, 3).value = meta.Raw_Material || "";
+          ws.getCell(7 + rowOffset, 3).value = meta.Raw_Material_Grade || "";
+          ws.getCell(8 + rowOffset, 3).value = meta.Raw_Material_Size || "";
+          ws.getCell(9 + rowOffset, 3).value = group.process;
+          ws.getCell(10 + rowOffset, 3).value = currentProcessNumber;
+          ws.getCell(10 + rowOffset, 5).value = totalProcessCount > 0 ? totalProcessCount : "";
+          ws.getCell(4 + rowOffset, 19).value = meta.WI_Number || "";
+          ws.getCell(5 + rowOffset, 19).value = meta.Drawing_Number || "";
+          ws.getCell(6 + rowOffset, 19).value = meta.Revision_No || "";
+          ws.getCell(10 + rowOffset, 19).value = group.machine || "";
+          ws.getCell(11 + rowOffset, 17).value = group.records[0].JO_Number || "";
+          ws.getCell(45 + rowOffset, 17).value = group.inspector || "";
+
+          if (group.records.length > 0) {
+            const dateCell = ws.getCell(46 + rowOffset, 18);
+            dateCell.value = new Date(group.records[0].created_at);
+            dateCell.numFmt = "dd/mm/yyyy";
+            dateInspect = new Date(group.records[0].created_at).toISOString().split('T')[0];
+          }
+
+          const pointsInThisTable = sortedPts.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
+
+          pointsInThisTable.forEach((pt, pIdxInTable) => {
+            const morningRow = 14 + pIdxInTable + rowOffset;
+            const afternoonRow = 27 + pIdxInTable + rowOffset;
+            const info = ptGroups[pt][0];
+
+            // ws.getCell(morningRow, 1).value = info.Point_DWG_Zone;
+            // ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
+            // ws.getCell(morningRow, 4).value = info.LSL_OK;
+            // ws.getCell(morningRow, 5).value = info.USL_NG;
+
+            const pzVal = safeNum(info.Point_DWG_Zone);
+
+            ws.getCell(morningRow, 1).value = pzVal !== null ? pzVal : info.Point_DWG_Zone;
+            ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
+            // If safeNum returns a number, use it; otherwise, keep the original (e.g., for "OK")
+            const lslVal = safeNum(info.LSL_OK);
+            ws.getCell(morningRow, 4).value = lslVal !== null ? lslVal : info.LSL_OK;
+            const uslVal = safeNum(info.USL_NG);
+            ws.getCell(morningRow, 5).value = uslVal !== null ? uslVal : info.USL_NG;
+
+
+
+            ws.getCell(morningRow, 6).value = !isNaN(parseFloat(info.LSL_OK)) && !isNaN(parseFloat(info.USL_NG)) ? "Variable" : "Attribute";
+            ws.getCell(morningRow, 7).value = info.SC;
+            ws.getCell(40 + rowOffset, 17).value = "Remark: " + (info.Remarks || "");
+
+
+            const lsl = safeNum(info.LSL_OK);
+            const usl = safeNum(info.USL_NG);
+
+            ptGroups[pt].forEach((rec) => {
+              const hr = getMYTHour(rec.created_at);
+              if ((hr >= 8 && hr < 12) || hr === 12 || (hr >= 14 && hr < 21)) {
+                const targetRow = hr < 12 ? morningRow : afternoonRow;
+                let baseCol = hr < 12 ? 10 + (hr - 8) * 3 : (hr === 12 ? 1 : 4 + (hr - 14) * 3);
+
+                const rowObj = ws.getRow(targetRow);
+
+                [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, rIdx) => {
+                  // const cell = rowObj.getCell(baseCol + rIdx);
+                  // if (val !== null && val !== undefined && String(val).trim() !== "") {
+                  //   cell.value = val;
+                  //   const nVal = safeNum(val);
+                  const cell = rowObj.getCell(baseCol + rIdx);
+                  if (val !== null && val !== undefined && String(val).trim() !== "") {
+                    // Convert to number for Excel, otherwise keep as string (for "OK"/"NG")
+                    const numericValue = safeNum(val);
+                    cell.value = numericValue !== null ? numericValue : val;
+
+                    const nVal = numericValue;
+
+
+                    // --- IMPROVED NG LOGIC ---
+                    let isNG = false;
+                    if (nVal !== null) {
+                      if (lsl !== null && nVal < lsl) isNG = true;
+                      if (usl !== null && nVal > usl) isNG = true;
+                    }
+                    if (String(val).trim().toUpperCase() === "NG") isNG = true;
+
+                    if (isNG) {
+                      // Apply red formatting
+                      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
+                      cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+                    } else {
+                      // Clean cell
+                      cell.fill = { type: 'pattern', pattern: 'none' };
+                      cell.font = { color: { argb: "FF000000" }, bold: false };
+                    }
+                  }
+                });
+              }
+            });
+          });
+        }
+      });
+
+      // FINALLY: Remove the empty first sheet (template)
+      workbook.removeWorksheet(templateSheet.id);
+
+      await saveWorkbook(workbook, `IPQC_Daily_${meta.Part_Name}_${dateInspect}`);
+    }
+
+    function copyTemplateToBottom(ws, startRow, endRow, targetStartRow) {
+      const rowOffset = targetStartRow - startRow;
+      // Increase maxColumn to 50 to ensure we capture all Analysis and Remark columns (up to Col AX)
+      const maxColumn = 50;
+
+      // Helper to shift formulas: only shifts references that fall inside the template range (1-46)
+      const shiftFormula = (formula, offset) => {
+        if (!formula || typeof formula !== 'string') return formula;
+        // Regex matches [Optional $][Column Letters][Optional $][Row Digits]
+        return formula.replace(/(\$?[A-Z]+)(\$?)(\d+)/g, (match, col, absRow, row) => {
+          const rowNum = parseInt(row, 10);
+          // Only shift if the reference points to a row within our template block
+          if (rowNum >= startRow && rowNum <= endRow) {
+            return col + absRow + (rowNum + offset);
+          }
+          return match;
+        });
+      };
+
+      for (let i = startRow; i <= endRow; i++) {
+        const srcRow = ws.getRow(i);
+        const destRow = ws.getRow(i + rowOffset);
+        destRow.height = srcRow.height;
+
+        // Define the data entry rows for Morning and Night shifts
+        const isMeasurementRow = (i >= 14 && i <= 25) || (i >= 27 && i <= 38);
+
+        for (let colNum = 1; colNum <= maxColumn; colNum++) {
+          const srcCell = srcRow.getCell(colNum);
+          const destCell = destRow.getCell(colNum);
+
+          // 1. Copy the full style (Borders, Alignment, Colors)
+          destCell.style = JSON.parse(JSON.stringify(srcCell.style));
+
+          // 2. Handle the content
+          if (isMeasurementRow) {
+            // IMPORTANT: Clear the measurement rows completely in the destination table.
+            // This prevents old formulas/errors from the template (in Cols S-AD) 
+            // from breaking the Analysis summary below.
+            destCell.value = null;
+          } else {
+            // For non-measurement rows (Headers, Analysis, Remarks)
+            const srcVal = srcCell.value;
+            if (srcVal && typeof srcVal === 'object' && srcVal.formula) {
+              // If it's a formula (like in the Analysis section), shift it to the new table rows
+              destCell.value = {
+                formula: shiftFormula(srcVal.formula, rowOffset),
+                result: undefined
+              };
+            } else {
+              // If it's a static value (labels, images), copy it as-is
+              destCell.value = srcVal;
+            }
+          }
+        }
+      }
+
+      // 3. Re-apply Merged Cells for the new table block
+      if (ws._merges) {
+        Object.values(ws._merges).forEach((m) => {
+          const model = m.model;
+          // Only duplicate merges that are part of the template we are currently copying
+          if (model.top >= startRow && model.bottom <= endRow) {
+            ws.mergeCells(
+              model.top + rowOffset,
+              model.left,
+              model.bottom + rowOffset,
+              model.right
+            );
+          }
+        });
+      }
+    }
+
+    
+    async function buildAndDownloadDynamicExcel(rows, label, period) {
+      const wb = new ExcelJS.Workbook();
+      const styles = {
+        headerFill: { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } },
+        processFill: { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4E78" } },
+        border: { top: { style: "thin" }, left: { style: "thin" }, bottom: { style: "thin" }, right: { style: "thin" } },
+      };
+      const rowsByDay = {};
+      rows.forEach((r) => {
+        const dKey = new Date(r.created_at).toLocaleDateString("sv-SE", { timeZone: "Asia/Kuala_Lumpur" });
+        if (!rowsByDay[dKey]) rowsByDay[dKey] = []; rowsByDay[dKey].push(r);
+      });
+      Object.keys(rowsByDay).sort().forEach((dayStr) => {
+        const ws = wb.addWorksheet(dayStr);
+        const sheetRows = rowsByDay[dayStr];
+        const fixedCols = [{ header: "POINT (DWG ZONE)", key: "dwg", width: 20 }, { header: "INSTRUMENT", key: "inst", width: 20 }, { header: "LSL", key: "lsl", width: 8 }, { header: "USL", key: "usl", width: 8 }, { header: "QC", key: "qc", width: 10 }];
+        const timeCols = []; for (let i = 0; i < 24; i++) { const h = (8 + i) % 24; timeCols.push({ header: `${h}:00`, key: `h_${h}`, hour: h, width: 12 }); }
+        ws.columns = [...fixedCols, ...timeCols]; ws.spliceRows(1, 1);
+        const dataByGroup = {};
+        sheetRows.forEach((r) => {
+          const groupKey = `${r.Process || "N/A"}##${r.Machine || "N/A"}##${r.Part_Name}`;
+          if (!dataByGroup[groupKey]) dataByGroup[groupKey] = { meta: r, points: {} };
+          const ptKey = `${r.Point_DWG_Zone}##${r.LSL_OK}##${r.USL_NG}`;
+          if (!dataByGroup[groupKey].points[ptKey]) dataByGroup[groupKey].points[ptKey] = { meta: r, readings: {} };
+          const hr = getMYTHour(r.created_at);
+          const readingsArray = [r.Reading_1, r.Reading_2, r.Reading_3].map((v) => safeNum(v)).filter((v) => v !== null);
+          const txt = readingsArray.join(" / ");
+          const lsl = safeNum(r.LSL_OK), usl = safeNum(r.USL_NG);
+          const isNG = readingsArray.some((n) => n !== null && lsl !== null && usl !== null && !(lsl === 0 && usl === 0) && (n < lsl || n > usl));
+          dataByGroup[groupKey].points[ptKey].readings[hr] = { text: txt === "" ? "-" : txt, isNG, person: r.Person };
+        });
+        Object.keys(dataByGroup).forEach((gKey) => {
+          const group = dataByGroup[gKey];
+          const titleRow = ws.addRow([`Part: ${group.meta.Part_Name} | Process: ${group.meta.Process} | Machine: ${group.meta.Machine || "N/A"}`]);
+          ws.mergeCells(titleRow.number, 1, titleRow.number, ws.columns.length);
+          titleRow.font = { bold: true, color: { argb: "FFFFFFFF" } }; titleRow.fill = styles.processFill;
+          const headRow = ws.addRow([...fixedCols.map((c) => c.header), ...timeCols.map((c) => c.header)]);
+          headRow.eachCell((c) => { c.fill = styles.headerFill; c.border = styles.border; });
+          Object.keys(group.points).forEach((ptKey) => {
+            const pt = group.points[ptKey];
+            const rowData = [pt.meta.Point_DWG_Zone, pt.meta.Measuring_Instrument, pt.meta.LSL_OK, pt.meta.USL_NG, ""];
+            timeCols.forEach((tc) => rowData.push(pt.readings[tc.hour] ? pt.readings[tc.hour].text : ""));
+            const excelRow = ws.addRow(rowData);
+            excelRow.eachCell((cell, colNum) => {
+              cell.border = styles.border;
+              if (colNum > fixedCols.length) {
+                const hr = timeCols[colNum - fixedCols.length - 1].hour; const rd = pt.readings[hr];
+                if (rd && rd.isNG) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } }; cell.font = { color: { argb: "FFFFFFFF" }, bold: true }; }
+                if (rd && rd.person) excelRow.getCell(5).value = rd.person; cell.numFmt = "General";
+              }
+            });
+          });
+          ws.addRow([]);
+        });
+      });
+      await saveWorkbook(wb, `IPQC_Detailed_Report_${label}`);
+    }
+
+    function copySheetFormat(src, dest) {
+      src.columns.forEach((col, i) => (dest.getColumn(i + 1).width = col.width));
+      src.eachRow({ includeEmpty: true }, (row, rowNum) => {
+        const destRow = dest.getRow(rowNum); destRow.height = row.height;
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          const destCell = destRow.getCell(colNum);
+          if (rowNum < 14 || (rowNum > 25 && rowNum < 27) || rowNum > 38) destCell.value = cell.value;
+          destCell.style = JSON.parse(JSON.stringify(cell.style));
+        });
+      });
+      if (src._merges) { Object.values(src._merges).forEach((m) => dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right)); }
+    }
+
+    async function saveWorkbook(wb, name) {
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${name}.xlsx`; a.click();
+    }
+
+    async function buildMonthlySummaryExcel(rows, monthLabel) {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Monthly Summary");
+
+      // Step 1: Group data by JO and Process, then cluster by Timestamp
+      const groupedData = {};
+
+      rows.forEach((r) => {
+        const key = `${r.Part_Name}|${r.JO_Number}|${r.Process}`;
+        if (!groupedData[key]) groupedData[key] = [];
+        groupedData[key].push(r);
+      });
+
+      const finalSummary = {};
+
+      Object.keys(groupedData).forEach((key) => {
+        // Sort rows by time to identify clusters
+        const items = groupedData[key].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        // Clustering logic (from your reference code)
+        const clusters = [];
+        let currentCluster = [];
+
+        items.forEach((row) => {
+          if (currentCluster.length === 0) {
+            currentCluster.push(row);
+          } else {
+            const lastTime = new Date(currentCluster[0].created_at).getTime();
+            const currentTime = new Date(row.created_at).getTime();
+
+            // If row was created within 2 seconds of the first row in cluster, it's the same part
+            if (Math.abs(currentTime - lastTime) <= 2000) {
+              currentCluster.push(row);
+            } else {
+              clusters.push(currentCluster);
+              currentCluster = [row];
+            }
+          }
+        });
+        if (currentCluster.length > 0) clusters.push(currentCluster);
+
+        // Step 2: Evaluate each Cluster (1 Cluster = 1 Part Inspected)
+        clusters.forEach((cluster) => {
+          let clusterIsNg = false;
+          let hasValidData = false;
+
+          cluster.forEach((row) => {
+            const lsl = safeNum(row.LSL_OK);
+            const usl = safeNum(row.USL_NG);
+            const readings = [row.Reading_1, row.Reading_2, row.Reading_3];
+
+            readings.forEach((v) => {
+              if (v === null || v === undefined || String(v).trim() === "") return;
+              hasValidData = true;
+
+              const n = safeNum(v);
+              // Range check
+              if (n !== null && lsl !== null && usl !== null && !(lsl === 0 && usl === 0)) {
+                if (n < lsl || n > usl) clusterIsNg = true;
+              }
+              // Attribute check
+              if (String(v).trim().toUpperCase() === "NG") clusterIsNg = true;
+            });
+          });
+
+          if (hasValidData) {
+            const [partName, , processName] = key.split('|');
+            const summaryKey = `${partName}|${processName}`;
+
+            if (!finalSummary[summaryKey]) {
+              finalSummary[summaryKey] = { part: partName, proc: processName, ok: 0, ng: 0 };
+            }
+
+            if (clusterIsNg) {
+              finalSummary[summaryKey].ng++;
+            } else {
+              finalSummary[summaryKey].ok++;
+            }
+          }
+        });
+      });
+
+      // Step 3: Build Excel
+      ws.columns = [
+        { header: "Part Name", key: "p", width: 35 },
+        { header: "Process", key: "proc", width: 25 },
+        { header: "Accepted (QTY)", key: "ok", width: 15 },
+        { header: "Rejected (QTY)", key: "ng", width: 15 },
+        { header: "Total Inspected", key: "total", width: 15 },
+        { header: "Yield (%)", key: "yield", width: 12 }
+      ];
+
+      const head = ws.getRow(1);
+      head.font = { bold: true };
+      head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9D9D9' } };
+
+      Object.values(finalSummary).forEach((data) => {
+        const total = data.ok + data.ng;
+        const yieldPct = total > 0 ? ((data.ok / total) * 100).toFixed(1) + "%" : "0%";
+
+        const row = ws.addRow({
+          p: data.part,
+          proc: data.proc,
+          ok: data.ok,
+          ng: data.ng,
+          total: total,
+          yield: yieldPct
+        });
+
+        row.getCell(3).font = { color: { argb: "FF008000" }, bold: true }; // Green OK
+        if (data.ng > 0) row.getCell(4).font = { color: { argb: "FFFF0000" }, bold: true }; // Red NG
+      });
+
+      ws.eachRow((row) => {
+        row.eachCell((c) => {
+          c.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          c.alignment = { horizontal: 'center' };
+        });
+      });
+
+      await saveWorkbook(wb, `Monthly_Summary_${monthLabel}`);
+    }
+
+  </script>
+</body>
+
+</html>

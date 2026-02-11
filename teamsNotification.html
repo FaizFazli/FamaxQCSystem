@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teams Notification - IPQC System</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2" />
+
+    <!-- Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-light: #e7f3ff;
+            --primary-dark: #005a9e;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --focus-ring: rgba(0, 120, 212, 0.2);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .nav-top {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .report-card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 20px;
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.04),
+                0 1px 8px rgba(0, 0, 0, 0.02);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            background: var(--primary);
+            padding: 30px;
+            color: white;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+        }
+
+        .label-badge {
+            font-size: 11px;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        /* --- NEW PART SELECTION UI --- */
+        .part-selector-container {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .search-wrapper {
+            padding: 10px;
+            background: #fcfcfd;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .part-list-scroll {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .part-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 2px;
+        }
+
+        .part-item:hover {
+            background: #f1f5f9;
+        }
+
+        .part-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .part-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .part-name-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .part-date {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* --- RADIO OPTIONS --- */
+        .radio-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .radio-card {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .radio-card input {
+            position: absolute;
+            opacity: 0;
+        }
+
+        .radio-content {
+            display: block;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            background: #fcfcfd;
+        }
+
+        .radio-card input:checked+.radio-content {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* --- PREVIEW BOX --- */
+        textarea#message {
+            background-color: #f8fafc;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            min-height: 120px;
+            border-style: dashed;
+        }
+
+        .action-btn {
+            width: 100%;
+            height: 54px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.2);
+        }
+
+        .action-btn:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 15px rgba(0, 120, 212, 0.3);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-btn:disabled {
+            background-color: #cbd5e1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            text-align: center;
+            margin: 30px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Custom Scrollbar */
+        .part-list-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .part-list-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .part-list-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav-top">
+        <a onclick="window.history.back()" class="back-link">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="report-card">
+        <div class="card-header">
+            <h1>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Teams Notification
+            </h1>
+        </div>
+
+        <div class="card-body">
+            <div class="form-group">
+                <label for="sender-name">Your Name</label>
+                <input type="text" id="sender-name" placeholder="Enter your name" oninput="autoGenerateMessage()" />
+            </div>
+
+            <div class="form-group">
+                <label>Subject / Issue</label>
+                <div class="radio-cards">
+                    <label class="radio-card">
+                        <input type="radio" name="subject-opt" value="WI APPROVAL" checked
+                            onchange="handleSubjectChange()" />
+                        <span class="radio-content">WI Approval</span>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="subject-opt" value="Machine breakdown"
+                            onchange="handleSubjectChange()" />
+                        <span class="radio-content">Breakdown</span>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="subject-opt" value="Others" onchange="handleSubjectChange()" />
+                        <span class="radio-content">Others</span>
+                    </label>
+                </div>
+                <div id="other-subject-container" class="hidden" style="margin-top: 12px">
+                    <input type="text" id="other-subject" placeholder="Type specific issue..."
+                        oninput="autoGenerateMessage()" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    Select Part Names
+                    <span class="label-badge" id="selected-count">0 selected</span>
+                </label>
+                <div class="part-selector-container">
+                    <div class="search-wrapper">
+                        <input type="text" class="search-input" id="part-search" placeholder="Search part name..."
+                            oninput="filterParts()" />
+                    </div>
+                    <div class="part-list-scroll" id="part-list-container">
+                        <!-- Checkboxes loaded dynamically -->
+                        <div style="
+                  padding: 20px;
+                  text-align: center;
+                  color: var(--text-muted);
+                  font-size: 13px;
+                ">
+                            Loading parts...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Person Responsible</label>
+                <div class="radio-cards">
+                    <label class="radio-card">
+                        <input type="radio" name="resp-opt" value="QA" checked onchange="autoGenerateMessage()" />
+                        <span class="radio-content">QA</span>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="resp-opt" value="ENG" onchange="autoGenerateMessage()" />
+                        <span class="radio-content">ENG</span>
+                    </label>
+                    <label class="radio-card">
+                        <input type="radio" name="resp-opt" value="Management" onchange="autoGenerateMessage()" />
+                        <span class="radio-content">Management</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="message">Preview Message</label>
+                <textarea id="message" readonly placeholder="Message will generate automatically..."></textarea>
+            </div>
+
+            <button id="send-btn" class="action-btn" onclick="sendTeamsMessage()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                Send to Microsoft Teams
+            </button>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd.</div>
+
+    <script>
+        const TEAMS_WEBHOOK_URL = "http://192.168.0.5/api/teams";
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const api = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        let allParts = [];
+
+        // 1. Load Parts with Latest on Top
+        async function loadPartsList() {
+            try {
+                // Fetch part names and created_at, ordered by date descending
+                const res = await api.get(
+                    "/rest/v1/Parts?select=Part_Name,created_at&order=created_at.desc",
+                );
+
+                // Remove duplicates but keep order
+                const seen = new Set();
+                allParts = res.data.filter((el) => {
+                    const duplicate = seen.has(el.Part_Name);
+                    seen.add(el.Part_Name);
+                    return !duplicate;
+                });
+
+                renderPartsList(allParts);
+            } catch (e) {
+                console.error("Parts load error", e);
+                $("#part-list-container").html(
+                    '<div style="color: red; padding: 10px;">Failed to load parts.</div>',
+                );
+            }
+        }
+
+        function renderPartsList(parts) {
+            const container = document.getElementById("part-list-container");
+            container.innerHTML = "";
+
+            if (parts.length === 0) {
+                container.innerHTML =
+                    '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No parts found.</div>';
+                return;
+            }
+
+            parts.forEach((item) => {
+                const dateStr = item.created_at
+                    ? new Date(item.created_at).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                    })
+                    : "";
+
+                const div = document.createElement("div");
+                div.className = "part-item";
+                div.onclick = (e) => {
+                    // If clicking the div, toggle the checkbox inside
+                    if (e.target.tagName !== "INPUT") {
+                        const cb = div.querySelector("input");
+                        cb.checked = !cb.checked;
+                        updateSelection();
+                    }
+                };
+
+                div.innerHTML = `
+            <input type="checkbox" value="${item.Part_Name}" onchange="updateSelection()">
+            <div class="part-info">
+              <span class="part-name-text">${item.Part_Name}</span>
+              <span class="part-date">${dateStr}</span>
+            </div>
+          `;
+                container.appendChild(div);
+            });
+        }
+
+        function filterParts() {
+            const term = document.getElementById("part-search").value.toLowerCase();
+            const filtered = allParts.filter((p) =>
+                p.Part_Name.toLowerCase().includes(term),
+            );
+            renderPartsList(filtered);
+
+            // Ensure previously checked items remain checked if they are in the filtered list
+            // (Simplified: In a real app, you'd track selected IDs in an array)
+        }
+
+        function updateSelection() {
+            const checked = Array.from(
+                document.querySelectorAll("#part-list-container input:checked"),
+            ).map((i) => i.value);
+            document.getElementById("selected-count").textContent =
+                `${checked.length} selected`;
+            autoGenerateMessage();
+        }
+
+        function handleSubjectChange() {
+            const otherContainer = document.getElementById(
+                "other-subject-container",
+            );
+            const selectedSubject = document.querySelector(
+                'input[name="subject-opt"]:checked',
+            ).value;
+            otherContainer.classList.toggle("hidden", selectedSubject !== "Others");
+            autoGenerateMessage();
+        }
+
+        function autoGenerateMessage() {
+            const sender = document.getElementById("sender-name").value || "[Your Name]";
+            const subjectOpt = document.querySelector('input[name="subject-opt"]:checked').value;
+            const otherSubject = document.getElementById("other-subject").value;
+            const finalSubject = subjectOpt === "Others" ? otherSubject || "Other Issue" : subjectOpt;
+            const respPerson = document.querySelector('input[name="resp-opt"]:checked').value;
+
+            // --- MENTION LOGIC BASED ON YOUR LIST ---
+            let mention = "";
+            if (respPerson === "QA") {
+                mention = "@Ayyub Sofi";
+            } else if (respPerson === "ENG") {
+                mention = "@Azim Bakar @Afiff Naufal";
+            } else if (respPerson === "Management") {
+                mention = "@Vicson Lee";
+            }
+
+            const selectedParts = Array.from(
+                document.querySelectorAll("#part-list-container input:checked"),
+            ).map((i) => i.value);
+            const partsListString = selectedParts.length > 0 ? selectedParts.join(", ") : "None selected";
+
+            let msgTemplate = "";
+            if (subjectOpt === "WI APPROVAL") {
+                msgTemplate = `Please approve the following WI(s) immediately.\n\nParts: ${partsListString}\n\nAttention Required From: ${respPerson} ${mention}\n\nIssued BY: ${sender}`;
+            } else {
+                msgTemplate = `Subject: ${finalSubject}\nParts: ${partsListString}\nAttention: ${respPerson} ${mention}\n\nSubmitted by ${sender}. Please review.`;
+            }
+
+            document.getElementById("message").value = msgTemplate;
+        }
+
+
+        async function sendTeamsMessage() {
+            const sender = document.getElementById("sender-name").value.trim();
+            const subjectOpt = document.querySelector('input[name="subject-opt"]:checked').value;
+            const otherSubject = document.getElementById("other-subject").value.trim();
+            const finalSubject = subjectOpt === "Others" ? otherSubject : subjectOpt;
+            const message = document.getElementById("message").value.trim();
+            const btn = document.getElementById("send-btn");
+            const respPerson = document.querySelector('input[name="resp-opt"]:checked').value;
+
+            if (!sender) {
+                alert("Please enter your name.");
+                return;
+            }
+
+            const selectedParts = Array.from(
+                document.querySelectorAll("#part-list-container input:checked"),
+            ).map((i) => i.value);
+
+            if (selectedParts.length === 0) {
+                alert("Please select at least one part.");
+                return;
+            }
+
+            // --- REAL MENTION LOGIC ---
+            let mentionEntities = [];
+            let mentionText = "";
+
+            // IMPORTANT: Replace these emails with their REAL Microsoft Teams emails
+            if (respPerson === "QA") {
+                mentionText = "<at>Ayyub Sofi</at>";
+                mentionEntities.push({
+                    "type": "mention",
+                    "text": "<at>Ayyub Sofi</at>",
+                    "mentioned": { "id": "ayyub.sofi@famax.com.my", "name": "Ayyub Sofi" }
+                });
+            } else if (respPerson === "ENG") {
+                mentionText = "<at>Azim Bakar</at> <at>Afiff Naufal</at>";
+                mentionEntities.push({
+                    "type": "mention",
+                    "text": "<at>Azim Bakar</at>",
+                    "mentioned": { "id": "azim.bakar@famax.com.my", "name": "Azim Bakar" }
+                }, {
+                    "type": "mention",
+                    "text": "<at>Afiff Naufal</at>",
+                    "mentioned": { "id": "afiff.naufal@famax.com.my", "name": "Afiff Naufal" }
+                });
+            } else if (respPerson === "Management") {
+                mentionText = "<at>Vicson Lee</at>";
+                mentionEntities.push({
+                    "type": "mention",
+                    "text": "<at>Vicson Lee</at>",
+                    "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" }
+                });
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = "Sending...";
+
+                const payload = {
+                    "type": "message",
+                    "attachments": [{
+                        "contentType": "application/vnd.microsoft.card.adaptive",
+                        "content": {
+                            "type": "AdaptiveCard",
+                            "body": [
+                                { "type": "TextBlock", "text": "🚨 IPQC SYSTEM ALERT", "weight": "Bolder", "color": "Attention" },
+                                { "type": "TextBlock", "text": finalSubject, "weight": "Bolder", "size": "Large" },
+                                {
+                                    "type": "FactSet",
+                                    "facts": [
+                                        // Use mentionText here so the name appears highlighted in Teams
+                                        { "title": "Attention Required From:", "value": `${respPerson} ${mentionText}` },
+                                        { "title": "Issued by:", "value": sender },
+                                        { "title": "Date:", "value": new Date().toLocaleString() }
+                                    ]
+                                },
+                                { "type": "TextBlock", "text": message, "wrap": true }
+                            ],
+                            // This is the "Magic" part that makes the notification work
+                            "msteams": {
+                                "entities": mentionEntities
+                            },
+                            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                            "version": "1.4"
+                        }
+                    }]
+                };
+
+                await axios.post(TEAMS_WEBHOOK_URL, payload);
+                alert("Success! Message sent with mentions.");
+            } catch (error) {
+                console.error(error);
+                alert("Failed to send. Check console for details.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Send to Microsoft Teams";
+            }
+        }
+
+        window.onload = loadPartsList;
+    </script>
+</body>
+
+</html>

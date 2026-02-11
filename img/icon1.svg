@@ -1,0 +1,8 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circular Badge -->
+  <circle cx="16" cy="16" r="15" fill="#1A73E8"/>
+  <!-- The letter F -->
+  <text x="9" y="22" fill="white" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 18px;">F</text>
+  <!-- Quality Checkmark -->
+  <path d="M18 22L22 26L30 14" stroke="#00E676" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BUYOFF Checking - Step-by-Step</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #1976D2;
+            --primary-dark: #1565C0;
+            --primary-light: #E3F2FD;
+            --accent-color: #FF9800;
+            --bg-body: #F4F6F8;
+            --bg-card: #FFFFFF;
+            --text-main: #1A202C;
+            --text-secondary: #718096;
+            --text-muted: #6b7280;
+            --border-color: #E2E8F0;
+            --success: #48BB78;
+            --error: #F56565;
+            --disabled: #CBD5E0;
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            height: 64px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .main-wrapper {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .info-bar {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .header-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .header-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 1.5rem;
+            align-items: stretch;
+        }
+
+        @media (max-width: 1024px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .visual-panel {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            min-height: 500px;
+        }
+
+        .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ipqc-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: zoom-in;
+            transition: transform 0.3s ease;
+        }
+
+        .zoomed {
+            cursor: zoom-out;
+            transform: scale(1.6);
+        }
+
+        .zoom-hint {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            pointer-events: none;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            position: sticky;
+            top: 80px;
+        }
+
+        .progress-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .progress-bar-bg {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--border-color);
+            z-index: 1;
+            transform: translateY(-50%);
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 2px;
+            background: var(--primary-color);
+            z-index: 1;
+            transform: translateY(-50%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-step {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            position: relative;
+            z-index: 2;
+        }
+
+        .progress-step.active,
+        .progress-step.completed {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .zone-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .zone-header {
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .zone-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .spec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            background: var(--primary-light);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .spec-label {
+            font-size: 0.75rem;
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        .spec-val {
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .reading-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .reading-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            background: #FAFAFA;
+            transition: all 0.2s;
+        }
+
+        .reading-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+        }
+
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--disabled);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-title"><span>BUYOFF Checking System</span></div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="info-bar">
+            <div class="info-grid">
+                <div class="info-item"><span class="info-label">Part Name</span><span class="info-value"
+                        id="selected-part">...</span></div>
+                <div class="info-item"><span class="info-label">Process</span><span class="info-value"
+                        id="selected-process">...</span></div>
+                <div class="info-item"><span class="info-label">Job Order</span><span class="info-value"
+                        id="selected-jo">...</span></div>
+                <div class="info-item"><span class="info-label">Machine</span><span class="info-value"
+                        id="selected-machine">...</span></div>
+                <div class="info-item">
+                    <span class="info-label">Person Name</span>
+                    <input type="text" class="header-input" id="person-name" placeholder="Enter Name"
+                        autocomplete="off" />
+                </div>
+                <div class="info-item">
+                    <span class="info-label">QC/Technician</span>
+                    <select class="header-input" id="qc-technician">
+                        <option value="">Select Role</option>
+                        <option value="QC">QC</option>
+                        <option value="Technician">Technician</option>
+                    </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Setting</span>
+                    <select class="header-input" id="setting-type">
+                        <option value="">Select Type</option>
+                        <option value="New Setting">New Setting</option>
+                        <option value="Resetting">Resetting</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading-indicator" class="loading">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: 1rem;">Loading Buyoff reference data...</p>
+        </div>
+
+        <div id="error-message" class="error-message hidden"
+            style="text-align: center; color: var(--error); padding: 2rem;">
+            No active configuration found for the selected part and process.
+        </div>
+
+        <div id="content-area" class="workspace hidden">
+            <div class="visual-panel">
+                <div class="image-container"><img id="ipqc-image" class="ipqc-image" /></div>
+                <div class="zoom-hint">Click image to Zoom</div>
+            </div>
+
+            <div class="control-panel">
+                <div id="progress-container" class="progress-card">
+                    <div class="progress-indicator" id="progress-indicator">
+                        <div class="progress-bar-bg"></div>
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                </div>
+
+                <div id="zone-container"></div>
+
+                <div class="button-container">
+                    <button id="back-btn" class="btn btn-secondary" disabled>Back</button>
+                    <button id="next-btn" class="btn btn-primary" disabled>Next</button>
+                    <button id="submit-btn" class="btn btn-primary hidden" disabled>Submit Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const partName = urlParams.get('part');
+            const processName = urlParams.get('process');
+            const joNumber = urlParams.get('jo');
+            const machineNumber = urlParams.get('machine');
+
+            document.getElementById('selected-part').textContent = partName || '-';
+            document.getElementById('selected-process').textContent = processName || '-';
+            document.getElementById('selected-jo').textContent = joNumber || '-';
+            document.getElementById('selected-machine').textContent = machineNumber || '-';
+
+            const supabaseUrl = 'http://192.168.0.5:8000';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+            const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+            let buyOffData = [];
+            let currentZoneIndex = 0;
+            let userReadings = [];
+
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const contentArea = document.getElementById('content-area');
+            const progressBar = document.getElementById('progress-bar');
+            const progressIndicator = document.getElementById('progress-indicator');
+            const zoneContainer = document.getElementById('zone-container');
+
+            const personNameInput = document.getElementById('person-name');
+            const qcTechnicianInput = document.getElementById('qc-technician');
+            const settingTypeInput = document.getElementById('setting-type');
+
+            const backButton = document.getElementById('back-btn');
+            const nextButton = document.getElementById('next-btn');
+            const submitButton = document.getElementById('submit-btn');
+
+            async function fetchbuyOffData() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('IPQC')
+                        .select('Path, Point_DWG_Zone, Measuring_Instrument, LSL_OK, USL_NG, SC')
+                        .eq('Part_Name', partName)
+                        .eq('Process', processName)
+                        .eq('Status', 'Active');
+
+                    if (error || !data || data.length === 0) {
+                        loadingIndicator.classList.add('hidden');
+                        errorMessage.classList.remove('hidden');
+                        return;
+                    }
+
+                    buyOffData = data.sort((a, b) => {
+                        const numA = parseInt(a.Point_DWG_Zone.replace(/\D/g, '')) || 0;
+                        const numB = parseInt(b.Point_DWG_Zone.replace(/\D/g, '')) || 0;
+                        return numA - numB;
+                    });
+
+                    userReadings = buyOffData.map(() => ({ reading1: '', reading2: '', reading3: '', reading4: '', reading5: '' }));
+
+                    setupProgress();
+                    const imageElement = document.getElementById('ipqc-image');
+                    imageElement.src = buyOffData[0].Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
+
+                    imageElement.addEventListener('click', function () { this.classList.toggle('zoomed'); });
+
+                    loadingIndicator.classList.add('hidden');
+                    contentArea.classList.remove('hidden');
+                    showCurrentZone();
+                } catch (e) { console.error(e); }
+            }
+
+            function setupProgress() {
+                for (let i = 0; i < buyOffData.length; i++) {
+                    const step = document.createElement('div');
+                    step.className = 'progress-step';
+                    step.textContent = i + 1;
+                    progressIndicator.appendChild(step);
+                }
+                updateProgressUI();
+            }
+
+            function updateProgressUI() {
+                const percentage = (currentZoneIndex / (buyOffData.length - 1)) * 100;
+                progressBar.style.width = `${percentage}%`;
+                const steps = document.querySelectorAll('.progress-step');
+                steps.forEach((step, idx) => {
+                    step.className = 'progress-step' + (idx < currentZoneIndex ? ' completed' : idx === currentZoneIndex ? ' active' : '');
+                    if (idx < currentZoneIndex) step.innerHTML = '✓'; else step.textContent = idx + 1;
+                });
+            }
+            function setupInputValidation(input, min, max) {
+                const isOkNg = String(min).toLowerCase() === 'ok' || String(max).toLowerCase() === 'ng';
+
+                input.addEventListener('input', function (e) {
+                    let val = e.target.value.toUpperCase();
+                    if (isOkNg) {
+                        const valid = ["", "O", "OK", "N", "NG", "G", "GO", "NO", "NOG", "NOGO"];
+                        if (valid.includes(val)) e.target.dataset.last = val; else e.target.value = e.target.dataset.last || "";
+                    } else {
+                        if (val === "" || val === "-" || /^-?\d*\.?\d*$/.test(val)) e.target.dataset.last = val; else e.target.value = e.target.dataset.last || "";
+                    }
+                    checkValidation();
+                });
+
+                input.addEventListener('blur', function (e) {
+                    if (isOkNg) {
+                        let val = e.target.value.toUpperCase();
+                        if (val === "O") e.target.value = "OK";
+                        else if (val === "N") e.target.value = "NG";
+                        else if (val === "G") e.target.value = "GO";
+                        else if (val === "NO" || val === "NOG") e.target.value = "NOGO";
+                        else if (!["OK", "NG", "GO", "NOGO"].includes(val)) e.target.value = "";
+                    }
+                    checkValidation();
+                });
+
+                input.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+
+                        // Force save and validation check immediately on Enter
+                        saveState();
+                        checkValidation();
+
+                        const currentId = parseInt(this.id.split('-').pop());
+                        if (currentId < 5) {
+                            document.getElementById(`reading-input-${currentId + 1}`).focus();
+                        } else {
+                            if (currentZoneIndex < buyOffData.length - 1) {
+                                nextButton.click();
+                            } else {
+                                // If it's the last zone and last input, trigger submit
+                                if (!submitButton.disabled) {
+                                    submitButton.click();
+                                } else {
+                                    alert("Please ensure all header fields (Name, Role, Setting) are filled.");
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function showCurrentZone() {
+                const zone = buyOffData[currentZoneIndex];
+                zoneContainer.innerHTML = `
+                    <div class="zone-card">
+                        <div class="zone-header">
+                            <h3 class="zone-title">Zone ${currentZoneIndex + 1}</h3>
+                            <div class="info-label">${zone.Point_DWG_Zone}</div>
+                        </div>
+                        <div class="spec-grid">
+                            <div class="spec-item"><span class="spec-label">Instrument</span><span class="spec-val">${zone.Measuring_Instrument}</span></div>
+                            <div class="spec-item"><span class="spec-label">SC Class</span><span class="spec-val">${zone.SC || '-'}</span></div>
+                            <div class="spec-item"><span class="spec-label">Min / OK</span><span class="spec-val">${zone.LSL_OK}</span></div>
+                            <div class="spec-item"><span class="spec-label">Max / NG</span><span class="spec-val">${zone.USL_NG}</span></div>
+                        </div>
+                        <div class="reading-section">
+                            ${[1, 2, 3, 4, 5].map(n => `
+                                <div class="input-wrapper">
+                                    <label class="info-label">Reading ${n}</label>
+                                    <input type="text" id="reading-input-${n}" class="reading-input" autocomplete="off" value="${userReadings[currentZoneIndex][`reading${n}`]}" />
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                [1, 2, 3, 4, 5].forEach(n => setupInputValidation(document.getElementById(`reading-input-${n}`), zone.LSL_OK, zone.USL_NG));
+                document.getElementById('reading-input-1').focus();
+                updateButtonStates();
+            }
+
+            function checkValidation() {
+                const r = [1, 2, 3, 4, 5].map(n => document.getElementById(`reading-input-${n}`).value.trim());
+                const h = personNameInput.value.trim() && qcTechnicianInput.value && settingTypeInput.value;
+                const allR = r.every(v => v !== "");
+
+                if (currentZoneIndex === buyOffData.length - 1) {
+                    submitButton.disabled = !(allR && h);
+                } else {
+                    nextButton.disabled = !(allR && h);
+                }
+            }
+
+            function updateButtonStates() {
+                backButton.disabled = currentZoneIndex === 0;
+                if (currentZoneIndex === buyOffData.length - 1) {
+                    nextButton.classList.add('hidden');
+                    submitButton.classList.remove('hidden');
+                } else {
+                    nextButton.classList.remove('hidden');
+                    submitButton.classList.add('hidden');
+                }
+                checkValidation();
+            }
+
+            function saveState() {
+                userReadings[currentZoneIndex] = {
+                    reading1: document.getElementById('reading-input-1').value.trim(),
+                    reading2: document.getElementById('reading-input-2').value.trim(),
+                    reading3: document.getElementById('reading-input-3').value.trim(),
+                    reading4: document.getElementById('reading-input-4').value.trim(),
+                    reading5: document.getElementById('reading-input-5').value.trim()
+                };
+            }
+
+            nextButton.addEventListener('click', () => { saveState(); currentZoneIndex++; updateProgressUI(); showCurrentZone(); });
+            backButton.addEventListener('click', () => { saveState(); currentZoneIndex--; updateProgressUI(); showCurrentZone(); });
+            [personNameInput, qcTechnicianInput, settingTypeInput].forEach(el => el.addEventListener('change', checkValidation));
+            personNameInput.addEventListener('input', checkValidation);
+
+            // --- Updated Submit Button Logic for Page 1 ---
+            // --- Updated Submit Button Logic ---
+            submitButton.addEventListener('click', async function () {
+                saveState(); // Corrected from saveCurrentReadings()
+
+                const personName = personNameInput.value.trim();
+                const qcTechnician = qcTechnicianInput.value;
+                const settingType = settingTypeInput.value;
+
+                if (!personName || !qcTechnician || !settingType) {
+                    alert('Please complete all fields in the top header (Name, Role, Setting).');
+                    return;
+                }
+
+                try {
+                    submitButton.disabled = true;
+                    submitButton.textContent = "Preparing Summary...";
+
+                    const outOfSpecReadings = [];
+
+                    buyOffData.forEach((zone, index) => {
+                        const readings = userReadings[index];
+                        const min = zone.LSL_OK;
+                        const max = zone.USL_NG;
+
+                        // Using the corrected function name "validateReading"
+                        if (!validateReading(readings.reading1, min, max)) outOfSpecReadings.push({ zone: zone.Point_DWG_Zone, n: 1, val: readings.reading1, min, max });
+                        if (!validateReading(readings.reading2, min, max)) outOfSpecReadings.push({ zone: zone.Point_DWG_Zone, n: 2, val: readings.reading2, min, max });
+                        if (!validateReading(readings.reading3, min, max)) outOfSpecReadings.push({ zone: zone.Point_DWG_Zone, n: 3, val: readings.reading3, min, max });
+                        if (!validateReading(readings.reading4, min, max)) outOfSpecReadings.push({ zone: zone.Point_DWG_Zone, n: 4, val: readings.reading4, min, max });
+                        if (!validateReading(readings.reading5, min, max)) outOfSpecReadings.push({ zone: zone.Point_DWG_Zone, n: 5, val: readings.reading5, min, max });
+                    });
+
+                    if (outOfSpecReadings.length > 0) {
+                        await sendTelegram(outOfSpecReadings);
+                    }
+
+                    const summaryData = buyOffData.map((zone, index) => ({
+                        ...zone,
+                        Reading_1: userReadings[index].reading1,
+                        Reading_2: userReadings[index].reading2,
+                        Reading_3: userReadings[index].reading3,
+                        Reading_4: userReadings[index].reading4,
+                        Reading_5: userReadings[index].reading5
+                    }));
+
+                    localStorage.setItem('summaryData', JSON.stringify(summaryData));
+                    localStorage.setItem('partName', partName);
+                    localStorage.setItem('processName', processName);
+                    localStorage.setItem('joNumber', joNumber);
+                    localStorage.setItem('machineNumber', machineNumber);
+                    localStorage.setItem('personName', personName);
+                    localStorage.setItem('qcTechnician', qcTechnician);
+                    localStorage.setItem('settingType', settingType);
+
+                    window.location.href = 'BUYOFF-page2.html';
+
+                } catch (error) {
+                    console.error('Error preparing summary:', error);
+                    alert('An error occurred while preparing the summary.');
+                    submitButton.disabled = false;
+                    submitButton.textContent = "Submit Report";
+                }
+            });
+
+            // Rename 'validate' to 'validateReading' to match the call above
+            function validateReading(val, min, max) {
+                if (!val) return false;
+                if (String(min).toLowerCase() === 'ok') return val.toLowerCase() === 'ok' || val.toLowerCase() === 'go';
+                if (String(max).toLowerCase() === 'ng') return val.toLowerCase() !== 'ng' && val.toLowerCase() !== 'nogo';
+                const v = parseFloat(val), l = parseFloat(min), u = parseFloat(max);
+                return !isNaN(v) && v >= l && v <= u;
+            }
+
+            function validate(val, min, max) {
+                if (String(min).toLowerCase() === 'ok') return val.toLowerCase() === 'ok' || val.toLowerCase() === 'go';
+                if (String(max).toLowerCase() === 'ng') return val.toLowerCase() !== 'ng' && val.toLowerCase() !== 'nogo';
+                const v = parseFloat(val), l = parseFloat(min), u = parseFloat(max);
+                return !isNaN(v) && v >= l && v <= u;
+            }
+
+            async function sendTelegram(items) {
+                const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4';
+                const chatId = '-1003227469075';
+                let msg = `⚠️ *BUYOFF ALERT*\n*Part:* ${partName}\n*JO:* ${joNumber}\n*Inspector:* ${personNameInput.value}\n*Role:* ${qcTechnicianInput.value}\n\n*Issues:*`;
+
+                items.forEach(i => { msg += `\n• Zone ${i.zone} (R${i.n}): *${i.val}* (Exp: ${i.min}-${i.max})`; });
+
+                await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, { chat_id: chatId, text: msg, parse_mode: 'Markdown' });
+            }
+
+            if (partName && processName) fetchbuyOffData();
+        });
+    </script>
+</body>
+
+</html>

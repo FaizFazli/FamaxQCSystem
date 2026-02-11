@@ -1,0 +1,16 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Industrial Hexagon Background (Navy Blue) -->
+  <path d="M16 2L28.1244 9V23L16 30L3.87564 23V9L16 2Z" fill="#0F172A"/>
+  
+  <!-- Subtle Inner Ring -->
+  <path d="M16 5L25.5263 10.5V21.5L16 27L6.47372 21.5V10.5L16 5Z" stroke="#1E293B" stroke-width="1"/>
+  
+  <!-- "Q" Shape combined with Checkmark (Indigo Accent) -->
+  <circle cx="15" cy="15" r="7" stroke="#6366F1" stroke-width="2.5"/>
+  
+  <!-- The Checkmark tail that completes the 'Q' -->
+  <path d="M19 19L24 24" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Bright Success Checkmark -->
+  <path d="M12 15L14.5 17.5L19 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

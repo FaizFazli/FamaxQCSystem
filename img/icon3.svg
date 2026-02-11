@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gear shape -->
+  <path d="M16 2L18.5 6.5H23.5L24.5 11.5L29 14V18L24.5 20.5L23.5 25.5H18.5L16 30L13.5 25.5H8.5L7.5 20.5L3 18V14L7.5 11.5L8.5 6.5H13.5L16 2Z" fill="#1A237E"/>
+  
+  <!-- The letter F (Centred) -->
+  <text x="16" y="20" text-anchor="middle" fill="white" style="font-family: Arial, sans-serif; font-weight: bold; font-size: 16px;">F</text>
+  
+  <!-- Small Green Dot for "Active/Passed" -->
+  <circle cx="22" cy="11" r="3" fill="#00E676"/>
+
+  <!-- Red Stamp Wording -->
+  <rect x="7" y="21" width="18" height="7" rx="1" fill="#D32F2F"/>
+  <text x="16" y="26.5" text-anchor="middle" fill="white" style="font-family: 'Arial Black', sans-serif; font-weight: bold; font-size: 5px; letter-spacing: 0.2px;">IPQC</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg width="64" height="32" viewBox="0 0 64 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Tab -->
+  <rect width="64" height="32" rx="4" fill="#263238"/>
+  <!-- FAMAX Text -->
+  <text x="6" y="20" fill="white" style="font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; font-weight: 900; font-size: 14px; letter-spacing: 1px;">FAMAX</text>
+  <!-- Quality Underline -->
+  <path d="M6 26H58" stroke="#455A64" stroke-width="2"/>
+  <path d="M45 26L50 30L60 18" stroke="#00E676" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

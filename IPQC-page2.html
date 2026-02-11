@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IPQC Checking - Summary Report</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        :root {
+            /* Modern Color Palette */
+            --primary-color: #1976d2;
+            --primary-dark: #1565c0;
+            --primary-light: #e3f2fd;
+            --text-muted: #6b7280;
+            --accent-color: #ff9800;
+
+            --bg-body: #f4f6f8;
+            --bg-card: #ffffff;
+            --text-main: #1a202c;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+
+            --success: #48bb78;
+            --error: #f56565;
+            --error-bg: #fff5f5;
+            --disabled: #cbd5e0;
+
+            /* Effects */
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05),
+                0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--bg-card);
+            height: 64px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title::before {
+            content: "";
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        /* Layout */
+        .container {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            max-width: 1200px;
+            /* Wider for report view */
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        /* Info Bar (Grid) */
+        .info-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Summary Cards (Generated Zones) */
+        #summary-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Styles applied to dynamically generated content */
+        .zone-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            break-inside: avoid;
+            /* For printing */
+        }
+
+        .zone-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.9rem;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-table th {
+            background-color: var(--bg-body);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-table th:first-child,
+        .detail-table td:first-child {
+            text-align: left;
+            padding-left: 1rem;
+        }
+
+        /* Status Styles */
+        .exceeded {
+            background-color: var(--error) !important;
+            color: white !important;
+        }
+
+        .exceeded-value {
+            background-color: var(--error-bg);
+            color: var(--error);
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        /* Remarks Section */
+        .remark-container {
+            margin-top: 2rem;
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .remark-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .remark-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-family: "Inter", sans-serif;
+            font-size: 1rem;
+            min-height: 100px;
+            resize: vertical;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .remark-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 4px 10px rgba(25, 118, 210, 0.1);
+        }
+
+        /* Buttons */
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px rgba(25, 118, 210, 0.4);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            background: var(--bg-body);
+            margin-top: auto;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background-color: white;
+                color: black;
+            }
+
+            header,
+            .button-container {
+                display: none !important;
+            }
+
+            .footer {
+                text-align: center;
+                margin-top: auto;
+                padding: 20px;
+                color: var(--text-muted);
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .info-card,
+            .zone-card,
+            .remark-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-title">
+            <span>IPQC Checking System</span>
+        </div>
+    </header>
+
+    <!-- Main Content ID for HTML2PDF to target -->
+    <div id="print-area">
+        <div class="container">
+            <h2 class="section-title">Inspection Summary</h2>
+
+            <div class="info-card">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Part Name</span>
+                        <span class="info-value" id="selected-part"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Process</span>
+                        <span class="info-value" id="selected-process"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Job Order</span>
+                        <span class="info-value" id="selected-jo"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Machine</span>
+                        <span class="info-value" id="selected-machine"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Inspector Name</span>
+                        <span class="info-value" id="person-name"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="summary-container">
+                <!-- Dynamic Content -->
+            </div>
+
+            <div class="remark-container">
+                <label for="inspection-remark" class="remark-label">Inspector Remarks</label>
+                <textarea id="inspection-remark" class="remark-input"
+                    placeholder="Enter any additional observations, issues, or comments here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buttons outside print area -->
+    <div class="container">
+        <div class="button-container">
+            <button id="finish-btn" class="btn btn-primary">Finish Report</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // --- 1. LOAD DATA ---
+            const partName = localStorage.getItem("partName");
+            const processName = localStorage.getItem("processName");
+            const joNumber = localStorage.getItem("joNumber");
+            const machineNumber = localStorage.getItem("machineNumber");
+            const personName = localStorage.getItem("personName");
+            const readings = JSON.parse(
+                localStorage.getItem("summaryData") || "[]"
+            );
+
+            // --- 2. DISPLAY HEADER INFO ---
+            document.getElementById("selected-part").textContent = partName || "Not provided";
+            document.getElementById("selected-process").textContent = processName || "Not provided";
+            document.getElementById("selected-jo").textContent = joNumber || "Not provided";
+            document.getElementById("selected-machine").textContent = machineNumber || "Not provided";
+            document.getElementById("person-name").textContent = personName || "Not provided";
+
+            // --- 3. GENERATE ZONES (Fix for 0 values included) ---
+            const summaryContainer = document.getElementById("summary-container");
+            readings.forEach((zone, index) => {
+                const zoneElement = document.createElement("div");
+                zoneElement.className = "zone-card";
+
+                // Validation Helpers
+                const checkExceeded = (val, min, max) => {
+                    if (val === "" || val === null || val === undefined) return false;
+                    const v = parseFloat(val);
+                    const l = parseFloat(min);
+                    const h = parseFloat(max);
+                    if (!isNaN(v) && !isNaN(l) && v < l) return true;
+                    if (!isNaN(v) && !isNaN(h) && v > h) return true;
+                    return false;
+                };
+
+                const checkTextExceeded = (val, okCriteria, ngCriteria) => {
+                    if (typeof val !== "string") return false;
+                    if (okCriteria && okCriteria.toLowerCase() === "ok" && val.toLowerCase() !== "ok") return true;
+                    if (ngCriteria && ngCriteria.toLowerCase() === "ng" && val.toLowerCase() === "ng") return true;
+                    return false;
+                };
+
+                const generateCells = (tagType) => {
+                    return ["Reading_1", "Reading_2", "Reading_3"]
+                        .map((key) => {
+                            const isHeader = tagType === "th";
+                            const val = zone[key];
+                            const isErr =
+                                checkExceeded(val, zone.LSL_OK, zone.USL_NG) ||
+                                checkTextExceeded(val, zone.LSL_OK, zone.USL_NG);
+
+                            let className = "";
+                            if (isErr) className = isHeader ? "exceeded" : "exceeded-value";
+
+                            let displayValue = "N/A";
+                            if (isHeader) {
+                                displayValue = key.replace("_", " ");
+                            } else {
+                                // Allow 0 to appear
+                                if (val !== null && val !== undefined && val !== "") {
+                                    displayValue = val;
+                                }
+                            }
+                            return `<${tagType} class="${className}">${displayValue}</${tagType}>`;
+                        })
+                        .join("");
+                };
+
+                zoneElement.innerHTML = `
+            <h3>Zone ${index + 1}: ${zone.Point_DWG_Zone || index + 1}</h3>
+            <table class="detail-table">
+                <thead>
+                    <tr><th>Measurement</th>${generateCells("th")}</tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Range: ${zone.LSL_OK || "N/A"} - ${zone.USL_NG || "N/A"}</td>
+                        ${generateCells("td")}
+                    </tr>
+                </tbody>
+            </table>
+          `;
+                summaryContainer.appendChild(zoneElement);
+            });
+
+            // --- 4. KEYDOWN HANDLER (ENTER KEY) ---
+            const remarkInput = document.getElementById("inspection-remark");
+            remarkInput.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    document.getElementById("finish-btn").click();
+                }
+            });
+
+            // --- 5. FINISH BUTTON HANDLER ---
+            // document.getElementById("finish-btn").addEventListener("click", async function () {
+            //     const btn = this;
+            //     const remarkValue = document.getElementById("inspection-remark").value.trim();
+            //     btn.innerText = "Processing...";
+            //     btn.disabled = true;
+
+            //     try {
+            //         const outOfSpecList = [];
+
+            //         // 1. Prepare Data for DB and Check for Out-of-Spec
+            //         const rowsToInsert = readings.map(zone => {
+            //             // Check each of the 3 readings
+            //             [1, 2, 3].forEach(num => {
+            //                 const val = zone[`Reading_${num}`];
+            //                 if (!validateReading(val, zone.LSL_OK, zone.USL_NG)) {
+            //                     outOfSpecList.push({
+            //                         zone: zone.Point_DWG_Zone,
+            //                         readingNum: num,
+            //                         value: val,
+            //                         min: zone.LSL_OK,
+            //                         max: zone.USL_NG
+            //                     });
+            //                 }
+            //             });
+
+            //             return {
+            //                 Part_Name: partName,
+            //                 Process: processName,
+            //                 JO_Number: joNumber,
+            //                 Machine: machineNumber,
+            //                 Person: personName,
+            //                 Point_DWG_Zone: zone.Point_DWG_Zone,
+            //                 Measuring_Instrument: zone.Measuring_Instrument,
+            //                 LSL_OK: zone.LSL_OK,
+            //                 USL_NG: zone.USL_NG,
+            //                 SC: zone.SC,
+            //                 Reading_1: zone.Reading_1,
+            //                 Reading_2: zone.Reading_2,
+            //                 Reading_3: zone.Reading_3,
+            //                 Remarks: remarkValue
+            //             };
+            //         });
+
+
+
+            //         const options = {
+            //             margin: 10,
+            //             filename: `${partName}_${new Date()}_IPQC_${joNumber}}.pdf`,
+            //             image: { type: "jpeg", quality: 0.98 },
+            //             html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+            //             jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+            //         };
+
+            //         await html2pdf().set(options).from(element).save();
+
+            //         // 5. Success and Cleanup
+            //         alert("Report Finished! Data saved and " + (outOfSpecList.length > 0 ? "Alert Sent." : "Stored."));
+            //         localStorage.clear();
+            //         window.location.href = "index.html";
+
+            //     } catch (err) {
+            //         console.error("Critical Error:", err);
+            //         alert("Failed to finish report: " + err.message);
+            //         btn.disabled = false;
+            //         btn.innerText = "Finish Report";
+            //     }
+            // });// Global Enter Handler (Backup)
+            document.getElementById("finish-btn").addEventListener("click", async function () {
+                const btn = this;
+
+                // 1. Identify the area to print (Fixes the ReferenceError)
+                const element = document.getElementById("print-area");
+                if (!element) {
+                    alert("Error: Print area not found!");
+                    return;
+                }
+
+                // 2. Collect all data from localStorage and Input
+                const remarkValue = document.getElementById("inspection-remark").value.trim();
+                const partName = localStorage.getItem("partName") || "UnknownPart";
+                const processName = localStorage.getItem("processName") || "UnknownProcess";
+                const joNumber = localStorage.getItem("joNumber") || "UnknownJO";
+                const machineNumber = localStorage.getItem("machineNumber") || "UnknownMachine";
+                const personName = localStorage.getItem("personName") || "UnknownInspector";
+                const readings = JSON.parse(localStorage.getItem("summaryData") || "[]");
+
+                btn.innerText = "Processing...";
+                btn.disabled = true;
+
+                try {
+                    const outOfSpecList = [];
+
+                    // 3. Prepare Data for DB and Check for Out-of-Spec
+                    const rowsToInsert = readings.map(zone => {
+                        [1, 2, 3].forEach(num => {
+                            const val = zone[`Reading_${num}`];
+
+                            // ONLY check and add to outOfSpecList if there is actually a value
+                            if (val !== "" && val !== null && val !== undefined) {
+                                if (!validateReading(val, zone.LSL_OK, zone.USL_NG)) {
+                                    outOfSpecList.push({
+                                        zone: zone.Point_DWG_Zone,
+                                        readingNum: num,
+                                        value: val,
+                                        min: zone.LSL_OK,
+                                        max: zone.USL_NG
+                                    });
+                                }
+                            }
+                        });
+
+                        return {
+                            Part_Name: partName,
+                            Process: processName,
+                            JO_Number: joNumber,
+                            Machine: machineNumber,
+                            Person: personName,
+                            Point_DWG_Zone: zone.Point_DWG_Zone,
+                            Measuring_Instrument: zone.Measuring_Instrument,
+                            LSL_OK: zone.LSL_OK,
+                            USL_NG: zone.USL_NG,
+                            SC: zone.SC,
+                            Reading_1: zone.Reading_1,
+                            Reading_2: zone.Reading_2,
+                            Reading_3: zone.Reading_3,
+                            Remarks: remarkValue
+                        };
+                    });
+
+                    // 4. Insert into Supabase
+                    const { error } = await supabaseClient.from("Data_IPQC").insert(rowsToInsert);
+                    if (error) throw error;
+
+                    // 5. Send Telegram Alert (Only if OOS found)
+                    if (outOfSpecList.length > 0) {
+                        btn.innerText = "Sending Alert...";
+                        await sendTelegramAlert(outOfSpecList, remarkValue);
+                    }
+
+                    // 6. Prepare UI for PDF (Hide textarea, show static text)
+                    btn.innerText = "Saving to Server...";
+                    document.getElementById("inspection-remark").style.display = "none";
+
+                    // Check if temp remark already exists to prevent duplicates
+                    let staticRemark = document.getElementById("temp-remark-text");
+                    if (!staticRemark) {
+                        staticRemark = document.createElement("div");
+                        staticRemark.className = "remark-input";
+                        staticRemark.id = "temp-remark-text";
+                        document.getElementById("inspection-remark").parentNode.appendChild(staticRemark);
+                    }
+                    staticRemark.textContent = remarkValue || "No remarks.";
+
+                    // 7. PDF Configuration
+                    const options = {
+                        margin: 10,
+                        filename: `${partName}_IPQC_${joNumber}_${new Date().getTime()}.pdf`,
+                        image: { type: "jpeg", quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                    };
+
+                    // 8. Generate PDF as blob and upload to Server
+                    const pdfBlob = await html2pdf().set(options).from(element).outputPdf('blob');
+
+                    const formData = new FormData();
+                    formData.append("pdf", pdfBlob, options.filename);
+                    formData.append("partDescription", partName);
+                    formData.append("personName", personName);
+                    formData.append("processName", processName);
+                    formData.append("joNumber", joNumber);
+                    formData.append("inspectionType", "IPQC");
+
+                    try {
+                        const serverResponse = await fetch('/FamaxQCSystem/saveInspectionPdf', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const serverResult = await serverResponse.json();
+                        console.log("Server response:", serverResult);
+                    } catch (serverErr) {
+                        console.error("Error uploading PDF to server:", serverErr);
+                    }
+
+                    // 9. Download PDF for User
+                    btn.innerText = "Downloading...";
+                    // await html2pdf().set(options).from(element).save();
+
+                    // 10. Success and Cleanup
+                    alert("Report Finished! Data saved to DB and Server.");
+                    localStorage.clear();
+                    window.location.href = "index.html";
+
+                } catch (err) {
+                    console.error("Critical Error:", err);
+                    alert("Failed to finish report: " + err.message);
+
+                    // Restore UI on failure
+                    document.getElementById("inspection-remark").style.display = "block";
+                    const tempDiv = document.getElementById("temp-remark-text");
+                    if (tempDiv) tempDiv.remove();
+
+                    btn.disabled = false;
+                    btn.innerText = "Finish Report";
+                }
+            });
+
+
+            document.addEventListener("keydown", function (e) {
+                if ((e.key === "Enter" || e.code === "NumpadEnter") && !e.shiftKey) {
+                    if (document.activeElement.id !== "inspection-remark") {
+                        e.preventDefault();
+                        document.getElementById("finish-btn").click();
+                    }
+                }
+            });
+        });
+
+        // Helper to check if a reading is within spec
+        function validateReading(reading, min, max) {
+            // 1. If there is no reading, don't treat it as Out of Spec (skip empty cells)
+            if (reading === null || reading === undefined || reading === "") return true;
+
+            const rStr = String(reading).toLowerCase();
+            const minStr = String(min || "").toLowerCase();
+            const maxStr = String(max || "").toLowerCase();
+
+            // 2. Handle Text-based specs (OK/NG or GO/NOGO)
+            // We check if the spec is actually "ok" or "go"
+            if (minStr === 'ok' || minStr === 'go') {
+                return rStr === 'ok' || rStr === 'go';
+            }
+            if (maxStr === 'ng' || maxStr === 'nogo') {
+                return rStr !== 'ng' && rStr !== 'nogo';
+            }
+
+            // 3. Handle Numeric-based specs
+            const readingValue = parseFloat(reading);
+            const minValue = parseFloat(min);
+            const maxValue = parseFloat(max);
+
+            // If limits are not numbers (and not the text "ok/ng" handled above), 
+            // we can't validate, so we assume it's OK to avoid false alarms.
+            if (isNaN(minValue) || isNaN(maxValue)) return true;
+
+            // Return true if value is within range
+            return !isNaN(readingValue) && readingValue >= minValue && readingValue <= maxValue;
+        }
+
+        // Telegram Alert Function
+        async function sendTelegramAlert(outOfSpecReadings, remarks) {
+            try {
+                const partName = localStorage.getItem("partName");
+                const processName = localStorage.getItem("processName");
+                const joNumber = localStorage.getItem("joNumber");
+                const machineNumber = localStorage.getItem("machineNumber");
+                const personName = localStorage.getItem("personName");
+
+                let message = `⚠️ *IPQC ALERT - OUT OF SPEC*\n\n`;
+                message += `*Part:* ${partName}\n`;
+                message += `*Process:* ${processName}\n`;
+                message += `*Job Order:* ${joNumber}\n`;
+                message += `*Machine:* ${machineNumber}\n`;
+                message += `*Inspector:* ${personName}\n`;
+                message += `*Remarks:* ${remarks || "No remarks provided"}\n\n`;
+                message += `*Failed Measurements:*\n`;
+
+                outOfSpecReadings.forEach(item => {
+                    message += `\n📍 *Zone ${item.zone}*\n`;
+                    message += `Spec: ${item.min} - ${item.max}\n`;
+                    message += `Reading ${item.readingNum}: ❌ *${item.value}*\n`;
+                });
+
+                const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4';
+                const chatId = '-1003227469075';
+
+                await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'Markdown'
+                });
+            } catch (error) {
+                console.error('Telegram Alert Failed:', error);
+            }
+        }
+    </script>
+</body>
+
+</html>

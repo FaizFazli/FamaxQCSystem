@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generate New File</title>
+  <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2" />
+
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #005a9e;
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --focus-ring: rgba(0, 120, 212, 0.25);
+      --radius: 8px;
+      --input-height: 46px;
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* --- Navigation --- */
+    .nav-top {
+      width: 100%;
+      max-width: 1000px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--primary);
+    }
+
+    /* --- Main Card --- */
+    .card {
+      background: var(--bg-card);
+      width: 100%;
+      max-width: 1000px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    /* Header */
+    .card-header {
+      background: var(--primary);
+      padding: 24px 30px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-body {
+      padding: 30px;
+    }
+
+    /* --- Form Sections --- */
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      height: var(--input-height);
+      padding: 0 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-family: "Inter", sans-serif;
+      font-size: 14px;
+      color: var(--text-main);
+      background-color: #fff;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px var(--focus-ring);
+    }
+
+    /* --- Symbol Button Styles --- */
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-symbol {
+      height: var(--input-height);
+      min-width: 46px;
+      padding: 0 10px;
+      background-color: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-symbol:hover {
+      border-color: var(--primary);
+      background-color: #f0f9ff;
+      color: var(--primary);
+    }
+
+    /* --- Table Styling --- */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #f9fafb;
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr.existing-row {
+      background-color: #f8fafc;
+      opacity: 0.8;
+    }
+
+    /* Table Inputs */
+    .table-input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .table-select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      background-color: white;
+    }
+
+    /* --- Paste/Upload Zone Styles --- */
+    .paste-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #f9fafb;
+      position: relative;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      outline: none;
+    }
+
+    .paste-zone:hover {
+      border-color: var(--primary);
+      background: #e0f2fe;
+    }
+
+    .paste-zone:hover .placeholder-text {
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+
+    .paste-zone p {
+      margin: 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .paste-zone img.preview-img {
+      max-width: 100%;
+      max-height: 100px;
+      border-radius: 4px;
+      display: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-clear-img {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      cursor: pointer;
+      display: none;
+    }
+
+    .btn-clear-img:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* --- Buttons --- */
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      /* Pushes left button to left, group to right */
+      align-items: center;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .right-group {
+      display: flex;
+      gap: 12px;
+      /* Adds space between the two right-side buttons */
+    }
+
+    .btn-secondary {
+      background-color: #fff;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-add {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      border: none;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-add:hover {
+      background-color: #bae6fd;
+    }
+
+    .btn-remove {
+      background-color: #fee2e2;
+      color: #991b1b;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-remove:hover {
+      background-color: #fecaca;
+    }
+
+    .btn-submit {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .btn-processFlow {
+      background-color: var(--danger);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .processFlow:hover {
+      background-color: var(--primary-dark);
+    }
+
+    /* --- Modal Styles --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+
+    .modal-content {
+      background: white;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      padding: 20px;
+      background: #f9fafb;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .part-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .part-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .badge-existing {
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    /* --- Loading Overlay --- */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      z-index: 4000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .wi-search-container {
+      flex-grow: 1;
+      margin: 0 20px;
+    }
+
+    #partSearchInput {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      /* Space between title, search, and button */
+      padding: 15px 20px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      white-space: nowrap;
+      /* Prevents "Existing Parts" from wrapping */
+    }
+
+    .search-container {
+      flex-grow: 1;
+      /* Makes the search bar take up available space */
+      max-width: 400px;
+      /* Limits how wide the search bar can get */
+    }
+
+    #partSearchInput {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: "Inter", sans-serif;
+      font-size: 14px;
+    }
+
+    #partSearchInput:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    .footer {
+      margin-top: auto;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .move-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .btn-move {
+      background: #f3f4f6;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 10px;
+      line-height: 1;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .btn-move:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Hide Up on first row and Down on last row */
+    tr:first-child .btn-up,
+    tr:last-child .btn-down {
+      visibility: hidden;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div style="font-size: 14px; color: var(--text-muted)">Processing...</div>
+  </div>
+
+  <!-- Modal for Parts List -->
+  <div class="modal-overlay" id="partsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 style="margin: 0; font-size: 18px">Existing Parts</h2>
+
+        <!-- Search Field Added Here -->
+        <div class="part-search-container">
+          <input type="text" id="partSearchInput" placeholder="Search by Part Name..." onkeyup="filterWITable()">
+        </div>
+        <button class="btn-remove" onclick="closeModal()">Close</button>
+      </div>
+      <div class="modal-body" id="partsListContent">
+        <!-- Parts loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-top">
+    <a onclick="window.location.href='AdminLogin.html'" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Dashboard
+    </a>
+    <button class="btn-secondary" onclick="openModal()">
+      View Existing Parts / Add Process
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h1 id="formTitle">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        Generate New File
+      </h1>
+      <button id="resetBtn" class="btn-remove" style="display: none" onclick="resetForm()">
+        Cancel Edit
+      </button>
+    </div>
+
+    <div class="card-body">
+      <!-- Part Info -->
+      <div class="section-title">Part Information</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Part Description</label>
+          <input type="text" id="partDescription" placeholder="e.g. Housing Bracket" />
+        </div>
+        <div class="form-group">
+          <label>Part No</label>
+          <input type="text" id="partNo" placeholder="e.g. A-12345" />
+        </div>
+        <div class="form-group">
+          <label>WI Number</label>
+          <input type="text" id="docNumber1" placeholder="e.g. DOC-001" />
+        </div>
+        <div class="form-group">
+          <label>Drawing Number</label>
+          <input type="text" id="docNumber2" placeholder="e.g. DOC-002" />
+        </div>
+        <div class="form-group">
+          <label>Revision Number</label>
+          <input type="text" id="revNumber" placeholder="e.g. 01" />
+        </div>
+        <div class="form-group">
+          <label>Raw Material</label>
+          <input type="text" id="rawMaterial" placeholder="e.g. Aluminum" />
+        </div>
+        <div class="form-group" style="grid-column: span 2">
+          <label>Material Grade</label>
+          <input type="text" id="rawMaterialGrade" placeholder="e.g. 6061-T6" />
+        </div>
+        <div class="form-group" style="grid-column: span 2">
+          <label>Material Size</label>
+          <div class="input-group">
+            <input type="text" id="rawMaterialSize" placeholder="e.g. Ø50mm x 100mm" style="flex-grow: 1" />
+            <button type="button" class="btn-symbol" onclick="insertSymbol('Ø')">
+              Ø
+            </button>
+            <button type="button" class="btn-symbol" onclick="insertSymbol('±')">
+              ±
+            </button>
+            <button type="button" class="btn-symbol" onclick="insertSymbol('°')">
+              °
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Process List -->
+      <div class="section-title">
+        Process Flow
+        <span id="editModeBadge" style="display: none; font-size: 12px; color: var(--primary)">Adding to existing
+          part</span>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50px">#</th>
+              <th>Process Name</th>
+              <th style="width: 250px">Process Image (Optional)</th>
+              <th>Document Type</th>
+              <th>Flow Type</th>
+              <th style="width: 80px">Action</th>
+            </tr>
+          </thead>
+          <tbody id="processTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="actions-row">
+        <!-- Left Side -->
+        <button class="btn-add" onclick="addRow()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Process Step
+        </button>
+
+        <!-- Right Side Group -->
+        <div class="right-group">
+          <button id="processFlowBtn" class="btn-processFlow" onclick="generateProcessFlow()" style="display: none">
+            Process Flow
+          </button>
+          <button class="btn-submit" onclick="submitForm()">
+            Submit & Generate
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    © 2025 Famax Technology (M) System. All rights reserved.
+  </div>
+
+  <script>
+    const SUPABASE_URL = "http://192.168.0.5:8000";
+    const SUPABASE_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+    const API_URL = "http://192.168.0.5";
+
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+    let processCount = 0;
+    let hoveredPasteZone = null;
+    let currentPartId = null; // Tracks if we are editing an existing part
+
+    document.addEventListener("DOMContentLoaded", () => {
+      addRow();
+      document.addEventListener("paste", handleGlobalPaste);
+    });
+
+    function insertSymbol(symbol) {
+      const input = document.getElementById("rawMaterialSize");
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const text = input.value;
+      input.value = text.substring(0, start) + symbol + text.substring(end);
+      input.focus();
+      input.selectionStart = input.selectionEnd = start + symbol.length;
+    }
+
+    function addRow(existingData = null) {
+      processCount++;
+      const tbody = document.getElementById("processTableBody");
+      const row = document.createElement("tr");
+      if (existingData) row.classList.add("existing-row");
+
+      row.innerHTML = `
+    <td style="text-align:center;">
+        <div style="font-weight:600;" class="process-no">${processCount}</div>
+        <div class="move-btns">
+            <button class="btn-move btn-up" onclick="moveRow(this, -1)" title="Move Up">▲</button>
+            <button class="btn-move btn-down" onclick="moveRow(this, 1)" title="Move Down">▼</button>
+        </div>
+    </td>
+    <td><input type="text" class="table-input process-name" placeholder="Name" value="${existingData || ""}"></td>
+
+    <td>
+        <div class="paste-zone" 
+             onmouseenter="hoveredPasteZone = ${existingData ? "null" : "this"}" 
+             onmouseleave="hoveredPasteZone = null"
+             onclick="${existingData ? "" : "triggerFileSelect(this)"}">
+            <p class="placeholder-text">${existingData ? "Locked" : "Click to Upload<br>or <strong>Hover & Ctrl+V</strong>"}</p>
+            <img class="preview-img">
+            <button class="btn-clear-img" onclick="clearImage(event, this)">×</button>
+            <input type="file" accept="image/*" class="img-upload" onchange="handleFileSelect(this)" hidden>
+            <input type="hidden" class="base64-data"> 
+            <input type="hidden" class="is-existing" value="${existingData ? "true" : "false"}">
+        </div>
+    </td>
+    <td>
+        <select class="table-select doc-type" ${existingData ? "disabled" : ""}>
+            <option value="IPQC">IPQC</option><option value="IQC">IQC</option><option value="OQC">OQC</option><option value="SAMPLE">SAMPLE</option>
+        </select>
+    </td>
+    <td>
+        <select class="table-select flow-type" ${existingData ? "disabled" : ""}>
+            <option value="FABRICATION">FABRICATION</option><option value="MOVE">MOVE</option><option value="STORE">STORE</option><option value="INSPECTION">INSPECTION</option>
+        </select>
+    </td>
+    <td style="text-align:center;">
+        ${existingData
+          ? '<span class="badge-existing">Existing</span>'
+          : '<button class="btn-remove" onclick="removeRow(this)">Remove</button>'
+        }
+    </td>
+  `;
+      tbody.appendChild(row);
+      updateNumbers();
+    }
+
+    function removeRow(btn) {
+      btn.closest("tr").remove();
+      updateNumbers();
+    }
+    function moveRow(btn, direction) {
+      const row = btn.closest("tr");
+      const tbody = row.parentNode;
+
+      if (direction === -1) {
+        // Move Up
+        const prev = row.previousElementSibling;
+        if (prev) tbody.insertBefore(row, prev);
+      } else {
+        // Move Down
+        const next = row.nextElementSibling;
+        if (next) tbody.insertBefore(next, row);
+      }
+      updateNumbers();
+    }
+
+    function updateNumbers() {
+      const rows = document.querySelectorAll(".process-no");
+      processCount = 0;
+      rows.forEach((cell, i) => {
+        processCount++;
+        cell.textContent = processCount;
+      });
+    }
+
+    // Helper function to ensure process is always an array
+    function ensureArray(data) {
+      if (!data) return [];
+      if (Array.isArray(data)) return data;
+      if (typeof data === "string") {
+        // Handle Postgres array format "{a,b,c}" or JSON format "['a','b']"
+        if (data.startsWith("{") && data.endsWith("}")) {
+          return data.substring(1, data.length - 1).split(",");
+        }
+        try {
+          const parsed = JSON.parse(data);
+          return Array.isArray(parsed) ? parsed : [data];
+        } catch (e) {
+          return [data];
+        }
+      }
+      return [data];
+    }
+
+    // Updated Modal Logic
+    async function openModal() {
+      document.getElementById("partsModal").style.display = "flex";
+      const listContainer = document.getElementById("partsListContent");
+      listContainer.innerHTML =
+        '<div style="padding:20px; text-align:center;">Loading parts...</div>';
+
+      const { data, error } = await supabaseClient
+        .from("Parts")
+        .select("*")
+        .order("id", { ascending: false });
+
+      if (error) {
+        listContainer.innerHTML =
+          '<div style="padding:20px; color:red;">Error loading parts.</div>';
+        return;
+      }
+
+      listContainer.innerHTML = "";
+      data.forEach((part) => {
+        const processArray = ensureArray(part.Process);
+        const div = document.createElement("div");
+        div.className = "part-list-item";
+        div.innerHTML = `
+                <div style="flex: 1; margin-right: 15px;">
+                    <strong style="display:block; font-size: 14px;">${part.Part_Name || "Unnamed Part"
+          }</strong>
+                    <small style="color:var(--text-muted); display:block; margin-top:4px;">
+                        Steps: ${processArray.length > 0
+            ? processArray.join(" → ")
+            : "No processes"
+          }
+                    </small>
+                </div>
+                <button class="btn-add" onclick='loadPartForEdit(${JSON.stringify(
+            part
+          ).replace(/'/g, "&apos;")})'>
+                    Edit / Add
+                </button>
+            `;
+        listContainer.appendChild(div);
+      });
+    }
+
+    function closeModal() {
+      document.getElementById("partsModal").style.display = "none";
+    }
+
+    function loadPartForEdit(part) {
+      currentPartId = part.id;
+
+      // Fill basic info
+      document.getElementById("partDescription").value = (
+        part.Part_Name || ""
+      ).split(" (")[0];
+      document.getElementById("partNo").value = part.Part_Number || "";
+      document.getElementById("rawMaterial").value = part.Raw_Material || "";
+      document.getElementById("rawMaterialGrade").value =
+        part.Raw_Material_Grade || "";
+      document.getElementById("rawMaterialSize").value =
+        part.Raw_Material_Size || "";
+      document.getElementById("docNumber1").value = part.WI_Number || "";
+      document.getElementById("docNumber2").value = part.DRW_Number || "";
+      // If you have a Rev column in DB, map it here, otherwise keep blank
+      document.getElementById("revNumber").value = part.Revision || "";
+
+      document.getElementById("processTableBody").innerHTML = "";
+      processCount = 0;
+
+      document.getElementById("processFlowBtn").style.display = "block";
+
+      // Safely handle the process list
+      const processArray = ensureArray(part.Process);
+      if (processArray.length > 0) {
+        processArray.forEach((pName) => {
+          if (pName.trim()) addRow(pName.trim());
+        });
+      }
+
+      document.getElementById("formTitle").innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+            Editing: ${part.Part_Number}
+        `;
+      document.getElementById("resetBtn").style.display = "block";
+      document.getElementById("editModeBadge").style.display = "inline";
+      closeModal();
+    }
+
+    function resetForm() {
+      currentPartId = null;
+      document.getElementById("partDescription").value = "";
+      document.getElementById("partNo").value = "";
+      document.getElementById("rawMaterial").value = "";
+      document.getElementById("rawMaterialGrade").value = "";
+      document.getElementById("rawMaterialSize").value = "";
+      document.getElementById("processTableBody").innerHTML = "";
+      document.getElementById("docNumber1").value = "";
+      document.getElementById("docNumber2").value = "";
+      processCount = 0;
+      addRow();
+      document.getElementById("formTitle").innerText = "Generate New File";
+      document.getElementById("resetBtn").style.display = "none";
+      document.getElementById("editModeBadge").style.display = "none";
+      document.getElementById("processFlowBtn").style.display = "none"; 
+    }
+
+    // Image & Paste logic
+    function triggerFileSelect(div) {
+      if (div.querySelector(".base64-data").value) return;
+      div.querySelector(".img-upload").click();
+    }
+
+    function handleFileSelect(input) {
+      const file = input.files[0];
+      if (file) processImageFile(file, input.parentElement);
+    }
+
+    function handleGlobalPaste(e) {
+      if (!hoveredPasteZone) return;
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      let blob = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf("image") !== -1) {
+          blob = items[i].getAsFile();
+          break;
+        }
+      }
+      if (blob) {
+        e.preventDefault();
+        processImageFile(blob, hoveredPasteZone);
+      }
+    }
+
+    function processImageFile(file, container) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const base64 = event.target.result;
+        container.querySelector(".preview-img").src = base64;
+        container.querySelector(".preview-img").style.display = "block";
+        container.querySelector(".placeholder-text").style.display = "none";
+        container.querySelector(".btn-clear-img").style.display = "block";
+        container.querySelector(".base64-data").value = base64;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearImage(e, btn) {
+      e.stopPropagation();
+      const container = btn.parentElement;
+      container.querySelector(".preview-img").style.display = "none";
+      container.querySelector(".placeholder-text").style.display = "block";
+      container.querySelector(".base64-data").value = "";
+      container.querySelector(".img-upload").value = "";
+      btn.style.display = "none";
+    }
+
+    function sanitizeName(name) {
+      return name.trim().replace(/[\/\\?%*:|"<>]/g, " ");
+    }
+
+    function showToast(msg, type = "info") {
+      Toastify({
+        text: msg,
+        duration: 3000,
+        gravity: "top",
+        position: "left",
+        style: { background: type === "error" ? "#ef4444" : "#10b981" },
+      }).showToast();
+    }
+
+    async function submitForm() {
+      const partDesc = document.getElementById("partDescription").value;
+      const partNo = document.getElementById("partNo").value;
+      const rawMat = document.getElementById("rawMaterial").value;
+      const matGrade = document.getElementById("rawMaterialGrade").value;
+      const matSize = document.getElementById("rawMaterialSize").value;
+      const doc1 = document.getElementById("docNumber1").value;
+      const doc2 = document.getElementById("docNumber2").value;
+      const rev = document.getElementById("revNumber").value;
+
+      if (!partDesc || !partNo || !rawMat)
+        return showToast("Fill part details", "error");
+
+      const rows = document.querySelectorAll("#processTableBody tr");
+      const allProcesses = [];
+      const newProcesses = [];
+
+      rows.forEach((row) => {
+        const name = row.querySelector(".process-name").value;
+        const doc = row.querySelector(".doc-type").value;
+        const flow = row.querySelector(".flow-type").value;
+        const base64 = row.querySelector(".base64-data").value || null;
+        const isExisting = row.querySelector(".is-existing").value === "true";
+
+        const pObj = {
+          name,
+          documentType: doc,
+          flowChart: flow,
+          imageBase64: base64,
+          isExisting,
+        };
+        allProcesses.push(pObj);
+        if (!isExisting) newProcesses.push(pObj);
+      });
+
+      if (newProcesses.length === 0 && !currentPartId)
+        return showToast("Add at least one new process", "error");
+
+      document.getElementById("loading-overlay").style.display = "flex";
+      const fullPartName = `${partDesc} (${partNo})`;
+      localStorage.setItem("partDescription", fullPartName);
+      localStorage.setItem("partNo", partNo);
+      localStorage.setItem("rawMaterial", rawMat);
+      localStorage.setItem("rawMaterialGrade", matGrade);
+      localStorage.setItem("rawMaterialSize", matSize);
+      localStorage.setItem("revNumber", rev);
+      localStorage.setItem("processes", JSON.stringify(allProcesses)); // Full list for PDF
+      localStorage.setItem("docNumber1", doc1);
+      localStorage.setItem("docNumber2", doc2);
+
+      try {
+        const dbPayload = {
+          Part_Name: sanitizeName(fullPartName),
+          Part_Number: partNo,
+          Raw_Material: rawMat,
+          Raw_Material_Grade: matGrade,
+          Raw_Material_Size: matSize,
+          WI_Number: doc1,
+          DRW_Number: doc2,
+          Revision: rev,
+          Process: allProcesses.map((p) => p.name),
+        };
+
+        let dbError;
+        if (currentPartId) {
+          const { error } = await supabaseClient
+            .from("Parts")
+            .update(dbPayload)
+            .eq("id", currentPartId);
+          dbError = error;
+        } else {
+          const { error } = await supabaseClient
+            .from("Parts")
+            .insert([dbPayload]);
+          dbError = error;
+        }
+        if (dbError) throw dbError;
+
+        // Local API Call
+        const response = await fetch(`http://192.168.0.5/FamaxQCSystem/createFolder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folderPath: `C:\\Users\\FamaxQC_Doc\\${sanitizeName(fullPartName)}`,
+            partDescription: partDesc,
+            partNo,
+            rawMaterial: rawMat,
+            rawMaterialGrade: matGrade,
+            rawMaterialSize: matSize,
+            processes: allProcesses, // Full list for Flow Chart
+            newProcesses: newProcesses, // Sub-list for Excel Generation
+            docNumber1: doc1,
+            docNumber2: doc2,
+            revNumber: rev,
+          }),
+        });
+
+        if (!response.ok) throw new Error("Local API connection failed");
+
+        showToast("Success! Redirecting...", "success");
+        setTimeout(() => (window.location.href = "FilePDF.html"), 1500);
+      } catch (e) {
+        showToast("Error: " + e.message, "error");
+        document.getElementById("loading-overlay").style.display = "none";
+      }
+    }
+
+    async function generateProcessFlow() {
+      const partDesc = document.getElementById("partDescription").value;
+      const partNo = document.getElementById("partNo").value;
+      const rawMat = document.getElementById("rawMaterial").value;
+      const matGrade = document.getElementById("rawMaterialGrade").value;
+      const matSize = document.getElementById("rawMaterialSize").value;
+      const doc1 = document.getElementById("docNumber1").value;
+      const doc2 = document.getElementById("docNumber2").value;
+      const rev = document.getElementById("revNumber").value;
+
+      if (!partDesc || !partNo || !rawMat)
+        return showToast("Fill part details", "error");
+
+      const rows = document.querySelectorAll("#processTableBody tr");
+      const allProcesses = [];
+      const newProcesses = [];
+
+      rows.forEach((row) => {
+        const name = row.querySelector(".process-name").value;
+        const doc = row.querySelector(".doc-type").value;
+        const flow = row.querySelector(".flow-type").value;
+        const base64 = row.querySelector(".base64-data").value || null;
+        const isExisting = row.querySelector(".is-existing").value === "true";
+
+        const pObj = {
+          name,
+          documentType: doc,
+          flowChart: flow,
+          imageBase64: base64,
+          isExisting,
+        };
+        allProcesses.push(pObj);
+        if (!isExisting) newProcesses.push(pObj);
+      });
+
+      if (newProcesses.length === 0 && !currentPartId)
+        return showToast("Add at least one new process", "error");
+
+      document.getElementById("loading-overlay").style.display = "flex";
+      const fullPartName = `${partDesc} (${partNo})`;
+      localStorage.setItem("partDescription", fullPartName);
+      localStorage.setItem("partNo", partNo);
+      localStorage.setItem("rawMaterial", rawMat);
+      localStorage.setItem("rawMaterialGrade", matGrade);
+      localStorage.setItem("rawMaterialSize", matSize);
+      localStorage.setItem("revNumber", rev);
+      localStorage.setItem("processes", JSON.stringify(allProcesses)); // Full list for PDF
+      localStorage.setItem("docNumber1", doc1);
+      localStorage.setItem("docNumber2", doc2);
+
+      try {
+
+        showToast("Success! Redirecting...", "success");
+        setTimeout(() => (window.location.href = "FilePDF.html"), 1500);
+      } catch (e) {
+        showToast("Error: " + e.message, "error");
+        document.getElementById("loading-overlay").style.display = "none";
+      }
+    }
+
+    // --- Added Search Logic ---
+    function filterWITable() {
+      const input = document.getElementById("partSearchInput");
+      const filter = input.value.toLowerCase();
+      const listContainer = document.getElementById("partsListContent");
+      // Target the actual divs being created
+      const items = listContainer.getElementsByClassName("part-list-item");
+
+      for (let i = 0; i < items.length; i++) {
+        // Look for the <strong> tag which contains the Part Name
+        const nameElement = items[i].getElementsByTagName("strong")[0];
+        if (nameElement) {
+          const txtValue = nameElement.textContent || nameElement.innerText;
+          // Compare text and show/hide the entire item div
+          if (txtValue.toLowerCase().indexOf(filter) > -1) {
+            items[i].style.display = "";
+          } else {
+            items[i].style.display = "none";
+          }
+        }
+      }
+    }
+
+
+    // Close modal when clicking outside the box
+    $(window).on("click", function (event) {
+      if ($(event.target).is("#partsModal")) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+
+</html>
