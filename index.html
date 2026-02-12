@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="refresh" content="600" />
     <title>Famax | IPQC System</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -882,12 +882,12 @@
     <nav class="navbar">
         <div class="nav-left">
             <div class="logo">
-                <img src="img/Famax Logo.png" alt="famax logo">
+                <assets src="assets/Famax Logo.png" alt="famax logo">
             </div>
 
             <div class="nav-menu">
                 <!-- Normal Link -->
-                <a href="inspectionDashboard.html" class="nav-link">
+                <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link">
                     <span class="icon">✔️</span> Famax Quality Hub
                 </a>
 
@@ -898,10 +898,10 @@
                         <span class="arrow">▼</span>
                     </button>
                     <div class="dropdown-content">
-                        <a href="qcReport.html">
+                        <a href="screen_page/report_summary/qcReport.html">
                             <span>📝</span> IPQC Report Summary
                         </a>
-                        <a href="jobOrderSummary.html">
+                        <a href="screen_page/report_summary/jobOrderSummary.html">
                             <span>📋</span> Job Order Summary
                         </a>
                         <!-- Future links can be added here -->
@@ -917,11 +917,11 @@
 
     <div class="main">
         <div class="quick-nav">
-            <div class="nav-card buyoff" onclick="window.location.href='Buyoff-page.html'">
+            <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
                 <h3>Buyoff Checking</h3>
                 <p>Initial Checks</p>
             </div>
-            <div class="nav-card ipqc" onclick="window.location.href='IPQC-page.html'">
+            <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
                 <h3>IPQC Checking</h3>
                 <p>In-Process QC</p>
             </div>
@@ -1366,34 +1366,6 @@
             }
         }
 
-        // function copyTemplateToBottom(ws, startRow, endRow, targetStartRow) {
-        //     const rowOffset = targetStartRow - startRow;
-        //     for (let i = startRow; i <= endRow; i++) {
-        //         const srcRow = ws.getRow(i), destRow = ws.getRow(i + rowOffset);
-        //         destRow.height = srcRow.height;
-        //         srcRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
-        //             const destCell = destRow.getCell(colNum);
-        //             const isDataRow = (i >= 14 && i <= 25) || (i >= 27 && i <= 38);
-        //             if (!isDataRow) destCell.value = cell.value;
-
-        //             let newStyle = JSON.parse(JSON.stringify(cell.style));
-        //             if (isDataRow && colNum >= 1) {
-        //                 if (newStyle.fill) delete newStyle.fill;
-        //                 if (newStyle.font) { newStyle.font.color = { argb: "FF000000" }; newStyle.font.bold = false; }
-        //             }
-        //             destCell.style = newStyle;
-        //         });
-        //     }
-        //     if (ws._merges) {
-        //         Object.values(ws._merges).forEach((m) => {
-        //             const model = m.model;
-        //             if (model.top >= startRow && model.bottom <= endRow) {
-        //                 ws.mergeCells(model.top + rowOffset, model.left, model.bottom + rowOffset, model.right);
-        //             }
-        //         });
-        //     }
-        // }
-
         // Bridge to Excel logic
         async function triggerExcelFromTooltip(partName, processName, dateStr) {
             showNotification("Generating Excel...", "success");
@@ -1421,155 +1393,6 @@
                 showNotification("Failed to generate Excel", "error");
             }
         }
-
-        // async function buildProcessCategorizedExcel(rows, meta) {
-        //     const resp = await fetch(TEMPLATE_URL);
-        //     const arrayBuffer = await resp.arrayBuffer();
-        //     const workbook = new ExcelJS.Workbook();
-        //     await workbook.xlsx.load(arrayBuffer);
-        //     const templateSheet = workbook.worksheets[0];
-
-        //     const [famaxBuf, confBuf] = await Promise.all([
-        //         getImageBuffer("http://192.168.2.113:8000/storage/v1/object/public/assets/Famax.png"),
-        //         getImageBuffer("http://192.168.2.113:8000/storage/v1/object/public/assets/Confidential.png"),
-        //     ]);
-        //     const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
-        //     const logoConfidential = workbook.addImage({ buffer: confBuf, extension: "png" });
-
-        //     const dataByGroup = {};
-        //     rows.forEach((r) => {
-        //         const m = r.Machine || "N/A", p = r.Process || "Unknown";
-        //         const key = `${p} | ${m}`;
-        //         if (!dataByGroup[key]) dataByGroup[key] = { process: p, machine: m, records: [], inspector: r.Person || "" };
-        //         dataByGroup[key].records.push(r);
-        //     });
-
-        //     Object.keys(dataByGroup).forEach((groupKey) => {
-        //         let baseName = groupKey.replace(/[:\\/?*\[\]]/g, "_").substring(0, 31);
-        //         const ws = workbook.addWorksheet(baseName);
-        //         copySheetFormat(templateSheet, ws);
-
-        //         const group = dataByGroup[groupKey];
-        //         const ptGroups = {};
-        //         group.records.forEach((r) => {
-        //             const pt = r.Point_DWG_Zone || "Unknown";
-        //             if (!ptGroups[pt]) ptGroups[pt] = [];
-        //             ptGroups[pt].push(r);
-        //         });
-        //         const sortedPts = Object.keys(ptGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-        //         const pointsPerTable = 12;
-        //         const totalTablesNeeded = Math.ceil(sortedPts.length / pointsPerTable);
-
-        //         for (let tableIdx = 0; tableIdx < totalTablesNeeded; tableIdx++) {
-        //             const rowOffset = tableIdx * 50;
-        //             if (tableIdx > 0) copyTemplateToBottom(ws, 1, 46, rowOffset + 1);
-
-        //             ws.addImage(logoFamax, { tl: { col: 0, row: rowOffset }, ext: { width: 125, height: 51 } });
-        //             ws.addImage(logoConfidential, { tl: { col: 18, row: rowOffset }, ext: { width: 189, height: 56 } });
-
-        //             // --- HEADER MAPPINGS ---
-        //             ws.getCell(4 + rowOffset, 3).value = meta.Part_Name || "";
-        //             ws.getCell(5 + rowOffset, 3).value = meta.Part_Number || "";
-        //             ws.getCell(6 + rowOffset, 3).value = meta.Raw_Material || "";
-        //             ws.getCell(7 + rowOffset, 3).value = meta.Raw_Material_Grade || "";
-        //             ws.getCell(8 + rowOffset, 3).value = meta.Raw_Material_Size || "";
-        //             ws.getCell(9 + rowOffset, 3).value = group.process;
-        //             // ws.getCell(10 + rowOffset, 3).value = currentProcessNumber;
-        //             // ws.getCell(10 + rowOffset, 5).value = totalProcessCount > 0 ? totalProcessCount : "";
-        //             ws.getCell(4 + rowOffset, 19).value = meta.WI_Number || "";
-        //             ws.getCell(5 + rowOffset, 19).value = meta.Drawing_Number || "";
-        //             ws.getCell(6 + rowOffset, 19).value = meta.Revision_No || "";
-
-        //             // Fixed Date Mapping (Row 9, Col J)
-        //             const dateVal = new Date(group.records[0].created_at);
-        //             const headerDate = ws.getCell(9 + rowOffset, 10);
-        //             headerDate.value = dateVal;
-        //             headerDate.numFmt = "dd/mm/yyyy";
-
-        //             // Fixed Machine Mapping (Row 10, Col s)
-        //             ws.getCell(10 + rowOffset, 19).value = group.machine || "";
-        //             ws.getCell(11 + rowOffset, 17).value = group.records[0].JO_Number || "";
-
-        //             // Signature / Inspector (Row 42, Col Q)
-        //             ws.getCell(42 + rowOffset, 17).value = group.inspector;
-
-        //             const pointsInThisTable = sortedPts.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
-        //             pointsInThisTable.forEach((pt, pIdxInTable) => {
-        //                 const morningRow = 14 + pIdxInTable + rowOffset;
-        //                 const afternoonRow = 27 + pIdxInTable + rowOffset;
-        //                 const info = ptGroups[pt][0];
-
-        //                 // --- POINT INFO ---
-        //                 ws.getCell(morningRow, 1).value = info.Point_DWG_Zone;
-        //                 ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
-        //                 ws.getCell(morningRow, 4).value = info.LSL_OK;
-        //                 ws.getCell(morningRow, 5).value = info.USL_NG;
-
-        //                 // NEW: V/A Column (Variable / Attribute)
-        //                 ws.getCell(morningRow, 6).value = !isNaN(parseFloat(info.LSL_OK)) && !isNaN(parseFloat(info.USL_NG)) ? "Variable" : "Attribute";
-        //                 ws.getCell(40 + rowOffset, 17).value = "Remark: " + (info.Remarks || "");
-        //                 // NEW: SC Column
-        //                 ws.getCell(morningRow, 7).value = info.SC || "";
-
-        //                 const lsl = safeNum(info.LSL_OK);
-        //                 const usl = safeNum(info.USL_NG);
-
-        //                 // --- READINGS MAPPING ---
-        //                 ptGroups[pt].forEach((rec) => {
-        //                     // 1. Get the hour (Use the local Malaysia time conversion)
-        //                     const hr = getMYTHour(rec.created_at);
-
-        //                     // 2. Exact logic from your Generate Report page
-        //                     if ((hr >= 8 && hr < 12) || hr === 12 || (hr >= 14 && hr < 21)) {
-
-        //                         // Determine if it goes in the Top Table (Morning) or Bottom Table (Afternoon/Lunch)
-        //                         const targetRow = hr < 12 ? morningRow : afternoonRow;
-
-        //                         // Determine the starting Column
-        //                         let baseCol = hr < 12
-        //                             ? 10 + (hr - 8) * 3   // 8am=Col J(10), 9am=Col M(13), etc.
-        //                             : (hr === 12
-        //                                 ? 1               // 12pm = Column A(1) 
-        //                                 : 4 + (hr - 14) * 3 // 2pm=Col D(4), 3pm=Col G(7), etc.
-        //                             );
-
-        //                         const rowObj = ws.getRow(targetRow);
-
-        //                         [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, rIdx) => {
-        //                             const cell = rowObj.getCell(baseCol + rIdx);
-
-        //                             if (val !== null && val !== undefined && String(val).trim() !== "") {
-        //                                 cell.value = val;
-
-        //                                 // NG highlighting logic
-        //                                 const nVal = safeNum(val);
-        //                                 let isNG = false;
-        //                                 if (nVal !== null && lsl !== null && usl !== null && !(lsl === 0 && usl === 0)) {
-        //                                     if (nVal < lsl || nVal > usl) isNG = true;
-        //                                 }
-        //                                 if (String(val).trim().toUpperCase() === "NG") isNG = true;
-
-        //                                 if (isNG) {
-        //                                     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
-        //                                     cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
-        //                                 } else {
-        //                                     // Reset style if it was previously NG (optional but safer)
-        //                                     cell.fill = { type: 'pattern', pattern: 'none' };
-        //                                     cell.font = { color: { argb: "FF000000" }, bold: false };
-        //                                 }
-        //                             }
-        //                         });
-        //                     }
-        //                 });
-        //             });
-        //         }
-        //     });
-
-        //     workbook.removeWorksheet(templateSheet.id);
-        //     await saveWorkbook(workbook, `IPQC_Report_${meta.Part_Name}`);
-        // }
-
 
         // --- MAIN EXCEL GENERATOR ---
         async function buildProcessCategorizedExcel(rows, meta) {

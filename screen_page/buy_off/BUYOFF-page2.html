@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BUYOFF - Summary & Submit</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-dark: #1565c0;
+            --text-muted: #6b7280;
+            --bg-body: #f4f6f8;
+            --bg-card: #ffffff;
+            --text-main: #1a202c;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --success: #48bb78;
+            --error: #f56565;
+            --error-bg: #fff5f5;
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            height: 64px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title::before {
+            content: "";
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .container {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        #summary-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .zone-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            break-inside: avoid;
+        }
+
+        .zone-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.8rem;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-table th {
+            background-color: #f8fafc;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .ng-cell {
+            background-color: var(--error) !important;
+            color: white !important;
+            font-weight: 700;
+        }
+
+        .remark-container {
+            margin-top: 2rem;
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .remark-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        /* Static Remark Div for PDF */
+        #temp-remark-text {
+            white-space: pre-wrap;
+            background: #fafafa;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: auto;
+            text-transform: uppercase;
+            margin-top: 1.5rem;
+            background-color: #1976d2;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #1565c0;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media print {
+
+            header,
+            .btn {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            header,
+            .button-container {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-title">BUYOFF Inspection System</div>
+    </header>
+
+    <div id="print-area">
+        <div class="container">
+            <h2 class="section-title">Buyoff Summary Report</h2>
+
+            <div class="info-card">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Part Name</div>
+                        <div class="info-value" id="val-part"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Process</div>
+                        <div class="info-value" id="val-process"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">JO / Machine</div>
+                        <div class="info-value" id="val-jo-mc"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Inspector</div>
+                        <div class="info-value" id="val-inspector"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">QC Tech</div>
+                        <div class="info-value" id="val-tech"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Setting</div>
+                        <div class="info-value" id="val-setting"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="summary-container"></div>
+
+            <div class="remark-container">
+                <label class="info-label">Inspector Remarks</label>
+                <textarea id="remarks" class="remark-input" placeholder="Add any final observations..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="button-container">
+            <button id="finish-btn" class="btn btn-primary">Finish Report</button>
+        </div>
+    </div>
+
+    <script>
+        const store = {
+            part: localStorage.getItem('partName'),
+            process: localStorage.getItem('processName'),
+            jo: localStorage.getItem('joNumber'),
+            machine: localStorage.getItem('machineNumber'),
+            person: localStorage.getItem('personName'),
+            tech: localStorage.getItem('qcTechnician'),
+            setting: localStorage.getItem('settingType'),
+            data: JSON.parse(localStorage.getItem('summaryData') || '[]')
+        };
+
+        const supabaseClient = window.supabase.createClient('http://192.168.2.113:8000', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE');
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('val-part').textContent = store.part || "-";
+            document.getElementById('val-process').textContent = store.process || "-";
+            document.getElementById('val-jo-mc').textContent = `${store.jo || "-"} / ${store.machine || "-"}`;
+            document.getElementById('val-inspector').textContent = store.person || "-";
+            document.getElementById('val-tech').textContent = store.tech || "-";
+            document.getElementById('val-setting').textContent = store.setting || "-";
+
+            const remarkInput = document.getElementById("remarks");
+            remarkInput.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    document.getElementById("finish-btn").click();
+                }
+            });
+
+            document.addEventListener("keydown", function (e) {
+                if ((e.key === "Enter" || e.code === "NumpadEnter") && !e.shiftKey) {
+                    if (document.activeElement.id !== "remarks") {
+                        e.preventDefault();
+                        document.getElementById("finish-btn").click();
+                    }
+                }
+            });
+
+            renderZones();
+        });
+
+        function isNg(val, min, max) {
+            if (val === null || val === undefined || val === "") return false;
+            if (String(min).toLowerCase() === 'ok') return !['OK', 'GO'].includes(String(val).toUpperCase());
+            if (String(max).toLowerCase() === 'ng') return ['NG', 'NOGO'].includes(String(val).toUpperCase());
+            const v = parseFloat(val), l = parseFloat(min), u = parseFloat(max);
+            return isNaN(v) || v < l || v > u;
+        }
+
+        function renderZones() {
+            const container = document.getElementById('summary-container');
+            store.data.forEach((z, idx) => {
+                const card = document.createElement('div');
+                card.className = 'zone-card';
+                const readings = [z.Reading_1, z.Reading_2, z.Reading_3, z.Reading_4, z.Reading_5];
+                const cells = readings.map(r => {
+                    const ngClass = isNg(r, z.LSL_OK, z.USL_NG) ? 'ng-cell' : '';
+                    return `<td class="${ngClass}">${r ?? '-'}</td>`;
+                }).join('');
+
+                card.innerHTML = `
+                    <h3>Zone: ${z.Point_DWG_Zone} (Spec: ${z.LSL_OK} ~ ${z.USL_NG})</h3>
+                    <table class="detail-table">
+                        <thead>
+                            <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>${cells}</tr>
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        document.getElementById('finish-btn').onclick = async function () {
+            const btn = this;
+            const element = document.getElementById("print-area");
+            const remarkInput = document.getElementById('remarks');
+            const remarkValue = remarkInput.value.trim();
+
+            btn.disabled = true;
+            btn.textContent = "PROCESSING...";
+
+            try {
+                const ngList = [];
+                const payload = store.data.map(z => {
+                    [1, 2, 3, 4, 5].forEach(i => {
+                        const val = z[`Reading_${i}`];
+                        if (isNg(val, z.LSL_OK, z.USL_NG)) {
+                            ngList.push({ zone: z.Point_DWG_Zone, val, min: z.LSL_OK, max: z.USL_NG });
+                        }
+                    });
+
+                    return {
+                        Part_Name: store.part, Process: store.process, JO_Number: store.jo, Machine: store.machine,
+                        Person: store.person, QC_Technician: store.tech, Setting: store.setting,
+                        Point_DWG_Zone: z.Point_DWG_Zone, Measuring_Instrument: z.Measuring_Instrument,
+                        LSL_OK: z.LSL_OK, USL_NG: z.USL_NG, SC: z.SC,
+                        Reading_1: z.Reading_1, Reading_2: z.Reading_2, Reading_3: z.Reading_3, Reading_4: z.Reading_4, Reading_5: z.Reading_5,
+                        Remarks: remarkValue
+                    };
+                });
+
+                // 1. Save to DB
+                btn.textContent = "SAVING TO DATABASE...";
+                const { error } = await supabaseClient.from('Data_BUYOFF').insert(payload);
+                if (error) throw error;
+
+                // 2. Alert if NG
+                if (ngList.length > 0) {
+                    btn.textContent = "SENDING ALERTS...";
+                    await sendTelegramAlert(ngList, remarkValue);
+                }
+
+                // 3. Prepare UI for PDF (Swap textarea for div)
+                btn.textContent = "SAVING TO SERVER...";
+                remarkInput.style.display = "none";
+                let staticRemark = document.getElementById("temp-remark-text");
+                if (!staticRemark) {
+                    staticRemark = document.createElement("div");
+                    staticRemark.className = "remark-input";
+                    staticRemark.id = "temp-remark-text";
+                    remarkInput.parentNode.appendChild(staticRemark);
+                }
+                staticRemark.innerText = remarkValue || "No remarks provided.";
+
+                // 4. PDF Configuration
+                const pdfOptions = {
+                    margin: 10,
+                    filename: `BUYOFF_${store.part}_${store.jo}_${Date.now()}.pdf`,
+                    image: { type: "jpeg", quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                };
+
+                // 5. Generate PDF as blob and upload to Server
+                const pdfBlob = await html2pdf().set(pdfOptions).from(element).outputPdf('blob');
+                const formData = new FormData();
+                formData.append("pdf", pdfBlob, pdfOptions.filename);
+                formData.append("partDescription", store.part);
+                formData.append("personName", store.person);
+                formData.append("processName", store.process);
+                formData.append("joNumber", store.jo);
+                formData.append("inspectionType", "BuyOff");
+
+                try {
+                    await fetch('/FamaxQCSystem/saveInspectionPdf', { method: 'POST', body: formData });
+                } catch (serverErr) {
+                    console.error("Server upload fail", serverErr);
+                }
+
+                // 6. Download for User
+                btn.textContent = "DOWNLOADING...";
+                // await html2pdf().set(pdfOptions).from(element).save();
+
+                alert("Success! Data saved and report generated.");
+                localStorage.clear();
+                window.location.href = "../../index.html";
+
+            } catch (err) {
+                alert("Error: " + err.message);
+                remarkInput.style.display = "block";
+                const tempDiv = document.getElementById("temp-remark-text");
+                if (tempDiv) tempDiv.remove();
+                btn.disabled = false;
+                btn.textContent = "FINISH REPORT";
+            }
+        };
+
+        async function sendTelegramAlert(ngList, remarks) {
+            const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4';
+            const chatId = '-1003227469075';
+            let msg = `🚨 *BUYOFF ALERT - NG FOUND* 🚨\n\n`;
+            msg += `*Part:* ${store.part}\n*JO:* ${store.jo}\n*MC:* ${store.machine}\n*Inspector:* ${store.person}\n\n`;
+            msg += `*Out of Spec Details:*\n`;
+            ngList.forEach(item => {
+                msg += `📍 Zone ${item.zone}: ❌ *${item.val}* (Spec: ${item.min}-${item.max})\n`;
+            });
+            if (remarks) msg += `\n*Remarks:* ${remarks}`;
+            try {
+                await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    chat_id: chatId,
+                    text: msg,
+                    parse_mode: 'Markdown'
+                });
+            } catch (e) { console.error("Telegram fail", e); }
+        }
+    </script>
+</body>
+
+</html>

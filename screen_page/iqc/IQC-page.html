@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQC Checking</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <!-- Add necessary libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1976D2;
+            --primary-light: #42a5f5;
+            --primary-dark: #0d47a1;
+            --accent-color: #FF5722;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --background-light: #f5f5f5;
+            --background-white: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            height: 70px;
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            box-shadow: 0 2px 10px var(--shadow-color);
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .header-logo {
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--background-white);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group.hidden {
+            display: none;
+            opacity: 0;
+            height: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        label {
+            display: block;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 45px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px;
+            color: var(--text-dark);
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 43px;
+        }
+
+        .select2-dropdown {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-shadow: 0 4px 8px var(--shadow-color);
+        }
+
+        .select2-results__option {
+            padding: 10px 12px;
+            font-size: 0.95rem;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary-light);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #d32f2f;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <span>IQC Checking System</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">Part and Process Selection</h2>
+        
+        <div class="form-group">
+            <label for="part-name">Select Part Name:</label>
+            <select id="part-name" class="searchable-dropdown">
+                <option value="">Loading parts...</option>
+            </select>
+            <div id="part-error" class="error-message">
+                Please select a part to continue
+            </div>
+        </div>
+
+        <div class="form-group hidden" id="process-group">
+            <label for="process-name">Select Process:</label>
+            <select id="process-name" class="searchable-dropdown">
+                <option value="">Select a process</option>
+            </select>
+            <div id="process-error" class="error-message">
+                Please select a process to continue
+            </div>
+        </div>
+
+        <div class="form-group hidden" id="jo-group">
+            <label for="jo-number">Select Job Order Number:</label>
+            <select id="jo-number" class="searchable-dropdown">
+                <option value="">Select a job order</option>
+            </select>
+            <div id="jo-error" class="error-message">
+                Please select a job order to continue
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button id="continue-btn" class="btn btn-primary">Continue</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+
+    <script>
+        // Supabase connection parameters
+        const SUPABASE_URL = 'http://192.168.2.113:8000';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+        
+        // Initialize Axios for Supabase
+        const supabaseClient = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        // Current selected data
+        let selectedData = {
+            part: '',
+            process: '',
+            jobOrder: ''
+        };
+
+        // Initialize Select2 dropdown after DOM is fully loaded
+        $(document).ready(function() {
+            // Initialize searchable dropdowns with Select2
+            initializeSelect2();
+            
+            // Fetch parts from Supabase
+            fetchPartsFromDatabase();
+            
+            // Part selection change handler
+            $('#part-name').on('change', function() {
+                const selectedPart = $(this).val();
+                selectedData.part = selectedPart;
+                
+                if (selectedPart) {
+                    $('#part-error').hide();
+                    fetchProcessesForPart(selectedPart);
+                    // Hide job order selection when part changes
+                    $('#jo-group').addClass('hidden');
+                    selectedData.jobOrder = '';
+                } else {
+                    // Hide process and job order selection if part is deselected
+                    $('#process-group').addClass('hidden');
+                    $('#jo-group').addClass('hidden');
+                    selectedData.process = '';
+                    selectedData.jobOrder = '';
+                }
+            });
+            
+            // Process selection change handler
+            $('#process-name').on('change', function() {
+                const selectedProcess = $(this).val();
+                selectedData.process = selectedProcess;
+                
+                if (selectedProcess) {
+                    $('#process-error').hide();
+                    // Fetch job orders when a process is selected
+                    fetchJobOrdersForPartAndProcess(selectedData.part, selectedProcess);
+                } else {
+                    // Hide job order selection if process is deselected
+                    $('#jo-group').addClass('hidden');
+                    selectedData.jobOrder = '';
+                }
+            });
+            
+            // Job Order selection change handler
+            $('#jo-number').on('change', function() {
+                selectedData.jobOrder = $(this).val();
+                if (selectedData.jobOrder) {
+                    $('#jo-error').hide();
+                }
+            });
+            
+            // Continue button click handler
+            $('#continue-btn').click(function() {
+                // Validate selections
+                let isValid = true;
+                
+                if (!selectedData.part) {
+                    $('#part-error').show();
+                    isValid = false;
+                }
+                
+                if (!$('#process-group').hasClass('hidden') && !selectedData.process) {
+                    $('#process-error').show();
+                    isValid = false;
+                }
+                
+                if (!$('#jo-group').hasClass('hidden') && !selectedData.jobOrder) {
+                    $('#jo-error').show();
+                    isValid = false;
+                }
+                
+                if (!isValid) return;
+                
+                // Redirect to IQC-page1.html with the selected values as URL parameters
+                window.location.href = `IQC-page1.html?part=${encodeURIComponent(selectedData.part)}&process=${encodeURIComponent(selectedData.process)}&jo=${encodeURIComponent(selectedData.jobOrder)}`;
+            });
+        });
+
+        // Initialize Select2 for dropdowns
+        function initializeSelect2() {
+            $('.searchable-dropdown').each(function() {
+                $(this).select2({
+                    placeholder: $(this).attr('placeholder') || 'Search and select',
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+        }
+
+        // Function to fetch parts from Supabase database
+        async function fetchPartsFromDatabase() {
+            try {
+                // Query the Parts table to get all part names
+                const response = await supabaseClient.get('/rest/v1/Parts', {
+                    params: {
+                        select: 'Part_Name'
+                    }
+                });
+                
+                if (response.data && response.data.length > 0) {
+                    // Clear loading option
+                    $('#part-name').empty();
+                    
+                    // Add default empty option
+                    $('#part-name').append('<option value="">Select or search for a part</option>');
+                    
+                    // Add each part from the database
+                    response.data.forEach(part => {
+                        $('#part-name').append(`<option value="${part.Part_Name}">${part.Part_Name}</option>`);
+                    });
+                    
+                    // Refresh Select2 to reflect new options
+                    $('#part-name').trigger('change');
+                } else {
+                    // No parts found
+                    $('#part-name').html('<option value="">No parts available</option>');
+                }
+            } catch (error) {
+                console.error('Error fetching parts:', error);
+                $('#part-name').html('<option value="">Error loading parts</option>');
+            }
+        }
+
+        // Function to fetch processes for a selected part from the IQC table
+        async function fetchProcessesForPart(partName) {
+            try {
+                // Reset and hide process dropdown while loading
+                $('#process-name').empty().append('<option value="">Loading processes...</option>');
+                
+                // Show the process section with animation
+                $('#process-group').removeClass('hidden').addClass('fade-in');
+                
+                // Query the IQC table to get processes for the selected part
+                const response = await supabaseClient.get('/rest/v1/IQC', {
+                    params: {
+                        select: 'Process',
+                        Part_Name: `eq.${partName}`
+                    }
+                });
+                
+                // Clear dropdown
+                $('#process-name').empty();
+                $('#process-name').append('<option value="">Select or search for a process</option>');
+                
+                if (response.data && response.data.length > 0) {
+                    // Create a Set to store unique processes
+                    const uniqueProcesses = new Set();
+                    
+                    // Add each process from the IQC table results
+                    response.data.forEach(item => {
+                        if (item.Process) {
+                            uniqueProcesses.add(item.Process);
+                        }
+                    });
+                    
+                    // Convert Set to Array and sort
+                    const processArray = Array.from(uniqueProcesses).sort();
+                    
+                    // Add processes to dropdown
+                    processArray.forEach(process => {
+                        $('#process-name').append(`<option value="${process}">${process}</option>`);
+                    });
+                    
+                    if (processArray.length === 0) {
+                        $('#process-name').html('<option value="">No processes available for this part</option>');
+                    }
+                } else {
+                    // No processes found
+                    $('#process-name').html('<option value="">No processes available for this part</option>');
+                }
+                
+                // Refresh Select2
+                $('#process-name').trigger('change');
+                
+            } catch (error) {
+                console.error('Error fetching processes:', error);
+                $('#process-name').html('<option value="">Error loading processes</option>');
+            }
+        }
+
+        // Function to fetch job orders for selected part and process
+        async function fetchJobOrdersForPartAndProcess(partName, processName) {
+            try {
+                // Reset and hide job order dropdown while loading
+                $('#jo-number').empty().append('<option value="">Loading job orders...</option>');
+                
+                // Show the job order section with animation
+                $('#jo-group').removeClass('hidden').addClass('fade-in');
+                
+                // Query the JobOrder table to get active job orders for the selected part and process
+                const response = await supabaseClient.get('/rest/v1/JobOrder', {
+                    params: {
+                        select: 'JO_Number',
+                        Part_Name: `eq.${partName}`,
+                        Process: `eq.${processName}`,
+                        Status: 'eq.active'
+                    }
+                });
+                
+                // Clear dropdown
+                $('#jo-number').empty();
+                $('#jo-number').append('<option value="">Select or search for a job order</option>');
+                
+                if (response.data && response.data.length > 0) {
+                    // Add each active job order from the database
+                    response.data.forEach(jo => {
+                        $('#jo-number').append(`<option value="${jo.JO_Number}">${jo.JO_Number}</option>`);
+                    });
+                } else {
+                    // No active job orders found
+                    $('#jo-number').html('<option value="">No active job orders available</option>');
+                }
+                
+                // Refresh Select2
+                $('#jo-number').trigger('change');
+                
+            } catch (error) {
+                console.error('Error fetching job orders:', error);
+                $('#jo-number').html('<option value="">Error loading job orders</option>');
+            }
+        }
+    </script>
+</body>
+</html>

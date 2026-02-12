@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OQC Checking - Step-by-Step</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <!-- Add necessary libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #1976D2;
+            --primary-light: #42a5f5;
+            --primary-dark: #0d47a1;
+            --accent-color: #FF5722;
+            --text-light: #ffffff;
+            --text-dark: #333333;
+            --background-light: #f5f5f5;
+            --background-white: #ffffff;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --disabled-color: #cccccc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+            height: 70px;
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            box-shadow: 0 2px 10px var(--shadow-color);
+            position: sticky;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 1rem;
+            background-color: var(--background-white);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .info-card {
+            background-color: var(--primary-light);
+            color: var(--text-light);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            font-weight: normal;
+            margin-bottom: 0.3rem;
+            opacity: 0.9;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .content-flex {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+
+        .image-container {
+            width: 100%;
+            height: auto;  /* Remove the fixed height for static images */
+            display: flex;
+            justify-content: center;
+        }
+
+        .oqc-image {
+            max-width: 80%; /* Or any width that fits well */
+            height: auto; /* Ensure the aspect ratio is maintained */
+            cursor: default; /* Remove zoom-in functionality */
+        }
+
+        .zoomed {
+            cursor: zoom-out;
+        }
+
+        .oqc-details {
+            width: 100%;
+        }
+
+        .zone-info {
+            background-color: var(--background-light);
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px var(--shadow-color);
+        }
+
+        .zone-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+        }
+
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-table th, .detail-table td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        .detail-table th {
+            background-color: var(--primary-light);
+            color: var(--text-light);
+        }
+
+        .reading-section {
+            margin-top: 1.5rem;
+        }
+
+        .reading-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            height: 4px;
+            background-color: var(--primary-light);
+            transition: width 0.3s ease;
+        }
+
+        .progress-step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--background-light);
+            border: 2px solid var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .progress-step.active {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .progress-step.completed {
+            background-color: var(--primary-dark);
+            color: var(--text-light);
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: #9e9e9e;
+            color: var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background-color: #757575;
+        }
+
+        .btn-secondary:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        .person-name-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            background-color: var(--background-white);
+            color: var(--text-dark);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <span>OQC Checking System</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">OQC Reference Image</h2>
+        
+        <div class="info-card">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Part:</span>
+                    <span class="info-value" id="selected-part">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Process:</span>
+                    <span class="info-value" id="selected-process">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Job Order:</span>
+                    <span class="info-value" id="selected-jo">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Person Name:</span>
+                    <input type="text" class="person-name-input" id="person-name" placeholder="Enter name" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div id="loading-indicator" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading OQC reference image and details...</p>
+        </div>
+        
+        <div id="error-message" class="error-message hidden">
+            No image found for the selected part and process.
+        </div>
+        
+        <div id="progress-container" class="hidden">
+            <div class="progress-indicator" id="progress-indicator">
+                <!-- Progress steps will be added dynamically -->
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+        
+        <div id="content-area" class="content-flex hidden">
+            <div class="image-container">
+                <img id="oqc-image" class="oqc-image" alt="OQC Reference Image">
+            </div>
+
+            <div class="button-container">
+                <button id="inspection-guide-btn" class="btn btn-primary">Inspection Guide</button>
+            </div>
+            
+            <div class="oqc-details">
+                <div id="zone-container">
+                    <!-- Zone details will be added dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button id="back-btn" class="btn btn-secondary" disabled>Back</button>
+            <button id="next-btn" class="btn btn-primary" disabled>Next</button>
+            <button id="submit-btn" class="btn btn-primary hidden">Submit All Readings</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const partName = urlParams.get('part');
+            const processName = urlParams.get('process');
+            const joNumber = urlParams.get('jo');
+            
+            // Display the values in elements
+            if (document.getElementById('selected-part')) {
+                document.getElementById('selected-part').textContent = partName || 'Not provided';
+            }
+            if (document.getElementById('selected-process')) {
+                document.getElementById('selected-process').textContent = processName || 'Not provided';
+            }
+            if (document.getElementById('selected-jo')) {
+                document.getElementById('selected-jo').textContent = joNumber || 'Not provided';
+            }
+
+            // Initialize Supabase client
+            const supabaseUrl = 'http://192.168.2.113:8000';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+            
+            const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            
+            // State variables
+            let oqcData = [];
+            let currentZoneIndex = 0;
+            let userReadings = [];
+            let personNameEntered = false;
+            let outOfSpecReadings = []; // Store out-of-spec readings for later use
+
+            // DOM elements
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const errorMessage = document.getElementById('error-message');
+            const contentArea = document.getElementById('content-area');
+            const progressContainer = document.getElementById('progress-container');
+            const progressIndicator = document.getElementById('progress-indicator');
+            const progressBar = document.getElementById('progress-bar');
+            const zoneContainer = document.getElementById('zone-container');
+            const personNameInput = document.getElementById('person-name');
+            const backButton = document.getElementById('back-btn');
+            const nextButton = document.getElementById('next-btn');
+            const submitButton = document.getElementById('submit-btn');
+            
+            // Setup image zoom functionality
+            function setupImageZoom() {
+                const imageElement = document.getElementById('oqc-image');
+                const imageContainer = document.querySelector('.image-container');
+                
+                let isZoomed = false;
+                let originalWidth, originalHeight;
+                
+                imageElement.addEventListener('load', function() {
+                    originalWidth = this.offsetWidth;
+                    originalHeight = this.offsetHeight;
+                });
+                
+                imageElement.addEventListener('click', function() {
+                    if (!isZoomed) {
+                        // Zoom in
+                        this.style.width = (originalWidth * 2) + 'px';
+                        this.style.height = 'auto';
+                        this.classList.add('zoomed');
+                    } else {
+                        // Zoom out
+                        this.style.width = '';
+                        this.style.height = '';
+                        this.classList.remove('zoomed');
+                    }
+                    isZoomed = !isZoomed;
+                });
+            }
+
+            // Function to fetch the PDF path and open it in a new tab
+            // Replace your existing openInspectionGuide function with this updated version
+            // Function to fetch the PDF path and open it in a new tab
+            async function openInspectionGuide() {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('OQC')
+                        .select('Pdf_Path')
+                        .eq('Part_Name', partName)
+                        .eq('Process', processName);
+
+                    if (error) {
+                        console.error('Error fetching PDF path:', error);
+                        alert('Failed to fetch the inspection guide. Please try again.');
+                        return;
+                    }
+
+                    if (data.length === 0) {
+                        console.error('No PDF path found for the selected part and process');
+                        alert('No inspection guide found for the selected part and process.');
+                        return;
+                    }
+
+                    // Handle multiple PDF paths - just use the first one
+                    const pdfPath = data[0].Pdf_Path;
+                    
+                    if (!pdfPath) {
+                        alert('The inspection guide path is empty or invalid.');
+                        return;
+                    }
+
+                    // Fix the path by replacing localhost with the correct IP
+                    const fixedPath = pdfPath.replace('http://localhost:8000', 'http://192.168.2.113:8000');
+                    
+                    console.log('Original path:', pdfPath);
+                    console.log('Fixed path:', fixedPath);
+                    
+                    // Open the PDF in a new tab
+                    window.open(fixedPath, '_blank');
+                    
+                } catch (error) {
+                    console.error('Error opening inspection guide:', error);
+                    alert('Failed to open the inspection guide. Please try again.');
+                }
+            }
+            
+            // Function to fetch image path and OQC details from Supabase
+            async function fetchOQCData() {
+                try {
+                    // Show loading indicator
+                    loadingIndicator.classList.remove('hidden');
+                    errorMessage.classList.add('hidden');
+                    contentArea.classList.add('hidden');
+                    progressContainer.classList.add('hidden');
+                    
+                    // Query the oqc table for the image path and other details based on part name and process
+                    const { data, error } = await supabaseClient
+                        .from('OQC')
+                        .select('Path, Point_DWG_Zone, Measuring_Instrument, Min, Nominal, Max, Status')
+                        .eq('Part_Name', partName)
+                        .eq('Process', processName)
+                        .eq('Status', 'Active')
+                        .order('Point_DWG_Zone', { ascending: true });
+                    
+                    // Hide loading indicator
+                    loadingIndicator.classList.add('hidden');
+                    
+                    if (error || !data || data.length === 0) {
+                        console.error('Error fetching OQC data:', error);
+                        errorMessage.classList.remove('hidden');
+                        return;
+                    }
+                    
+                    // Store the data and initialize user readings array
+                    //oqcData = data;
+
+                    oqcData = data.sort((a, b) => {
+                        const zoneA = parseInt(a.Point_DWG_Zone.match(/\d+/)[0]);
+                        const zoneB = parseInt(b.Point_DWG_Zone.match(/\d+/)[0]);
+                        return zoneA - zoneB;
+                    });
+                    
+                    // Initialize readings array with 3 readings per zone
+                    userReadings = oqcData.map(() => ({
+                        reading1: '',
+                        reading2: '',
+                        reading3: '',
+                        reading4: '',
+                        reading5: ''
+                    }));
+                    
+                    // Setup progress indicator
+                    setupProgressIndicator();
+                    
+                    // Display the image
+                    const imageElement = document.getElementById('oqc-image');
+                    imageElement.src = oqcData[0].Path.replace('http://localhost:8000', 'http://192.168.2.113:8000');
+                    
+                    // Add load event listener to handle image loading errors
+                    imageElement.onerror = function() {
+                        contentArea.classList.add('hidden');
+                        errorMessage.classList.remove('hidden');
+                        errorMessage.textContent = 'Error loading image. The image path may be invalid.';
+                    };
+                    
+                    // Setup image zoom functionality
+                    setupImageZoom();
+                    
+                    // Show the first zone
+                    showCurrentZone();
+                    
+                    // Show the content area and progress indicator
+                    contentArea.classList.remove('hidden');
+                    progressContainer.classList.remove('hidden');
+                    
+                    // Enable the next button if person name is entered
+                    checkPersonNameAndEnableButtons();
+                    
+                } catch (error) {
+                    console.error('Exception occurred:', error);
+                    loadingIndicator.classList.add('hidden');
+                    errorMessage.classList.remove('hidden');
+                    errorMessage.textContent = 'An error occurred while fetching the OQC data.';
+                }
+            }
+            
+            // Function to set up the progress indicator
+            function setupProgressIndicator() {
+                progressIndicator.innerHTML = ''; // Clear existing content
+                progressBar.style.width = '0%';
+                
+                // Add progress step for each zone
+                for (let i = 0; i < oqcData.length; i++) {
+                    const step = document.createElement('div');
+                    step.className = i === 0 ? 'progress-step active' : 'progress-step';
+                    step.textContent = i + 1;
+                    progressIndicator.appendChild(step);
+                }
+                
+                // Update progress bar width
+                updateProgressBar();
+            }
+            
+            // Function to update progress bar
+            function updateProgressBar() {
+                const percentage = (currentZoneIndex / (oqcData.length - 1)) * 100;
+                progressBar.style.width = `${percentage}%`;
+                
+                // Update step indicators
+                const steps = document.querySelectorAll('.progress-step');
+                steps.forEach((step, index) => {
+                    if (index < currentZoneIndex) {
+                        step.className = 'progress-step completed';
+                    } else if (index === currentZoneIndex) {
+                        step.className = 'progress-step active';
+                    } else {
+                        step.className = 'progress-step';
+                    }
+                });
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+// Function to check if a value is OK/NG or numeric
+function isOkNgRange(min, max) {
+                return (typeof min === 'string' && min.toLowerCase() === 'ok') || 
+                    (typeof max === 'string' && max.toLowerCase() === 'ng');
+            }
+
+            // Function to add input validation to reading inputs
+            function setupInputValidation(input, min, max) {
+                // Determine if this is an OK/NG field or numeric field
+                const isOkNg = isOkNgRange(min, max);
+                
+                // Set input attributes based on field type
+                if (isOkNg) {
+                    input.setAttribute('data-input-type', 'okng');
+                    input.setAttribute('placeholder', 'Enter OK or NG');
+                    
+                    // Clear any existing event listeners to avoid duplicates
+                    const newInput = input.cloneNode(true);
+                    input.parentNode.replaceChild(newInput, input);
+                    input = newInput;
+                    
+                    // Add input event listener for OK/NG validation
+                    input.addEventListener('input', function(e) {
+                        const value = e.target.value.trim().toUpperCase();
+                        
+                        // Allow partial typing of "OK" or "NG"
+                        if (value === "" || value === "O" || value === "OK" || value === "N" || value === "NG") {
+                            e.target.value = value;
+                        } else {
+                            // If it's not a valid partial or complete value, revert to previous valid value
+                            e.target.value = e.target.dataset.lastValidValue || "";
+                        }
+                        
+                        // Store last valid value
+                        if (value === "" || value === "O" || value === "OK" || value === "N" || value === "NG") {
+                            e.target.dataset.lastValidValue = value;
+                        }
+                    });
+                    
+                    // Add blur event to complete/validate the value when user leaves the field
+                    input.addEventListener('blur', function(e) {
+                        const value = e.target.value.trim().toUpperCase();
+                        
+                        // On blur, ensure only complete "OK" or "NG" values remain
+                        if (value !== "OK" && value !== "NG") {
+                            if (value === "O") {
+                                e.target.value = "OK";
+                            } else if (value === "N") {
+                                e.target.value = "NG";
+                            } else {
+                                e.target.value = "";
+                            }
+                        }
+                    });
+                } else {
+                    input.setAttribute('data-input-type', 'numeric');
+                    input.setAttribute('placeholder', `Enter numeric value (${min} - ${max})`);
+                    input.setAttribute('inputmode', 'decimal'); // Show numeric keyboard on mobile
+                    
+                    // Clear any existing event listeners to avoid duplicates
+                    const newInput = input.cloneNode(true);
+                    input.parentNode.replaceChild(newInput, input);
+                    input = newInput;
+                    
+                    // Add input validation for numeric fields
+                    input.addEventListener('input', function(e) {
+                        const value = e.target.value;
+                        
+                        // Allow numbers, decimal point, minus sign in correct positions
+                        if (value === "" || /^-?\d*\.?\d*$/.test(value)) {
+                            // Valid input
+                        } else {
+                            // Invalid input - revert to previous value
+                            e.target.value = e.target.dataset.lastValidValue || "";
+                        }
+                        
+                        // Store last valid value
+                        if (/^-?\d*\.?\d*$/.test(value)) {
+                            e.target.dataset.lastValidValue = value;
+                        }
+                    });
+                }
+                
+                // Add event listener for checking button states
+                input.addEventListener('input', function() {
+                    checkReadingsAndEnableButtons();
+                });
+                
+                return input;
+            }
+
+
+
+
+            
+            // Function to show the current zone
+            // Function to show the current zone
+            function showCurrentZone() {
+                if (currentZoneIndex >= oqcData.length) return;
+                
+                const currentZone = oqcData[currentZoneIndex];
+                zoneContainer.innerHTML = ''; // Clear existing content
+                
+                // Create zone content
+                const zoneElement = document.createElement('div');
+                zoneElement.className = 'zone-info';
+                zoneElement.innerHTML = `
+                    <h3 class="zone-title">Zone ${currentZoneIndex + 1}: ${currentZone.Point_DWG_Zone || 'N/A'}</h3>
+                    <table class="detail-table">
+                        <thead>
+                            <tr>
+                                <th>Drawing Zone</th>
+                                <th>Measuring Instrument</th>
+                                <th>Min or OK</th>
+                                <th>Nominal</th>
+                                <th>Max or NG</th>
+                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${currentZone.Point_DWG_Zone || 'N/A'}</td>
+                                <td>${currentZone.Measuring_Instrument || 'N/A'}</td>
+                                <td>${currentZone.Min || 'N/A'}</td>
+                                <td>${currentZone.Nominal || 'N/A'}</td>
+                                <td>${currentZone.Max || 'N/A'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="reading-section">
+                        <label for="reading-input-1" class="info-label">Reading 1 for Zone ${currentZoneIndex + 1}:</label>
+                        <input type="text" id="reading-input-1" class="reading-input" autocomplete="off" value="${userReadings[currentZoneIndex].reading1}">
+                        
+                        <label for="reading-input-2" class="info-label">Reading 2 for Zone ${currentZoneIndex + 1}:</label>
+                        <input type="text" id="reading-input-2" class="reading-input" autocomplete="off" value="${userReadings[currentZoneIndex].reading2}">
+                        
+                        <label for="reading-input-3" class="info-label">Reading 3 for Zone ${currentZoneIndex + 1}:</label>
+                        <input type="text" id="reading-input-3" class="reading-input" autocomplete="off" value="${userReadings[currentZoneIndex].reading3}">
+                        
+                        <label for="reading-input-4" class="info-label">Reading 4 for Zone ${currentZoneIndex + 1}:</label>
+                        <input type="text" id="reading-input-4" class="reading-input" placeholder="Enter reading 4" autocomplete="off" value="${userReadings[currentZoneIndex].reading4}">
+
+                        <label for="reading-input-5" class="info-label">Reading 5 for Zone ${currentZoneIndex + 1}:</label>
+                        <input type="text" id="reading-input-5" class="reading-input" placeholder="Enter reading 5" autocomplete="off" value="${userReadings[currentZoneIndex].reading5}">
+                    </div>
+                `;
+                zoneContainer.appendChild(zoneElement);
+                
+                // Get min and max values for this zone
+                const min = currentZone.Min;
+                const max = currentZone.Max;
+                
+                // Set up input validation for each reading input
+                let validatedInputs = [];
+                
+                validatedInputs.push(setupInputValidation(document.getElementById('reading-input-1'), min, max));
+                validatedInputs.push(setupInputValidation(document.getElementById('reading-input-2'), min, max));
+                validatedInputs.push(setupInputValidation(document.getElementById('reading-input-3'), min, max));
+                validatedInputs.push(setupInputValidation(document.getElementById('reading-input-4'), min, max));
+                validatedInputs.push(setupInputValidation(document.getElementById('reading-input-5'), min, max));
+
+                
+                // Focus on the first input field
+                validatedInputs[0].focus();
+                
+                // Update button states
+                updateButtonStates();
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+            // Function to check if all readings are entered
+            function checkReadingsAndEnableButtons() {
+                const reading1 = document.getElementById('reading-input-1')?.value.trim() || '';
+                const reading2 = document.getElementById('reading-input-2')?.value.trim() || '';
+                const reading3 = document.getElementById('reading-input-3')?.value.trim() || '';
+                const reading4 = document.getElementById('reading-input-4')?.value.trim() || '';
+                const reading5 = document.getElementById('reading-input-5')?.value.trim() || '';
+                
+                const allReadingsEntered = reading1 && reading2 && reading3 && reading4 && reading5 && personNameEntered;
+                
+                // Update button states
+                if (currentZoneIndex === oqcData.length - 1) {
+                    // Last zone - enable/disable submit button
+                    submitButton.disabled = !allReadingsEntered;
+                } else {
+                    // Not last zone - enable/disable next button
+                    nextButton.disabled = !allReadingsEntered;
+                }
+            }
+            
+            // Function to update button states
+            function updateButtonStates() {
+                // Back button is disabled on the first zone
+                backButton.disabled = currentZoneIndex === 0;
+                
+                // Check readings to enable/disable next/submit buttons
+                checkReadingsAndEnableButtons();
+                
+                // Show/hide next and submit buttons based on current zone
+                if (currentZoneIndex === oqcData.length - 1) {
+                    // Last zone
+                    nextButton.classList.add('hidden');
+                    submitButton.classList.remove('hidden');
+                } else {
+                    // Not last zone
+                    nextButton.classList.remove('hidden');
+                    submitButton.classList.add('hidden');
+                }
+            }
+            
+            // Event listener for next button
+            nextButton.addEventListener('click', function() {
+                // Save current readings
+                userReadings[currentZoneIndex] = {
+                    reading1: document.getElementById('reading-input-1').value.trim(),
+                    reading2: document.getElementById('reading-input-2').value.trim(),
+                    reading3: document.getElementById('reading-input-3').value.trim(),
+                    reading4: document.getElementById('reading-input-4').value.trim(),
+                    reading5: document.getElementById('reading-input-5').value.trim()
+                };
+                
+                // Move to next zone
+                currentZoneIndex++;
+                
+                // Update progress and show next zone
+                updateProgressBar();
+                showCurrentZone();
+            });
+            
+            // Event listener for back button
+            backButton.addEventListener('click', function() {
+                // Save current readings
+                userReadings[currentZoneIndex] = {
+                    reading1: document.getElementById('reading-input-1').value.trim(),
+                    reading2: document.getElementById('reading-input-2').value.trim(),
+                    reading3: document.getElementById('reading-input-3').value.trim(),
+                    reading4: document.getElementById('reading-input-4').value.trim(),
+                    reading5: document.getElementById('reading-input-5').value.trim()
+                };
+                
+                // Move to previous zone
+                currentZoneIndex--;
+                
+                // Update progress and show previous zone
+                updateProgressBar();
+                showCurrentZone();
+            });
+            
+            // Combined function to send Telegram alerts
+            // Combined function to send Telegram alerts
+            async function sendTelegramAlert(alertData) {
+                try {
+                    const personName = personNameInput.value.trim();
+                    
+                    // Create alert message with better formatting
+                    let message = `⚠️ *OQC ALERT*\n\n`;
+                    message += `*Part:* ${partName}\n`;
+                    message += `*Process:* ${processName}\n`;
+                    message += `*Job Order:* ${joNumber}\n`;
+                    message += `*Person:* ${personName}\n\n`;
+                    
+                    // Add measurement information if available
+                    if (alertData.measurements && alertData.measurements.length > 0) {
+                        // Group readings by zone for better organization
+                        const zoneMap = {};
+                        
+                        alertData.measurements.forEach(item => {
+                            if (!zoneMap[item.zone]) {
+                                zoneMap[item.zone] = [];
+                            }
+                            zoneMap[item.zone].push(item);
+                        });
+                        
+                        message += `*Out-of-spec measurements:*\n`;
+                        
+                        // For each zone, show a summary instead of individual readings
+                        Object.keys(zoneMap).forEach(zone => {
+                            const readings = zoneMap[zone];
+                            const firstReading = readings[0]; // Get reference values from first reading
+                            
+                            message += `\n*Zone ${zone}*\n`;
+                            message += `Expected range: ${firstReading.min} - ${firstReading.max}\n`;
+                            message += `Readings: `;
+                            
+                            readings.forEach((item, idx) => {
+                                message += `R${item.readingNum}:${item.value}`;
+                                if (idx < readings.length - 1) message += ", ";
+                            });
+                            message += "\n";
+                        });
+                    }
+                    
+                    // Add visual inspection information if available
+                    if (alertData.visualRatings) {
+                        const criteriaNames = ['Hardness','Finishing','No Burr', 'No Dented', 'No Scratches', 'Plating', 'Flatness', 'Roundness'];
+                        const lowRatings = alertData.visualRatings.filter(rating => rating < 3);
+                        
+                        if (lowRatings.length > 0) {
+                            message += `\n*Low visual inspection ratings:*\n`;
+                            alertData.visualRatings.forEach((rating, index) => {
+                                if (rating < 3) {
+                                    message += `- ${criteriaNames[index]}: ${rating}/5\n`;
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Split into multiple messages if too long (Telegram has a 4096 character limit)
+                    const MAX_LENGTH = 3500; // Buffer to be safe
+                    const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4'; 
+                    const chatId = '-1003227469075'; 
+                    
+                    if (message.length > MAX_LENGTH) {
+                        // Split the message into parts
+                        const parts = [];
+                        let currentPart = `⚠️ *OQC ALERT (1/${Math.ceil(message.length/MAX_LENGTH)})*\n\n`;
+                        currentPart += `*Part:* ${partName}\n`;
+                        currentPart += `*Process:* ${processName}\n`;
+                        currentPart += `*Job Order:* ${joNumber}\n\n`;
+                        
+                        // Add zone information until we reach the limit
+                        if (alertData.measurements && alertData.measurements.length > 0) {
+                            let counter = 0;
+                            const zoneKeys = Object.keys(zoneMap);
+                            
+                            currentPart += `*Out-of-spec measurements:*\n`;
+                            
+                            for (let i = 0; i < zoneKeys.length; i++) {
+                                const zone = zoneKeys[i];
+                                const readings = zoneMap[zone];
+                                const firstReading = readings[0];
+                                
+                                const zoneText = `\n*Zone ${zone}*\n` +
+                                                `Expected range: ${firstReading.min} - ${firstReading.max}\n` +
+                                                `Readings: ${readings.map(item => `R${item.readingNum}:${item.value}`).join(", ")}\n`;
+                                
+                                if (currentPart.length + zoneText.length > MAX_LENGTH) {
+                                    // Current part is full, save it and start a new one
+                                    parts.push(currentPart);
+                                    counter++;
+                                    currentPart = `⚠️ *OQC ALERT (${counter+1}/${Math.ceil(message.length/MAX_LENGTH)})*\n\n`;
+                                    currentPart += `*Part:* ${partName} (continued)\n\n`;
+                                }
+                                
+                                currentPart += zoneText;
+                            }
+                        }
+                        
+                        // Add visual inspection info to the last part if there's room
+                        if (alertData.visualRatings) {
+                            const criteriaNames = ['Hardness','Finishing','No Burr', 'No Dented', 'No Scratches', 'Plating', 'Flatness', 'Roundness'];
+                            const lowRatings = alertData.visualRatings.filter(rating => rating < 3);
+                            
+                            let visualText = '';
+                            if (lowRatings.length > 0) {
+                                visualText += `\n*Low visual inspection ratings:*\n`;
+                                alertData.visualRatings.forEach((rating, index) => {
+                                    if (rating < 3) {
+                                        visualText += `- ${criteriaNames[index]}: ${rating}/5\n`;
+                                    }
+                                });
+                            }
+                            
+                            if (currentPart.length + visualText.length > MAX_LENGTH) {
+                                // Start a new part if current part is getting too big
+                                parts.push(currentPart);
+                                currentPart = `⚠️ *OQC ALERT (${parts.length+1}/${Math.ceil(message.length/MAX_LENGTH)})*\n\n`;
+                                currentPart += `*Part:* ${partName} (Visual Inspection)\n\n`;
+                            }
+                            
+                            currentPart += visualText;
+                        }
+                        
+                        // Add the last part
+                        if (currentPart.length > 0) {
+                            parts.push(currentPart);
+                        }
+                        
+                        // Send all message parts
+                        for (const part of parts) {
+                            await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                                chat_id: chatId,
+                                text: part,
+                                parse_mode: 'Markdown'
+                            });
+                            
+                            // Add small delay between messages
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                    } else {
+                        // Send as a single message if not too long
+                        const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                        const response = await axios.post(telegramApiUrl, {
+                            chat_id: chatId,
+                            text: message,
+                            parse_mode: 'Markdown'
+                        });
+                        
+                        console.log('Telegram alert sent successfully:', response.data);
+                    }
+                } catch (error) {
+                    console.error('Error sending Telegram alert:', error);
+                }
+            }
+            
+            // Function to validate a reading against min/max values
+            function validateReading(reading, min, max) {
+                // Convert values to floats
+                const readingValue = parseFloat(reading);
+                
+                // Check if min is "OK" (case insensitive)
+                if (typeof min === 'string' && min.toLowerCase() === 'ok') {
+                    return reading.toLowerCase() === 'ok';
+                }
+                
+                // Check if max is "NG" (case insensitive)
+                if (typeof max === 'string' && max.toLowerCase() === 'ng') {
+                    return reading.toLowerCase() !== 'ng';
+                }
+                
+                // For numeric ranges
+                const minValue = parseFloat(min);
+                const maxValue = parseFloat(max);
+                
+                // Check if the reading is within the range
+                return !isNaN(readingValue) && !isNaN(minValue) && !isNaN(maxValue) && 
+                    readingValue >= minValue && readingValue <= maxValue;
+            }
+            
+            // Event listener for submit button
+            submitButton.addEventListener('click', async function() {
+                // Save the final readings
+                userReadings[currentZoneIndex] = {
+                    reading1: document.getElementById('reading-input-1').value.trim(),
+                    reading2: document.getElementById('reading-input-2').value.trim(),
+                    reading3: document.getElementById('reading-input-3').value.trim(),
+                    reading4: document.getElementById('reading-input-4').value.trim(),
+                    reading5: document.getElementById('reading-input-5').value.trim()
+                };
+                
+                // Get person name
+                const personName = personNameInput.value.trim();
+                
+                // Validate all inputs
+                if (!personName) {
+                    alert('Please enter your name.');
+                    return;
+                }
+                
+                // Check for empty readings
+                const hasEmptyReadings = userReadings.some(
+                    readingSet => !readingSet.reading1 || !readingSet.reading2 || !readingSet.reading3 || !readingSet.reading4 || !readingSet.reading5
+                );
+                
+                if (hasEmptyReadings) {
+                    alert('Please provide all 5 readings for each zone before submitting.');
+                    return;
+                }
+                
+                try {
+                    // Disable submit button to prevent multiple submissions
+                    submitButton.disabled = true;
+                    
+                    // Check for out-of-spec readings
+                    outOfSpecReadings = [];
+                    
+                    // Validate all readings against min/max values
+                    oqcData.forEach((zone, index) => {
+                        const readings = userReadings[index];
+                        const min = zone.Min;
+                        const max = zone.Max;
+                        
+                        // Check reading 1
+                        if (!validateReading(readings.reading1, min, max)) {
+                            outOfSpecReadings.push({
+                                zone: zone.Point_DWG_Zone,
+                                readingNum: 1,
+                                value: readings.reading1,
+                                min: min,
+                                max: max
+                            });
+                        }
+                        
+                        // Check reading 2
+                        if (!validateReading(readings.reading2, min, max)) {
+                            outOfSpecReadings.push({
+                                zone: zone.Point_DWG_Zone,
+                                readingNum: 2,
+                                value: readings.reading2,
+                                min: min,
+                                max: max
+                            });
+                        }
+                        
+                        // Check reading 3
+                        if (!validateReading(readings.reading3, min, max)) {
+                            outOfSpecReadings.push({
+                                zone: zone.Point_DWG_Zone,
+                                readingNum: 3,
+                                value: readings.reading3,
+                                min: min,
+                                max: max
+                            });
+                        }
+
+                        // Check reading 4
+                        if (!validateReading(readings.reading4, min, max)) {
+                            outOfSpecReadings.push({
+                                zone: zone.Point_DWG_Zone,
+                                readingNum: 4,
+                                value: readings.reading4,
+                                min: min,
+                                max: max
+                            });
+                        }
+
+                        // Check reading 5
+                        if (!validateReading(readings.reading5, min, max)) {
+                            outOfSpecReadings.push({
+                                zone: zone.Point_DWG_Zone,
+                                readingNum: 5,
+                                value: readings.reading5,
+                                min: min,
+                                max: max
+                            });
+                        }
+                    });
+                    
+                    // Show visual check modal before final submission
+                    showVisualCheckModal();
+                    
+                } catch (error) {
+                    console.error('Error during validation:', error);
+                    alert('An error occurred while validating the data. Please try again.');
+                    submitButton.disabled = false;
+                }
+            });
+            
+            // Event listener for person name input
+            personNameInput.addEventListener('input', function() {
+                personNameEntered = personNameInput.value.trim() !== '';
+                checkReadingsAndEnableButtons();
+            });
+            
+            // Function to check person name and enable/disable buttons
+            function checkPersonNameAndEnableButtons() {
+                personNameEntered = personNameInput.value.trim() !== '';
+                checkReadingsAndEnableButtons();
+            }
+            
+            // Function to show visual check modal
+            function showVisualCheckModal() {
+                // Create the modal container
+                const modalContainer = document.createElement('div');
+                modalContainer.className = 'modal-container';
+                modalContainer.style.position = 'fixed';
+                modalContainer.style.top = '0';
+                modalContainer.style.left = '0';
+                modalContainer.style.width = '100%';
+                modalContainer.style.height = '100%';
+                modalContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                modalContainer.style.display = 'flex';
+                modalContainer.style.justifyContent = 'center';
+                modalContainer.style.alignItems = 'center';
+                modalContainer.style.zIndex = '1000';
+                
+                // Create the modal content
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content';
+                modalContent.style.backgroundColor = 'white';
+                modalContent.style.padding = '20px';
+                modalContent.style.borderRadius = '8px';
+                modalContent.style.maxWidth = '600px';
+                modalContent.style.width = '90%';
+                modalContent.style.maxHeight = '90vh';
+                modalContent.style.overflowY = 'auto';
+                
+                // Create modal header
+                const modalHeader = document.createElement('div');
+                modalHeader.innerHTML = `<h2 style="color: var(--primary-dark); margin-bottom: 20px; border-bottom: 2px solid var(--primary-light); padding-bottom: 10px;">Visual Check</h2>`;
+                
+                // Create visual check form
+                const visualCheckForm = document.createElement('div');
+                visualCheckForm.className = 'visual-check-form';
+                visualCheckForm.innerHTML = `
+                    <p style="margin-bottom: 20px;">Please perform a visual check and rate each criterion on a scale of 1 to 5 (1 being poor, 5 being excellent):</p>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">1. Hardness:</label>
+                        <select id="hardness" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">2. Finishing:</label>
+                        <select id="finishing" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">3. No Burr:</label>
+                        <select id="no-burr" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">4. No Dented:</label>
+                        <select id="no-dented" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">5. No Scratches:</label>
+                        <select id="no-scratches" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">6. Plating:</label>
+                        <select id="plating" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">7. Flatness:</label>
+                        <select id="flatness" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">8. Roundness:</label>
+                        <select id="roundness" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px;">
+                            <option value="">Select rating</option>
+                            <option value="1">1/5</option>
+                            <option value="2">2/5</option>
+                            <option value="3">3/5</option>
+                            <option value="4">4/5</option>
+                            <option value="5">5/5</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">QC Remark (max 50 words):</label>
+                        <textarea id="qc-remark" style="width: 100%; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; min-height: 100px;" placeholder="Enter QC remarks (max 50 words)"></textarea>
+                        <small id="word-count" style="display: block; text-align: right; color: #777;">0/50 words</small>
+                    </div>
+                `;
+                
+                // Create modal buttons
+                const modalButtons = document.createElement('div');
+                modalButtons.style.display = 'flex';
+                modalButtons.style.justifyContent = 'flex-end';
+                modalButtons.style.gap = '10px';
+                modalButtons.style.marginTop = '20px';
+                
+                // Create cancel button
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.className = 'btn btn-secondary';
+                cancelButton.style.padding = '10px 20px';
+                cancelButton.style.backgroundColor = '#9e9e9e';
+                cancelButton.style.color = 'white';
+                cancelButton.style.border = 'none';
+                cancelButton.style.borderRadius = '4px';
+                cancelButton.style.cursor = 'pointer';
+                
+                // Create submit button
+                const submitVisualCheckButton = document.createElement('button');
+                submitVisualCheckButton.textContent = 'Submit';
+                submitVisualCheckButton.className = 'btn btn-primary';
+                submitVisualCheckButton.style.padding = '10px 20px';
+                submitVisualCheckButton.style.backgroundColor = 'var(--primary-color)';
+                submitVisualCheckButton.style.color = 'white';
+                submitVisualCheckButton.style.border = 'none';
+                submitVisualCheckButton.style.borderRadius = '4px';
+                submitVisualCheckButton.style.cursor = 'pointer';
+                
+                // Add buttons to modal buttons container
+                modalButtons.appendChild(cancelButton);
+                modalButtons.appendChild(submitVisualCheckButton);
+                
+                // Assemble modal content
+                modalContent.appendChild(modalHeader);
+                modalContent.appendChild(visualCheckForm);
+                modalContent.appendChild(modalButtons);
+                
+                // Add modal content to modal container
+                modalContainer.appendChild(modalContent);
+                
+                // Add modal container to body
+                document.body.appendChild(modalContainer);
+                
+                // Add word count functionality to QC remark textarea
+                const qcRemarkTextarea = document.getElementById('qc-remark');
+                const wordCountElement = document.getElementById('word-count');
+                
+                qcRemarkTextarea.addEventListener('input', function() {
+                    const text = this.value;
+                    const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+                    wordCountElement.textContent = `${wordCount}/50 words`;
+                    
+                    if (wordCount > 50) {
+                        wordCountElement.style.color = 'red';
+                    } else {
+                        wordCountElement.style.color = '#777';
+                    }
+                });
+                
+                // Add event listener to cancel button
+                cancelButton.addEventListener('click', function() {
+                    document.body.removeChild(modalContainer);
+                    submitButton.disabled = false;
+                });
+                
+                // Add event listener to submit visual check button
+                submitVisualCheckButton.addEventListener('click', async function() {
+                    // Get values from visual check form
+                    const hardness = document.getElementById('hardness').value;
+                    const finishing = document.getElementById('finishing').value;
+                    const noBurr = document.getElementById('no-burr').value;
+                    const noDented = document.getElementById('no-dented').value;
+                    const noScratches = document.getElementById('no-scratches').value;
+                    const plating = document.getElementById('plating').value;
+                    const flatness = document.getElementById('flatness').value;
+                    const roundness = document.getElementById('roundness').value;
+                    const qcRemark = document.getElementById('qc-remark').value;
+                    
+                    // Validate inputs
+                    if (!hardness || !finishing || !noBurr || !noDented || !noScratches || !plating || !flatness || !roundness || !qcRemark) {
+                        alert('Please complete all physical properties, visual check fields, and provide a QC remark.');
+                        return;
+                    }
+                                
+                    // Check word count for QC remark
+                    const wordCount = qcRemark.trim() === '' ? 0 : qcRemark.trim().split(/\s+/).length;
+                    if (wordCount > 50) {
+                        alert('QC remark exceeds 50 words. Please shorten your remark.');
+                        return;
+                    }
+
+                    // Create the visual ratings array with proper parsing
+                    const visualRatings = [
+                        parseInt(hardness),
+                        parseInt(finishing),
+                        parseInt(noBurr), 
+                        parseInt(noDented), 
+                        parseInt(noScratches), 
+                        parseInt(plating), 
+                        parseInt(flatness), 
+                        parseInt(roundness)
+                    ];
+                    
+                    try {
+                        // Get person name
+                        const personName = personNameInput.value.trim();
+                        
+                        // Prepare alert data including both measurement and visual information
+                        const alertData = {
+                            measurements: outOfSpecReadings, // This comes from the measurement validation
+                            visualRatings: visualRatings,
+                            
+                        };
+                        
+                        // Send alert if there are any issues detected
+                        if ((outOfSpecReadings && outOfSpecReadings.length > 0) || 
+                            visualRatings.some(rating => rating < 3)  ) {
+                            await sendTelegramAlert(alertData);
+                        }
+                        
+                        // Remove modal
+                        document.body.removeChild(modalContainer);
+                        
+                        // Show loading indicator
+                        loadingIndicator.classList.remove('hidden');
+                        contentArea.classList.add('hidden');
+                        
+                        // Prepare the data for insertion with additional visual check fields
+                        const insertPromises = oqcData.map((zone, index) => {
+                            return supabaseClient
+                                .from('Data_OQC')
+                                .insert({
+                                    Part_Name: partName,
+                                    Process: processName,
+                                    JO_Number: joNumber,
+                                    Point_DWG_Zone: zone.Point_DWG_Zone,
+                                    Measuring_Instrument: zone.Measuring_Instrument,
+                                    Min: zone.Min,
+                                    Max: zone.Max,
+                                    Nominal: zone.Nominal,
+                                    Reading_1: userReadings[index].reading1,
+                                    Reading_2: userReadings[index].reading2,
+                                    Reading_3: userReadings[index].reading3,
+                                    Reading_4: userReadings[index].reading4,
+                                    Reading_5: userReadings[index].reading5,
+                                    Person: personName,
+                                    Hardness: hardness,
+                                    Finishing: finishing,
+                                    No_Burr: noBurr,
+                                    No_Dented: noDented,
+                                    No_Scratches: noScratches,
+                                    Plating: plating,
+                                    Flatness: flatness,
+                                    Roundness: roundness,
+                                    QC_Remark: qcRemark
+                                });
+                        });
+                        
+                        // Wait for all insertions to complete
+                        const results = await Promise.all(insertPromises);
+                        
+                        // Hide loading indicator
+                        loadingIndicator.classList.add('hidden');
+                        
+                        // Check for errors
+                        const errors = results.filter(result => result.error);
+                        if (errors.length > 0) {
+                            console.error('Errors during data submission:', errors);
+                            alert('Some errors occurred while saving the data. Please try again.');
+                            submitButton.disabled = false;
+                            return;
+                        }
+                        
+                        // Show success message
+                        alert('All readings and visual check data have been successfully submitted!');
+                        
+                        // Create visual inspection data object to pass to the next page
+                        const visualInspectionData = {
+                            hardness: hardness,
+                            finishing: finishing,
+                            noBurr: noBurr,
+                            noDented: noDented,
+                            noScratches: noScratches,
+                            plating: plating,
+                            flatness: flatness,
+                            roundness: roundness,
+                            qcRemark: qcRemark
+                        };
+                        
+                        // Redirect to oQC-page2.html with all relevant data
+                        // Instead of passing via URL:
+                        localStorage.setItem('oqcReadings', JSON.stringify(oqcData.map((zone, index) => ({
+                            ...zone,
+                            Reading_1: userReadings[index].reading1,
+                            Reading_2: userReadings[index].reading2,
+                            Reading_3: userReadings[index].reading3,
+                            Reading_4: userReadings[index].reading4,
+                            Reading_5: userReadings[index].reading5
+                        }))));
+
+                        localStorage.setItem('oqcVisualData', JSON.stringify(visualInspectionData));
+
+                        // Simplified URL with just the basic parameters
+                        window.location.href = `OQC-page2.html?part=${encodeURIComponent(partName)}&process=${encodeURIComponent(processName)}&jo=${encodeURIComponent(joNumber)}&name=${encodeURIComponent(personName)}`;
+                                        
+                    } catch (error) {
+                        console.error('Error submitting data:', error);
+                        alert('An error occurred while submitting the data. Please try again.');
+                        loadingIndicator.classList.add('hidden');
+                        submitButton.disabled = false;
+                    }
+                });
+            }
+
+            // Event listener for inspection guide button
+            const inspectionGuideButton = document.getElementById('inspection-guide-btn');
+            inspectionGuideButton.addEventListener('click', openInspectionGuide);
+            
+            // Fetch the OQC data when the page loads
+            if (partName && processName) {
+                fetchOQCData();
+            } else {
+                loadingIndicator.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+                errorMessage.textContent = 'Missing part name or process parameters.';
+            }
+        });
+
+
+
+
+    </script>
+</body>
+</html>

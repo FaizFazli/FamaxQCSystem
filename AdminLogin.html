@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <!-- Add /FamaxQCSystem to the beginning of the path -->
-    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2">
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <!-- Add Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Add Axios for HTTP requests -->
@@ -298,7 +298,7 @@
     <div class="content">
         <div class="dashboard-grid">
             <!-- Generate File -->
-            <button id="generateFileBtn" class="dashboard-card" onclick="navigateTo('FileGenerator.html')">
+            <button id="generateFileBtn" class="dashboard-card" onclick="navigateTo('screen_page/generate_file/FileGenerator.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
@@ -307,7 +307,7 @@
             </button>
 
             <!-- Add Part -->
-            <button id="addPartBtn" class="dashboard-card" onclick="navigateTo('addPart.html')">
+            <button id="addPartBtn" class="dashboard-card" onclick="navigateTo('screen_page/add_part/addPart.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
@@ -315,7 +315,7 @@
             </button>
 
             <!-- Revision -->
-            <button id="revisionBtn" class="dashboard-card" onclick="navigateTo('revision.html')">
+            <button id="revisionBtn" class="dashboard-card" onclick="navigateTo('screen_page/revision/revision.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
@@ -324,7 +324,7 @@
             </button>
 
             <!-- Update JO -->
-            <button id="updateJOBtn" class="dashboard-card" onclick="navigateTo('UpdateJO.html')">
+            <button id="updateJOBtn" class="dashboard-card" onclick="navigateTo('screen_page/job_order/UpdateJO.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
                 </svg>
@@ -332,7 +332,7 @@
             </button>
 
             <!-- Users -->
-            <button id="usersBtn" class="dashboard-card" onclick="navigateTo('user.html')">
+            <button id="usersBtn" class="dashboard-card" onclick="navigateTo('screen_page/users/user.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
@@ -341,7 +341,7 @@
             </button>
 
             <!-- Remove Folder -->
-            <button id="removeFolderBtn" class="dashboard-card" onclick="navigateTo('removefolder.html')">
+            <button id="removeFolderBtn" class="dashboard-card" onclick="navigateTo('screen_page/remove_folder/removefolder.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
@@ -350,7 +350,7 @@
             </button>
 
             <!-- Generate Report -->
-            <button id="generateReport" class="dashboard-card" onclick="navigateTo('generateReport.html')">
+            <button id="generateReport" class="dashboard-card" onclick="navigateTo('screen_page/report_generator/generateReport.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
@@ -359,7 +359,7 @@
             </button>
 
             <!-- Notify Email Page -->
-            <button id="notifyEmailBtn" class="dashboard-card" onclick="navigateTo('teamsNotification.html')">
+            <button id="notifyEmailBtn" class="dashboard-card" onclick="navigateTo('screen_page/notification/teamsNotification.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V8l7 5 7-5v9zm-7-6.5L5 6h14l-7 4.5z" />

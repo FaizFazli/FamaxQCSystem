@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BUYOFF Checking System</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <!-- Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --bg-body: #f1f5f9;
+            --text-muted: #6b7280;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #475569;
+            --border: #e2e8f0;
+            --focus-ring: rgba(37, 99, 235, 0.2);
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+                0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--bg-card);
+            height: 70px;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.025em;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-actions .btn-outline {
+            padding: 8px 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-sub);
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-actions .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background-color: #f8fafc;
+        }
+
+        /* --- Main Container --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 700px;
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid white;
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+        }
+
+        /* --- Form Elements --- */
+        .form-group {
+            margin-bottom: 1.5rem;
+            opacity: 1;
+            transition: all 0.4s ease;
+        }
+
+        .form-group.hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+            display: none;
+            font-weight: 500;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* --- Select2 Customization --- */
+        .select2-container .select2-selection--single {
+            height: 50px;
+            background-color: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: var(--text-main);
+            padding-left: 16px;
+            font-size: 0.95rem;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        /* --- Action Buttons --- */
+        .button-container {
+            margin-top: 2.5rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        /* --- Modal --- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        #jobList {
+            list-style: none;
+            padding: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .job-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--bg-body);
+            cursor: pointer;
+        }
+
+        .job-item:hover {
+            background-color: #f8fafc;
+        }
+
+        .modern-input {
+            width: 100%;
+            height: 50px;
+            padding: 0 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: auto;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <h1>BUYOFF System</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn-outline" onclick="openModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Active Job Orders
+            </button>
+        </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="jobModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Search Active Jobs</h2>
+                <span class="close-btn" onclick="closeModal()">&times;</span>
+            </div>
+            <input type="text" id="searchInput" onkeyup="filterJobs()" placeholder="Type Part Name or JO Number..."
+                class="modern-input" />
+            <ul id="jobList"></ul>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <div class="card">
+            <div class="section-header">
+                <h2>Inspection Setup</h2>
+                <p>Select the required details to begin the buyoff process</p>
+            </div>
+
+            <div class="form-group">
+                <label for="part-name">Part Name</label>
+                <select id="part-name" class="searchable-dropdown">
+                    <option value="">Loading parts...</option>
+                </select>
+                <div id="part-error" class="error-message">Please select a part to continue</div>
+            </div>
+
+            <div class="form-group hidden" id="process-group">
+                <label for="process-name">Process</label>
+                <select id="process-name" class="searchable-dropdown">
+                    <option value="">Select a process</option>
+                </select>
+                <div id="process-error" class="error-message">Please select a process to continue</div>
+            </div>
+
+            <div class="form-group hidden" id="jo-group">
+                <label for="jo-number">Job Order Number</label>
+                <select id="jo-number" class="searchable-dropdown">
+                    <option value="">Select a job order</option>
+                </select>
+                <div id="jo-error" class="error-message">Please select a job order to continue</div>
+            </div>
+
+            <div class="form-group hidden" id="machine-group">
+                <label for="machine-number">Machine Number</label>
+                <select id="machine-number" class="searchable-dropdown">
+                    <option value="">Select a machine</option>
+                </select>
+                <div id="machine-error" class="error-message">Please select a machine to continue</div>
+            </div>
+
+            <div class="button-container">
+                <button id="continue-btn" class="btn btn-primary">
+                    Continue
+                    <svg width="16" height="16" style="margin-left: 8px" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.2.113:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const supabaseClient = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+            },
+        });
+
+        let selectedData = { part: "", process: "", jobOrder: "", machine: "" };
+        let jobsData = [];
+
+        $(document).ready(function () {
+            initializeSelect2();
+            fetchPartsFromDatabase();
+
+            $("#part-name").on("change", function () {
+                selectedData.part = $(this).val();
+                if (selectedData.part) {
+                    $(".error-message").hide();
+                    fetchProcessesForPart(selectedData.part);
+                    $("#jo-group, #machine-group").addClass("hidden");
+                } else {
+                    $("#process-group, #jo-group, #machine-group").addClass("hidden");
+                }
+            });
+
+            $("#process-name").on("change", function () {
+                selectedData.process = $(this).val();
+                if (selectedData.process) {
+                    $("#process-error").hide();
+                    fetchJobOrdersForPartAndProcess(selectedData.part, selectedData.process);
+                } else {
+                    $("#jo-group, #machine-group").addClass("hidden");
+                }
+            });
+
+            $("#jo-number").on("change", function () {
+                selectedData.jobOrder = $(this).val();
+                if (selectedData.jobOrder) {
+                    $("#jo-error").hide();
+                    fetchMachines();
+                } else {
+                    $("#machine-group").addClass("hidden");
+                }
+            });
+
+            $("#machine-number").on("change", function () {
+                selectedData.machine = $(this).val();
+                if (selectedData.machine) $("#machine-error").hide();
+            });
+
+            $("#continue-btn").click(function () {
+                if (!validateInputs()) return;
+                window.location.href = `BUYOFF-page1.html?part=${encodeURIComponent(selectedData.part)}&process=${encodeURIComponent(selectedData.process)}&jo=${encodeURIComponent(selectedData.jobOrder)}&machine=${encodeURIComponent(selectedData.machine)}`;
+            });
+        });
+
+        function initializeSelect2() {
+            $(".searchable-dropdown").select2({
+                placeholder: "Search and select",
+                allowClear: true,
+                width: "100%",
+            });
+        }
+
+        function validateInputs() {
+            let isValid = true;
+            if (!selectedData.part) { $("#part-error").show(); isValid = false; }
+            if (!$("#process-group").hasClass("hidden") && !selectedData.process) { $("#process-error").show(); isValid = false; }
+            if (!$("#jo-group").hasClass("hidden") && !selectedData.jobOrder) { $("#jo-error").show(); isValid = false; }
+            if (!$("#machine-group").hasClass("hidden") && !selectedData.machine) { $("#machine-error").show(); isValid = false; }
+            return isValid;
+        }
+
+        async function fetchPartsFromDatabase() {
+            try {
+                const res = await supabaseClient.get("/rest/v1/Parts?select=Part_Name");
+                $("#part-name").empty().append('<option value="">Select a part</option>');
+                res.data.forEach((p) => $("#part-name").append(`<option value="${p.Part_Name}">${p.Part_Name}</option>`));
+                $("#part-name").trigger("change");
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchProcessesForPart(partName) {
+            try {
+                const res = await supabaseClient.get(`/rest/v1/IPQC?select=Process&Part_Name=eq.${partName}`);
+                const unique = [...new Set(res.data.map((i) => i.Process))].sort();
+                $("#process-name").empty().append('<option value="">Select a process</option>');
+                unique.forEach((p) => $("#process-name").append(`<option value="${p}">${p}</option>`));
+                $("#process-group").removeClass("hidden").addClass("fade-in");
+                $("#process-name").trigger("change");
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchJobOrdersForPartAndProcess(partName, processName) {
+            try {
+                const res = await supabaseClient.get(`/rest/v1/JobOrder?select=JO_Number&Part_Name=eq.${partName}&Process=eq.${processName}&Status=eq.active`);
+                $("#jo-number").empty().append('<option value="">Select a job order</option>');
+                res.data.forEach((j) => $("#jo-number").append(`<option value="${j.JO_Number}">${j.JO_Number}</option>`));
+                $("#jo-group").removeClass("hidden").addClass("fade-in");
+                $("#jo-number").trigger("change");
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchMachines() {
+            try {
+                const res = await supabaseClient.get("/rest/v1/Machine?select=Machinery_No");
+                $("#machine-number").empty().append('<option value="">Select a machine</option>');
+                res.data.forEach((m) => $("#machine-number").append(`<option value="${m.Machinery_No}">${m.Machinery_No}</option>`));
+                $("#machine-group").removeClass("hidden").addClass("fade-in");
+                $("#machine-number").trigger("change");
+            } catch (e) { console.error(e); }
+        }
+
+        // Search Modal Logic
+        function openModal() {
+            document.getElementById("jobModal").style.display = "flex";
+            fetchJobs();
+        }
+        function closeModal() { document.getElementById("jobModal").style.display = "none"; }
+
+        async function fetchJobs() {
+            try {
+                const res = await supabaseClient.get("/rest/v1/JobOrder?select=JO_Number,Part_Name&Status=eq.active");
+                jobsData = res.data.filter((v, i, a) => a.findIndex(t => (t.Part_Name === v.Part_Name && t.JO_Number === v.JO_Number)) === i);
+                renderList(jobsData);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderList(data) {
+            const list = document.getElementById("jobList");
+            list.innerHTML = "";
+            data.forEach((job) => {
+                const li = document.createElement("li");
+                li.className = "job-item";
+                li.innerHTML = `<strong>${job.Part_Name}</strong><br><small>${job.JO_Number}</small>`;
+                li.onclick = () => {
+                    $("#part-name").val(job.Part_Name).trigger("change");
+                    closeModal();
+                };
+                list.appendChild(li);
+            });
+        }
+
+        function filterJobs() {
+            const query = document.getElementById("searchInput").value.toLowerCase();
+            renderList(jobsData.filter(j => j.Part_Name.toLowerCase().includes(query) || j.JO_Number.toLowerCase().includes(query)));
+        }
+    </script>
+</body>
+
+</html>

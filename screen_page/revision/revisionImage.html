@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload - Revision</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --focus-ring: rgba(0, 120, 212, 0.25);
+            --radius: 8px;
+            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Main Card --- */
+        .card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 600px; /* Slightly wider for previews */
+            border-radius: 16px;
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        /* Header */
+        .card-header {
+            background: var(--primary);
+            padding: 24px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-body { padding: 30px; }
+
+        /* --- Info Summary Grid --- */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            background-color: #f8fafc;
+            padding: 15px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--text-main);
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .full-width { grid-column: span 2; }
+
+        /* --- Upload Areas --- */
+        .upload-wrapper { margin-bottom: 20px; }
+        
+        .upload-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .drop-zone {
+            position: relative;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 25px;
+            text-align: center;
+            background-color: #fff;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+
+        .drop-text { font-size: 13px; color: var(--text-muted); pointer-events: none; }
+        .drop-icon { font-size: 24px; color: var(--primary); margin-bottom: 8px; display: block; pointer-events: none; }
+
+        input[type="file"] {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; cursor: pointer;
+        }
+
+        /* --- Image Preview --- */
+        .image-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: #f9fafb;
+            margin-top: 10px;
+        }
+
+        .image-preview-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .image-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+
+        .image-name { font-size: 13px; font-weight: 500; }
+
+        .btn-mini {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .btn-mini:hover { background: #f3f4f6; }
+        .btn-mini.danger:hover { background: #fee2e2; color: #ef4444; border-color: #fecaca; }
+
+        /* --- PDF Section --- */
+        .pdf-upload-container { display: none; margin-top: 20px; }
+        .pdf-upload-container.visible { display: block; }
+        
+        .pdf-file-name {
+            margin-top: 5px;
+            font-size: 13px;
+            color: var(--success);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* --- Progress Bar --- */
+        .progress-container { margin-top: 20px; display: none; }
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        /* --- Messages --- */
+        .status-message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        /* --- Buttons --- */
+        .actions {
+            margin-top: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-main {
+            width: 100%;
+            height: 46px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .submit-button { background: var(--primary); color: white; }
+        .submit-button:hover:not(:disabled) { background: var(--primary-dark); }
+        .submit-button:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        .reset-button { background: white; border: 1px solid var(--border-color); color: var(--text-muted); }
+        .reset-button:hover { background: #f9fafb; color: var(--text-main); }
+
+        /* --- Console Logs --- */
+        .log-wrapper { margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+        .toggle-log {
+            background: none; border: none; font-size: 12px; color: var(--text-muted); 
+            text-decoration: underline; cursor: pointer; width: 100%; text-align: left;
+        }
+        .log-container {
+            margin-top: 10px;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        .log-container.visible { display: block; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
+        .log-entry.error { color: #f87171; }
+        .log-entry.success { color: #4ade80; }
+
+        .footer {
+            margin-top: auto;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="card-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Upload Revision Files
+            </h1>
+        </div>
+
+        <div class="card-body">
+            
+            <!-- Read Only Info Grid -->
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Type</span>
+                    <span class="info-value" id="documentTypeDisplay">...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Part Name</span>
+                    <span class="info-value" id="partNameDisplay">...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Process</span>
+                    <span class="info-value" id="processDisplay">...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Process ID</span>
+                    <span class="info-value" id="processNameDisplay">...</span>
+                </div>
+                <div class="info-item full-width">
+                    <span class="info-label">Reference File</span>
+                    <span class="info-value" id="fileNameDisplay">...</span>
+                </div>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="upload-wrapper">
+                <label class="upload-label">Process Image <span style="color:var(--danger)">*</span></label>
+                <div class="drop-zone">
+                    <span class="drop-icon">📷</span>
+                    <span class="drop-text">Drag image here or click to browse</span>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                <!-- Preview Container -->
+                <div id="imageContainer"></div>
+            </div>
+
+            <!-- PDF Upload (Conditional) -->
+            <div id="pdfContainer" class="pdf-upload-container upload-wrapper">
+                <label class="upload-label" id="pdfLabel">Inspection Guide PDF <span style="color:var(--danger)">*</span></label>
+                <div class="drop-zone" style="padding: 15px;">
+                    <span class="drop-text">Click to upload PDF Guide</span>
+                    <input type="file" id="pdfInput" accept=".pdf">
+                </div>
+                <div class="pdf-file-name" id="pdfFileName"></div>
+            </div>
+
+            <!-- Feedback -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+
+            <div class="status-message" id="statusMessage"></div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button class="btn-main submit-button" id="submitButton" disabled>Complete Revision</button>
+                <button class="btn-main reset-button" id="resetButton">Reset Form</button>
+            </div>
+
+            <!-- Technical Logs -->
+            <div class="log-wrapper">
+                <button class="toggle-log" id="toggleLogButton">Show Technical Logs</button>
+                <div class="log-container" id="logContainer"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <!-- Logic Script (Preserved exactly as provided) -->
+    <script>
+      // Supabase configuration
+      const SUPABASE_URL = 'http://192.168.2.113:8000';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+      
+      // Initialize Supabase client
+      const { createClient } = supabase;
+      const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+      // DOM elements
+      const documentTypeDisplay = document.getElementById('documentTypeDisplay');
+      const partNameDisplay = document.getElementById('partNameDisplay');
+      const processDisplay = document.getElementById('processDisplay');
+      const fileNameDisplay = document.getElementById('fileNameDisplay');
+      const processNameDisplay = document.getElementById('processNameDisplay');
+      const imageInput = document.getElementById('imageInput');
+      const imageContainer = document.getElementById('imageContainer');
+      const pdfContainer = document.getElementById('pdfContainer');
+      const pdfInput = document.getElementById('pdfInput');
+      const pdfLabel = document.getElementById('pdfLabel');
+      const pdfFileName = document.getElementById('pdfFileName');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const statusMessage = document.getElementById('statusMessage');
+      const submitButton = document.getElementById('submitButton');
+      const resetButton = document.getElementById('resetButton');
+      const logContainer = document.getElementById('logContainer');
+      const toggleLogButton = document.getElementById('toggleLogButton');
+      
+      // Variables to store form data
+      let formData = null;
+      let selectedImage = null;
+      let selectedPdf = null;
+      let extractedProcessName = null;
+      
+      // Categories that require inspection guide PDFs
+      const categoriesRequiringPdf = ['IQC', 'OQC'];
+      
+      // Logging functions
+      function logMessage(message, type = 'info') {
+        console.log(message);
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${type}`;
+        logEntry.textContent = `> ${message}`;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+      
+      function logError(message) { logMessage(message, 'error'); }
+      function logSuccess(message) { logMessage(message, 'success'); }
+      
+      // Toggle log display
+      toggleLogButton.addEventListener('click', function() {
+        if (logContainer.classList.contains('visible')) {
+          logContainer.classList.remove('visible');
+          toggleLogButton.textContent = 'Show Technical Logs';
+        } else {
+          logContainer.classList.add('visible');
+          toggleLogButton.textContent = 'Hide Technical Logs';
+        }
+      });
+      
+      // Function to extract process name from Excel filename
+      function extractProcessNameFromFilename(filename) {
+        if (!filename || !filename.includes('_')) {
+          logError(`Invalid filename format: ${filename}`);
+          return null;
+        }
+        try {
+          const nameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+          const parts = nameWithoutExt.split('_');
+          if (parts.length >= 3) {
+            return parts.slice(1, -1).join('_');
+          } else if (parts.length === 2) {
+            return parts[1];
+          }
+          logError(`Could not extract process name from filename: ${filename}`);
+          return null;
+        } catch (error) {
+          logError(`Error extracting process name: ${error.message}`);
+          return null;
+        }
+      }
+      
+      // Helper function to extract path from URL
+      function extractPathFromUrl(url) {
+        try {
+          const urlParts = url.split('/');
+          const publicIndex = urlParts.indexOf('public');
+          if (publicIndex === -1) {
+            logError(`Could not find 'public' in URL: ${url}`);
+            return null;
+          }
+          const bucketName = urlParts[publicIndex + 1];
+          const storagePath = urlParts.slice(publicIndex + 2).join('/');
+          return { bucketName, storagePath };
+        } catch (error) {
+          logError(`Error extracting path from URL: ${error.message}`);
+          return null;
+        }
+      }
+      
+      // Load form data from session storage
+      function loadFormData() {
+        const storedData = sessionStorage.getItem('formData');
+        if (storedData) {
+          formData = JSON.parse(storedData);
+          documentTypeDisplay.textContent = formData.documentType || 'Not specified';
+          partNameDisplay.textContent = formData.partName || 'Not specified';
+          processDisplay.textContent = formData.process || 'Not specified';
+          fileNameDisplay.textContent = formData.fileName || 'Not specified';
+          
+          if (formData.fileName) {
+            extractedProcessName = extractProcessNameFromFilename(formData.fileName);
+            processNameDisplay.textContent = extractedProcessName || 'Could not extract';
+          } else {
+            processNameDisplay.textContent = 'Not available';
+          }
+          
+          if (categoriesRequiringPdf.includes(formData.documentType)) {
+            pdfContainer.classList.add('visible');
+          } else {
+            pdfContainer.classList.remove('visible');
+          }
+          logSuccess('System ready. Form data loaded.');
+        } else {
+          logError('No form data found in session storage');
+          showStatusMessage('No form data found. Please return to the revision page.', 'error');
+        }
+      }
+      
+      document.addEventListener('DOMContentLoaded', loadFormData);
+      
+      function validateImageName(imageFile, processName) {
+        if (!imageFile || !processName) return false;
+        const imageFileName = imageFile.name.replace(/\.[^/.]+$/, "");
+        const isValid = imageFileName.toLowerCase().includes(processName.toLowerCase());
+        if (!isValid) {
+          logError(`Image filename "${imageFile.name}" doesn't contain "${processName}"`);
+        } else {
+          logSuccess(`Image matches process name`);
+        }
+        return isValid;
+      }
+    
+      // Image Input Logic
+      imageInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+          imageContainer.innerHTML = '';
+          const isImageNameValid = validateImageName(file, extractedProcessName);
+          
+          if (!isImageNameValid) {
+            showStatusMessage(`Error: Image filename must contain "${extractedProcessName}"`, 'error');
+            imageInput.value = '';
+            return;
+          }
+          
+          selectedImage = file;
+          showStatusMessage('', ''); // Clear error if any
+          statusMessage.style.display = 'none';
+          
+          // Create Preview
+          const imageItem = document.createElement('div');
+          imageItem.className = 'image-item';
+          
+          const previewContainer = document.createElement('div');
+          previewContainer.className = 'image-preview-container';
+          
+          const imagePreview = document.createElement('img');
+          imagePreview.src = URL.createObjectURL(file);
+          imagePreview.alt = file.name;
+          
+          const imageNameSpan = document.createElement('span');
+          imageNameSpan.className = 'image-name';
+          imageNameSpan.textContent = file.name;
+          
+          previewContainer.appendChild(imagePreview);
+          previewContainer.appendChild(imageNameSpan);
+          
+          const buttonsDiv = document.createElement('div');
+          
+          const viewButton = document.createElement('button');
+          viewButton.className = 'btn-mini';
+          viewButton.textContent = 'View';
+          viewButton.addEventListener('click', () => {
+            window.open(imagePreview.src, '_blank');
+          });
+          
+          const removeButton = document.createElement('button');
+          removeButton.className = 'btn-mini danger';
+          removeButton.textContent = 'Remove';
+          removeButton.addEventListener('click', function() {
+            selectedImage = null;
+            imageContainer.innerHTML = '';
+            imageInput.value = '';
+            updateSubmitButton();
+          });
+          
+          buttonsDiv.appendChild(viewButton);
+          buttonsDiv.appendChild(removeButton);
+          
+          imageItem.appendChild(previewContainer);
+          imageItem.appendChild(buttonsDiv);
+          imageContainer.appendChild(imageItem);
+          
+          logSuccess(`Image selected: ${file.name}`);
+          updateSubmitButton();
+        }
+      }); 
+      
+      // PDF Input Logic
+      pdfInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file && file.type === 'application/pdf') {
+          selectedPdf = file;
+          pdfFileName.innerHTML = `<span>✓</span> ${file.name}`;
+          logSuccess(`PDF selected: ${file.name}`);
+          updateSubmitButton();
+        }
+      });
+      
+      function updateSubmitButton() {
+        const imageValid = selectedImage !== null;
+        const pdfValid = !pdfContainer.classList.contains('visible') || selectedPdf !== null;
+        submitButton.disabled = !(imageValid && pdfValid);
+      }
+      
+      function showStatusMessage(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = 'status-message ' + type;
+        statusMessage.style.display = 'block';
+        if (type === 'error') logError(message);
+        else if (type === 'success') logSuccess(message);
+      }
+      
+      function resetForm() {
+        imageContainer.innerHTML = '';
+        imageInput.value = '';
+        pdfInput.value = '';
+        pdfFileName.textContent = '';
+        selectedImage = null;
+        selectedPdf = null;
+        progressContainer.style.display = 'none';
+        statusMessage.style.display = 'none';
+        updateSubmitButton();
+        logMessage('Form reset');
+      }
+      
+      resetButton.addEventListener('click', resetForm);
+      
+      // --- File Operations ---
+    
+      function getBucketName(documentType) {
+        switch(documentType.toUpperCase()) {
+          case 'IPQC': return 'ipqc';
+          case 'IQC': return 'iqc';
+          case 'OQC': return 'oqc';
+          case 'OBSOLETE': return 'obsolete';
+          default: return documentType.toLowerCase();
+        }
+      }
+    
+      async function moveFilesToObsolete() {
+        logMessage('Moving old files to Obsolete bucket...');
+        try {
+          const tableToBucketMap = { 'IPQC': 'ipqc', 'IQC': 'iqc', 'OQC': 'oqc' };
+          const sourceBucketName = tableToBucketMap[formData.documentType] || formData.documentType.toLowerCase();
+          
+          // Find active records
+          const { data, error } = await supabaseClient
+            .from(formData.documentType)
+            .select('Path' + (formData.documentType !== 'IPQC' ? ', Pdf_Path' : ''))
+            .eq('Part_Name', formData.partName)
+            .eq('Process', formData.process)
+            .eq('Status', 'Active');
+    
+          if (error) throw error;
+          if (!data || data.length === 0) return;
+    
+          for (const record of data) {
+            // Move Image
+            if (record.Path) {
+              try {
+                const { bucketName, storagePath } = extractPathFromUrl(record.Path);
+                if (bucketName && storagePath) {
+                  await supabaseClient.storage.from(sourceBucketName).move(storagePath, `obsolete/${storagePath}`);
+                  logSuccess(`Moved image to obsolete: ${storagePath}`);
+                }
+              } catch (e) { logError(e.message); }
+            }
+            // Move PDF
+            if (formData.documentType !== 'IPQC' && record.Pdf_Path) {
+              try {
+                const { bucketName, storagePath } = extractPathFromUrl(record.Pdf_Path);
+                if (bucketName && storagePath) {
+                  await supabaseClient.storage.from(sourceBucketName).move(storagePath, `obsolete/${storagePath}`);
+                  logSuccess(`Moved PDF to obsolete: ${storagePath}`);
+                }
+              } catch (e) { logError(e.message); }
+            }
+          }
+          return true;
+        } catch (error) {
+          logError(`Error moving files: ${error.message}`);
+          throw error;
+        }
+      }
+    
+      async function uploadImage() {
+        try {
+          if (!selectedImage) throw new Error('No image selected');
+          const bucketName = getBucketName(formData.documentType).toLowerCase();
+          
+          if (!extractedProcessName) extractedProcessName = formData.process;
+          
+          const fileExtension = selectedImage.name.split('.').pop();
+          const imageFileName = `${extractedProcessName}.${fileExtension}`;
+          const storagePath = `${formData.partName}/${formData.process}/${imageFileName}`;
+          
+          logMessage(`Uploading image: ${storagePath}`);
+          
+          const { error: uploadError } = await supabaseClient.storage
+            .from(bucketName)
+            .upload(storagePath, selectedImage, { upsert: true, contentType: selectedImage.type });
+          
+          if (uploadError) throw uploadError;
+          
+          const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(storagePath);
+          return `${urlData.publicUrl}?t=${Date.now()}`;
+        } catch (error) {
+          throw new Error(`Failed to upload image: ${error.message}`);
+        }
+      }
+    
+      async function uploadPdf() {
+        try {
+          if (!selectedPdf) throw new Error('No PDF selected');
+          if (!extractedProcessName) extractedProcessName = formData.process;
+          
+          const pdfFileName = `guide_${extractedProcessName}.pdf`;
+          const storagePath = `${formData.partName}/${formData.process}/${pdfFileName}`;
+          const bucketName = getBucketName(formData.documentType);
+          
+          logMessage(`Uploading PDF: ${storagePath}`);
+          
+          const { error: uploadError } = await supabaseClient.storage
+            .from(bucketName)
+            .upload(storagePath, selectedPdf, { upsert: true, contentType: 'application/pdf' });
+          
+          if (uploadError) throw uploadError;
+          
+          const { data: urlData } = supabaseClient.storage.from(bucketName).getPublicUrl(storagePath);
+          return `${urlData.publicUrl}?t=${Date.now()}`;
+        } catch (error) {
+          throw new Error(`Failed to upload PDF: ${error.message}`);
+        }
+      }
+      
+      async function updateRecord(imageUrl, pdfUrl) {
+        try {
+          const updateData = { Path: imageUrl };
+          if (pdfUrl) updateData.Pdf_Path = pdfUrl;
+          
+          logMessage(`Updating Database Record...`);
+          
+          const { data, error } = await supabaseClient
+            .from(formData.documentType)
+            .update(updateData)
+            .eq('Part_Name', formData.partName)
+            .eq('Process', formData.process)
+            .eq('Status', 'Active')
+            .select();
+          
+          if (error) throw error;
+          logSuccess(`Database updated.`);
+          return data;
+        } catch (error) {
+          throw new Error(`DB Update Failed: ${error.message}`);
+        }
+      }
+      
+      // Main Handler
+      submitButton.addEventListener('click', async function() {
+        if (!formData) return showStatusMessage('Missing form data.', 'error');
+        if (!selectedImage) return showStatusMessage('Missing image.', 'error');
+        if (pdfContainer.classList.contains('visible') && !selectedPdf) return showStatusMessage('Missing PDF.', 'error');
+        
+        submitButton.disabled = true;
+        resetButton.disabled = true;
+        progressContainer.style.display = 'block';
+        
+        try {
+          // 1. Move
+          progressBar.style.width = '10%';
+          progressText.textContent = 'Archiving old files...';
+          await moveFilesToObsolete();
+          
+          // 2. Upload Image
+          progressBar.style.width = '40%';
+          progressText.textContent = 'Uploading New Image...';
+          const imageUrl = await uploadImage();
+          
+          // 3. Upload PDF
+          let pdfUrl = null;
+          if (pdfContainer.classList.contains('visible') && selectedPdf) {
+            progressBar.style.width = '70%';
+            progressText.textContent = 'Uploading New Guide...';
+            pdfUrl = await uploadPdf();
+          }
+          
+          // 4. DB Update
+          progressBar.style.width = '90%';
+          progressText.textContent = 'Updating Database...';
+          await updateRecord(imageUrl, pdfUrl);
+          
+          // Done
+          progressBar.style.width = '100%';
+          progressText.textContent = 'Complete';
+          showStatusMessage('Revision Completed Successfully!', 'success');
+          
+          setTimeout(() => { window.location.href = '../../AdminLogin.html'; }, 2000);
+          
+        } catch (error) {
+          logError(error.message);
+          showStatusMessage(error.message, 'error');
+          resetButton.disabled = false;
+        }
+      });
+    </script>
+</body>
+</html>

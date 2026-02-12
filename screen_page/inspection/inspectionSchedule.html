@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Hub | Inspection Schedule </title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+
+    <!-- External Libraries -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            padding: 2rem;
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 25%);
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 3rem;
+            }
+        }
+
+        .app-header {
+            background: #ffffff;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 2.5rem;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            color: #1a1a1a;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .app-header {
+                padding: 3rem;
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+
+        .header-blur {
+            position: absolute;
+            top: 0;
+            right: 0;
+            margin-right: -5rem;
+            margin-top: -5rem;
+            width: 20rem;
+            height: 20rem;
+            background-color: rgba(251, 191, 36, 0.15);
+            border-radius: 9999px;
+            filter: blur(64px);
+        }
+
+        .header-accent-bar {
+            width: 0.75rem;
+            height: 2.5rem;
+            background-color: #fbbf24;
+            border-radius: 9999px;
+            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            font-style: italic;
+            color: #000;
+        }
+
+        .filter-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            z-index: 10;
+        }
+
+        @media (min-width: 1024px) {
+            .filter-container {
+                align-items: flex-end;
+            }
+        }
+
+        .filter-input {
+            background: transparent;
+            outline: none;
+            font-weight: 700;
+            font-size: 0.875rem;
+            color: #000;
+            cursor: pointer;
+        }
+
+        .nav-link {
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .nav-link-home {
+            background: #f3f4f6;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            color: #4b5563;
+        }
+
+        .nav-link-form {
+            background: #000;
+            color: #fbbf24;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .schedule-card {
+            background: #ffffff;
+            border-radius: 2.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
+            overflow: visible;
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        .table-th {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6b7280;
+            padding: 1.25rem 1.5rem;
+            text-align: left;
+        }
+
+        .table-td {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        /* Modal Overlays */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            width: 100%;
+            max-width: 48rem;
+            border-radius: 3rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: visible;
+            animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-header {
+            background: #000;
+            color: white;
+            padding: 2rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 3rem;
+            border-top-right-radius: 3rem;
+            border-bottom: 1px solid #fbbf24;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 3.5rem;
+            padding: 0 1.5rem;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: #fbbf24;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
+        }
+
+        .dropdown-list {
+            position: absolute;
+            top: 105%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 150;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #fbbf24;
+            padding: 0.5rem;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            color: #374151;
+        }
+
+        .dropdown-item:hover {
+            background-color: #fbbf24;
+            color: #000;
+        }
+
+        .btn-action {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="max-w-[1400px] mx-auto pb-20">
+
+        <!-- --- HEADER --- -->
+        <header class="app-header">
+            <div class="header-blur"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-4 mb-3">
+                    <div class="header-accent-bar"></div>
+                    <h1 class="header-title">Daily <span class="text-yellow-500">Schedule</span></h1>
+                </div>
+            </div>
+
+            <div class="filter-container flex flex-col gap-4">
+                <nav class="flex gap-3">
+                    <a href="inspectionDashboard.html" class="nav-link nav-link-home">
+                        <i class="fa fa-th-large"></i> Dashboard
+                    </a>
+                    <a href="inspectionCheckerForm.html" class="nav-link nav-link-form">
+                        <i class="fa fa-plus-circle"></i> New Entry
+                    </a>
+                </nav>
+
+                <div
+                    class="flex items-center gap-3 bg-white border border-gray-200 p-2 px-4 rounded-2xl shadow-sm w-fit">
+                    <i class="fa fa-calendar text-yellow-500"></i>
+                    <input type="date" v-model="filterDate" class="filter-input bg-transparent text-black outline-none">
+                    <div class="w-px h-4 bg-gray-200 mx-2"></div>
+                    <button @click="fetchData"
+                        class="text-gray-400 hover:text-black transition-colors flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider">Sync</span>
+                        <i class="fa fa-sync-alt" :class="{'fa-spin': loading}"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- --- MAIN CONTENT --- -->
+        <main class="animate-in">
+            <div class="schedule-card">
+                <div class="p-8 md:p-10 flex justify-between items-center border-b border-gray-100">
+                    <h2 class="text-2xl font-black text-black tracking-tighter italic uppercase">
+                        Job Queue <span class="text-yellow-600">({{ filteredSchedule.length }})</span>
+                    </h2>
+                    <button @click="openModal"
+                        class="bg-yellow-400 text-black px-8 py-3 rounded-2xl font-black hover:bg-yellow-300 transition-all shadow-xl shadow-yellow-400/20">
+                        <i class="fa fa-plus mr-2"></i> Assign Task
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="table-th w-[25%]">Job Order & Part</th>
+                                <th class="table-th w-[20%]">Parameter</th>
+                                <th class="table-th w-[25%]">Assignment</th>
+                                <th class="table-th w-[20%]">Replacement</th>
+                                <th class="table-th w-[10%] text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="item in filteredSchedule" :key="item.id"
+                                class="hover:bg-gray-50 transition-all group">
+                                <td class="table-td">
+                                    <div class="font-black text-yellow-600 text-base leading-tight mb-1">{{
+                                        item.JO_Number }}</div>
+                                    <div
+                                        class="text-[10px] text-neutral-400 font-bold uppercase tracking-tight max-w-[220px] truncate">
+                                        {{
+                                        item.Part_Name }}</div>
+                                </td>
+                                <td class="table-td">
+                                    <div
+                                        class="inline-flex items-center gap-2 bg-gray-100 text-neutral-600 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border border-gray-200 uppercase whitespace-nowrap">
+                                        <i class="fa fa-tag text-[8px] opacity-50"></i> {{ item.Parameter || 'STANDARD'
+                                        }}
+                                    </div>
+                                </td>
+                                <td class="table-td">
+                                    <div
+                                        class="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-xl font-black text-[10px] border border-yellow-100 whitespace-nowrap">
+                                        <i class="fa fa-user-circle"></i> {{ item.AssignTo }}
+                                    </div>
+                                </td>
+                                <td class="table-td">
+                                    <div v-if="item.Replacement"
+                                        class="inline-flex items-center gap-2 bg-gray-100 text-neutral-500 px-4 py-2 rounded-xl font-black text-[10px] border border-gray-200 whitespace-nowrap">
+                                        <i class="fa fa-exchange-alt"></i> {{ item.Replacement }}
+                                    </div>
+                                    <span v-else class="text-neutral-400 italic text-xs">None</span>
+                                </td>
+                                <td class="table-td text-right">
+                                    <div class="flex justify-end gap-1.5">
+                                        <button @click="openReplaceModal(item)"
+                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-black hover:text-white">
+                                            <i class="fa fa-user-edit text-sm"></i>
+                                        </button>
+                                        <button @click="markComplete(item)"
+                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-green-500 hover:text-white">
+                                            <i class="fa fa-check text-sm"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredSchedule.length === 0">
+                                <td colspan="5" class="py-20 text-center">
+                                    <div class="text-gray-200 mb-2"><i class="fa fa-calendar-times text-5xl"></i></div>
+                                    <div class="text-gray-400 font-bold">No tasks found for this date.</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- Replacement Modal -->
+        <div v-if="showReplaceModal" class="modal-overlay">
+            <div class="modal-content !max-w-md">
+                <div class="modal-header">
+                    <h3 class="font-black text-xl italic uppercase"><span class="text-yellow-400">Assign</span>
+                        Replacement</h3>
+                    <button @click="showReplaceModal = false"><i class="fa fa-times"></i></button>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-4">
+                        <div class="text-[10px] font-bold text-gray-400">CURRENTLY ASSIGNED TO</div>
+                        <div class="font-black text-black">{{ selectedTask?.AssignTo }}</div>
+                    </div>
+                    <div class="relative">
+                        <label class="section-label">Select Replacement Personnel</label>
+                        <input type="text" v-model="replacementName" @focus="dropdowns.replace = true"
+                            @blur="closeDropdown('replace')" placeholder="Search Inspector..." class="form-input">
+                        <div v-if="dropdowns.replace" class="dropdown-list">
+                            <div v-for="u in filterList(operators, replacementName)" :key="u"
+                                @mousedown="replacementName = u; dropdowns.replace = false" class="dropdown-item">{{ u
+                                }}</div>
+                        </div>
+                    </div>
+                    <button @click="submitReplacement"
+                        class="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-900 transition-colors shadow-lg">
+                        Update Assignment
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Task Modal -->
+        <div v-if="showAddModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="flex items-center gap-4">
+                        <div class="w-2 h-8 bg-yellow-400 rounded-full"></div>
+                        <h3 class="font-black text-2xl italic uppercase tracking-tighter">Schedule Assignment</h3>
+                    </div>
+                    <button @click="showAddModal = false"
+                        class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-10 space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="relative">
+                            <label class="section-label">Select Part Name</label>
+                            <input type="text" v-model="newTask.part" @focus="dropdowns.part = true"
+                                @blur="closeDropdown('part')" placeholder="Search Part..." class="form-input">
+                            <div v-if="dropdowns.part" class="dropdown-list">
+                                <div v-for="p in filterList(distinctParts, newTask.part)" :key="p"
+                                    @mousedown="selectPart(p)" class="dropdown-item">{{ p }}</div>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <label class="section-label">Job Order Reference</label>
+                            <input type="text" v-model="newTask.jo" @focus="dropdowns.jo = true"
+                                @blur="closeDropdown('jo')" :disabled="!newTask.part" placeholder="Select JO..."
+                                class="form-input">
+                            <div v-if="dropdowns.jo" class="dropdown-list">
+                                <div v-for="j in filterList(availableJOs, newTask.jo)" :key="j"
+                                    @mousedown="newTask.jo = j; dropdowns.jo = false" class="dropdown-item">{{ j }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <label class="section-label">Parameter / Spec</label>
+                        <input type="text" v-model="newTask.param" @focus="dropdowns.param = true"
+                            @blur="closeDropdown('param')" placeholder="Select Specification..." class="form-input">
+                        <div v-if="dropdowns.param" class="dropdown-list">
+                            <div v-for="p in filterList(guideParams, newTask.param)" :key="p"
+                                @mousedown="selectParam(p)" class="dropdown-item">{{ p }}</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="relative">
+                            <label class="section-label">Assign To Personnel</label>
+                            <input type="text" v-model="newTask.user" @focus="dropdowns.user = true"
+                                @blur="closeDropdown('user')" placeholder="Select Inspector..." class="form-input">
+                            <div v-if="dropdowns.user" class="dropdown-list">
+                                <div v-for="u in filterList(operators, newTask.user)" :key="u"
+                                    @mousedown="newTask.user = u; dropdowns.user = false" class="dropdown-item">{{ u }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <label class="section-label">Scheduled Start Date</label>
+                            <input type="date" v-model="newTask.startDate" class="form-input">
+                        </div>
+                    </div>
+                    <button @click="addTask" :disabled="loading"
+                        class="w-full bg-yellow-400 text-black py-6 rounded-[1.5rem] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-yellow-400/20 hover:bg-yellow-300">
+                        <i v-if="loading" class="fa fa-sync fa-spin"></i> Confirm Assignment
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: 'http://192.168.2.113:8000/rest/v1',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
+                    }
+                });
+
+                const schedule = ref([]);
+                const loading = ref(false);
+                const filterDate = ref(new Date().toISOString().split('T')[0]);
+                const showAddModal = ref(false);
+                const showReplaceModal = ref(false);
+
+                const selectedTask = ref(null);
+                const replacementName = ref('');
+                const newTask = ref({ jo: '', part: '', param: '', user: '', startDate: new Date().toISOString().split('T')[0] });
+                const dropdowns = ref({ part: false, jo: false, param: false, user: false, replace: false });
+
+                const distinctParts = ref([]);
+                const availableJOs = ref([]);
+                const guideParams = ref([]);
+                const operators = ref([]);
+
+                const fetchData = async () => {
+                    loading.value = true;
+                    try {
+                        const [sRes, pRes, gRes, cRes] = await Promise.all([
+                            api.get('/InspectionSchedule?select=*&order=id.desc'),
+                            api.get('/JobOrder?select=Part_Name'),
+                            api.get('/InspectionGuide?select=Parameter'),
+                            api.get('/InspectionChecker?select=CheckerName')
+                        ]);
+                        schedule.value = sRes.data;
+                        distinctParts.value = [...new Set(pRes.data.map(i => i.Part_Name))].filter(Boolean).sort();
+                        guideParams.value = [...new Set(gRes.data.map(i => i.Parameter))].filter(Boolean).sort();
+                        operators.value = [...new Set(cRes.data.map(i => i.CheckerName))].filter(Boolean).sort();
+                    } catch (err) { console.error(err); }
+                    finally { loading.value = false; }
+                };
+
+                const filteredSchedule = computed(() => {
+                    if (!filterDate.value) return schedule.value;
+                    return schedule.value.filter(item => item.created_at.startsWith(filterDate.value));
+                });
+
+                const markComplete = async (item) => {
+                    if (!confirm(`Mark ${item.JO_Number} as complete?`)) return;
+                    try {
+                        await api.delete(`/InspectionSchedule?id=eq.${item.id}`);
+                        Toastify({ text: "Task completed", style: { background: "#fbbf24", color: "#000", borderRadius: "12px" } }).showToast();
+                        fetchData();
+                    } catch (err) { console.error(err); }
+                };
+
+                const openReplaceModal = (item) => {
+                    selectedTask.value = item;
+                    replacementName.value = '';
+                    showReplaceModal.value = true;
+                };
+
+                const submitReplacement = async () => {
+                    if (!replacementName.value) return;
+                    try {
+                        await api.patch(`/InspectionSchedule?id=eq.${selectedTask.value.id}`, { Replacement: replacementName.value });
+                        Toastify({ text: "Replacement assigned", style: { background: "#fbbf24", color: "#000", borderRadius: "12px" } }).showToast();
+                        showReplaceModal.value = false;
+                        fetchData();
+                    } catch (err) { console.error(err); }
+                };
+
+                const filterList = (list, search) => !search ? list : list.filter(i => String(i).toLowerCase().includes(search.toLowerCase()));
+
+                const selectPart = async (p) => {
+                    newTask.value.part = p; dropdowns.value.part = false;
+                    const res = await api.get(`/JobOrder?Part_Name=eq.${encodeURIComponent(p)}&select=JO_Number`);
+                    availableJOs.value = [...new Set(res.data.map(i => i.JO_Number))].filter(Boolean).sort();
+                };
+
+                const selectParam = (p) => { newTask.value.param = p; dropdowns.value.param = false; };
+                const closeDropdown = (type) => setTimeout(() => dropdowns.value[type] = false, 250);
+                const openModal = () => { newTask.value = { jo: '', part: '', param: '', user: '', startDate: new Date().toISOString().split('T')[0] }; showAddModal.value = true; };
+
+                const addTask = async () => {
+                    loading.value = true;
+                    try {
+                        await api.post('/InspectionSchedule', {
+                            JO_Number: newTask.value.jo.toUpperCase(),
+                            Part_Name: newTask.value.part.toUpperCase(),
+                            Parameter: newTask.value.param,
+                            AssignTo: newTask.value.user,
+                            StartDate: newTask.value.startDate,
+                            created_at: new Date().toISOString()
+                        });
+                        Toastify({ text: "Task Assigned!", style: { background: "#fbbf24", color: "#000", borderRadius: "12px" } }).showToast();
+                        showAddModal.value = false;
+                        fetchData();
+                    } catch (err) { console.error(err); } finally { loading.value = false; }
+                };
+
+                onMounted(fetchData);
+
+                return {
+                    schedule, loading, filterDate, filteredSchedule, showAddModal, showReplaceModal,
+                    newTask, replacementName, selectedTask, distinctParts, availableJOs,
+                    guideParams, operators, dropdowns, filterList, selectPart, selectParam,
+                    closeDropdown, openModal, addTask, markComplete, openReplaceModal, submitReplacement, fetchData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

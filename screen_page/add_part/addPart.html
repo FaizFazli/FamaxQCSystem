@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Part - Upload Excel</title>
+    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --danger: #ef4444;
+            --success: #10b981;
+            --focus-ring: rgba(0, 120, 212, 0.25);
+            --input-height: 46px;
+            --radius: 8px;
+            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- Navigation --- */
+        .nav-top {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        /* --- Main Card --- */
+        .card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Header */
+        .card-header {
+            background: var(--primary);
+            padding: 24px 30px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-badge {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        /* --- Form Elements --- */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        /* Select2 Override */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            height: var(--input-height) !important;
+            border: 1px solid var(--border-color) !important;
+            border-radius: var(--radius) !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            padding-left: 12px !important;
+            color: var(--text-main) !important;
+            font-size: 14px !important;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100% !important;
+            top: 0 !important;
+            right: 8px !important;
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 4px var(--focus-ring) !important;
+        }
+
+        .select2-dropdown {
+            border-color: var(--border-color) !important;
+            border-radius: var(--radius) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            margin-top: 4px;
+        }
+
+        .select2-results__option {
+            padding: 10px 12px !important;
+            font-size: 14px !important;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary) !important;
+        }
+
+        /* --- File Drop Area --- */
+        .drop-zone {
+            position: relative;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 30px;
+            text-align: center;
+            background-color: #f9fafb;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+
+        .drop-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .drop-icon {
+            font-size: 24px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: block;
+            pointer-events: none;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* --- File List --- */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .file-item {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .file-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        /* Styled Dropdown inside list */
+        .category-select {
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-main);
+            background: #f9fafb;
+            cursor: pointer;
+            width: 80px;
+        }
+
+        .btn-remove {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-remove:hover {
+            background: #fecaca;
+        }
+
+        /* --- Buttons --- */
+        .btn-action {
+            width: 100%;
+            height: 48px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-action:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        /* --- Loading Overlay --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- Modal Styles --- */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            margin: 5% auto;
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: var(--shadow-card);
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .close-modal:hover {
+            color: var(--danger);
+        }
+
+        /* --- Table Styles --- */
+        .wi-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .wi-table th,
+        .wi-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .wi-table th {
+            background-color: #f9fafb;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+        }
+
+        .status-pill {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .btn-view-list {
+            background: white;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn-view-list:hover {
+            background: var(--primary-dark);
+            color: white;
+        }
+
+        /* New Search Style */
+        .wi-search-container {
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        #wiSearchInput {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        #wiSearchInput:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .drop-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--primary);
+            margin: 0 auto 10px auto;
+            /* Centering the SVG */
+            display: block;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay" style="display: none">
+        <div class="spinner"></div>
+        <div style="font-size: 14px; color: var(--text-muted)">Processing...</div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-top">
+        <a onclick="window.location.href='../../AdminLogin.html'" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Add Part - Upload Excel
+            </h1>
+            <button class="btn-view-list" onclick="openWIModal()">
+                View WI List
+            </button>
+        </div>
+
+        <div class="card-body">
+            <!-- Part Selection -->
+            <div class="form-group">
+                <label>Select Part Name</label>
+                <select id="partNameInput" class="select2">
+                    <option value="">Search part name...</option>
+                </select>
+            </div>
+
+            <!-- File Drop Zone -->
+            <div class="form-group" id="uploadSection" style="display: none">
+                <label>Upload Excel Files (.xlsx / .xls)</label>
+                <div class="drop-zone">
+                    <svg
+              class="drop-icon"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+                    <span class="drop-text">Drag files here or click to browse</span>
+                    <!-- Note: 'webkitdirectory' allows folder selection -->
+                    <input type="file" id="fileInput" webkitdirectory multiple />
+                </div>
+            </div>
+
+            <!-- File List -->
+            <ul id="fileList" class="file-list"></ul>
+
+            <!-- Submit Button -->
+            <button id="submitButton" class="btn-action" disabled>
+                Submit Files
+            </button>
+        </div>
+    </div>
+    <!-- WI List Modal -->
+    <div id="wiModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeWIModal()">&times;</span>
+            <h2 style="margin-top: 0; font-size: 18px">
+                Active Work Instructions (IPQC)
+            </h2>
+
+            <!-- Search Field Added Here -->
+            <div class="wi-search-container">
+                <input type="text" id="wiSearchInput" placeholder="Search by Part Name..." onkeyup="filterWITable()">
+            </div>
+
+            <div style="overflow-x: auto">
+                <table class="wi-table" id="wiListTable">
+                    <thead>
+                        <tr>
+                            <th>Part Name</th>
+                            <th>WI Upload Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wiTableBody">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) System. All rights reserved.
+    </div>
+
+    <script>
+        // --- Config ---
+        const SUPABASE_URL = "http://192.168.2.113:8000";
+        const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_KEY,
+            {
+                auth: { persistSession: false },
+            }
+        );
+
+        // --- State ---
+        let fileArray = [];
+        let selectedPartName = "";
+
+        // --- Initialization ---
+        $(document).ready(function () {
+            // Check Auth
+            const userId = sessionStorage.getItem("userId");
+            if (!userId) window.location.href = "../../index.html";
+            $("#userName").text(userId);
+
+            // Init Select2
+            $("#partNameInput").select2({
+                placeholder: "Search and select part...",
+                allowClear: true,
+                width: "100%",
+            });
+            $("#partNameInput").on("select2:open", function () {
+                setTimeout(function () {
+                    document
+                        .querySelector(".select2-container--open .select2-search__field")
+                        ?.focus();
+                }, 0);
+            });
+
+            // Load Parts
+            fetchPartNames();
+
+            // Event Listeners
+            $("#partNameInput").on("select2:select", function (e) {
+                selectedPartName = e.params.data.id;
+                $("#uploadSection").fadeIn();
+                updateSubmitState();
+            });
+
+            $("#partNameInput").on("select2:clear", function () {
+                selectedPartName = "";
+                $("#uploadSection").hide();
+                $("#fileList").empty();
+                fileArray = [];
+                updateSubmitState();
+            });
+
+            $("#fileInput").on("change", handleFileSelect);
+            $("#submitButton").click(submitFiles);
+        });
+
+        // --- Data Loading ---
+        async function fetchPartNames() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from("Parts")
+                    .select("Part_Name")
+                    .order("Part_Name");
+                if (error) throw error;
+
+                const $select = $("#partNameInput");
+                data.forEach((p) =>
+                    $select.append(new Option(p.Part_Name, p.Part_Name))
+                );
+            } catch (e) {
+                console.error(e);
+                showToast("Error loading parts", "error");
+            }
+        }
+
+        // --- File Handling ---
+        function handleFileSelect(event) {
+            const files = event.target.files;
+
+            // Filter Excel
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].name.match(/\.(xlsx|xls)$/i)) {
+                    fileArray.push(files[i]);
+                }
+            }
+
+            if (fileArray.length === 0 && files.length > 0) {
+                showToast("No valid Excel files found.", "error");
+            }
+
+            renderFileList();
+            updateSubmitState();
+
+            // Reset input so same files can be re-selected if cleared
+            this.value = "";
+        }
+
+        function renderFileList() {
+            const list = $("#fileList");
+            list.empty();
+
+            fileArray.forEach((file, index) => {
+                const name = file.name.replace(/\.(xlsx|xls)$/i, "");
+
+                // Determine Category
+                let cat = "IPQC";
+                if (name.includes("_OQC")) cat = "OQC";
+                else if (name.includes("_IQC")) cat = "IQC";
+
+                const html = `
+                    <li class="file-item">
+                        <div class="file-info">
+                            <span class="file-name">${file.name}</span>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <span style="font-size:11px; color:#6b7280;">Category:</span>
+                                <select class="category-select" data-index="${index}" onchange="updateCategory(${index}, this.value)">
+                                    <option value="IPQC" ${cat === "IPQC" ? "selected" : ""
+                    }>IPQC</option>
+                                    <option value="OQC" ${cat === "OQC" ? "selected" : ""
+                    }>OQC</option>
+                                    <option value="IQC" ${cat === "IQC" ? "selected" : ""
+                    }>IQC</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn-remove" onclick="removeFile(${index})">Remove</button>
+                    </li>
+                `;
+                list.append(html);
+            });
+        }
+
+        // Exposed globally for onclick access
+        window.removeFile = function (index) {
+            fileArray.splice(index, 1);
+            renderFileList();
+            updateSubmitState();
+        };
+
+        window.updateCategory = function (index, value) {
+            // Logic handled by rendering, but we could validate here
+            const file = fileArray[index];
+            const name = file.name;
+            let expected = "IPQC";
+            if (name.includes("_OQC")) expected = "OQC";
+            else if (name.includes("_IQC")) expected = "IQC";
+
+            if (value !== expected) {
+                showToast(
+                    `Warning: Category ${value} mismatch with filename pattern.`,
+                    "error"
+                );
+            }
+        };
+
+        function updateSubmitState() {
+            const hasFiles = fileArray.length > 0;
+            const hasPart = !!selectedPartName;
+            $("#submitButton").prop("disabled", !(hasFiles && hasPart));
+        }
+
+        // --- Submission Logic ---
+        async function submitFiles() {
+            $("#loading-overlay").show();
+            $("#submitButton").prop("disabled", true);
+
+            try {
+                // Prepare File Details
+                const fileDetails = fileArray.map((file, idx) => {
+                    const cat = $(`.category-select[data-index="${idx}"]`).val();
+                    // 1. Remove the extension (.xlsx or .xls) case-insensitively
+                    const nameWithoutExt = file.name.replace(/\.(xlsx|xls)$/i, "");
+
+                    // 2. Now extract the process.
+                    // If the name is "Op10_IQC", this gets "Op10".
+                    // If the name is "Milling", this gets "Milling".
+                    const process = nameWithoutExt.split("_")[0];
+                    return {
+                        partName: selectedPartName,
+                        fileName: file.name,
+                        process: process,
+                        fileObject: file,
+                        category: cat,
+                    };
+                });
+
+                // Store for Next Page
+                const uniqueProc = [...new Set(fileDetails.map((d) => d.process))];
+                const categories = fileDetails.map((d) => d.category);
+
+                localStorage.setItem("selectedPartName", selectedPartName);
+                localStorage.setItem("processNames", JSON.stringify(uniqueProc));
+                localStorage.setItem("fileCategories", JSON.stringify(categories));
+
+                // Process Files
+                const promises = fileDetails.map((detail) => {
+                    if (detail.category === "IPQC") return handleIPQCFile(detail);
+                    if (detail.category === "OQC") return handleOQCFile(detail);
+                    if (detail.category === "IQC") return handleIQCFile(detail);
+                });
+
+                await Promise.all(promises);
+
+                showToast("Success! Redirecting...", "success");
+                setTimeout(() => (window.location.href = "addPartImage.html"), 1500);
+            } catch (e) {
+                console.error(e);
+                showToast("Submission Failed: " + e.message, "error");
+                $("#loading-overlay").hide();
+                $("#submitButton").prop("disabled", false);
+            }
+        }
+
+        // --- Excel Handlers ---
+        function readExcel(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: "array" });
+                    resolve(wb.Sheets[wb.SheetNames[0]]);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function handleIPQCFile(detail) {
+            const ws = await readExcel(detail.fileObject);
+            const ranges = [
+                { s: 15, e: 26 },
+                { s: 63, e: 74 },
+                { s: 111, e: 122 },
+                { s: 159, e: 170 },
+                { s: 207, e: 218 },
+                { s: 255, e: 266 },
+                { s: 303, e: 314 },
+                { s: 351, e: 362 },
+                { s: 399, e: 410 },
+                { s: 447, e: 458 },
+            ];
+
+            for (let r of ranges) {
+                for (let row = r.s; row <= r.e; row++) {
+                    if (ws[`V${row}`]) {
+                        await supabaseClient.from("IPQC").insert({
+                            Part_Name: detail.partName,
+                            Process: detail.process,
+                            Point_DWG_Zone: ws[`V${row}`].v,
+                            Measuring_Instrument: ws[`W${row}`]?.v,
+                            LSL_OK: ws[`Y${row}`]?.v,
+                            USL_NG: ws[`Z${row}`]?.v,
+                            SC: ws[`AA${row}`]?.v,
+                            LCL: ws[`AB${row}`]?.v,
+                            UCL: ws[`AC${row}`]?.v,
+                            Status: "Active",
+                        });
+                    }
+                }
+            }
+        }
+
+        async function handleOQCFile(detail) {
+            const ws = await readExcel(detail.fileObject);
+            const ranges = [
+                { s: 11, e: 20 },
+                { s: 59, e: 68 },
+                { s: 107, e: 116 },
+                { s: 155, e: 164 },
+                { s: 203, e: 212 },
+                { s: 251, e: 260 },
+                { s: 299, e: 308 },
+                { s: 347, e: 356 },
+                { s: 395, e: 404 },
+                { s: 443, e: 452 },
+                { s: 491, e: 500 },
+            ];
+
+            for (let r of ranges) {
+                for (let row = r.s; row <= r.e; row++) {
+                    if (ws[`V${row}`]) {
+                        await supabaseClient.from("OQC").insert({
+                            Part_Name: detail.partName,
+                            Process: detail.process,
+                            Point_DWG_Zone: ws[`V${row}`].v,
+                            Measuring_Instrument: ws[`W${row}`]?.v,
+                            Min: ws[`Y${row}`]?.v,
+                            Nominal: ws[`Z${row}`]?.v,
+                            Max: ws[`AA${row}`]?.v,
+                            Status: "Active",
+                        });
+                    }
+                }
+            }
+        }
+
+        async function handleIQCFile(detail) {
+            const ws = await readExcel(detail.fileObject);
+            const ranges = [
+                { s: 13, e: 22 },
+                { s: 61, e: 70 },
+                { s: 109, e: 118 },
+                { s: 157, e: 166 },
+                { s: 205, e: 214 },
+                { s: 253, e: 262 },
+                { s: 301, e: 310 },
+                { s: 349, e: 358 },
+                { s: 397, e: 406 },
+                { s: 445, e: 454 },
+                { s: 493, e: 502 },
+                { s: 541, e: 550 },
+            ];
+
+            for (let r of ranges) {
+                for (let row = r.s; row <= r.e; row++) {
+                    if (ws[`V${row}`]) {
+                        await supabaseClient.from("IQC").insert({
+                            Part_Name: detail.partName,
+                            Process: detail.process,
+                            Point_DWG_Zone: ws[`V${row}`].v,
+                            Measuring_Instrument: ws[`W${row}`]?.v,
+                            Min: ws[`Y${row}`]?.v,
+                            Nominal: ws[`Z${row}`]?.v,
+                            Max: ws[`AA${row}`]?.v,
+                            Status: "Active",
+                        });
+                    }
+                }
+            }
+        }
+
+        // --- Modal Logic ---
+
+        async function openWIModal() {
+            $("#wiModal").fadeIn(200);
+            $("#wiSearchInput").val(""); // Clear search when opening
+            $("#wiTableBody").html(
+                '<tr><td colspan="3" style="text-align:center;">Loading data...</td></tr>'
+            );
+
+            try {
+                // Fetch data from IPQC table where Status is Active
+                // We order by created_at descending so the most recent is first
+                const { data, error } = await supabaseClient
+                    .from("IPQC")
+                    .select("Part_Name, created_at, Status")
+                    .eq("Status", "Active")
+                    .order("Part_Name", { ascending: true });
+
+                if (error) throw error;
+
+                // Logic to ensure Part_Name only shows once
+                const uniqueParts = [];
+                const seenNames = new Set();
+
+                data.forEach((item) => {
+                    if (!seenNames.has(item.Part_Name)) {
+                        seenNames.add(item.Part_Name);
+                        uniqueParts.push(item);
+                    }
+                });
+
+                renderWITable(uniqueParts);
+            } catch (e) {
+                console.error(e);
+                $("#wiTableBody").html(
+                    '<tr><td colspan="3" style="text-align:center; color:red;">Failed to load data.</td></tr>'
+                );
+            }
+        }
+
+        function renderWITable(items) {
+            const container = $("#wiTableBody");
+            container.empty();
+
+            if (items.length === 0) {
+                container.append(
+                    '<tr><td colspan="3" style="text-align:center;">No active WI found.</td></tr>'
+                );
+                return;
+            }
+
+            items.forEach((item) => {
+                const date = new Date(item.created_at).toLocaleString("en-GB", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                });
+
+                const html = `
+            <tr>
+                <td style="font-weight:500;">${item.Part_Name}</td>
+                <td style="color: #6b7280;">${date}</td>
+                <td><span class="status-pill">${item.Status}</span></td>
+            </tr>
+        `;
+                container.append(html);
+            });
+        }
+
+        // --- Added Search Logic ---
+        function filterWITable() {
+            const input = document.getElementById("wiSearchInput");
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById("wiListTable");
+            const tr = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName("td")[0]; // Part Name column
+                if (td) {
+                    const txtValue = td.textContent || td.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+
+        function closeWIModal() {
+            $("#wiModal").fadeOut(200);
+        }
+
+        // Close modal when clicking outside the box
+        $(window).on("click", function (event) {
+            if ($(event.target).is("#wiModal")) {
+                closeWIModal();
+            }
+        });
+
+        function showToast(msg, type) {
+            Toastify({
+                text: msg,
+                duration: 3000,
+                gravity: "top",
+                position: "left",
+                style: { background: type === "error" ? "#ef4444" : "#10b981" },
+            }).showToast();
+        }
+    </script>
+</body>
+
+</html>
