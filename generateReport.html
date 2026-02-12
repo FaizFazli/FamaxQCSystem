@@ -417,7 +417,7 @@
 
   <script>
     const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
-    const SUPABASE_URL = "http://192.168.0.5:8000";
+    const SUPABASE_URL = "http://192.168.2.113:8000";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
 
     const api = axios.create({
@@ -575,8 +575,8 @@
       let dateInspect = "";
 
       const [famaxBuf, confBuf] = await Promise.all([
-        getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
-        getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
+        getImageBuffer("http://192.168.2.113:8000/storage/v1/object/public/assets/Famax.png"),
+        getImageBuffer("http://192.168.2.113:8000/storage/v1/object/public/assets/Confidential.png"),
       ]);
       const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
       const logoConfidential = workbook.addImage({ buffer: confBuf, extension: "png" });

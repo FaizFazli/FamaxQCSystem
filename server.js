@@ -61,7 +61,7 @@ async function copyFileWithRetry(src, dest, retries = 3) {
 
 function moveObsoleteFiles(partName, process, documentType) {
   try {
-    // const partFolder = `\\\\192.168.0.5\\FamaxQC_Doc\\${partName}`;
+    // const partFolder = `\\\\192.168.2.113\\FamaxQC_Doc\\${partName}`;
     const partFolder = path.join(BASE_FOLDER, partName);
     const obsoleteFolder = path.join(partFolder, "obsolete");
     if (!fs.existsSync(obsoleteFolder))
@@ -247,7 +247,7 @@ app.post("/FamaxQCSystem/savePdf", upload.single("pdf"), (req, res) => {
     // Recalculate the same folder as in /createFolder
     const { folderPath, processName, documentType, partDescription } = req.body;
 
-    const cleanDescription = partDescription.replace(/[\\/:\*\?"<>\|]/g, "_");
+    const cleanDescription = sanitizeName(partDescription);
 
     // If you are joining paths, ensure the result doesn't have the quote
     const targetDir = path.join('C:', 'Users', 'FamaxQC_Doc', cleanDescription);
@@ -463,7 +463,7 @@ app.post("/api/teams", async (req, res) => {
 //     const { partName } = req.body;
 //     if (!partName) return res.json({ success: false, message: 'Missing partName' });
 
-//     const partFolder = `\\\\192.168.0.5\\FamaxQC_Doc\\${partName}`;
+//     const partFolder = `\\\\192.168.2.113\\FamaxQC_Doc\\${partName}`;
 //     if (!fs.existsSync(partFolder)) return res.json({ success: false, message: 'Folder does not exist' });
 
 //     const deleteFolderRecursive = (p) => {
@@ -488,7 +488,7 @@ app.get("/", (req, res) => {
 
 // ------------------- Start Server -------------------
 app.listen(80, () => {
-  console.log("✅ Server is running at http://192.168.0.5/FamaxQCSystem");
+  console.log("✅ Server is running at http://192.168.2.113/FamaxQCSystem");
 });
 
 function insertImageIntoSheet(workbook, sheet, documentType) {
