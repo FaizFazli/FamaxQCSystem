@@ -598,7 +598,7 @@
       if (document.getElementById('selected-machine')) document.getElementById('selected-machine').textContent = machineNumber || 'Not provided';
 
       // Initialize Supabase client
-      const supabaseUrl = 'http://192.168.2.113:8000';
+      const supabaseUrl = 'http://192.168.0.5:8000';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
       const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -699,7 +699,7 @@
 
           // Display the image
           const imageElement = document.getElementById('ipqc-image');
-          imageElement.src = ipqcData[0].Path.replace('http://localhost:8000', 'http://192.168.2.113:8000');
+          imageElement.src = ipqcData[0].Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
 
           imageElement.onerror = function () {
             contentArea.classList.add('hidden');
