@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Famax | Monthly Downtime Report</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/img/LogoRound.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --danger: #dc2626;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .page-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--danger);
+            padding: 20px 30px;
+            color: white;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        input[type="month"] {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-blue {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-green {
+            background: #10b981;
+            color: white;
+            margin-left: auto;
+        }
+
+        .report-content {
+            padding: 30px;
+        }
+
+        .part-group-header {
+            background: #f1f5f9;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 16px;
+            color: #1e293b;
+            margin-top: 30px;
+            border-left: 5px solid var(--danger);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        th {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 10px;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="card-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Monthly Machine Stop & Downtime Report
+            </h1>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <label>Select Month</label>
+                <input type="month" id="monthPicker" onchange="generateReport()">
+            </div>
+            <button class="btn btn-blue" onclick="generateReport()" style="margin-top: 15px;">
+                Update Report
+            </button>
+            <button id="exportBtn" class="btn btn-green" onclick="exportToExcel()" disabled style="margin-top: 15px;">
+                Export to Excel
+            </button>
+        </div>
+
+        <div id="reportContent" class="report-content">
+            <p style="text-align:center; color:#64748b;">Loading current month data...</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd.
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let globalDowntimeData = [];
+
+        // On Load: Set current month
+        window.onload = () => {
+            const currentMonth = dayjs().format("YYYY-MM");
+            document.getElementById("monthPicker").value = currentMonth;
+            generateReport();
+        };
+
+        async function generateReport() {
+            const selectedMonth = document.getElementById("monthPicker").value;
+            const container = document.getElementById("reportContent");
+            container.innerHTML = "<p style='text-align:center'>Analyzing records for " + dayjs(selectedMonth).format("MMMM YYYY") + "...</p>";
+
+            // Calculate Start and End of the selected month
+            let start = dayjs(selectedMonth).startOf('month');
+            let end = dayjs(selectedMonth).endOf('month');
+
+            const { data, error } = await _supabase
+                .from("Data_IPQC")
+                .select("*")
+                .gte("created_at", start.toISOString())
+                .lte("created_at", end.toISOString());
+
+            if (error) {
+                container.innerHTML = `<p style='color:red; text-align:center;'>Database Error: ${error.message}</p>`;
+                return;
+            }
+
+            // Filter logic: Check Reading_1 and Status (Case Insensitive)
+            const downtimeRecords = data.filter(row => {
+                const r1 = String(row.Reading_1 || "").trim().toUpperCase();
+                const stat = String(row.Status || "").trim().toUpperCase();
+                return r1 === "STOP" || r1 === "DOWNTIME" || stat === "STOP" || stat === "DOWNTIME";
+            });
+
+            if (downtimeRecords.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:50px;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+                        <p style="font-size: 18px; color: #64748b; font-weight:600;">No Machine Stop & Downtime Detected</p>
+                        <p style="font-size: 13px; color: #94a3b8;">Scanned ${data.length} total inspection records for this month.</p>
+                    </div>`;
+                document.getElementById("exportBtn").disabled = true;
+                return;
+            }
+
+            // Grouping logic: Same Machine/Part/Process within the same minute
+            const grouped = {};
+            downtimeRecords.forEach(row => {
+                const timeKey = dayjs(row.created_at).format("YYYY-MM-DD HH:mm");
+                const groupKey = `${row.Machine}-${row.Part_Name}-${row.Process}-${timeKey}`;
+
+                if (!grouped[groupKey]) {
+                    grouped[groupKey] = {
+                        date: dayjs(row.created_at).format("YYYY-MM-DD HH:mm"),
+                        machine: row.Machine || "N/A",
+                        process: row.Process || "N/A",
+                        part: row.Part_Name || "N/A",
+                        reason: row.Remarks || "No reason provided",
+                        type: String(row.Reading_1 || row.Status).toUpperCase().includes("STOP") ? "STOP" : "DOWNTIME"
+                    };
+                }
+            });
+
+            // Sort by Part Name, then by Date
+            globalDowntimeData = Object.values(grouped).sort((a, b) =>
+                a.part.localeCompare(b.part) || dayjs(b.date).unix() - dayjs(a.date).unix()
+            );
+
+            renderTable(selectedMonth);
+            document.getElementById("exportBtn").disabled = false;
+        }
+
+        function renderTable(selectedMonth) {
+            const container = document.getElementById("reportContent");
+            container.innerHTML = `<h2 style="text-align:center; font-size: 18px; margin-bottom: 20px;">Machine Stop & Downtime Log for ${dayjs(selectedMonth).format("MMMM YYYY")}</h2>`;
+
+            const parts = [...new Set(globalDowntimeData.map(d => d.part))];
+
+            parts.forEach(partName => {
+                const partRows = globalDowntimeData.filter(d => d.part === partName);
+
+                let html = `
+                    <div class="part-group-header">
+                        <span>PART: ${partName}</span>
+                        <span style="font-size: 12px; font-weight: 400;">Total Incidents: ${partRows.length}</span>
+                    </div>
+                    <div style="overflow-x:auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th width="15%">Date & Time</th>
+                                    <th width="15%">Machine No</th>
+                                    <th width="20%">Process When Stopping</th>
+                                    <th width="10%">Type</th>
+                                    <th width="40%">Reason / Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                partRows.forEach(row => {
+                    html += `
+                        <tr>
+                            <td>${row.date}</td>
+                            <td style="font-weight:700; color:var(--danger)">${row.machine}</td>
+                            <td>${row.process}</td>
+                            <td><span class="status-badge">${row.type}</span></td>
+                            <td>${row.reason}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table></div>`;
+                container.innerHTML += html;
+            });
+        }
+
+        async function exportToExcel() {
+            const monthLabel = dayjs(document.getElementById("monthPicker").value).format("MMMM_YYYY");
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Downtime Log');
+
+            sheet.columns = [
+                { header: 'Date & Time', key: 'date', width: 20 },
+                { header: 'Part Name', key: 'part', width: 25 },
+                { header: 'Machine No', key: 'machine', width: 15 },
+                { header: 'Process', key: 'process', width: 25 },
+                { header: 'Type', key: 'type', width: 12 },
+                { header: 'Reason/Remarks', key: 'reason', width: 50 }
+            ];
+
+            sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDC2626' } };
+
+            globalDowntimeData.forEach(d => {
+                sheet.addRow(d);
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([buffer]));
+            link.download = `Downtime_Report_${monthLabel}.xlsx`;
+            link.click();
+        }
+    </script>
+</body>
+
+</html>
