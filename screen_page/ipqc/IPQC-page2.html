@@ -330,6 +330,96 @@
                 margin-bottom: 1rem;
             }
         }
+
+        /* --- MOBILE RESPONSIVE ADAPTATIONS --- */
+        @media (max-width: 768px) {
+
+            /* 1. Global Spacing */
+            header {
+                padding: 0 1rem;
+                height: 60px;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            /* 2. Info Grid: 2 columns for better fit */
+            .info-card {
+                padding: 1rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            /* Force Inspector Name to take full width if needed */
+            .info-item:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .info-value {
+                font-size: 0.9rem;
+            }
+
+            /* 3. Zone Cards & Tables */
+            .zone-card {
+                padding: 1rem;
+                /* Allow the card to scroll horizontally if the table is too wide */
+                overflow-x: auto;
+            }
+
+            .zone-card h3 {
+                font-size: 1rem;
+            }
+
+            .detail-table {
+                /* Prevent the table from squashing the text too much */
+                min-width: 500px;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                padding: 8px;
+                font-size: 0.85rem;
+            }
+
+            /* 4. Remarks & Inputs */
+            .remark-container {
+                padding: 1rem;
+            }
+
+            .remark-input {
+                font-size: 16px !important;
+                /* Prevents auto-zoom on mobile browsers */
+            }
+
+            /* 5. Buttons */
+            .button-container {
+                justify-content: center;
+                /* Center the button on mobile */
+            }
+
+            .btn {
+                width: 100%;
+                /* Full width button for easier tapping */
+                padding: 16px;
+            }
+        }
+
+        /* Extra Small Devices */
+        @media (max-width: 480px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+                /* Stack everything in 1 column */
+            }
+        }
     </style>
 </head>
 

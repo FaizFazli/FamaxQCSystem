@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Maintenance System - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --border-color: #333;
+            --text-main: #1f2937;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .nav-top {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-report-trigger {
+            padding: 10px 20px;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-report-trigger:hover {
+            background: #f9fafb;
+            border-color: #999;
+        }
+
+        .card {
+            background: #fff;
+            max-width: 1100px;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
+
+        .card-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .header-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            width: 160px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #444;
+            text-transform: uppercase;
+        }
+
+        .form-group .sep {
+            width: 15px;
+            font-weight: bold;
+        }
+
+        .form-group select,
+        .form-group input,
+        .form-group textarea {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            background: #f0f0f0;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .status-select {
+            width: 100%;
+            padding: 5px;
+            border: none;
+            background: #fff9c4;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 18px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 30px;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-dark);
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 25px;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 15px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .record-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .record-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p id="loading-text">Processing...</p>
+    </div>
+
+    <!-- Modal for Reports -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0">Download Monthly Maintenance Reports</h3>
+                <button onclick="$('#reportModal').hide()"
+                    style="border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+
+            <div class="filter-row">
+                <div>
+                    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">YEAR</label>
+                    <select id="rpt_year" onchange="fetchReportList()"
+                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;"></select>
+                </div>
+                <div>
+                    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">MONTH</label>
+                    <select id="rpt_month" onchange="fetchReportList()"
+                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                        <option value="1">JANUARY</option>
+                        <option value="2">FEBRUARY</option>
+                        <option value="3">MARCH</option>
+                        <option value="4">APRIL</option>
+                        <option value="5">MAY</option>
+                        <option value="6">JUNE</option>
+                        <option value="7">JULY</option>
+                        <option value="8">AUGUST</option>
+                        <option value="9">SEPTEMBER</option>
+                        <option value="10">OCTOBER</option>
+                        <option value="11">NOVEMBER</option>
+                        <option value="12">DECEMBER</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">CATEGORY</label>
+                    <select id="rpt_cat" onchange="fetchReportList()"
+                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                        <option value="">-- SELECT --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="report_list_container">
+                <table class="record-table">
+                    <thead>
+                        <tr>
+                            <th>MACHINE ID</th>
+                            <th>CATEGORY</th>
+                            <th style="text-align:right">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report_list_body">
+                        <tr>
+                            <td colspan="3" align="center" style="padding:40px; color:#94a3b8;">Select a category to
+                                load machines.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-top">
+        <button class="btn-report-trigger" onclick="openReportModal()">📊 DOWNLOAD MONTHLY REPORTS</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 style="margin:0">Machine Preventive Maintenance (Daily)</h2>
+        </div>
+        <div class="card-body">
+            <div class="header-grid">
+                <div>
+                    <div class="form-group">
+                        <label>Category</label><span class="sep">:</span>
+                        <select id="cat_select" onchange="loadMachinesAndTasks()">
+                            <option value="">-- SELECT CATEGORY --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Machine ID</label><span class="sep">:</span>
+                        <select id="machine_select">
+                            <option value="">-- SELECT MACHINE --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Operator Name</label><span class="sep">:</span>
+                        <input type="text" id="operator_name" placeholder="ENTER NAME">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>Frequency</label><span class="sep">:</span>
+                        <select id="frequency_select" onchange="loadMachinesAndTasks()">
+                            <option value="DAILY">DAILY</option>
+                            <option value="WEEKLY">WEEKLY</option>
+                            <option value="EVERY 3 MONTH">EVERY 3 MONTH</option>
+                            <option value="EVERY 6 MONTH">EVERY 6 MONTH</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label><span class="sep">:</span>
+                        <input type="date" id="check_date">
+                    </div>
+                </div>
+            </div>
+
+            <h3>Checklist Items</h3>
+            <p style="font-size: 12px; color: #666;">(O) Condition Normal | (X) Abnormal | (N) Not Running</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="50">No</th>
+                        <th>Checking Tasks</th>
+                        <th width="150">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="checklist_body">
+                    <tr>
+                        <td colspan="3" align="center">Please select a category first</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top:30px">Minor Maintenance History / Remarks</h3>
+            <textarea id="remarks" rows="4"
+                style="width:100%; box-sizing:border-box; padding:10px; text-transform:uppercase;"
+                placeholder="ENTER ANY REPAIRS OR MINOR MAINTENANCE DONE TODAY..."></textarea>
+
+            <button class="btn-submit" onclick="submitLog()">SAVE MAINTENANCE LOG</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        $(document).ready(function () {
+            $('#check_date').val(new Date().toISOString().split('T')[0]);
+            loadCategories();
+            setupYearSelect();
+        });
+        $(window).on('click', function (event) {
+            if ($(event.target).is('#reportModal')) {
+                $('#reportModal').hide();
+            }
+        });
+
+        function setupYearSelect() {
+            const currentYear = new Date().getFullYear();
+            for (let i = currentYear; i >= 2024; i--) {
+                $('#rpt_year').append(`<option value="${i}">${i}</option>`);
+            }
+            $('#rpt_month').val(new Date().getMonth() + 1);
+        }
+
+        async function loadCategories() {
+            const { data } = await _supabase.from('MachineCategoriesM').select('*').order('name');
+            data.forEach(c => {
+                $('#cat_select').append(`<option value="${c.code}">${c.name}</option>`);
+                $('#rpt_cat').append(`<option value="${c.code}">${c.name}</option>`);
+            });
+        }
+
+        async function loadMachinesAndTasks() {
+            const cat = $('#cat_select').val();
+            const freq = $('#frequency_select').val(); // Capture selected frequency
+            if (!cat) return;
+
+            $('#loading-overlay').css('display', 'flex');
+            $('#loading-text').text("Fetching machine data...");
+
+            const { data: machines } = await _supabase.from('MachinesM').select('machine_id').eq('category_code', cat).eq('is_active', true);
+            $('#machine_select').empty().append('<option value="">-- SELECT MACHINE --</option>');
+            machines.forEach(m => $('#machine_select').append(`<option value="${m.machine_id}">${m.machine_id}</option>`));
+
+            // UPDATED QUERY
+            const { data: tasks } = await _supabase
+                .from('ChecklistItems')
+                .select('*')
+                .match({
+                    category_code: cat,
+                    frequency: freq
+                })
+                .order('priority_order');
+
+            let html = '';
+            tasks.forEach((t, index) => {
+                html += `
+            <tr class="task-row" data-id="${t.id}">
+                <td align="center">${index + 1}</td>
+                <td>${t.task_description}</td>
+                <td>
+                    <select class="status-select">
+                        <option value="O">O</option>
+                        <option value="X">X</option>
+                        <option value="N">N</option>
+                    </select>
+                </td>
+            </tr>`;
+            });
+            $('#checklist_body').html(html || '<tr><td colspan="3" align="center">No tasks found for this frequency</td></tr>');
+            $('#loading-overlay').hide();
+        }
+
+        async function submitLog() {
+            const machine_id = $('#machine_select').val();
+            const category_code = $('#cat_select').val();
+            const operator = $('#operator_name').val();
+            const date = $('#check_date').val();
+            const remarks = $('#remarks').val();
+            const frequency = $('#frequency_select').val();
+
+            if (!machine_id || !operator) {
+                alert("Please fill in Machine ID and Operator Name");
+                return;
+            }
+
+            const results = {};
+            $('.task-row').each(function () {
+                results[$(this).data('id')] = $(this).find('.status-select').val();
+            });
+
+            $('#loading-overlay').css('display', 'flex');
+            $('#loading-text').text("Saving record...");
+
+            const { error } = await _supabase.from('MaintenanceLogs').insert([{
+                machine_id,
+                category_code,
+                operator_name: operator.toUpperCase(),
+                check_results: results,
+                remarks: remarks.toUpperCase(),
+                created_at: date,
+                frequency: frequency,
+            }]);
+
+            $('#loading-overlay').hide();
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                Toastify({ text: "LOG SAVED SUCCESSFULLY", background: "#10b981" }).showToast();
+                setTimeout(() => location.reload(), 1500);
+            }
+        }
+
+        // --- Report Modal Functions ---
+
+        async function openReportModal() {
+            $('#reportModal').show();
+            fetchReportList();
+        }
+
+        async function fetchReportList() {
+            const cat = $('#rpt_cat').val();
+            if (!cat) return;
+
+            const { data } = await _supabase.from('MachinesM').select('*').eq('category_code', cat).eq('is_active', true);
+            let html = '';
+            data.forEach(m => {
+                html += `<tr>
+                    <td style="font-weight:700; color:#1e293b;">${m.machine_id}</td>
+                    <td>${$('#rpt_cat option:selected').text()}</td>
+                    <td align="right">
+                        <button onclick="downloadPDF('${m.machine_id}')" style="background:var(--primary); color:white; border:none; padding:6px 15px; border-radius:6px; cursor:pointer; font-weight:600; font-size:12px;">DOWNLOAD PDF</button>
+                    </td>
+                </tr>`;
+            });
+            $('#report_list_body').html(html || '<tr><td colspan="3" align="center">No machines found in this category.</td></tr>');
+        }
+
+        async function getImageBuffer(url) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) { return null; }
+        }
+
+        async function downloadPDF(machineId) {
+            $('#loading-overlay').css('display', 'flex');
+            $('#loading-text').text("Fixing Layout Spacing...");
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+
+            const year = $('#rpt_year').val();
+            const month = $('#rpt_month').val();
+            const monthName = $('#rpt_month option:selected').text();
+            const catCode = $('#rpt_cat').val();
+            const catName = $('#rpt_cat option:selected').text();
+
+            try {
+                const famaxLogo = await getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png");
+
+                // --- 1. TOP HEADER BLOCK ---
+                const startY = 10;
+                const marginX = 10;
+                const totalWidth = 277;
+
+                doc.setDrawColor(0);
+                doc.setLineWidth(0.4);
+
+                // Outer Border (10mm to 35mm)
+                doc.rect(marginX, startY, totalWidth, 25);
+
+                // Vertical Divider 1
+                doc.line(marginX + 50, startY, marginX + 50, startY + 25);
+                // Vertical Divider 2
+                doc.line(marginX + 215, startY, marginX + 215, startY + 25);
+                // Center Horizontal Divider
+                doc.line(marginX + 50, startY + 14, marginX + 215, startY + 14);
+                // Right Horizontal Divider
+                doc.line(marginX + 215, startY + 14, marginX + totalWidth, startY + 14);
+                // Bottom Right Vertical Divider
+                doc.line(marginX + 245, startY + 14, marginX + 245, startY + 25);
+
+                // Content - Logo
+                if (famaxLogo) doc.addImage(famaxLogo, 'PNG', marginX + 3, startY + 3, 44, 15);
+
+                // Content - Center Section
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(16);
+                doc.text("FAMAX TECHNOLOGY (M) SDN. BHD.", marginX + 132.5, startY + 7, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text("200601028954 (748710-K)", marginX + 132.5, startY + 12, { align: 'center' });
+                doc.setFontSize(14);
+                doc.text("Machineries Preventive Maintenance Report (Daily)", marginX + 132.5, startY + 22, { align: 'center' });
+
+                // Content - Internal Use Only Box
+                doc.setLineWidth(0.6);
+                doc.roundedRect(marginX + 230, startY + 3.5, 42, 8, 2, 2);
+                doc.setFontSize(9);
+                doc.text("INTERNAL USE ONLY", marginX + 251, startY + 9, { align: 'center' });
+
+                // Content - Machine Info
+                doc.setLineWidth(0.4);
+                doc.setFontSize(8);
+                doc.text("Machine name:", marginX + 217, startY + 18.5);
+                doc.setFontSize(9);
+                doc.text(catName, marginX + 217, startY + 23, { maxWidth: 25 });
+
+                doc.setFontSize(8);
+                doc.text("Machine no: " + machineId, marginX + 247, startY + 18.5);
+
+                // --- SUB-HEADER: FREQUENCY & YEAR (Centered between Header and Grid) ---
+                // Header ends at 35, Table starts at 45. We place this at 41.
+                doc.setFontSize(11);
+                doc.text(`FREQUENCY: DAILY`, marginX + 115, startY + 32, { align: 'center' });
+                doc.text(`YEAR: ${year}`, marginX + 155, startY + 32, { align: 'center' });
+
+                // --- 2. CHECKLIST GRID ---
+                const { data: allTasks } = await _supabase.from('ChecklistItems').select('*').eq('category_code', catCode).order('priority_order');
+                const { data: logs } = await _supabase.from('MaintenanceLogs').select('*')
+                    .eq('machine_id', machineId)
+                    .gte('created_at', `${year}-${month.padStart(2, '0')}-01`)
+                    .lte('created_at', `${year}-${month.padStart(2, '0')}-31`);
+
+                const predictiveNames = ["INSPECT NOISE CONDITION", "INSPECT VIBRATION CONDITION", "INSPECT SMELL CONDITION"];
+                const predictiveTasks = allTasks.filter(t => predictiveNames.includes(t.task_description.toUpperCase()));
+                const preventiveTasks = allTasks.filter(t => !predictiveNames.includes(t.task_description.toUpperCase()));
+
+                const head = [[
+                    { content: 'ITEM', rowSpan: 2, styles: { valign: 'middle' } },
+                    { content: 'CHECKING ITEMS', rowSpan: 2, styles: { valign: 'middle' } },
+                    { content: 'FOR THE MONTH OF: ' + monthName, colSpan: 31, styles: { halign: 'left', fontStyle: 'bold' } }
+                ], Array.from({ length: 31 }, (_, i) => (i + 1).toString())];
+
+                const body = [];
+                let iNum = 1;
+
+                const addRows = (title, taskList) => {
+                    body.push([{ content: title, colSpan: 33, styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'left' } }]);
+                    taskList.forEach(t => {
+                        const row = [iNum++, t.task_description];
+                        for (let d = 1; d <= 31; d++) {
+                            const l = logs.find(log => new Date(log.created_at).getDate() === d);
+                            row.push(l ? (l.check_results[t.id] || '') : '');
+                        }
+                        body.push(row);
+                    });
+                };
+
+                addRows('Preventive Maintenance', preventiveTasks);
+                addRows('Predictive Maintenance', predictiveTasks);
+
+                const addSig = (label) => {
+                    const row = ['', { content: label, styles: { fontStyle: 'bold' } }];
+                    for (let d = 1; d <= 31; d++) {
+                        const l = logs.find(log => new Date(log.created_at).getDate() === d);
+                        row.push(l ? l.operator_name.substring(0, 3) : '');
+                    }
+                    body.push(row);
+                };
+                addSig('Checked by:');
+                addSig('Verified by:');
+
+                // ADJUSTED STARTY TO 45MM TO AVOID BLOCKING SUB-HEADER
+                doc.autoTable({
+                    startY: startY + 35,
+                    margin: { left: marginX },
+                    tableWidth: totalWidth,
+                    head: head,
+                    body: body,
+                    theme: 'grid',
+                    styles: { fontSize: 6, cellPadding: 0.8, halign: 'center', textColor: 0, lineColor: 0, lineWidth: 0.1 },
+                    columnStyles: { 0: { cellWidth: 10 }, 1: { cellWidth: 45, halign: 'left' } },
+                    headStyles: { fillColor: [255, 255, 255], fontStyle: 'normal', textColor: 0 }
+                });
+
+                // --- 3. MAINTENANCE HISTORY ---
+                const historyY = doc.lastAutoTable.finalY + 5;
+                doc.setFontSize(9);
+                doc.text("Maintenance history", marginX + 138.5, historyY + 3, { align: 'center' });
+
+                const historyRows = Array.from({ length: 7 }, () => ['', '', '', '', '', '', '', '']);
+                const historyLogs = logs.filter(l => l.remarks && l.remarks.trim() !== "");
+                historyLogs.forEach((l, idx) => {
+                    let offset = idx >= 7 ? 4 : 0;
+                    let rIdx = idx % 7;
+                    if (rIdx < 7 && (idx < 14)) {
+                        historyRows[rIdx][0 + offset] = idx + 1;
+                        historyRows[rIdx][1 + offset] = new Date(l.created_at).toLocaleDateString('en-GB');
+                        historyRows[rIdx][2 + offset] = l.remarks;
+                        historyRows[rIdx][3 + offset] = l.operator_name.split(' ')[0];
+                    }
+                });
+
+                doc.autoTable({
+                    startY: historyY + 4,
+                    margin: { left: marginX },
+                    tableWidth: totalWidth,
+                    head: [['Item', 'Date', 'Minor Maintenance History', 'By', 'Item', 'Date', 'Minor Maintenance History', 'By']],
+                    body: historyRows,
+                    theme: 'grid',
+                    styles: { fontSize: 6, cellPadding: 0.8, textColor: 0, lineColor: 0, lineWidth: 0.1, halign: 'center' },
+                    columnStyles: { 2: { halign: 'left', cellWidth: 98 }, 6: { halign: 'left', cellWidth: 98 } },
+                    headStyles: { fillColor: [255, 255, 255], fontStyle: 'bold' }
+                });
+
+                // --- 4. FOOTER ---
+                const footerY = 202;
+                doc.setFontSize(8);
+                doc.text("RETENTION PERIOD : 3 YEARS", marginX + 80, footerY, { align: 'center' });
+                doc.text("EFFECTIVE DATE : 01 MARCH 2024", marginX + 155, footerY, { align: 'center' });
+                doc.text("REC-ENG006-05(D)", marginX + totalWidth, footerY, { align: 'right' });
+
+                doc.save(`Famax_Report_${machineId}_${monthName}_${year}.pdf`);
+            } catch (err) {
+                console.error(err);
+                alert("PDF Generation Failed: " + err.message);
+            } finally {
+                $('#loading-overlay').hide();
+            }
+        }
+    </script>
+</body>
+
+</html>

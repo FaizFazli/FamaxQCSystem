@@ -14,15 +14,31 @@ exports.findMasterDocument = (documentType) => {
 };
 
 exports.insertImageIntoSheet = (workbook, sheet) => {
-    const famaxPath = "C:\\Users\\Faiz Ikhwani\\Desktop\\FamaxQCSystem\\assets\\Famax.png";
-    const confPath = "C:\\Users\\Faiz Ikhwani\\Desktop\\FamaxQCSystem\\assets\\Confidential.png";
+    const famaxPath = "C:\\Users\\Acer\\IPQC_Project\\FamaxQCSystem\\assets\\Famax.png";
+    const confPath = "C:\\Users\\Acer\\IPQC_Project\\FamaxQCSystem\\assets\\Confidential.png";
 
-    if (fs.existsSync(famaxPath)) {
-        const logo = workbook.addImage({ filename: famaxPath, extension: "png" });
-        sheet.addImage(logo, { tl: { col: 0, row: 0 }, br: { col: 2, row: 3 }, editAs: "absolute" });
-    }
-    if (fs.existsSync(confPath)) {
-        const logo = workbook.addImage({ filename: confPath, extension: "png" });
-        sheet.addImage(logo, { tl: { col: 18, row: 0 }, br: { col: 21, row: 3 }, editAs: "absolute" });
+    if (!fs.existsSync(famaxPath) || !fs.existsSync(confPath)) return;
+
+    const logoFamax = workbook.addImage({ filename: famaxPath, extension: "png" });
+    const logoConf = workbook.addImage({ filename: confPath, extension: "png" });
+
+    const sizeFamax = { width: 125, height: 51 };
+    const sizeConf = { width: 189, height: 56 };
+
+    // PAGE 1 Header
+    sheet.addImage(logoFamax, { tl: { col: 0, row: 0 }, br: { col: 2, row: 3 }, editAs: "absolute", ext: sizeFamax });
+    sheet.addImage(logoConf, { tl: { col: 18, row: 0 }, br: { col: 21, row: 3 }, editAs: "absolute", ext: sizeConf });
+
+    // RECURRING LOGOS (This ensures Page Breaks are visible on all 10 pages)
+    for (let i = 0; i < 10; i++) {
+        const row = i * 48;
+        // Famax Logos
+        [21, 42, 63].forEach(col => {
+            sheet.addImage(logoFamax, { tl: { col: col, row: row }, br: { col: col + 2, row: row + 3 }, editAs: "absolute", ext: sizeFamax });
+        });
+        // Confidential Logos
+        [39, 60, 81].forEach(col => {
+            sheet.addImage(logoConf, { tl: { col: col, row: row }, br: { col: col + 3, row: row + 3 }, editAs: "absolute", ext: sizeConf });
+        });
     }
 };

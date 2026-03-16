@@ -735,7 +735,7 @@
         async function fetchProcessesForPart(partName) {
             try {
                 const res = await supabaseClient.get(
-                    `/rest/v1/IPQC?select=Process&Part_Name=eq.${partName}`
+                    `/rest/v1/IPQC?select=Process&Part_Name=eq.${encodeURIComponent(partName)}`
                 );
                 $("#process-name")
                     .empty()
@@ -754,7 +754,7 @@
         async function fetchJobOrdersForPartAndProcess(partName, processName) {
             try {
                 const res = await supabaseClient.get(
-                    `/rest/v1/JobOrder?select=JO_Number&Part_Name=eq.${partName}&Process=eq.${processName}&Status=eq.active`
+                    `/rest/v1/JobOrder?select=JO_Number&Part_Name=eq.${encodeURIComponent(partName)}&Process=eq.${processName}&Status=eq.active`
                 );
                 $("#jo-number")
                     .empty()

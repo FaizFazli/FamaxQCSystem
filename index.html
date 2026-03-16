@@ -52,10 +52,8 @@
             align-items: center;
             padding: 0 40px;
             background: var(--bg-card);
-            /* 1. Change height to min-height so it can grow if items wrap */
             min-height: 70px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            /* 2. Allow items to wrap to the next line instead of vanishing */
             flex-wrap: wrap;
         }
 
@@ -63,7 +61,6 @@
             display: flex;
             align-items: center;
             gap: 40px;
-            /* 3. Allow internal groups to wrap */
             flex-wrap: wrap;
         }
 
@@ -73,7 +70,6 @@
             flex-wrap: wrap;
         }
 
-        /* Nav Link Styling */
         .nav-link {
             text-decoration: none;
             color: var(--text-muted);
@@ -96,111 +92,95 @@
             font-size: 16px;
         }
 
-        /* Ensure Logo stands out */
-        /* Ensure Logo stands out */
         .logo {
             display: flex;
             align-items: center;
             height: 100%;
         }
 
-        /* ADD THIS PART HERE (Outside the media query) */
         .logo img {
             height: 40px;
-            /* Adjust this value until you like the size */
             width: auto;
-            /* Keeps the logo from stretching */
             display: block;
         }
 
-        /* 1. Force both to behave exactly like identical flex boxes */
         .nav-link,
         .dropbtn {
-            /* Layout & Alignment */
             display: inline-flex;
             align-items: center;
             justify-content: center;
             height: 40px;
-            /* Forces identical vertical footprint */
             padding: 0 16px;
-            /* Vertical padding removed, handled by height */
             gap: 8px;
-
-            /* Typography - The "Checker Dashboard" look */
             font-family: "Inter", sans-serif !important;
             font-size: 14px !important;
             font-weight: 600 !important;
             line-height: 1;
-            /* Prevents text from shifting up/down */
             color: #1f2937;
-            /* Deep slate gray */
-
-            /* Reset Button Defaults */
             background: transparent;
             border: none;
             text-decoration: none;
             cursor: pointer;
             margin: 0;
-
-            /* Smoothness */
             transition: all 0.2s ease;
             border-radius: 8px;
             -webkit-font-smoothing: antialiased;
-            /* Forces cleaner rendering on buttons */
         }
 
-        /* 2. Unified Hover State */
+        /* Combined hover state for links and ACTIVE state for dropdown button */
         .nav-link:hover,
-        .dropdown:hover .dropbtn {
+        .dropdown.is-active .dropbtn {
             background-color: #f0f7ff;
             color: var(--primary) !important;
         }
 
-        /* 3. Icon Styling (The Icon + the Arrow) */
         .nav-link .icon,
         .dropbtn .icon {
             font-size: 16px;
             display: flex;
             align-items: center;
             margin-top: -1px;
-            /* Optical adjustment for emoji/icon height */
         }
 
         .arrow {
             font-size: 10px;
             color: #9ca3af;
-            /* Slightly muted arrow */
             margin-left: 2px;
+            transition: transform 0.3s;
         }
 
-        /* Dropdown Container */
         .dropdown {
             position: relative;
             display: inline-block;
-            /* display: flex; */
             gap: 15px;
-            /* flex-wrap: wrap; */
         }
 
-        /* Dropdown Content (Hidden by Default) */
+        /* DROPDOWN CONTENT - DISPLAY CONTROLLED BY IS-ACTIVE CLASS */
         .dropdown-content {
             display: none;
             position: absolute;
             background-color: var(--bg-card);
             min-width: 260px;
-            /* Slightly wider for better readability */
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             z-index: 1100;
             border-radius: var(--radius);
-            /* Consistent 12px radius */
             border: 1px solid #e5e7eb;
             margin-top: 10px;
             padding: 8px;
-            /* Internal padding so items don't touch edges */
             overflow: hidden;
         }
 
-        /* --- DROPDOWN ITEMS (Links) --- */
+        .dropdown.is-active .dropdown-content {
+            display: block;
+            animation: dropdownFadeIn 0.2s ease-out;
+        }
+
+        /* Rotate arrow when active */
+        .dropdown.is-active .arrow {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+
         .dropdown-content a {
             color: var(--text-main);
             padding: 12px 16px;
@@ -211,23 +191,13 @@
             font-size: 14px;
             font-weight: 500;
             border-radius: 8px;
-            /* Soft inner corners */
             transition: all 0.2s ease;
         }
 
-        /* Modern Hover Effect */
         .dropdown-content a:hover {
             background-color: #f0f7ff;
-            /* Light blue tint */
             color: var(--primary);
             transform: translateX(4px);
-            /* Subtle slide-in effect */
-        }
-
-        /* --- ANIMATION --- */
-        .dropdown:hover .dropdown-content {
-            display: block;
-            animation: dropdownFadeIn 0.2s ease-out;
         }
 
         @keyframes dropdownFadeIn {
@@ -242,10 +212,8 @@
             }
         }
 
-        /* Adding icons to the links for a premium look */
         .dropdown-content a::before {
             content: '→';
-            /* Default icon if none provided */
             font-size: 12px;
             opacity: 0.5;
             transition: opacity 0.2s;
@@ -255,53 +223,27 @@
             opacity: 1;
         }
 
-        /* Ensure the arrow in the button rotates smoothly */
-        .dropdown:hover .arrow {
-            transform: rotate(180deg);
-            color: var(--primary);
-        }
-
-        /* Arrow styling */
-        .arrow {
-            font-size: 10px;
-            transition: transform 0.3s;
-        }
-
-        /* Rotate arrow when hovering */
-        .dropdown:hover .arrow {
-            transform: rotate(180deg);
-        }
-
-        /* Responsive adjustments */
         @media (max-width: 1100px) {
-
-            /* 1. Ensure the navbar doesn't add weird height */
             .navbar {
                 padding: 0 15px;
                 min-height: 60px;
                 display: flex;
                 align-items: center;
-                /* Vertical center for EVERYTHING in nav */
             }
 
-            /* 2. Container for Logo and Menu */
             .nav-left {
                 gap: 12px;
                 display: flex;
                 align-items: center;
-                /* Align Logo and Menu items */
             }
 
-            /* 3. Remove default H1 spacing that pushes the logo up */
             .logo img {
                 height: 40px;
                 width: auto;
                 object-fit: contain;
-                /* This adds a little space to the right of the logo */
                 margin-right: 10px;
             }
 
-            /* 4. Sync the Links and Buttons perfectly */
             .nav-menu {
                 display: flex !important;
                 gap: 5px;
@@ -311,11 +253,9 @@
             .nav-link,
             .dropbtn {
                 padding: 0 8px;
-                /* Vertical padding 0, horizontal 8px */
                 font-size: 12px;
                 font-weight: 600;
                 height: 32px;
-                /* FORCE IDENTICAL HEIGHT */
                 display: flex;
                 align-items: center;
                 gap: 4px;
@@ -323,7 +263,6 @@
                 line-height: 1;
             }
 
-            /* 5. Icon sizes */
             .nav-link .icon,
             .dropbtn .icon {
                 font-size: 14px;
@@ -331,11 +270,9 @@
                 align-items: center;
             }
 
-            /* 6. Admin button sizing */
             .admin-btn {
                 padding: 0 12px;
                 height: 32px;
-                /* Match the height of other nav items */
                 font-size: 12px;
                 white-space: nowrap;
                 display: flex;
@@ -359,33 +296,24 @@
             background: #eff6ff;
         }
 
-        /* Container */
         .main {
             max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
         }
 
-        /* Navigation */
         .quick-nav {
             display: flex;
-            /* Changed from grid to flex */
             flex-wrap: nowrap;
-            /* Prevents cards from jumping to next line */
             gap: 10px;
-            /* Narrower gap for small screens */
             margin-bottom: 30px;
             overflow-x: auto;
-            /* Adds a scrollbar if the screen is EXTREMELY narrow */
             padding-bottom: 5px;
-            /* Space for scrollbar if needed */
         }
 
         .nav-card {
             flex: 1;
-            /* Forces all cards to be equal width */
             min-width: 140px;
-            /* Prevents cards from becoming too squashed */
             background: var(--bg-card);
             padding: 15px 10px;
             border-radius: var(--radius);
@@ -394,19 +322,8 @@
             cursor: pointer;
             border: 1px solid #e5e7eb;
             white-space: nowrap;
-            /* Keeps text inside card on one line */
-        }
-
-        /* .nav-card {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: var(--radius);
-            text-align: center;
-            box-shadow: var(--shadow);
-            cursor: pointer;
             transition: transform 0.2s;
-            border: 1px solid #e5e7eb;
-        } */
+        }
 
         .nav-card:hover {
             transform: translateY(-3px);
@@ -439,7 +356,6 @@
             border-bottom: 4px solid #f59e0b;
         }
 
-        /* Dashboard */
         .tab-container {
             background: var(--bg-card);
             border-radius: var(--radius);
@@ -471,7 +387,6 @@
             border-bottom: 2px solid var(--primary);
         }
 
-        /* Filters */
         .toolbar {
             display: flex;
             gap: 15px;
@@ -503,10 +418,8 @@
             color: var(--text-main);
         }
 
-        /* Specific style for date inputs to align nicely */
         .date-input-group {
             display: none;
-            /* Hidden by default */
             gap: 10px;
             align-items: center;
         }
@@ -531,7 +444,6 @@
             font-size: 12px;
         }
 
-        /* Stats */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -569,7 +481,6 @@
             color: var(--danger);
         }
 
-        /* Charts - UPDATED FOR AUTO-HEIGHT */
         .chart-row {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -584,13 +495,11 @@
             display: flex;
             flex-direction: column;
             height: auto !important;
-            /* Allow growing based on content */
         }
 
         .canvas-container {
             position: relative;
             height: auto;
-            /* Changed from 350px to auto to allow JS-calculated height */
             min-height: 350px;
             width: 100%;
         }
@@ -601,7 +510,6 @@
             margin-bottom: 15px;
         }
 
-        /* Loader */
         #loader {
             position: fixed;
             inset: 0;
@@ -627,7 +535,6 @@
             }
         }
 
-        /* MODAL STYLES */
         .modal {
             border-radius: var(--radius);
             padding: 30px;
@@ -697,79 +604,224 @@
             background: #0060aa;
         }
 
-        @media (max-width: 1000px) {
-            .chart-row {
-                grid-template-columns: 1fr;
+        /* --- COMPREHENSIVE RESPONSIVE DESIGN --- */
+
+        /* Tablets and small laptops */
+        @media (max-width: 1100px) {
+            .navbar {
+                padding: 0 15px;
+                min-height: auto;
+                padding-top: 10px;
+                padding-bottom: 10px;
             }
 
-            .quick-nav {
-                /* Switch from flex to grid */
-                display: grid !important;
-                /* Create 2 equal columns */
-                grid-template-columns: 1fr 1fr;
-                /* Allow 2 rows */
-                grid-template-rows: auto auto;
+            .nav-left {
                 gap: 15px;
-                overflow-x: visible;
-                /* Disable the horizontal scroll */
+            }
+
+            .nav-menu {
+                gap: 5px;
+            }
+
+            .nav-link,
+            .dropbtn {
+                font-size: 13px !important;
+                padding: 0 10px;
+            }
+        }
+
+        /* Phones (Standard Mobile View) */
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            /* Navbar: Stack Logo and Menu */
+            .navbar {
+                height: auto;
+                max-height: 90vh;
+                /* Prevents menu from being longer than the screen */
+                overflow-y: auto;
+                /* Adds scrollbar if menu items exceed screen height */
+                display: block;
+                /* Stack logo and menu vertically */
+            }
+
+            .nav-actions {
+                width: 100%;
+                margin-top: 10px;
+            }
+
+            .admin-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Make Navigation Menu Scrollable horizontally so it doesn't break rows */
+            .nav-menu {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                overflow-x: hidden;
+                /* Disable the horizontal scroll we added earlier */
+                gap: 0;
+            }
+
+            /* 3. Make the dropdown button full width */
+            .dropdown {
+                width: 100%;
+                display: block;
+            }
+
+            .dropbtn,
+            .nav-link {
+                width: 100%;
+                justify-content: flex-start;
+                /* Align text to the left */
+                padding: 12px 16px;
+                height: auto;
+                border-radius: 0;
+                border-bottom: 1px solid #eee;
+            }
+
+            /* 4. THE KEY FIX: Change dropdown from floating to "in-flow" */
+            .dropdown-content {
+                position: static;
+                /* This makes it push content down instead of floating over it */
+                width: 100%;
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+                background-color: #f9fafb;
+                /* Slightly different background to show it's a sub-menu */
+                padding: 0;
+                display: none;
+                /* Controlled by .is-active */
+            }
+
+            /* 5. Show dropdown content when parent is active */
+            .dropdown.is-active .dropdown-content {
+                display: block;
+            }
+
+            /* Adjust sub-links in the dropdown */
+            .dropdown-content a {
+                padding-left: 40px;
+                /* Indent sub-items */
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            /* Adjust Main Content Padding */
+            .main {
+                margin: 15px auto;
+                padding: 0 10px;
+            }
+
+            /* Quick Nav: 2x2 Grid */
+            .quick-nav {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                overflow-x: hidden;
             }
 
             .nav-card {
                 min-width: 0;
-                /* Allow cards to shrink to fit the 50% width */
-                width: 100%;
-                box-sizing: border-box;
-                padding: 20px 10px;
-                /* Adjust padding for smaller screens */
+                padding: 15px 5px;
             }
 
-            /* Optional: Adjust font sizes so titles don't wrap awkwardly */
             .nav-card h3 {
-                font-size: 15px;
+                font-size: 13px;
             }
 
-            .kpi-row {
-                grid-template-columns: 1fr 1fr;
+            /* Tabs: Allow horizontal scroll if too many */
+            .tabs {
+                overflow-x: auto;
+                display: flex;
+                white-space: nowrap;
             }
 
+            /* Filters/Toolbar: Stack items vertically */
             .toolbar {
                 flex-direction: column;
                 align-items: stretch;
+                gap: 12px;
             }
 
-            .refresh-btn {
-                margin-left: 0;
+            .filter-group {
                 width: 100%;
             }
 
-            .date-input-group {
-                flex-direction: column;
+            select,
+            input[type="date"] {
                 width: 100%;
+                min-width: 0;
             }
 
-            .date-input-group input {
-                width: 100%;
+            /* KPI Cards: 2 Columns */
+            .kpi-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            .kpi-card {
+                padding: 15px 10px;
+            }
+
+            .kpi-val {
+                font-size: 20px;
+            }
+
+            .kpi-label {
+                font-size: 10px;
+            }
+
+            /* Charts: Scale to full width */
+            .chart-box {
+                padding: 10px;
+            }
+
+            .chart-title {
+                font-size: 14px;
+            }
+
+            /* Modals: Make them wider on small screens */
+            .modal {
+                width: 90% !important;
+                padding: 20px;
+                margin: 0 5%;
+            }
+
+            /* Tooltip: Adjust for touch */
+            #chartjs-tooltip {
+                width: 280px;
+                padding: 12px;
             }
         }
 
-        /* --- ENLARGED CUSTOM TOOLTIP --- */
+        /* Very Small Phones */
+        @media (max-width: 400px) {
+            .quick-nav {
+                grid-template-columns: 1fr;
+                /* Stack cards 1-by-1 */
+            }
+
+            .kpi-row {
+                grid-template-columns: 1fr;
+                /* Stack KPIs 1-by-1 */
+            }
+        }
+
         #chartjs-tooltip {
             opacity: 0;
             position: absolute;
-            background: rgba(25,
-                    28,
-                    35,
-                    0.98);
-            /* Slightly darker/clearer background */
+            background: rgba(25, 28, 35, 0.98);
             color: white;
             border-radius: 12px;
             padding: 20px;
-            /* Increased padding */
             pointer-events: auto;
             max-width: 400px;
-            /* Increased width */
             max-height: 450px;
-            /* Increased height */
             overflow-y: auto;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             z-index: 1000;
@@ -785,7 +837,6 @@
         .tooltip-title {
             font-weight: 800;
             font-size: 16px;
-            /* Enlarged title */
             margin-bottom: 12px;
             border-bottom: 2px solid #ef4444;
             padding-bottom: 8px;
@@ -797,7 +848,6 @@
             color: #fca5a5;
             font-weight: 700;
             font-size: 14px;
-            /* Enlarged process name */
             text-transform: uppercase;
             letter-spacing: 0.5px;
             display: flex;
@@ -820,7 +870,6 @@
 
         .date-header {
             font-size: 12px;
-            /* Enlarged date */
             color: #d1d5db;
             font-weight: 600;
         }
@@ -838,7 +887,6 @@
             padding: 3px 8px;
             border-radius: 5px;
             font-size: 12px;
-            /* Enlarged time */
             color: #fecaca;
         }
 
@@ -908,9 +956,47 @@
                         <a href="screen_page/report_summary/jobOrderSummary.html">
                             <span>📋</span> Job Order Summary
                         </a>
+
                         <!-- Future links can be added here -->
                     </div>
                 </div>
+
+                <!-- Dropdown Menu for Packing -->
+                <div class="dropdown">
+                    <button class="dropbtn">
+                        <span class="icon">📦</span> Packing & Shipping 
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="screen_page/packaging_checklist/packingList.html">
+                            <span class="icon">📦</span> Packing List Form
+                        </a>
+                        <a href="screen_page/packaging_checklist/packagingChecklist.html">
+                            <span class="icon">📦</span> Shipment Checklist Form
+                        </a>
+                        <!-- <a href="screen_page/packaging_checklist/packingList.html">
+                            <span class="icon">📦</span> Packing List Form
+                        </a> -->
+                    </div>
+                </div>
+
+                <!-- Dropdown Menu for Maintanence} -->
+                <div class="dropdown">
+                    <button class="dropbtn">
+                        <span class="icon">⚙️</span> Maintenance
+                        <span class="arrow">▼</span>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="screen_page/maintenance/preventive_maintenance.html">
+                            <span class="icon">🛠️</span> Preventive Maintenance
+                        </a>
+                        <!-- <a href="screen_page/packaging_checklist/packingList.html">
+                            <span class="icon">📦</span> Packing List Form
+                        </a> -->
+                    </div>
+                </div>
+
+
             </div>
         </div>
 
@@ -1070,6 +1156,52 @@
                     $("#submitLogin").click(); // Trigger the login button
                 }
             });
+
+            // 1. Handle Hover: Open current and close ALL others
+            // $('.dropdown').on('mouseenter', function () {
+            //     // Remove 'is-active' from every dropdown EXCEPT the one currently being hovered
+            //     $('.dropdown').not(this).removeClass('is-active');
+
+            //     // Add 'is-active' to the current one
+            //     $(this).addClass('is-active');
+            // });
+
+            // 2. Close only when clicking outside the dropdown area
+            // $(document).on('click', function (event) {
+            //     // If the click is not inside a dropdown container, close all dropdowns
+            //     if (!$(event.target).closest('.dropdown').length) {
+            //         $('.dropdown').removeClass('is-active');
+            //     }
+            // });
+
+            // 3. Optional: Close the dropdown immediately if a link inside is clicked
+            $('.dropdown-content a').on('click', function () {
+                $(this).closest('.dropdown').removeClass('is-active');
+            });
+
+            // Dropdown Toggle for Mobile/Desktop
+            $('.dropbtn').on('click', function (e) {
+                // Prevent event from bubbling up to the "document click" listener
+                e.stopPropagation();
+
+                const $parent = $(this).closest('.dropdown');
+                const isActive = $parent.hasClass('is-active');
+
+                // Close all other dropdowns
+                $('.dropdown').removeClass('is-active');
+
+                // If it wasn't active, open it
+                if (!isActive) {
+                    $parent.addClass('is-active');
+                }
+            });
+
+            // Close dropdowns when clicking anywhere else on the page
+            $(document).on('click', function () {
+                $('.dropdown').removeClass('is-active');
+            });
+
+
         });
 
         // Other utility functions (handleTimeFilterChange, fetchFromSupabase, etc.) stay the same...

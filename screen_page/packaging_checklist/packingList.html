@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing List System - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --border-color: #333;
+            --text-main: #1f2937;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .suggestions-list {
+            position: fixed;
+            background: white;
+            border: 1px solid #999;
+            z-index: 9999999;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: none;
+            border-radius: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .suggestions-list li {
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .suggestions-list li:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-top {
+            width: 100%;
+            max-width: 1050px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .back-link {
+            color: #6b7280;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .card {
+            background: #fff;
+            max-width: 1050px;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #ccc;
+        }
+
+        .card-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .header-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .form-group label {
+            width: 140px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #444;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .form-group .sep {
+            width: 15px;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            flex: 1;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            min-width: 0;
+            text-transform: uppercase;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 850px;
+        }
+
+        th {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            background: #f0f0f0;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        td {
+            border: 1px solid var(--border-color);
+            padding: 0;
+            vertical-align: middle;
+            overflow: visible !important;
+        }
+
+        .inp-table {
+            width: 100%;
+            border: none;
+            outline: none;
+            padding: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            text-align: center;
+            background: transparent;
+            display: block;
+            box-sizing: border-box;
+            text-transform: uppercase;
+        }
+
+        textarea.inp-table {
+            resize: none;
+            overflow: hidden;
+            text-align: center;
+            min-height: 38px;
+            line-height: 1.4;
+        }
+
+        textarea.part-val {
+            text-align: left;
+            white-space: pre-wrap;
+            min-height: 40px;
+            padding-left: 10px;
+        }
+
+        .desc-row {
+            background: #fdfdfd;
+        }
+
+        .desc-row textarea {
+            text-align: left;
+            font-weight: bold;
+            font-style: italic;
+            padding-left: 15px;
+        }
+
+        .subtotal-row {
+            background: #f9fafb;
+            font-weight: bold;
+        }
+
+        .subtotal-row td {
+            padding: 10px;
+        }
+
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-add {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-desc {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 800;
+            margin-top: 40px;
+            border: none;
+            cursor: pointer;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            /* Dimmed background */
+            backdrop-filter: blur(6px);
+            /* Modern blur effect */
+            overflow-y: auto;
+            /* Allow scrolling if modal is long */
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Container for the modal content */
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            /* Space from top */
+            padding: 35px;
+            width: 90%;
+            max-width: 950px;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border: none;
+            position: relative;
+        }
+
+        .modal-header h3 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        /* The Grey Search Box Area */
+        .search-container-wrapper {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        #modalSearch {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 15px;
+            background: white;
+            outline: none;
+        }
+
+        .btn-search-trigger {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 0 30px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Table Header Styles */
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .record-table thead tr {
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .record-table th {
+            padding: 15px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .record-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+            color: #334155;
+        }
+
+        /* Close Icon (X) */
+        .close-icon {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 28px;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .footer-summary {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .summary-line {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .summary-line label {
+            width: 110px;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        .total-ctn-inp {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 450px;
+            font-size: 14px;
+            background: #f9fafb;
+            transition: all 0.2s;
+            outline: none;
+            text-transform: uppercase;
+        }
+
+        .summary-line .val {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 20px;
+            margin: 0 8px 0 0;
+        }
+
+        .summary-line .unit {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* Mobile Responsive Adjustments */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .nav-top {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+
+            /* Stack the two header columns */
+            .header-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            /* Stack labels on top of inputs */
+            .form-group {
+                flex-direction: column;
+                margin-bottom: 12px;
+            }
+
+            .form-group label {
+                width: 100%;
+                margin-bottom: 4px;
+                margin-top: 0;
+            }
+
+            /* Hide the colon separator on mobile for a cleaner look */
+            .form-group .sep {
+                display: none;
+            }
+
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+            }
+
+            /* Adjust button groups for small screens */
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            /* Ensure the table doesn't break the page width */
+            .table-container {
+                margin-top: 15px;
+                border-radius: 0;
+            }
+
+            /* Make the bottom summary fields more compact */
+            .total-ctn-inp {
+                max-width: 100%;
+            }
+
+            .summary-line {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+
+        .detail-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px 0;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px dashed #eee;
+            padding: 2px 0;
+        }
+
+        .ctn-cell,
+        .nw-cell,
+        .gw-cell {
+            padding: 0 !important;
+            vertical-align: top !important;
+        }
+
+        /* Every row inside the cell must have a fixed min-height and border */
+        .detail-row-wrapper {
+            display: flex;
+            align-items: center;
+            min-height: 45px;
+            /* Fixed height for alignment */
+            border-bottom: 1px solid #ccc;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .detail-row-wrapper:last-child {
+            border-bottom: none;
+        }
+
+        /* Make sure inputs fill the wrapper exactly */
+        .detail-row-wrapper .inp-table {
+            height: 100%;
+            border: none !important;
+        }
+
+        .btn-small-add {
+            width: 100%;
+            padding: 6px;
+            background: #e1f5fe;
+            color: #0078d4;
+            border: none;
+            border-top: 1px solid #ccc;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-small-add:hover {
+            background: #0078d4;
+            color: white;
+        }
+
+        .remove-detail-btn {
+            border: none;
+            background: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 10px;
+        }
+
+        #global-suggestions {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            z-index: 999999;
+            /* Make this very high */
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <ul id="global-suggestions" class="suggestions-list"></ul>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Processing Record...</p>
+    </div>
+
+    <div id="recordsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-icon" onclick="$('#recordsModal').hide()">&times;</button>
+
+            <div class="modal-header">
+                <h3>Recent Packing Records</h3>
+            </div>
+
+            <!-- The new Search Area -->
+            <div class="search-container-wrapper">
+                <input type="text" id="modalSearch" placeholder="Search by Doc No, Customer, or Pack List No..."
+                    onkeyup="if(event.key === 'Enter') fetchPastRecords()">
+                <button class="btn-search-trigger" onclick="fetchPastRecords()">Search</button>
+            </div>
+
+            <div id="modalList" style="max-height: 450px; overflow-y: auto;">
+                <!-- Table will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-top">
+        <a onclick="window.history.back()" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </a>
+        <button onclick="$('#recordsModal').show(); fetchPastRecords();"
+            style="padding:8px 15px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:6px; font-weight:600;">View
+            Records</button>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 style="margin:0">Packing List Generator</h2>
+        </div>
+        <div class="card-body">
+            <div id="letterhead-preview"
+                style="width: 100%; height:auto; border:1px dashed #ccc; margin-bottom:20px; display:flex; align-items:center; justify-content:center; color:#999; overflow:hidden; background:#fdfdfd; border-radius:8px;">
+                <p>Loading Famax Letterhead...</p>
+            </div>
+            <div class="header-grid">
+                <div>
+                    <div class="form-group"><label>From</label><span class="sep">:</span><input type="text"
+                            value="FAMAX TECHNOLOGY (M) SDN. BHD." readonly style="background:#eee"></div>
+                    <div class="form-group">
+                        <label>Ship to</label><span class="sep">:</span>
+                        <select id="cust_select" onchange="loadCustDetails()">
+                            <option value="">-- SELECT CUSTOMER --</option>
+                            <option value="NEW">+ ADD NEW CUSTOMER</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="new_cust_row" style="display:none"><label>New Customer</label><span
+                            class="sep">:</span><input type="text" id="new_cust_name" placeholder="ENTER COMPANY NAME">
+                    </div>
+                    <div class="form-group"><label></label><span class="sep"></span><textarea id="cust_address"
+                            placeholder="ADDRESS" rows="4"></textarea></div>
+                    <div class="form-group"><label>Tel</label><span class="sep">:</span><input type="text" id="tel">
+                    </div>
+                    <div class="form-group"><label>Attn</label><span class="sep">:</span><input type="text" id="attn">
+                    </div>
+                    <div class="form-group"><label>Shipment From</label><span class="sep">:</span><input type="text"
+                            id="ship_from" value="KEDAH, MALAYSIA"></div>
+                    <div class="form-group"><label>Ship via</label><span class="sep">:</span><input type="text"
+                            id="ship_via" value="SEA OCEAN BRIDGE"></div>
+                </div>
+                <div>
+                    <div class="form-group"><label>Invoice No.</label><span class="sep">:</span><input type="text"
+                            id="invoice_no"></div>
+                    <div class="form-group"><label>Date</label><span class="sep">:</span><input type="date"
+                            id="doc_date"></div>
+                    <div class="form-group"><label>Order No.</label><span class="sep">:</span><input type="text"
+                            id="order_no"></div>
+                    <div class="form-group"><label>Shipment Date</label><span class="sep">:</span><input type="date"
+                            id="ship_date"></div>
+                    <div class="form-group"><label>Country of origin</label><span class="sep">:</span><input type="text"
+                            id="origin" value="MALAYSIA"></div>
+                    <div class="form-group">
+                        <label>Shipment Term</label><span class="sep">:</span>
+                        <select id="ship_term" onchange="toggleNewTerm('ship')">
+                            <option value="">-- SELECT TERM --</option>
+                            <option value="NEW">+ ADD NEW TERM</option>
+                        </select>
+                    </div>
+                    <!-- Hidden input for new Shipment Term -->
+                    <div class="form-group" id="new_ship_row" style="display:none">
+                        <label>New Ship Term</label><span class="sep">:</span>
+                        <input type="text" id="new_ship_term" placeholder="ENTER NEW SHIPMENT TERM">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Term</label><span class="sep">:</span>
+                        <select id="pay_term" onchange="toggleNewTerm('pay')">
+                            <option value="">-- SELECT TERM --</option>
+                            <option value="NEW">+ ADD NEW TERM</option>
+                        </select>
+                    </div>
+                    <!-- Hidden input for new Payment Term -->
+                    <div class="form-group" id="new_pay_row" style="display:none">
+                        <label>New Pay Term</label><span class="sep">:</span>
+                        <input type="text" id="new_pay_term" placeholder="ENTER NEW PAYMENT TERM">
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="45">NO</th>
+                            <th width="250">PART NUMBER</th>
+                            <th width="80">QTY(PCS)</th>
+                            <th>CTN DESCRIPTION</th>
+                            <th width="90">NW(KGS)</th>
+                            <th width="90">GW(KGS)</th>
+                            <th width="35"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                    <tfoot>
+                        <tr class="subtotal-row">
+                            <td colspan="4" align="right">GrandTotal:</td>
+                            <td align="center" id="table_total_nw">0.00</td>
+                            <td align="center" id="table_total_gw">0.00</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-add" onclick="addItemRow()">+ Add Item Row</button>
+                <button class="btn btn-desc" onclick="addDescriptionRow()">+ Add Pallet/Description Row</button>
+            </div>
+
+            <div class="footer-summary">
+                <div class="summary-line">
+                    <label>Total Ctn :</label>
+                    <input type="text" id="total_ctn_desc" class="total-ctn-inp"
+                        placeholder="E.G. 1 PALLET (9 CTNS) - 1100MM X 1100MM">
+                </div>
+                <div class="summary-line">
+                    <label>Total NW :</label>
+                    <span class="val" id="fin_nw">0.00</span> <span class="unit">KGS</span>
+                </div>
+                <div class="summary-line">
+                    <label>Total GW :</label>
+                    <span class="val" id="fin_gw">0.00</span> <span class="unit">KGS</span>
+                </div>
+                <div style="margin-top:50px; font-weight:bold; font-size:16px; color:#111827;">FAMAX TECHNOLOGY (M)
+                    SDN. BHD.</div>
+
+                <div style="margin-top:70px;">
+                    <div style="border-top:2px solid #374151; width:300px; margin-bottom:8px"></div>
+                    <div class="summary-line" style="margin-top:20px">
+                        <label>Signatory :</label>
+                        <select id="signatory_select"
+                            style="max-width:300px; padding:8px; border-radius:8px; border:1px solid #ccc;">
+                            <option value="">-- NO SIGNATURE --</option>
+                            <option value="Nabila">Miss Nabila</option>
+                            <option value="Adila">Miss Adila</option>
+                        </select>
+                    </div>
+                    <div style="font-size:12px; font-weight:800; color:#374151; letter-spacing: 0.5px;">AUTHORISED
+                        SIGNATORY</div>
+                </div>
+            </div>
+            <button class="btn-submit" onclick="submitForm()">SAVE RECORD & GENERATE PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let partsData = [];
+        let letterheadBase64 = null;
+        const LETTERHEAD_URL = "http://192.168.0.5:8000/storage/v1/object/public/assets/LETTERHEAD.png";
+
+        const SIGNATORIES = {
+            "Nabila": "http://192.168.0.5:8000/storage/v1/object/public/assets/sign_nabila.png",
+            "Adila": "http://192.168.0.5:8000/storage/v1/object/public/assets/sign_adila.png",
+        };
+
+        async function getLetterhead(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = function () {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = this.width; canvas.height = this.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(this, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject("Failed to load image");
+                img.src = url;
+            });
+        }
+
+        $(document).ready(function () {
+            loadInitialData();
+            addItemRow();
+            const today = new Date().toISOString().split('T')[0];
+            $('#doc_date, #ship_date').val(today);
+            $(document).on('input', '.nw-calc, .gw-calc', calculateTotals);
+            $(document).on('input', 'input[type="text"], textarea', function () { this.value = this.value.toUpperCase(); });
+        });
+
+        async function loadInitialData() {
+            try {
+                const { data: custs } = await _supabase.from('customerdetails').select('*');
+                (custs || []).forEach(c => {
+                    const name = (c.customer_name || "").toUpperCase();
+                    const addr = (c.address || "").toUpperCase();
+                    const tel = (c.tel || "").toUpperCase();
+                    const attn = (c.attention || "").toUpperCase();
+
+                    // 1. Truncate address to 30 characters
+                    const shortAddr = addr.substring(0, 50) + (addr.length > 30 ? '...' : '');
+
+                    // 2. Create the display string: ATTN - NAME - ADDRESS
+                    // We use a ternary check for attn to avoid a leading dash if attn is empty
+                    const displayText = `${name} - ${attn ? attn + ' - ' : ''}`;
+
+                    // 3. Append to select
+                    $('#cust_select').append(`<option value="${c.id}" data-addr="${addr}" data-tel="${tel}" data-attn="${attn}" data-name ="${name}">${displayText}</option>`);
+                });
+
+                const { data: pts } = await _supabase.from('PartsByBD').select('Part_Name');
+                partsData = pts || [];
+
+                const { data: sTerms } = await _supabase.from('shipmentTerm').select('*');
+                $('#ship_term').find('option:not([value=""], [value="NEW"])').remove(); // Clear old items only
+                (sTerms || []).forEach(t => {
+                    const termText = (t.shipment_term || t.term || t.name || "").toUpperCase();
+                    if (termText) $('#ship_term').append(`<option value="${termText}">${termText}</option>`);
+                });
+
+                const { data: pTerms } = await _supabase.from('paymentTerm').select('*');
+                $('#pay_term').find('option:not([value=""], [value="NEW"])').remove(); // Clear old items only
+                (pTerms || []).forEach(p => {
+                    const val = (p.payment_term || p.term || p.name || p.Payment_Term || "").toUpperCase();
+                    if (val) $('#pay_term').append(`<option value="${val}">${val}</option>`);
+                });
+                letterheadBase64 = await getLetterhead(LETTERHEAD_URL);
+                $('#letterhead-preview').html(`<img src="${letterheadBase64}" style="width: 100%; height: auto; display: block;">`);
+            } catch (err) { console.error(err); }
+        }
+
+        function toggleNewTerm(type) {
+            if (type === 'ship') {
+                $('#new_ship_row').toggle($('#ship_term').val() === "NEW");
+            } else {
+                $('#new_pay_row').toggle($('#pay_term').val() === "NEW");
+            }
+        }
+
+        function addItemRow() {
+            const no = $('#tableBody tr.item-row').length + 1;
+            const html = `
+    <tr class="item-row">
+        <td align="center" style="vertical-align: middle;">${no}</td>
+        <td style="vertical-align: middle;"><textarea class="inp-table part-val" rows="1" placeholder="TYPE OR SEARCH..."></textarea></td>
+        <td style="vertical-align: middle;"><input type="number" class="inp-table qty-val"></td>
+        
+        <td class="ctn-cell">
+            <div class="ctn-container"></div>
+            <button type="button" class="btn-small-add" onclick="addCtnDetail(this)">+ ADD DESCRIPTION</button>
+        </td>
+        <td class="nw-cell">
+            <div class="nw-container"></div>
+        </td>
+        <td class="gw-cell">
+            <div class="gw-container"></div>
+        </td>
+        
+        <td align="center" style="vertical-align: middle;">
+            <button onclick="$(this).closest('tr').remove(); calculateTotals();" style="border:none; background:none; color:red; cursor:pointer; font-size:18px;">&times;</button>
+        </td>
+    </tr>`;
+
+            // const $row = $(html);
+            // $('#tableBody').append($row);
+
+            // // Add the first initial detail row automatically
+            // addCtnDetail($row.find('.btn-small-add')[0]);
+
+            // // Setup Part Search Autocomplete (from your existing logic)
+            // setupPartSearch($row.find('.part-val'));
+
+            const $row = $(html);
+            $('#tableBody').append($row);
+
+            // IMPORTANT: Attach the search logic to the Part Number field in THIS row
+            setupPartSearch($row.find('.part-val'));
+
+            // Add the first initial detail block
+            addCtnDetail($row.find('.btn-small-add')[0]);
+        }
+
+        function addCtnDetail(btn) {
+            const $tr = $(btn).closest('tr');
+            const $ctnCont = $tr.find('.ctn-container');
+            const $nwCont = $tr.find('.nw-container');
+            const $gwCont = $tr.find('.gw-container');
+
+            // We create three matching wrappers to ensure perfect vertical alignment
+            const ctnHtml = `<div class="detail-row-wrapper"><textarea class="inp-table ctn-val" rows="1" placeholder="DESCRIPTION"></textarea></div>`;
+            const nwHtml = `<div class="detail-row-wrapper"><input type="number" step="0.01" class="inp-table nw-calc" value="0.00"></div>`;
+            const gwHtml = `
+        <div class="detail-row-wrapper">
+            <input type="number" step="0.01" class="inp-table gw-calc" value="0.00" style="flex:1">
+            <button type="button" class="remove-detail-btn" onclick="removeCtnDetail(this)">&times;</button>
+        </div>`;
+
+            $ctnCont.append(ctnHtml);
+            $nwCont.append(nwHtml);
+            $gwCont.append(gwHtml);
+
+            // Re-bind auto-resize for textareas
+            $tr.find('textarea').on('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+        function removeCtnDetail(btn) {
+            const $wrapper = $(btn).closest('.detail-row-wrapper');
+            const index = $wrapper.index();
+            const $tr = $(btn).closest('tr');
+
+            // Only allow removal if more than 1 row exists
+            if ($tr.find('.ctn-container .detail-row-wrapper').length > 1) {
+                $tr.find('.ctn-container .detail-row-wrapper').eq(index).remove();
+                $tr.find('.nw-container .detail-row-wrapper').eq(index).remove();
+                $tr.find('.gw-container .detail-row-wrapper').eq(index).remove();
+                calculateTotals();
+            } else {
+                alert("At least one description is required.");
+            }
+        }
+
+        // Helper to handle the Part Search (keep your existing logic inside here)
+        function setupPartSearch($input) {
+            $input.on('input focus', function () {
+                const val = $(this).val().toLowerCase();
+                const $globalList = $('#global-suggestions');
+
+                // Get position of the textarea
+                const rect = this.getBoundingClientRect();
+
+                // Position the list exactly under the textarea
+                $globalList.css({
+                    top: (rect.bottom + window.scrollY) + 'px',
+                    left: (rect.left + window.scrollX) + 'px',
+                    width: rect.width + 'px',
+                    display: 'block'
+                }).empty();
+
+                // Filter the data
+                const matches = partsData.filter(p =>
+                    p.Part_Name && p.Part_Name.toLowerCase().includes(val)
+                ).slice(0, 15);
+
+                if (matches.length > 0) {
+                    matches.forEach(m => {
+                        const $li = $('<li>')
+                            .text(m.Part_Name.toUpperCase())
+                            .css({
+                                padding: '10px',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid #eee'
+                            })
+                            .on('mousedown', function () {
+                                $input.val($(this).text()).trigger('input');
+                                $globalList.hide();
+                            })
+                            .hover(
+                                function () { $(this).css('background', '#0078d4').css('color', 'white'); },
+                                function () { $(this).css('background', 'white').css('color', 'black'); }
+                            );
+                        $globalList.append($li);
+                    });
+                } else {
+                    $globalList.hide();
+                }
+            });
+
+            // Hide list when clicking outside
+            $input.on('blur', function () {
+                setTimeout(() => $('#global-suggestions').hide(), 200);
+            });
+        }
+
+        function setupRowEvents($row) {
+            $row.find('.part-val').on('input focus', function () {
+                const $input = $(this);
+                const val = $input.val().toLowerCase();
+                const $globalList = $('#global-suggestions');
+                const rect = this.getBoundingClientRect();
+                $globalList.css({ top: rect.bottom + 'px', left: rect.left + 'px', width: rect.width + 'px', display: 'block' }).empty();
+                const matches = partsData.filter(p => p.Part_Name && p.Part_Name.toLowerCase().includes(val)).slice(0, 15);
+                if (matches.length > 0) {
+                    matches.forEach(m => {
+                        const $li = $('<li>').text(m.Part_Name.toUpperCase()).data('target', $input);
+                        $globalList.append($li);
+                    });
+                } else { $globalList.hide(); }
+            });
+
+            $row.find('textarea').on('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        }
+
+
+        $(document).on('mousedown', '#global-suggestions li', function () {
+            const val = $(this).text().toUpperCase();
+            const $target = $(this).data('target');
+            if ($target) $target.val(val).trigger('input');
+            $('#global-suggestions').hide();
+        });
+
+        $(document).on('mousedown wheel scroll', function (e) { if (!$(e.target).closest('.part-val, #global-suggestions').length) $('#global-suggestions').hide(); });
+
+        function addDescriptionRow() {
+            // 1. Add the Pallet/Description Row with NW and GW inputs
+            const descHtml = `
+            <tr class="desc-row">
+                <td align="center" style="color:#999">#</td>
+                <td colspan="3">
+                    <textarea class="inp-table" rows="1" style="text-align:left; font-weight:bold; font-style:italic;">PALLET + EDGE PROTECTOR</textarea>
+                </td>
+                <td><input type="number" step="0.01" class="inp-table nw-calc" value="0.00"></td>
+                <td><input type="number" step="0.01" class="inp-table gw-calc" value="0.00"></td>
+                <td align="center">
+                    <button onclick="removePalletGroup(this)" style="border:none; background:none; color:red; cursor:pointer; font-size:16px;">×</button>
+                </td>
+            </tr>`;
+
+            // 2. Add the Subtotal Row that follows the description
+            const subtotalHtml = `
+            <tr class="item-subtotal-row" style="background: #f0fdf4; font-weight: bold;">
+                <td colspan="4" align="right" style="padding: 8px; font-size: 11px;">SUBTOTAL:</td>
+                <td align="center" class="section-nw">0.00</td>
+                <td align="center" class="section-gw">0.00</td>
+                <td></td>
+            </tr>`;
+
+            const $descRow = $(descHtml);
+            const $subRow = $(subtotalHtml);
+
+            $descRow.find('textarea').on('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            $('#tableBody').append($descRow).append($subRow);
+            calculateTotals();
+        }
+
+        // Helper to remove both the desc row and its accompanying subtotal row
+        function removePalletGroup(btn) {
+            const $row = $(btn).closest('tr');
+            $row.next('.item-subtotal-row').remove();
+            $row.remove();
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let globalNw = 0, globalGw = 0;
+
+            // 1. Calculate Grand Totals (All boxes on the whole page)
+            $('.nw-calc').each(function () { globalNw += parseFloat($(this).val()) || 0; });
+            $('.gw-calc').each(function () { globalGw += parseFloat($(this).val()) || 0; });
+
+            $('#table_total_nw, #fin_nw').text(globalNw.toFixed(2));
+            $('#table_total_gw, #fin_gw').text(globalGw.toFixed(2));
+
+            // 2. Calculate Section Subtotals
+            let currentSectionNW = 0;
+            let currentSectionGW = 0;
+
+            $('#tableBody tr').each(function () {
+                const $tr = $(this);
+
+                // If it's an Item Row or a Pallet/Description Row
+                if ($tr.hasClass('item-row') || $tr.hasClass('desc-row')) {
+
+                    // FIX: Loop through EVERY NW box in this row, not just the first one
+                    $tr.find('.nw-calc').each(function () {
+                        currentSectionNW += parseFloat($(this).val()) || 0;
+                    });
+
+                    // FIX: Loop through EVERY GW box in this row
+                    $tr.find('.gw-calc').each(function () {
+                        currentSectionGW += parseFloat($(this).val()) || 0;
+                    });
+
+                }
+                // If we hit a Subtotal Row, display the sum and reset counters
+                else if ($tr.hasClass('item-subtotal-row')) {
+                    $tr.find('.section-nw').text(currentSectionNW.toFixed(2));
+                    $tr.find('.section-gw').text(currentSectionGW.toFixed(2));
+
+                    // Reset for the next section
+                    currentSectionNW = 0;
+                    currentSectionGW = 0;
+                }
+            });
+        }
+
+        function loadCustDetails() {
+            const opt = $('#cust_select option:selected');
+
+            if (opt.val() === "NEW") {
+                $('#new_cust_row').show();
+                $('#cust_address, #tel, #attn').val('');
+            } else {
+                $('#new_cust_row').hide();
+
+                const addr = opt.data('addr') || '';
+                const attn = opt.data('attn') || '';
+                const tel = opt.data('tel') || '';
+                const name = opt.data('name') || '';
+
+                // These fill your input fields correctly
+                $('#cust_address').val(addr.toUpperCase());
+                $('#tel').val(tel);
+                // Important: this fills the "Attn" input field
+                $('#attn').val(attn);
+                $('#name').val(name);
+
+                // REMOVE OR COMMENT OUT THIS LINE BELOW:
+                // opt.text(`${attn} - ${addr.substring(0, 60)}`); 
+            }
+        }
+
+        async function submitForm() {
+
+            $('#loading-overlay').css('display', 'flex');
+
+            let partsToIdentify = [];
+            let palletDescriptions = [];
+            const items = [];
+
+
+            // 1. Handle New Customer
+            const isNewCustomer = $('#cust_select').val() === "NEW";
+            const shipToName = (isNewCustomer
+                ? $('#new_cust_name').val()
+                : $('#cust_select option:selected').data('name') // Get name from data-name attribute
+            ).toUpperCase();
+
+            const shipToAddress = $('#cust_address').val().toUpperCase();
+            const shipToTel = $('#tel').val().toUpperCase();
+            const shipToAttn = $('#attn').val().toUpperCase();
+
+            if (isNewCustomer && shipToName) {
+                await _supabase.from('customerdetails').insert([{
+                    customer_name: shipToName,
+                    address: shipToAddress,
+                    tel: shipToTel,
+                    attention: shipToAttn
+                }]);
+            }
+
+            // 2. Handle New Shipment Term
+            let finalShipTerm = $('#ship_term').val();
+            if (finalShipTerm === "NEW") {
+                finalShipTerm = $('#new_ship_term').val().toUpperCase();
+                if (finalShipTerm) await _supabase.from('shipmentTerm').insert([{
+                    shipment_term: finalShipTerm
+                }]);
+            }
+
+            // 3. Handle New Payment Term
+            let finalPayTerm = $('#pay_term').val();
+            if (finalPayTerm === "NEW") {
+                finalPayTerm = $('#new_pay_term').val().toUpperCase();
+                if (finalPayTerm) await _supabase.from('paymentTerm').insert([{
+                    payment_term: finalPayTerm
+                }]);
+            }
+            // --- 1. COLLECT DATA FROM TABLE ---
+            $('#tableBody tr').each(function () {
+                const $tr = $(this);
+
+                if ($tr.hasClass('item-row')) {
+                    const partVal = $tr.find('.part-val').val();
+                    if (partVal && partVal.trim() !== "") {
+                        const upperPart = partVal.trim().toUpperCase();
+
+                        // NEW: Collect multiple descriptions and weights from the wrappers
+                        const details = [];
+                        $tr.find('.ctn-container .detail-row-wrapper').each(function (idx) {
+                            details.push({
+                                ctn: $(this).find('.ctn-val').val() || "",
+                                nw: $tr.find('.nw-container .nw-calc').eq(idx).val() || 0,
+                                gw: $tr.find('.gw-container .gw-calc').eq(idx).val() || 0
+                            });
+                        });
+
+                        items.push({
+                            type: 'item',
+                            part: upperPart,
+                            qty: $tr.find('.qty-val').val(),
+                            details: details // Array of descriptions/weights
+                        });
+                        partsToIdentify.push(upperPart);
+                    }
+                }
+                else if ($tr.hasClass('desc-row')) {
+                    items.push({
+                        type: 'desc',
+                        text: $tr.find('textarea').val().toUpperCase(),
+                        nw: $tr.find('.nw-calc').val(),
+                        gw: $tr.find('.gw-calc').val()
+                    });
+                }
+                else if ($tr.hasClass('item-subtotal-row')) {
+                    items.push({
+                        type: 'subtotal',
+                        nw: $tr.find('.section-nw').text(),
+                        gw: $tr.find('.section-gw').text()
+                    });
+                }
+            });
+
+            // --- 2. AUTO-ADD NEW PARTS LOGIC ---
+            // Get list of names currently in memory (from your PartsByBD table)
+            const existingPartNames = partsData.map(p => (p.Part_Name || "").toUpperCase());
+
+            // Get unique parts from the current form
+            const uniqueSubmittedParts = [...new Set(partsToIdentify)];
+
+            // Filter: Only keep parts that DO NOT exist in existingPartNames
+            const newPartsToInsert = uniqueSubmittedParts
+                .filter(p => p && !existingPartNames.includes(p))
+                .map(p => ({ Part_Name: p }));
+
+            console.log("Parts found in form:", uniqueSubmittedParts);
+            console.log("New parts to be saved to DB:", newPartsToInsert);
+
+            if (newPartsToInsert.length > 0) {
+                const { data, error: insertError } = await _supabase
+                    .from('PartsByBD')
+                    .insert(newPartsToInsert);
+
+                if (insertError) {
+                    console.error("Error inserting new parts:", insertError);
+                } else {
+                    console.log("New parts successfully saved!");
+                    // Update local memory so it doesn't try to insert them again next time
+                    partsData.push(...newPartsToInsert);
+                }
+            }
+
+            const sigKey = $('#signatory_select').val();
+            let signatureBase64 = null;
+            if (sigKey && SIGNATORIES[sigKey]) {
+                try {
+                    signatureBase64 = await getLetterhead(SIGNATORIES[sigKey]);
+                } catch (e) { console.error("Signature failed to load", e); }
+            }
+
+            const pallet_info_val = palletDescriptions.join('\n');
+
+            const payload = {
+                invoice_no: $('#invoice_no').val().toUpperCase(),
+                doc_date: $('#doc_date').val(),
+                order_no: $('#order_no').val().toUpperCase(),
+                shipment_date: $('#ship_date').val(),
+                customer_name: shipToName,
+                customer_address: $('#cust_address').val().toUpperCase(),
+                tel: $('#tel').val(),
+                attn: $('#attn').val().toUpperCase(),
+                shipment_from: $('#ship_from').val().toUpperCase(),
+                ship_via: $('#ship_via').val().toUpperCase(),
+                country_of_origin: $('#origin').val().toUpperCase(),
+                shipment_term: $('#ship_term').val() === "NEW" ? $('#new_ship_term').val().toUpperCase() : $('#ship_term').val(),
+                payment_term: $('#pay_term').val() === "NEW" ? $('#new_pay_term').val().toUpperCase() : $('#pay_term').val(),
+                items: items,
+                total_ctn_desc: $('#total_ctn_desc').val().toUpperCase(),
+                total_nw: $('#fin_nw').text(),
+                total_gw: $('#fin_gw').text(),
+                pallet_info: pallet_info_val,
+                signatory_name: sigKey,
+                signature_image: signatureBase64
+            };
+
+            const { error } = await _supabase.from('packing_list_records').insert([payload]);
+            if (error) { alert(error.message); $('#loading-overlay').hide(); return; }
+
+            generatePDF(payload);
+            $('#loading-overlay').hide();
+            Toastify({ text: "PACKING LIST SAVED!", background: "#10b981" }).showToast();
+        }
+
+
+        //     const payload = {
+        //         invoice_no: $('#invoice_no').val().toUpperCase(),
+        //         doc_date: $('#doc_date').val(),
+        //         order_no: $('#order_no').val().toUpperCase(),
+        //         shipment_date: $('#ship_date').val(),
+        //         customer_name: shipToName,
+        //         customer_address: shipToAddress,
+        //         tel: shipToTel,
+        //         attn: $('#attn').val().toUpperCase(),
+        //         shipment_from: $('#ship_from').val().toUpperCase(),
+        //         ship_via: $('#ship_via').val().toUpperCase(),
+        //         country_of_origin: $('#origin').val().toUpperCase(),
+        //         shipment_term: finalShipTerm, // Use the new variables here
+        //         payment_term: finalPayTerm,   // Use the new variables here
+        //         items: items,
+        //         total_ctn_desc: $('#total_ctn_desc').val().toUpperCase(),
+        //         total_nw: $('#fin_nw').text(),
+        //         total_gw: $('#fin_gw').text(),
+        //         pallet_info: pallet_info_val // ADD THIS LINE TO SAVE TO DATABASE
+        //     };
+
+        //     const { error } = await _supabase.from('packing_list_records').insert([payload]);
+        //     if (error) { alert(error.message); $('#loading-overlay').hide(); return; }
+        //     generatePDF(payload);
+        //     $('#loading-overlay').hide();
+        //     Toastify({ text: "PACKING LIST SAVED!", background: "#10b981" }).showToast();
+        //     if (isNewCustomer) loadInitialData();
+        // }
+
+        // Updated PDF Generation Logic
+        function generatePDF(d) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+
+            // Helper to draw letterhead
+            const drawLetterhead = () => {
+                if (letterheadBase64) doc.addImage(letterheadBase64, 'PNG', 0, 0, 210, 45);
+            };
+
+            // First Page Header
+            drawLetterhead();
+            doc.setFontSize(16); doc.setFont("helvetica", "bold");
+            doc.text("PACKING LIST", 105, 55, { align: 'center' });
+            doc.setFontSize(10); doc.text("************************************", 105, 60, { align: 'center' });
+
+            const headerTableStyles = {
+                fontSize: 8,
+                cellPadding: 0.5,
+                overflow: 'linebreak',
+                valign: 'top'
+            };
+
+            const startY = 65; // Fixed starting point for both sides
+
+
+            // 1. LEFT TABLE (Label Column narrowed to 22mm to give more room for name)
+            doc.autoTable({
+                startY: startY,
+                tableWidth: 100,
+                margin: { left: 14 },
+                theme: 'plain',
+                styles: { ...headerTableStyles, valign: 'top' }, // Ensure vertical alignment is at the top
+                // Inside generatePDF function, under LEFT TABLE
+                body: [
+                    ['FROM', ': FAMAX TECHNOLOGY (M) SDN. BHD.'],
+                    [
+                        'SHIP TO',
+                        ': ' + (d.customer_name || '').trim() + '\n' + (d.customer_address || '').replace(/\n\s*\n/g, '\n').trim()                    // REMOVES start/end spaces
+                    ],
+                    ['TEL', ': ' + d.tel],
+                    ['ATTN', ': ' + d.attn],
+                    ['SHIPMENT FROM', ': ' + d.shipment_from],
+                    ['SHIP VIA', ': ' + d.ship_via]
+                ],
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 30 },
+                    1: { cellWidth: 78 } // Ensure this column has enough width
+                }
+            });
+            const leftFinalY = doc.lastAutoTable.finalY;
+
+            // 2. RIGHT TABLE (Shifted slightly right to avoid the wider left table)
+            doc.autoTable({
+                startY: startY,
+                tableWidth: 80,
+                margin: { left: 116 }, // Shifted from 112 to 116 to create a safety gap
+                theme: 'plain',
+                styles: { ...headerTableStyles, valign: 'top' },
+                body: [
+                    ['INVOICE NO.', ': ' + d.invoice_no],
+                    ['DATE', ': ' + d.doc_date],
+                    ['ORDER NO.', ': ' + d.order_no],
+                    ['SHIPMENT DATE', ': ' + d.shipment_date],
+                    ['COUNTRY OF ORIGIN', ': ' + d.country_of_origin],
+                    ['SHIPMENT TERM', ': ' + d.shipment_term],
+                    ['PAYMENT TERM', ': ' + d.payment_term]
+                ],
+                columnStyles: {
+                    0: { fontStyle: 'bold', cellWidth: 30 },
+                    1: { cellWidth: 'auto' }
+                }
+            });
+            const rightFinalY = doc.lastAutoTable.finalY;
+
+            const mainTableStartY = Math.max(leftFinalY, rightFinalY) + 10;
+
+            let itemCounter = 0;
+            const pdfRows = [];
+
+            // Process all items for the table body
+            d.items.forEach((it) => {
+                if (it.type === 'item') {
+                    itemCounter++;
+                    // Check if there are nested details
+                    if (it.details && it.details.length > 0) {
+                        it.details.forEach((det, idx) => {
+                            pdfRows.push([
+                                idx === 0 ? itemCounter : '',      // Show NO only on 1st line
+                                idx === 0 ? it.part : '',         // Show PART only on 1st line
+                                idx === 0 ? it.qty : '',          // Show QTY only on 1st line
+                                det.ctn.toUpperCase(),            // Show description
+                                parseFloat(det.nw).toFixed(2),    // Show NW
+                                parseFloat(det.gw).toFixed(2)     // Show GW
+                            ]);
+                        });
+                    }
+                }
+                else if (it.type === 'desc') {
+                    pdfRows.push([
+                        { content: it.text, colSpan: 4, styles: { fontStyle: 'italic', halign: 'left' } },
+                        parseFloat(it.nw).toFixed(2),
+                        parseFloat(it.gw).toFixed(2)
+                    ]);
+                }
+                else if (it.type === 'subtotal') {
+                    pdfRows.push([
+                        { content: 'SUBTOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                        { content: it.nw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                        { content: it.gw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } }
+                    ]);
+                }
+            });
+
+            doc.autoTable({
+                startY: mainTableStartY, // Adjust this based on your header height
+                head: [['NO', 'PART NUMBER', 'QTY', 'CTN DESCRIPTION', 'NW (KGS)', 'GW (KGS)']],
+                body: pdfRows,
+                theme: 'grid',
+                headStyles: { fillColor: [240, 240, 240], textColor: 'black', fontStyle: 'bold', halign: 'center' },
+                styles: { fontSize: 8, textColor: 'black', valign: 'middle' },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    1: { cellWidth: 50 },
+                    2: { halign: 'center', cellWidth: 15 },
+                    3: { cellWidth: 55 },
+                    4: { halign: 'right' },
+                    5: { halign: 'right' }
+                },
+                foot: [[
+                    { content: 'GRAND TOTAL:', colSpan: 4, styles: { fillColor:[240, 240, 240], halign: 'right', fontStyle: 'bold' } },
+                    { content: d.total_nw, styles: { fillColor:[240, 240, 240], fontStyle: 'bold', halign: 'right' } },
+                    { content: d.total_gw, styles: { fillColor:[240, 240, 240], fontStyle: 'bold', halign: 'right' } }
+                ]],
+                showFoot: 'lastPage',
+                margin: { top: 50 },
+                didDrawPage: (data) => { if (data.pageNumber > 1) drawLetterhead(); }
+            });
+
+
+
+            // Final Summary and Signature logic
+            let finalY = doc.lastAutoTable.finalY + 12;
+
+            if (finalY > 215) {
+                doc.addPage();
+                drawLetterhead();
+                finalY = 55;
+            }
+
+            doc.setFontSize(10); doc.setFont("helvetica", "bold");
+            doc.text(`Total Ctn  : ${d.total_ctn_desc}`, 15, finalY);
+            doc.text(`Total NW   : ${d.total_nw} KGS`, 15, finalY + 6);
+            doc.text(`Total GW   : ${d.total_gw} KGS`, 15, finalY + 12);
+
+            doc.text("FAMAX TECHNOLOGY (M) SDN. BHD.", 15, finalY + 29);
+            if (d.signature_image) {
+                // Positioning: 15 (left), finalY + 28 (start above line), 40 (width), 15 (height)
+                // Adjust width/height (40, 15) based on your image aspect ratio
+                if (d.signatory_name === "Nabila") {
+                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 14, 55, 60);
+                } else if (d.signatory_name === "Adila") {
+                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 25, 60, 45);
+                } else {
+                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 14, 55, 65);
+                }
+
+            }
+            doc.setLineWidth(0.5); doc.line(15, finalY + 57, 80, finalY + 57);
+            doc.text("AUTHORISED SIGNATORY", 15, finalY + 63);
+
+            doc.setFontSize(9);
+            doc.setFont("helvetica", "normal");
+            // doc.text("This is a computer-generated document. No signature is required.", 15, finalY + 60);
+
+            doc.save(`PackingList_${d.invoice_no}.pdf`);
+        }
+
+        async function fetchPastRecords() {
+            const q = ($('#modalSearch').val() || '').toUpperCase();
+
+            const { data, error } = await _supabase
+                .from('packing_list_records')
+                .select('*')
+                .or(`invoice_no.ilike.%${q}%,customer_name.ilike.%${q}%,order_no.ilike.%${q}%`)
+                .order('created_at', { ascending: false })
+                .limit(30);
+
+            if (error) return console.error(error);
+
+            let html = `
+        <table class="record-table">
+            <thead>
+                <tr>
+                    <th>INVOICE NO. NO</th>
+                    <th>CUSTOMER</th>
+                    <th>DATE</th>
+                    <th>ACTION</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+            if (!data || data.length === 0) {
+                html += `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No matching records found.</td></tr>`;
+            } else {
+                data.forEach(r => {
+                    html += `
+                <tr>
+                    <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
+                    <td>${r.customer_name}</td>
+                    <td>${r.doc_date}</td>
+                    <td>
+                        <button class="btn-pdf" onclick='generatePDF(${JSON.stringify(r)})'>
+                            VIEW PDF
+                        </button>
+                    </td>
+                </tr>`;
+                });
+            }
+
+            html += '</tbody></table>';
+            $('#modalList').html(html);
+        }
+
+    </script>
+</body>
+
+</html>
