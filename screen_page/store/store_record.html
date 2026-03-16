@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Inventory Dashboard - Famax</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            padding: 20px;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 1450px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        .header-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-nav h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        /* Grid Layout: Equal Height Cards */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+            align-items: stretch;
+            /* Forces equal height */
+            height: calc(100vh - 120px);
+            min-height: 650px;
+        }
+
+        @media (max-width: 1100px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        /* Unified Card Style */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: #fff;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Form Content */
+        .card-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        /* SYMMETRY FIX: All inputs must have exact same height and box-sizing */
+        input,
+        select {
+            width: 100%;
+            height: 46px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            outline: none;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        /* Row Symmetry Fix */
+        .form-row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+
+        .form-row-grid .form-group {
+            margin-bottom: 0;
+        }
+
+        .type-switcher {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .t-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 700;
+            background: white;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+
+        .t-btn.active-in {
+            border-color: var(--success);
+            color: var(--success);
+            background: #f0fdf4;
+        }
+
+        .t-btn.active-out {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .btn-save:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Table UI */
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-group select {
+            height: 38px;
+            width: auto;
+            background: #f1f5f9;
+            border: none;
+            font-size: 12px;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        /* Sticky Table Header */
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            padding: 15px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        tbody td {
+            padding: 14px 15px;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .badge-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn-excel {
+            border: none;
+            padding: 0 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            height: 38px;
+            color: white;
+        }
+
+        /* Autocomplete */
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid var(--border);
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .autocomplete-items div {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        .autocomplete-items div:hover {
+            background-color: var(--bg);
+            color: var(--primary);
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header-nav">
+            <h2>Store Record Dashboard</h2>
+            <div id="live-clock" style="font-size:14px; color:var(--text-muted); font-weight:600;"></div>
+        </div>
+
+        <div class="grid-layout">
+            <!-- LEFT: FORM -->
+            <div class="card">
+                <div class="card-header" style="background: var(--primary); color: white;">
+                    <h3 style="color:white">New Transaction</h3>
+                </div>
+                <div class="card-body">
+                    <label
+                        style="display:block; font-weight: 700; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Type</label>
+                    <div class="type-switcher">
+                        <div id="btn-in" class="t-btn active-in" onclick="changeEntryType('IN')">IN (Arrival)</div>
+                        <div id="btn-out" class="t-btn" onclick="changeEntryType('OUT')">OUT (Dispatch)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Part Name / Number</label>
+                        <input type="text" id="part_name" placeholder="Search component..." autocomplete="off">
+                        <div id="autocomplete-list" class="autocomplete-items"></div>
+                    </div>
+
+                    <div class="form-row-grid">
+                        <div class="form-group">
+                            <label>Qty (PCS)</label>
+                            <input type="number" id="qty" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="r_date">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Carton Detail</label>
+                        <input type="text" id="carton" placeholder="E.G. 5 CTN X 100">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Staff Name</label>
+                        <input type="text" id="pic" placeholder="YOUR NAME">
+                    </div>
+
+                    <button class="btn-save" onclick="saveToStoreRecord()">SAVE TRANSACTION</button>
+                </div>
+            </div>
+
+            <!-- RIGHT: HISTORY -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Transaction History</h3>
+                    <div class="filter-group">
+                        <!-- New Entry Type Filter -->
+                        <select id="f-type" onchange="fetchHistory()">
+                            <option value="ALL">ALL TYPES</option>
+                            <option value="IN">IN (Arrival)</option>
+                            <option value="OUT (Dispatch)">OUT (Dispatch)</option>
+                        </select>
+
+                        <select id="f-month" onchange="fetchHistory()"></select>
+                        <select id="f-year" onchange="fetchHistory()"></select>
+                        <button class="btn-excel" style="background:var(--success)"
+                            onclick="exportExcel('monthly')">Month</button>
+                        <button class="btn-excel" style="background:var(--text-dark)"
+                            onclick="exportExcel('yearly')">Year</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="history-table">
+                        <thead>
+                            <tr>
+                                <th width="110">Date</th>
+                                <th width="80">Type</th>
+                                <th>Part Description</th>
+                                <th width="90">Qty</th>
+                                <th>Carton</th>
+                                <th>Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-rows"></tbody>
+                    </table>
+                </div>
+                <div
+                    style="padding:10px 20px; border-top: 1px solid var(--bg); font-size:11px; color:var(--text-muted); font-style:italic;">
+                    * Scroll to see more history. Most recent entries are at the top.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = "http://192.168.0.5:8000";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let currentEntryType = 'IN';
+        let partsList = [];
+
+        $(document).ready(function () {
+            setupDates();
+            loadPartSuggestions();
+            fetchHistory();
+            setInterval(() => { $('#live-clock').text(new Date().toLocaleString()); }, 1000);
+            $(document).click(function (e) { if (!$(e.target).closest('.form-group').length) $('.autocomplete-items').empty(); });
+        });
+
+        function setupDates() {
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const now = new Date();
+            months.forEach((m, i) => $('#f-month').append(`<option value="${i + 1}" ${i === now.getMonth() ? 'selected' : ''}>${m}</option>`));
+            for (let y = now.getFullYear(); y >= 2024; y--) $('#f-year').append(`<option value="${y}">${y}</option>`);
+            $('#r_date').val(now.toISOString().split('T')[0]);
+        }
+
+        function changeEntryType(type) {
+            currentEntryType = type;
+            $('.t-btn').removeClass('active-in active-out');
+            if (type === 'IN') $('#btn-in').addClass('active-in');
+            else $('#btn-out').addClass('active-out');
+        }
+
+        async function loadPartSuggestions() {
+            const { data } = await _supabase.from('Parts').select('Part_Name');
+            partsList = data || [];
+            $('#part_name').on('input', function () {
+                let val = this.value.toUpperCase();
+                let container = $('#autocomplete-list').empty();
+                if (!val) return false;
+                let matches = partsList.filter(p => p.Part_Name.includes(val)).slice(0, 10);
+                matches.forEach(m => {
+                    let item = $(`<div>${m.Part_Name}</div>`);
+                    item.click(() => { $('#part_name').val(m.Part_Name); container.empty(); });
+                    container.append(item);
+                });
+            });
+        }
+
+        async function saveToStoreRecord() {
+            const payload = {
+                entry_type: currentEntryType,
+                part_name: $('#part_name').val().toUpperCase(),
+                quantity: $('#qty').val(),
+                carton_info: $('#carton').val().toUpperCase(),
+                pic_name: $('#pic').val().toUpperCase(),
+                record_date: $('#r_date').val()
+            };
+
+            if (!payload.part_name || !payload.quantity || !payload.pic_name) {
+                alert("Please fill in required fields."); return;
+            }
+
+            $('#overlay').css('display', 'flex');
+            const { error } = await _supabase.from('storeRecords').insert([payload]);
+            $('#overlay').hide();
+
+            if (error) { alert("Error: " + error.message); }
+            else {
+                Toastify({ text: "SAVED", background: "var(--success)" }).showToast();
+                $('#part_name, #qty, #carton').val('');
+                fetchHistory();
+                $('.table-container').scrollTop(0);
+            }
+        }
+
+        async function fetchHistory() {
+            const month = $('#f-month').val();
+            const year = $('#f-year').val();
+            const typeFilter = $('#f-type').val(); // Get selected type
+
+            const start = `${year}-${month.toString().padStart(2, '0')}-01`;
+            const end = new Date(year, month, 0).toISOString().split('T')[0];
+
+            // Build the base query
+            let query = _supabase.from('storeRecords').select('*')
+                .gte('record_date', start)
+                .lte('record_date', end);
+
+            // Apply Entry Type filter if not "ALL"
+            if (typeFilter !== 'ALL') {
+                query = query.eq('entry_type', typeFilter);
+            }
+
+            const { data, error } = await query
+                .order('record_date', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (error) return;
+
+            let rows = '';
+            data.forEach(r => {
+                rows += `<tr>
+            <td>${r.record_date}</td>
+            <td><span class="badge ${r.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${r.entry_type}</span></td>
+            <td style="font-weight:700">${r.part_name}</td>
+            <td style="font-weight:700">${r.quantity}</td>
+            <td>${r.carton_info || '-'}</td>
+            <td>${r.pic_name}</td>
+        </tr>`;
+            });
+            $('#history-rows').html(rows || '<tr><td colspan="6" align="center" style="padding:30px; color:var(--text-muted)">No records.</td></tr>');
+        }
+
+        async function exportExcel(mode) {
+            const year = $('#f-year').val();
+            const month = $('#f-month').val();
+            const typeFilter = $('#f-type').val(); // Get selected type
+
+            let query = _supabase.from('storeRecords').select('*');
+
+            // Date Filtering
+            if (mode === 'monthly') {
+                const start = `${year}-${month.toString().padStart(2, '0')}-01`,
+                    end = new Date(year, month, 0).toISOString().split('T')[0];
+                query = query.gte('record_date', start).lte('record_date', end);
+            } else {
+                query = query.gte('record_date', `${year}-01-01`).lte('record_date', `${year}-12-31`);
+            }
+
+            // Apply Entry Type filter to export if not "ALL"
+            if (typeFilter !== 'ALL') {
+                query = query.eq('entry_type', typeFilter);
+            }
+
+            const { data } = await query.order('record_date', { ascending: false });
+
+            if (!data || data.length === 0) return alert("No data.");
+
+            const exportData = data.map(r => ({
+                Date: r.record_date,
+                Type: r.entry_type,
+                Part: r.part_name,
+                Qty: r.quantity,
+                Carton: r.carton_info,
+                PIC: r.pic_name
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData), wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Records");
+            XLSX.writeFile(wb, `StoreReport_${typeFilter}_${mode}_${year}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>
