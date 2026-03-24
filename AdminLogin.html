@@ -298,7 +298,8 @@
     <div class="content">
         <div class="dashboard-grid">
             <!-- Generate File -->
-            <button id="generateFileBtn" class="dashboard-card" onclick="navigateTo('screen_page/generate_file/FileGenerator.html')">
+            <button id="generateFileBtn" class="dashboard-card"
+                onclick="navigateTo('screen_page/generate_file/FileGenerator.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
@@ -341,7 +342,8 @@
             </button>
 
             <!-- Remove Folder -->
-            <button id="removeFolderBtn" class="dashboard-card" onclick="navigateTo('screen_page/remove_folder/removefolder.html')">
+            <button id="removeFolderBtn" class="dashboard-card"
+                onclick="navigateTo('screen_page/remove_folder/removefolder.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
@@ -350,7 +352,8 @@
             </button>
 
             <!-- Generate Report -->
-            <button id="generateReport" class="dashboard-card" onclick="navigateTo('screen_page/report_generator/generateReport.html')">
+            <button id="generateReport" class="dashboard-card"
+                onclick="navigateTo('screen_page/report_generator/generateReport.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
@@ -359,7 +362,8 @@
             </button>
 
             <!-- Notify Email Page -->
-            <button id="notifyEmailBtn" class="dashboard-card" onclick="navigateTo('screen_page/notification/teamsNotification.html')">
+            <button id="notifyEmailBtn" class="dashboard-card"
+                onclick="navigateTo('screen_page/notification/teamsNotification.html')">
                 <svg class="card-icon" viewBox="0 0 24 24">
                     <path
                         d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V8l7 5 7-5v9zm-7-6.5L5 6h14l-7 4.5z" />
@@ -367,11 +371,20 @@
                 <span class="card-title">Notify Teams Channel</span>
             </button>
 
-            <!-- Job Order Summarry Report -->
-            <!-- <button id="generateReport" class="dashboard-card" onclick="navigateTo('jobOrderSummary.html')">
-                <svg class="card-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-                <span class="card-title">Job Order Summary Report</span>
-            </button> -->
+            <!-- Data Editor -->
+            <button id="dataEditor" class="dashboard-card"
+                onclick="navigateTo('screen_page/table_editor/table_editor.html')">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <!-- Main Table Frame -->
+                    <path d="M3 3v18h13v-2H5V5h14v6h2V3H3z" />
+                    <!-- Table Rows -->
+                    <path d="M7 7h10v2H7zm0 4h7v2H7zm0 4h4v2H7z" />
+                    <!-- Large Action Pencil -->
+                    <path
+                        d="M18.25 12.3l-6.25 6.25V21h2.45l6.25-6.25zM21.7 10.8l-1.1-1.1c-.4-.4-1-.4-1.4 0l-.9.9 2.5 2.5.9-.9c.4-.4.4-1 0-1.4z" />
+                </svg>
+                <span class="card-title">Data Editor</span>
+            </button>
         </div>
     </div>
 
@@ -458,6 +471,7 @@
             document.getElementById('usersBtn').classList.add('disabled');
             document.getElementById('removeFolderBtn').classList.add('disabled');
             document.getElementById('generateReport').classList.add('disabled');
+            document.getElementById('dataEditor').classList.add('disabled');
 
             // Update buttons based on access level
             switch (accessLevel) {
@@ -470,6 +484,8 @@
                     document.getElementById('usersBtn').classList.remove('disabled');
                     document.getElementById('removeFolderBtn').classList.remove('disabled');
                     document.getElementById('generateReport').classList.remove('disabled');
+                    document.getElementById('dataEditor').classList.remove('disabled');
+
                     break;
 
                 case 'ENGINEER':

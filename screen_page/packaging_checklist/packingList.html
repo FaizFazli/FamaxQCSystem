@@ -748,9 +748,11 @@
                     <tbody id="tableBody"></tbody>
                     <tfoot>
                         <tr class="subtotal-row">
-                            <td colspan="4" align="right">GrandTotal:</td>
-                            <td align="center" id="table_total_nw">0.00</td>
-                            <td align="center" id="table_total_gw">0.00</td>
+                            <td colspan="4" align="right">Grand Total:</td>
+                            <td align="center"><input type="text" id="table_total_nw" class="inp-table"
+                                    style="font-weight:bold"></td>
+                            <td align="center"><input type="text" id="table_total_gw" class="inp-table"
+                                    style="font-weight:bold"></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -770,11 +772,13 @@
                 </div>
                 <div class="summary-line">
                     <label>Total NW :</label>
-                    <span class="val" id="fin_nw">0.00</span> <span class="unit">KGS</span>
+                    <input type="text" class="total-ctn-inp" id="fin_nw" placeholder="0.00 KGS"
+                        style="max-width: 450px; font-weight: 800; color: var(--primary); font-size: 18px;">
                 </div>
                 <div class="summary-line">
                     <label>Total GW :</label>
-                    <span class="val" id="fin_gw">0.00</span> <span class="unit">KGS</span>
+                    <input type="text" class="total-ctn-inp" id="fin_gw" placeholder="0.00 KGS"
+                        style="max-width: 450px; font-weight: 800; color: var(--primary); font-size: 18px;">
                 </div>
                 <div style="margin-top:50px; font-weight:bold; font-size:16px; color:#111827;">FAMAX TECHNOLOGY (M)
                     SDN. BHD.</div>
@@ -803,6 +807,7 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        let editingId = null;
         let partsData = [];
         let letterheadBase64 = null;
         const LETTERHEAD_URL = "http://192.168.0.5:8000/storage/v1/object/public/assets/LETTERHEAD.png";
@@ -835,7 +840,22 @@
             $('#doc_date, #ship_date').val(today);
             $(document).on('input', '.nw-calc, .gw-calc', calculateTotals);
             $(document).on('input', 'input[type="text"], textarea', function () { this.value = this.value.toUpperCase(); });
+
+
+            $(document).on('input', '#table_total_nw', function () { $('#fin_nw').val($(this).val()); });
+            $(document).on('input', '#fin_nw', function () { $('#table_total_nw').val($(this).val()); });
+
+            $(document).on('input', '#table_total_gw', function () { $('#fin_gw').val($(this).val()); });
+            $(document).on('input', '#fin_gw', function () { $('#table_total_gw').val($(this).val()); });
         });
+
+        // Helper to convert YYYY-MM-DD to DD-MM-YYYY
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
 
         async function loadInitialData() {
             try {
@@ -1102,40 +1122,35 @@
         function calculateTotals() {
             let globalNw = 0, globalGw = 0;
 
-            // 1. Calculate Grand Totals (All boxes on the whole page)
+            // 1. Calculate Grand Totals from all weight rows
             $('.nw-calc').each(function () { globalNw += parseFloat($(this).val()) || 0; });
             $('.gw-calc').each(function () { globalGw += parseFloat($(this).val()) || 0; });
 
-            $('#table_total_nw, #fin_nw').text(globalNw.toFixed(2));
-            $('#table_total_gw, #fin_gw').text(globalGw.toFixed(2));
+            // 2. Format the result string
+            const nwStr = globalNw.toFixed(2) + " KGS";
+            const gwStr = globalGw.toFixed(2) + " KGS";
 
-            // 2. Calculate Section Subtotals
+            // 3. Update the fields
+            // Note: We use .val() because they are now text inputs
+            $('#table_total_nw').val(nwStr);
+            $('#fin_nw').val(nwStr);
+
+            $('#table_total_gw').val(gwStr);
+            $('#fin_gw').val(gwStr);
+
+            // 4. Calculate Section Subtotals (Pallet groups)
             let currentSectionNW = 0;
             let currentSectionGW = 0;
 
             $('#tableBody tr').each(function () {
                 const $tr = $(this);
-
-                // If it's an Item Row or a Pallet/Description Row
                 if ($tr.hasClass('item-row') || $tr.hasClass('desc-row')) {
-
-                    // FIX: Loop through EVERY NW box in this row, not just the first one
-                    $tr.find('.nw-calc').each(function () {
-                        currentSectionNW += parseFloat($(this).val()) || 0;
-                    });
-
-                    // FIX: Loop through EVERY GW box in this row
-                    $tr.find('.gw-calc').each(function () {
-                        currentSectionGW += parseFloat($(this).val()) || 0;
-                    });
-
+                    $tr.find('.nw-calc').each(function () { currentSectionNW += parseFloat($(this).val()) || 0; });
+                    $tr.find('.gw-calc').each(function () { currentSectionGW += parseFloat($(this).val()) || 0; });
                 }
-                // If we hit a Subtotal Row, display the sum and reset counters
                 else if ($tr.hasClass('item-subtotal-row')) {
                     $tr.find('.section-nw').text(currentSectionNW.toFixed(2));
                     $tr.find('.section-gw').text(currentSectionGW.toFixed(2));
-
-                    // Reset for the next section
                     currentSectionNW = 0;
                     currentSectionGW = 0;
                 }
@@ -1243,12 +1258,17 @@
                     }
                 }
                 else if ($tr.hasClass('desc-row')) {
-                    items.push({
-                        type: 'desc',
+                    const palletObj = {
                         text: $tr.find('textarea').val().toUpperCase(),
                         nw: $tr.find('.nw-calc').val(),
                         gw: $tr.find('.gw-calc').val()
-                    });
+                    };
+
+                    // Add to the main items list (for PDF generation)
+                    items.push({ type: 'desc', ...palletObj });
+
+                    // Add specifically to the palletDescriptions array (for the DB column)
+                    palletDescriptions.push(palletObj);
                 }
                 else if ($tr.hasClass('item-subtotal-row')) {
                     items.push({
@@ -1314,15 +1334,31 @@
                 payment_term: $('#pay_term').val() === "NEW" ? $('#new_pay_term').val().toUpperCase() : $('#pay_term').val(),
                 items: items,
                 total_ctn_desc: $('#total_ctn_desc').val().toUpperCase(),
-                total_nw: $('#fin_nw').text(),
-                total_gw: $('#fin_gw').text(),
-                pallet_info: pallet_info_val,
+                total_nw: $('#fin_nw').val(),
+                total_gw: $('#fin_gw').val(),
+                pallet_info: palletDescriptions,
                 signatory_name: sigKey,
                 signature_image: signatureBase64
             };
 
-            const { error } = await _supabase.from('packing_list_records').insert([payload]);
-            if (error) { alert(error.message); $('#loading-overlay').hide(); return; }
+            let result;
+            if (editingId) {
+                // UPDATE existing record
+                result = await _supabase.from('packing_list_records').update(payload).eq('id', editingId);
+            } else {
+                // INSERT new record
+                result = await _supabase.from('packing_list_records').insert([payload]);
+            }
+
+            if (result.error) {
+                alert(result.error.message);
+                $('#loading-overlay').hide();
+                return;
+            }
+
+            // Reset mode after successful save
+            editingId = null;
+            $('.btn-submit').text("SAVE RECORD & GENERATE PDF").css("background", "var(--primary)");
 
             generatePDF(payload);
             $('#loading-overlay').hide();
@@ -1415,14 +1451,14 @@
             doc.autoTable({
                 startY: startY,
                 tableWidth: 80,
-                margin: { left: 116 }, // Shifted from 112 to 116 to create a safety gap
+                margin: { left: 116 },
                 theme: 'plain',
                 styles: { ...headerTableStyles, valign: 'top' },
                 body: [
                     ['INVOICE NO.', ': ' + d.invoice_no],
-                    ['DATE', ': ' + d.doc_date],
+                    ['DATE', ': ' + formatDate(d.doc_date)],              // Now formatted
                     ['ORDER NO.', ': ' + d.order_no],
-                    ['SHIPMENT DATE', ': ' + d.shipment_date],
+                    ['SHIPMENT DATE', ': ' + formatDate(d.shipment_date)], // Now formatted
                     ['COUNTRY OF ORIGIN', ': ' + d.country_of_origin],
                     ['SHIPMENT TERM', ': ' + d.shipment_term],
                     ['PAYMENT TERM', ': ' + d.payment_term]
@@ -1438,24 +1474,27 @@
 
             let itemCounter = 0;
             const pdfRows = [];
+            const palletCount = d.items.filter(it => it.type === 'desc').length;
 
+            // Process all items for the table body
             // Process all items for the table body
             d.items.forEach((it) => {
                 if (it.type === 'item') {
                     itemCounter++;
-                    // Check if there are nested details
-                    if (it.details && it.details.length > 0) {
-                        it.details.forEach((det, idx) => {
-                            pdfRows.push([
-                                idx === 0 ? itemCounter : '',      // Show NO only on 1st line
-                                idx === 0 ? it.part : '',         // Show PART only on 1st line
-                                idx === 0 ? it.qty : '',          // Show QTY only on 1st line
-                                det.ctn.toUpperCase(),            // Show description
-                                parseFloat(det.nw).toFixed(2),    // Show NW
-                                parseFloat(det.gw).toFixed(2)     // Show GW
-                            ]);
-                        });
-                    }
+
+                    // Multi-line logic (as established previously)
+                    const combinedCtn = it.details.map(det => det.ctn.toUpperCase()).join('\n');
+                    const combinedNw = it.details.map(det => parseFloat(det.nw).toFixed(2)).join('\n');
+                    const combinedGw = it.details.map(det => parseFloat(det.gw).toFixed(2)).join('\n');
+
+                    pdfRows.push([
+                        itemCounter,
+                        it.part,
+                        it.qty,
+                        combinedCtn,
+                        combinedNw,
+                        combinedGw
+                    ]);
                 }
                 else if (it.type === 'desc') {
                     pdfRows.push([
@@ -1465,74 +1504,92 @@
                     ]);
                 }
                 else if (it.type === 'subtotal') {
-                    pdfRows.push([
-                        { content: 'SUBTOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
-                        { content: it.nw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
-                        { content: it.gw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } }
-                    ]);
+                    // NEW CONDITION: Only push the subtotal row if there is more than 1 pallet
+                    if (palletCount > 1) {
+                        pdfRows.push([
+                            { content: 'SUBTOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                            { content: it.nw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                            { content: it.gw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } }
+                        ]);
+                    }
                 }
             });
 
-            doc.autoTable({
-                startY: mainTableStartY, // Adjust this based on your header height
+           doc.autoTable({
+                startY: mainTableStartY,
                 head: [['NO', 'PART NUMBER', 'QTY', 'CTN DESCRIPTION', 'NW (KGS)', 'GW (KGS)']],
                 body: pdfRows,
                 theme: 'grid',
                 headStyles: { fillColor: [240, 240, 240], textColor: 'black', fontStyle: 'bold', halign: 'center' },
-                styles: { fontSize: 8, textColor: 'black', valign: 'middle' },
+                styles: { fontSize: 8, textColor: 'black', valign: 'top', cellPadding: 2 },
                 columnStyles: {
                     0: { halign: 'center', cellWidth: 10 },
                     1: { cellWidth: 50 },
                     2: { halign: 'center', cellWidth: 15 },
                     3: { cellWidth: 55 },
-                    4: { halign: 'right' },
-                    5: { halign: 'right' }
+                    4: { halign: 'right', cellWidth: 20 },
+                    5: { halign: 'right', cellWidth: 20 }
                 },
                 foot: [[
-                    { content: 'GRAND TOTAL:', colSpan: 4, styles: { fillColor:[240, 240, 240], halign: 'right', fontStyle: 'bold' } },
-                    { content: d.total_nw, styles: { fillColor:[240, 240, 240], fontStyle: 'bold', halign: 'right' } },
-                    { content: d.total_gw, styles: { fillColor:[240, 240, 240], fontStyle: 'bold', halign: 'right' } }
+                    { content: 'GrandTotal:', colSpan: 4, styles: { fillColor: [240, 240, 240], halign: 'right', fontStyle: 'bold' } },
+                    { content: cleanWeightForTable(d.total_nw), styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'right' } },
+                    { content: cleanWeightForTable(d.total_gw), styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'right' } }
                 ]],
-                showFoot: 'lastPage',
-                margin: { top: 50 },
+                // REDUCED BOTTOM MARGIN to allow table to go lower
+                margin: { top: 50, bottom: 15 }, 
                 didDrawPage: (data) => { if (data.pageNumber > 1) drawLetterhead(); }
             });
 
+            // --- TIGHTENED SUMMARY AND SIGNATURE LOGIC ---
+            
+            // Reduced gap from table to 5mm
+            let finalY = doc.lastAutoTable.finalY + 5; 
 
-
-            // Final Summary and Signature logic
-            let finalY = doc.lastAutoTable.finalY + 12;
-
-            if (finalY > 215) {
+            // INCREASED THRESHOLD: A4 is 297mm. 
+            // 250mm leaves just enough room for the signature at the very bottom.
+            if (finalY > 250) { 
                 doc.addPage();
                 drawLetterhead();
                 finalY = 55;
             }
 
+            // Summary Text (Tightened spacing)
             doc.setFontSize(10); doc.setFont("helvetica", "bold");
-            doc.text(`Total Ctn  : ${d.total_ctn_desc}`, 15, finalY);
-            doc.text(`Total NW   : ${d.total_nw} KGS`, 15, finalY + 6);
-            doc.text(`Total GW   : ${d.total_gw} KGS`, 15, finalY + 12);
+            doc.text(`Total Ctn  : ${d.total_ctn_desc}`, 15, finalY + 2);
+            doc.text(`Total NW   : ${d.total_nw}`, 15, finalY + 7);
+            doc.text(`Total GW   : ${d.total_gw}`, 15, finalY + 12);
 
-            doc.text("FAMAX TECHNOLOGY (M) SDN. BHD.", 15, finalY + 29);
+            // Signature Block (Shifted up to save space)
+            // --- BEAUTIFIED SIGNATORY SECTION ---
+            let sigStartY = finalY + 20; 
+            doc.setFontSize(10);
+            doc.text("FAMAX TECHNOLOGY (M) SDN. BHD.", 15, sigStartY);
+
+            // 1. Draw the Signature Line
+            // Positioned lower to give the image more space
+            doc.setLineWidth(0.4); 
+            doc.line(15, sigStartY + 24, 85, sigStartY + 24); 
+
+            // 2. Add the Signature & Stamp Image
             if (d.signature_image) {
-                // Positioning: 15 (left), finalY + 28 (start above line), 40 (width), 15 (height)
-                // Adjust width/height (40, 15) based on your image aspect ratio
                 if (d.signatory_name === "Nabila") {
-                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 14, 55, 60);
+                    // Nabila: Adjusted for a balanced centered look
+                    // (x, y, width, height)
+                    doc.addImage(d.signature_image, 'PNG', 18, sigStartY - 10, 50, 50);
                 } else if (d.signatory_name === "Adila") {
-                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 25, 60, 45);
+                    // Adila: Adjusted to be wider and sit elegantly on the line
+                    // We move Y up slightly (sigStartY + 2) so it doesn't hit the text below
+                    doc.addImage(d.signature_image, 'PNG', 15, sigStartY - 2, 65, 30);
                 } else {
-                    doc.addImage(d.signature_image, 'PNG', 15, finalY + 14, 55, 65);
+                    doc.addImage(d.signature_image, 'PNG', 15, sigStartY + 4, 50, 25);
                 }
-
             }
-            doc.setLineWidth(0.5); doc.line(15, finalY + 57, 80, finalY + 57);
-            doc.text("AUTHORISED SIGNATORY", 15, finalY + 63);
 
+            // 3. Authorised label
+            // Positioned exactly 5mm below the line
             doc.setFontSize(9);
-            doc.setFont("helvetica", "normal");
-            // doc.text("This is a computer-generated document. No signature is required.", 15, finalY + 60);
+            doc.setFont("helvetica", "bold");
+            doc.text("AUTHORISED SIGNATORY", 15, sigStartY + 29);
 
             doc.save(`PackingList_${d.invoice_no}.pdf`);
         }
@@ -1569,11 +1626,10 @@
                 <tr>
                     <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
                     <td>${r.customer_name}</td>
-                    <td>${r.doc_date}</td>
+                    <td>${formatDate(r.doc_date)}</td>                    
                     <td>
-                        <button class="btn-pdf" onclick='generatePDF(${JSON.stringify(r)})'>
-                            VIEW PDF
-                        </button>
+                        <button class="btn" style="background:#0078d4; color:white; padding:5px 10px; margin-right:5px;" onclick='loadRecordForEdit(${JSON.stringify(r)})'>EDIT</button>
+                        <button class="btn" style="background:#6b7280; color:white; padding:5px 10px;" onclick='generatePDF(${JSON.stringify(r)})'>PDF</button>
                     </td>
                 </tr>`;
                 });
@@ -1581,6 +1637,165 @@
 
             html += '</tbody></table>';
             $('#modalList').html(html);
+        }
+
+        function loadRecordForEdit(r) {
+    editingId = r.id;
+    $('#recordsModal').hide();
+    $('.btn-submit').text("UPDATE RECORD & GENERATE PDF").css("background", "#f59e0b");
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Set Header Fields
+    $('#invoice_no').val(r.invoice_no);
+    $('#doc_date').val(r.doc_date || today);
+    $('#order_no').val(r.order_no);
+    $('#ship_date').val(r.ship_date || today);
+    $('#ship_from').val(r.shipment_from);
+    $('#ship_via').val(r.ship_via);
+    $('#origin').val(r.country_of_origin);
+    $('#ship_term').val(r.shipment_term);
+    $('#pay_term').val(r.payment_term);
+    $('#cust_address').val(r.customer_address);
+    $('#tel').val(r.tel);
+    $('#attn').val(r.attn);
+
+    // 2. Match Customer Dropdown
+    let foundCust = false;
+    $('#cust_select option').each(function () {
+        if ($(this).data('name') === r.customer_name) {
+            $('#cust_select').val($(this).val());
+            foundCust = true;
+        }
+    });
+    if (!foundCust) {
+        $('#cust_select').val("NEW");
+        $('#new_cust_row').show();
+        $('#new_cust_name').val(r.customer_name);
+    }
+
+    // 3. Reconstruct Table Body
+    $('#tableBody').empty();
+    r.items.forEach(it => {
+        if (it.type === 'item') {
+            addItemRow();
+            const $row = $('#tableBody tr.item-row').last();
+            $row.find('.part-val').val(it.part);
+            $row.find('.qty-val').val(it.qty);
+
+            it.details.forEach((det, idx) => {
+                if (idx > 0) addCtnDetail($row.find('.btn-small-add')[0]);
+                $row.find('.ctn-val').eq(idx).val(det.ctn);
+                $row.find('.nw-calc').eq(idx).val(det.nw);
+                $row.find('.gw-calc').eq(idx).val(det.gw);
+            });
+        }
+        else if (it.type === 'desc') {
+            addDescriptionRow();
+            const $row = $('#tableBody tr.desc-row').last();
+            $row.find('textarea').val(it.text);
+            $row.find('.nw-calc').val(it.nw);
+            $row.find('.gw-calc').val(it.gw);
+        }
+    });
+
+    // --- IMPORTANT: THE FIX IS HERE ---
+
+    // 4. Run calculation FIRST to set the subtotal rows correctly
+    calculateTotals(); 
+
+    // 5. Set the Summary Fields LAST so they overwrite the 
+    // auto-calculated numbers with the full text from the database
+    $('#total_ctn_desc').val(r.total_ctn_desc);
+    $('#fin_nw').val(r.total_nw); 
+    $('#fin_gw').val(r.total_gw);
+    $('#table_total_nw').val(r.total_nw);
+    $('#table_total_gw').val(r.total_gw);
+    
+    $('#signatory_select').val(r.signatory_name);
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+        // function loadRecordForEdit(r) {
+        //     editingId = r.id;
+        //     $('#recordsModal').hide();
+        //     $('.btn-submit').text("UPDATE RECORD & GENERATE PDF").css("background", "#f59e0b");
+
+        //     // Get today's date in YYYY-MM-DD format as a fallback
+        //     const today = new Date().toISOString().split('T')[0];
+
+        //     // Header Fields - Use record date, or today if record date is null/empty
+        //     $('#invoice_no').val(r.invoice_no);
+        //     $('#doc_date').val(r.doc_date || today);   // <--- Updated logic
+        //     $('#order_no').val(r.order_no);
+        //     $('#ship_date').val(r.ship_date || today); // <--- Updated logic
+
+        //     $('#ship_from').val(r.shipment_from);
+        //     $('#ship_via').val(r.ship_via);
+        //     $('#origin').val(r.country_of_origin);
+        //     $('#ship_term').val(r.shipment_term);
+        //     $('#pay_term').val(r.payment_term);
+
+        //     // ... rest of the function stays exactly the same ...
+        //     $('#cust_address').val(r.customer_address);
+        //     $('#tel').val(r.tel);
+        //     $('#attn').val(r.attn);
+
+        //     // Customer Info logic (matching name)
+        //     let foundCust = false;
+        //     $('#cust_select option').each(function () {
+        //         if ($(this).data('name') === r.customer_name) {
+        //             $('#cust_select').val($(this).val());
+        //             foundCust = true;
+        //         }
+        //     });
+        //     if (!foundCust) {
+        //         $('#cust_select').val("NEW");
+        //         $('#new_cust_row').show();
+        //         $('#new_cust_name').val(r.customer_name);
+        //     }
+
+        //     // Table Body reconstruction
+        //     $('#tableBody').empty();
+        //     r.items.forEach(it => {
+        //         if (it.type === 'item') {
+        //             addItemRow();
+        //             const $row = $('#tableBody tr.item-row').last();
+        //             $row.find('.part-val').val(it.part);
+        //             $row.find('.qty-val').val(it.qty);
+
+        //             it.details.forEach((det, idx) => {
+        //                 if (idx > 0) addCtnDetail($row.find('.btn-small-add')[0]);
+        //                 $row.find('.ctn-val').eq(idx).val(det.ctn);
+        //                 $row.find('.nw-calc').eq(idx).val(det.nw);
+        //                 $row.find('.gw-calc').eq(idx).val(det.gw);
+        //             });
+        //         }
+        //         else if (it.type === 'desc') {
+        //             addDescriptionRow();
+        //             const $row = $('#tableBody tr.desc-row').last();
+        //             $row.find('textarea').val(it.text || "PALLET + EDGE PROTECTOR");
+        //             $row.find('.nw-calc').val(it.nw);
+        //             $row.find('.gw-calc').val(it.gw);
+        //         }
+        //     });
+
+        //     $('#total_ctn_desc').val(r.total_ctn_desc);
+        //     $('#fin_nw').val(r.total_nw);
+        //     $('#fin_gw').val(r.total_gw);
+        //     $('#signatory_select').val(r.signatory_name);
+
+        //     calculateTotals();
+        //     window.scrollTo({ top: 0, behavior: 'smooth' });
+        // }
+
+        // Helper to strip extra text and keep only "0.00 KGS"
+        function cleanWeightForTable(str) {
+            if (!str) return "0.00 KGS";
+            // This finds the first number (like 100.00) in the string
+            const match = str.match(/[0-9.]+/);
+            return match ? match[0] + " KGS" : "0.00 KGS";
         }
 
     </script>

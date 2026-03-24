@@ -517,7 +517,7 @@
     <div id="downloadModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
-            <h3 style="margin-top:0">Recent Packaging Records</h3>
+            <h3 style="margin-top:0">Recent Shipment Records</h3>
             <div class="search-box">
                 <input type="text" id="modalSearchInput" placeholder="Search by Doc No, Customer, or Pack List No...">
                 <button class="btn-submit" style="width:auto; margin-top:0; padding:10px 20px;"
@@ -574,7 +574,7 @@
 
     <div class="card">
         <div class="card-header">
-            <h2 style="margin:0">Packaging Checklist Form</h2>
+            <h2 style="margin:0">Shipment Checklist Form</h2>
         </div>
         <div class="card-body">
             <!-- Header Information -->
@@ -869,8 +869,53 @@
                 $('#detailsTitle').text(`Details for: ${data.invoice_no}`);
                 const tbody = $('#detailsBody').empty();
                 data.items.forEach(item => {
-                    if (item.type === 'item') tbody.append(`<tr><td>${item.part}</td><td align="center">${item.qty}</td><td>${item.ctn}</td><td align="right">${item.nw}</td><td align="right">${item.gw}</td></tr>`);
-                    else tbody.append(`<tr style="background:#f9fafb; font-style:italic;"><td colspan="5">${item.text}</td></tr>`);
+                    // 1. HANDLE ITEMS (Summing up the nested details)
+                    if (item.type === 'item') {
+                        let totalNW = 0;
+                        let totalGW = 0;
+                        let ctnDescriptions = [];
+
+                        // Loop through the nested details array to get weights and cartons
+                        if (item.details && Array.isArray(item.details)) {
+                            item.details.forEach(d => {
+                                totalNW += parseFloat(d.nw || 0);
+                                totalGW += parseFloat(d.gw || 0);
+                                if (d.ctn) ctnDescriptions.push(d.ctn);
+                            });
+                        }
+
+                        tbody.append(`
+                                  <tr>
+                                    <td style="font-weight:600;">${item.part || 'Unknown Part'}</td>
+                                    <td align="center">${item.qty || 0}</td>
+                                    <td>${ctnDescriptions.join(", ")}</td>
+                                    <td align="right">${totalNW.toFixed(2)}</td>
+                                    <td align="right">${totalGW.toFixed(2)}</td>
+                                 </tr>
+                                 `);
+                    }
+
+                    // 2. HANDLE DESCRIPTIONS (Pallet / Edge Protector info)
+                    else if (item.type === 'desc') {
+                        tbody.append(`
+                                        <tr style="background:#f8fafc; font-style:italic; color: #475569;">
+                                        <td colspan="3"><strong>${item.text || ''}</strong></td>
+                                        <td align="right">${item.nw || '0.00'}</td>
+                                        <td align="right">${item.gw || '0.00'}</td>
+                                        </tr>
+                                        `);
+                    }
+
+                    // 3. HANDLE SUBTOTALS
+                    else if (item.type === 'subtotal') {
+                        tbody.append(`
+                                                         <tr style="background:#f1f5f9; font-weight:800; border-top: 2px solid #cbd5e1;">
+                                                        <td colspan="3" align="right">SUBTOTAL</td>
+                                                        <td align="right">${item.nw || '0.00'}</td>
+                                                        <td align="right">${item.gw || '0.00'}</td>
+                                                        </tr>
+                                                    `);
+                    }
                 });
                 $('#detailsModal').fadeIn(200);
             } catch (err) { Toastify({ text: "Error loading details", background: "#ef4444" }).showToast(); }

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Packaging Checklist Form</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+
+    <!-- Google Fonts & Libraries -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-dark: #005a9e;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --focus-ring: rgba(0, 120, 212, 0.25);
+            --radius: 8px;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            padding: 20px;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        /* --- Navigation --- */
+        .nav-top {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--primary);
+            padding: 20px 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            background: #f3f4f6;
+            padding: 12px;
+            margin: 30px 0 15px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        /* Show More Button Style */
+        .label-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .show-more-btn {
+            font-size: 11px;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-decoration: underline;
+        }
+
+        input[type="text"],
+        input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+
+        th {
+            background: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        td {
+            padding: 10px;
+            background: #fff;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .col-item {
+            width: 45%;
+        }
+
+        .col-chk {
+            width: 110px;
+            text-align: center;
+        }
+
+        .col-rem {
+            width: 40%;
+        }
+
+        .chk-cell {
+            text-align: center;
+        }
+
+        .chk-cell input,
+        .select-all-chk {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* Styling for the header check container */
+        .header-check-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        .btn-secondary {
+            background-color: #fff;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 25px;
+            width: 90%;
+            max-width: 900px;
+            border-radius: 12px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .details-table th {
+            background: #4b5563;
+            color: white;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            flex-direction: column;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .suggestions-list {
+            position: fixed;
+            background: white;
+            border: 1px solid #999;
+            z-index: 9999999;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: none;
+            border-radius: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .suggestions-list li {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestions-list li:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .rem {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    <ul id="global-suggestions" class="suggestions-list"></ul>
+
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+    </div>
+
+    <!-- Navigation Buttons Outside Card -->
+    <div class="nav-top">
+        <a onclick="window.location.href='../../index.html'" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </a>
+        <button class="btn-secondary" onclick="$('#downloadModal').fadeIn(200); searchRecords();">View / Re-download
+            Records</button>
+    </div>
+
+    <!-- Records Modal -->
+    <div id="downloadModal" class="modal">
+        <div class="modal-content">
+            <span class="close" style="float:right; cursor:pointer; font-size:24px;"
+                onclick="$('#downloadModal').fadeOut(200)">&times;</span>
+            <h3 style="margin-top:0">Recent Packaging Records</h3>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="text" id="modalSearchInput" placeholder="Search Document, Customer...">
+                <button class="btn-secondary" onclick="searchRecords()">Search</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Doc No</th>
+                            <th>Pack List</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal (Show More) -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" style="float:right; cursor:pointer; font-size:24px;"
+                onclick="$('#detailsModal').hide()">&times;</span>
+            <h3 id="detailsTitle" style="margin-top:0">Packing List Details</h3>
+            <div class="table-container">
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>Part Number</th>
+                            <th>Qty</th>
+                            <th>Ctn Description</th>
+                            <th>NW</th>
+                            <th>GW</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 style="margin:0">Packaging Checklist Form</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Document No</label>
+                    <input type="text" id="document_no" placeholder="Auto-generated" readonly
+                        style="background: #f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <div class="label-header">
+                        <label style="margin-bottom:0">Packing List Number</label>
+                        <span class="show-more-btn" onclick="showPackingListDetails()">Show More</span>
+                    </div>
+                    <input type="text" id="packaging_list_no" placeholder="Search or Type list number"
+                        autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Customer</label>
+                    <input type="text" id="customer" placeholder="Enter customer name">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Order No</label>
+                    <input type="text" id="delivery_order_no" placeholder="Enter DO number">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="checklist_date">
+                </div>
+            </div>
+
+            <!-- SECTION A -->
+            <div class="section-title">Section A: Label Information</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-item">Criteria</th>
+                            <th class="col-chk">
+                                <div class="header-check-container">
+                                    <span>Check</span>
+                                    <input type="checkbox" class="select-all-chk" data-section="sectionA">
+                                </div>
+                            </th>
+                            <th class="col-rem">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sectionA">
+                        <tr>
+                            <td>Part Number matches actual product</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="a1"></td>
+                            <td><input type="text" class="rem" data-id="a1"></td>
+                        </tr>
+                        <tr>
+                            <td>Quantity matches actual contents</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="a2"></td>
+                            <td><input type="text" class="rem" data-id="a2"></td>
+                        </tr>
+                        <tr>
+                            <td>Dimensions match actual measurement</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="a3"></td>
+                            <td><input type="text" class="rem" data-id="a3"></td>
+                        </tr>
+                        <tr>
+                            <td>Net Weight matches measured</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="a4"></td>
+                            <td><input type="text" class="rem" data-id="a4"></td>
+                        </tr>
+                        <tr>
+                            <td>Manufacturing Date matches records</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="a5"></td>
+                            <td><input type="text" class="rem" data-id="a5"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION B -->
+            <div class="section-title">Section B: Product Condition</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-item">Criteria</th>
+                            <th class="col-chk">
+                                <div class="header-check-container">
+                                    <span>Check</span>
+                                    <input type="checkbox" class="select-all-chk" data-section="sectionB">
+                                </div>
+                            </th>
+                            <th class="col-rem">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sectionB">
+                        <tr>
+                            <td>Verify product is new and unused</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="b1"></td>
+                            <td><input type="text" class="rem" data-id="b1"></td>
+                        </tr>
+                        <tr>
+                            <td>Not excessively oily (unless specified)</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="b2"></td>
+                            <td><input type="text" class="rem" data-id="b2"></td>
+                        </tr>
+                        <tr>
+                            <td>Free from dust</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="b3"></td>
+                            <td><input type="text" class="rem" data-id="b3"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION C -->
+            <div class="section-title">Section C: Packaging Condition</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-item">Criteria</th>
+                            <th class="col-chk">
+                                <div class="header-check-container">
+                                    <span>Check</span>
+                                    <input type="checkbox" class="select-all-chk" data-section="sectionC">
+                                </div>
+                            </th>
+                            <th class="col-rem">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sectionC">
+                        <tr>
+                            <td>Box: No damage, tear or deformation</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="c1"></td>
+                            <td><input type="text" class="rem" data-id="c1"></td>
+                        </tr>
+                        <tr>
+                            <td>Label is clearly printed and attached</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="c2"></td>
+                            <td><input type="text" class="rem" data-id="c2"></td>
+                        </tr>
+                        <tr>
+                            <td>Properly sealed without gaps</td>
+                            <td class="chk-cell"><input type="checkbox" data-id="c3"></td>
+                            <td><input type="text" class="rem" data-id="c3"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-title">Sign-Off Table</div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Name</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Prepared by</td>
+                            <td><input type="text" id="prep_name"></td>
+                            <td><input type="date" id="prep_date"></td>
+                        </tr>
+                        <tr>
+                            <td>Checked by</td>
+                            <td><input type="text" id="chk_name"></td>
+                            <td><input type="date" id="chk_date"></td>
+                        </tr>
+                        <tr>
+                            <td>Approved by</td>
+                            <td><input type="text" id="app_name"></td>
+                            <td><input type="date" id="app_date"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <button class="btn-submit" onclick="submitForm()">Save & Generate PDF</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let invoiceData = [];
+
+        $(document).ready(function () {
+            fetchInvoiceData();
+            const today = new Date().toISOString().split('T')[0];
+            $('#checklist_date, #prep_date, #chk_date, #app_date').val(today);
+            $('#packaging_list_no').on('input focus', showSuggestions);
+
+            // SELECT ALL FUNCTIONALITY
+            $(document).on('change', '.select-all-chk', function () {
+                const targetSection = $(this).data('section');
+                const isChecked = $(this).is(':checked');
+                $(`#${targetSection} input[type="checkbox"]`).prop('checked', isChecked);
+            });
+        });
+
+        async function fetchInvoiceData() {
+            const { data } = await _supabase.from('packing_list_records').select('invoice_no, customer_name, order_no');
+            invoiceData = data || [];
+        }
+
+        function showSuggestions() {
+            const $input = $('#packaging_list_no');
+            const val = $input.val().toLowerCase();
+            const rect = $input[0].getBoundingClientRect();
+            const matches = invoiceData.filter(i => i.invoice_no.toLowerCase().includes(val)).slice(0, 10);
+            if (matches.length > 0) {
+                $('#global-suggestions').empty().show().css({ top: rect.bottom + 'px', left: rect.left + 'px', width: rect.width + 'px' });
+                matches.forEach(m => $('#global-suggestions').append($('<li>').text(m.invoice_no).on('mousedown', () => {
+                    $('#packaging_list_no').val(m.invoice_no);
+                    $('#customer').val(m.customer_name);
+                    $('#delivery_order_no').val(m.order_no);
+                    $('#global-suggestions').hide();
+                })));
+            } else { $('#global-suggestions').hide(); }
+        }
+
+        // --- SHOW MORE FUNCTIONALITY ---
+        async function showPackingListDetails() {
+            const invoiceNo = $('#packaging_list_no').val();
+            if (!invoiceNo) return Toastify({ text: "Select Packing List No", background: "#ef4444" }).showToast();
+            try {
+                $('#loading-overlay').css('display', 'flex');
+                const { data, error } = await _supabase.from('packing_list_records').select('*').eq('invoice_no', invoiceNo).single();
+                if (error || !data) throw new Error("Not found");
+                $('#detailsTitle').text(`Details for: ${data.invoice_no}`);
+                const tbody = $('#detailsBody').empty();
+                data.items.forEach(item => {
+                    if (item.type === 'item') {
+                        let totalNW = 0, totalGW = 0, ctnDescriptions = [];
+                        if (item.details && Array.isArray(item.details)) {
+                            item.details.forEach(d => {
+                                totalNW += parseFloat(d.nw || 0);
+                                totalGW += parseFloat(d.gw || 0);
+                                if (d.ctn) ctnDescriptions.push(d.ctn);
+                            });
+                        }
+                        tbody.append(`<tr><td style="font-weight:600;">${item.part || 'Unknown Part'}</td><td align="center">${item.qty || 0}</td><td>${ctnDescriptions.join(", ")}</td><td align="right">${totalNW.toFixed(2)}</td><td align="right">${totalGW.toFixed(2)}</td></tr>`);
+                    }
+                    else if (item.type === 'desc') {
+                        tbody.append(`<tr style="background:#f8fafc; font-style:italic; color: #475569;"><td colspan="3"><strong>${item.text || ''}</strong></td><td align="right">${item.nw || '0.00'}</td><td align="right">${item.gw || '0.00'}</td></tr>`);
+                    }
+                    else if (item.type === 'subtotal') {
+                        tbody.append(`<tr style="background:#f1f5f9; font-weight:800; border-top: 2px solid #cbd5e1;"><td colspan="3" align="right">SUBTOTAL</td><td align="right">${item.nw || '0.00'}</td><td align="right">${item.gw || '0.00'}</td></tr>`);
+                    }
+                });
+                $('#detailsModal').fadeIn(200);
+            } catch (err) { Toastify({ text: "Error loading details", background: "#ef4444" }).showToast(); }
+            finally { $('#loading-overlay').hide(); }
+        }
+
+        async function submitForm() {
+            const payload = {
+                packaging_list_number: $('#packaging_list_no').val(),
+                customer: $('#customer').val(),
+                delivery_order_no: $('#delivery_order_no').val(),
+                checklist_date: $('#checklist_date').val(),
+                prepared_by_name: $('#prep_name').val(),
+                prepared_by_date: $('#prep_date').val(),
+                checked_by_name: $('#chk_name').val(),
+                checked_by_date: $('#chk_date').val(),
+                approved_by_name: $('#app_name').val(),
+                approved_by_date: $('#app_date').val()
+            };
+
+            $('input[type="checkbox"]').each(function () {
+                const id = $(this).data('id');
+                if (!id) return; // Skip the "Select All" headers
+                payload[`${id}_status`] = $(this).is(':checked') ? 'OK' : 'NG';
+                payload[`${id}_remarks`] = $(`.rem[data-id="${id}"]`).val();
+            });
+
+            try {
+                $('#loading-overlay').css('display', 'flex');
+                const { data, error } = await _supabase.from('outChecklistPackaging').insert([payload]).select();
+                if (error) throw error;
+                const finalDocNo = `PKG-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${data[0].id}`;
+                await _supabase.from('outChecklistPackaging').update({ document_no: finalDocNo }).eq('id', data[0].id);
+                $('#document_no').val(finalDocNo);
+                Toastify({ text: "Saved Success!", background: "#10b981" }).showToast();
+                generatePDF({ ...payload, document_no: finalDocNo });
+            } catch (err) { Toastify({ text: err.message, background: "#ef4444" }).showToast(); }
+            finally { $('#loading-overlay').hide(); }
+        }
+
+        function generatePDF(data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("PACKAGING CHECKLIST FORM", 105, 15, { align: "center" });
+            doc.autoTable({
+                startY: 25, theme: 'grid',
+                body: [['Doc No:', data.document_no, 'Customer:', data.customer], ['Pack List:', data.packaging_list_number, 'DO No:', data.delivery_order_no], ['Date:', data.checklist_date, '', '']]
+            });
+            const createSec = (title, idPrefix, rows) => {
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [[{ content: title, colSpan: 3 }], ['Criteria', 'Check', 'Remarks']],
+                    body: rows.map((r, i) => [r, data[`${idPrefix}${i + 1}_status`], data[`${idPrefix}${idPrefix}${i + 1}_remarks`] || ''])
+                });
+            };
+            createSec('Section A: Label Information', 'a', ['Part Number', 'Quantity', 'Dimension', 'Net Weight', 'Mfg Date']);
+            createSec('Section B: Product Condition', 'b', ['New/Unused', 'Oil/Grease', 'Dust']);
+            createSec('Section C: Packaging Condition', 'c', ['Box Condition', 'Label Legibility', 'Sealing/Taping']);
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 10,
+                head: [['Role', 'Name', 'Date']],
+                body: [['Prepared By', data.prepared_by_name, data.prepared_by_date], ['Checked By', data.checked_by_name, data.checked_by_date], ['Approved By', data.approved_by_name, data.approved_by_date]]
+            });
+            doc.save(`${data.document_no}.pdf`);
+        }
+
+        async function searchRecords() {
+            const q = $('#modalSearchInput').val();
+            const { data } = await _supabase.from('outChecklistPackaging').select('*')
+                .or(`document_no.ilike.%${q}%,customer.ilike.%${q}%`).order('id', { ascending: false });
+            const tbody = $('#resultsBody').empty();
+            data?.forEach(r => {
+                const tr = $(`<tr><td>${r.document_no}</td><td>${r.packaging_list_number}</td><td>${r.customer}</td><td>${r.checklist_date}</td><td><button class="btn-secondary" style="padding:4px 8px;">PDF</button></td></tr>`);
+                tr.find('button').on('click', () => generatePDF(r));
+                tbody.append(tr);
+            });
+        }
+    </script>
+</body>
+
+</html>

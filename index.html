@@ -18,9 +18,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
-    <!-- Add ExcelJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+
     <style>
         :root {
             --primary: #0078d4;
@@ -33,6 +33,7 @@
             --warning: #f59e0b;
             --radius: 12px;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 300px;
         }
 
         body {
@@ -40,244 +41,129 @@
             background: var(--bg-body);
             color: var(--text-main);
             margin: 0;
-            padding: 0;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        .navbar {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 40px;
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
             background: var(--bg-card);
-            min-height: 70px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            flex-wrap: wrap;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1200;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
         }
 
-        .nav-left {
+        .sidebar.collapsed {
+            left: calc(var(--sidebar-width) * -1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
             display: flex;
             align-items: center;
-            gap: 40px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .sidebar-header img {
+            height: 40px;
+            width: auto;
         }
 
         .nav-menu {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 5px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
 
-        .nav-link {
-            text-decoration: none;
-            color: var(--text-muted);
-            font-size: 14px;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-link:hover {
-            color: var(--primary);
-            background: #f0f7ff;
-        }
-
-        .nav-link .icon {
-            font-size: 16px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            height: 100%;
-        }
-
-        .logo img {
-            height: 40px;
-            width: auto;
-            display: block;
+        .nav-menu::-webkit-scrollbar {
+            display: none;
         }
 
         .nav-link,
         .dropbtn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 40px;
-            padding: 0 16px;
-            gap: 8px;
-            font-family: "Inter", sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            line-height: 1;
-            color: #1f2937;
-            background: transparent;
-            border: none;
+            width: 100%;
             text-decoration: none;
-            cursor: pointer;
-            margin: 0;
-            transition: all 0.2s ease;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 12px 16px;
             border-radius: 8px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Combined hover state for links and ACTIVE state for dropdown button */
-        .nav-link:hover,
-        .dropdown.is-active .dropbtn {
-            background-color: #f0f7ff;
-            color: var(--primary) !important;
-        }
-
-        .nav-link .icon,
-        .dropbtn .icon {
-            font-size: 16px;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            margin-top: -1px;
+            gap: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .nav-link:hover,
+        .dropbtn:hover {
+            background: #f0f7ff;
+            color: var(--primary);
+        }
+
+        .icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            flex-shrink: 0;
         }
 
         .arrow {
             font-size: 10px;
-            color: #9ca3af;
-            margin-left: 2px;
+            color: #94a3b8;
             transition: transform 0.3s;
+            margin-left: auto;
         }
 
-        .dropdown {
-            position: relative;
-            display: inline-block;
-            gap: 15px;
-        }
-
-        /* DROPDOWN CONTENT - DISPLAY CONTROLLED BY IS-ACTIVE CLASS */
         .dropdown-content {
             display: none;
-            position: absolute;
-            background-color: var(--bg-card);
-            min-width: 260px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-            z-index: 1100;
-            border-radius: var(--radius);
-            border: 1px solid #e5e7eb;
-            margin-top: 10px;
-            padding: 8px;
-            overflow: hidden;
+            padding-left: 10px;
+            margin-top: 2px;
         }
 
         .dropdown.is-active .dropdown-content {
             display: block;
-            animation: dropdownFadeIn 0.2s ease-out;
         }
 
-        /* Rotate arrow when active */
         .dropdown.is-active .arrow {
             transform: rotate(180deg);
-            color: var(--primary);
         }
 
         .dropdown-content a {
-            color: var(--text-main);
-            padding: 12px 16px;
+            padding: 10px 15px;
+            font-size: 14px;
+            color: #475569;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 12px;
-            font-size: 14px;
-            font-weight: 500;
             border-radius: 8px;
-            transition: all 0.2s ease;
+            font-weight: 500;
         }
 
-        .dropdown-content a:hover {
-            background-color: #f0f7ff;
-            color: var(--primary);
-            transform: translateX(4px);
-        }
-
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .dropdown-content a::before {
-            content: '→';
-            font-size: 12px;
-            opacity: 0.5;
-            transition: opacity 0.2s;
-        }
-
-        .dropdown-content a:hover::before {
-            opacity: 1;
-        }
-
-        @media (max-width: 1100px) {
-            .navbar {
-                padding: 0 15px;
-                min-height: 60px;
-                display: flex;
-                align-items: center;
-            }
-
-            .nav-left {
-                gap: 12px;
-                display: flex;
-                align-items: center;
-            }
-
-            .logo img {
-                height: 40px;
-                width: auto;
-                object-fit: contain;
-                margin-right: 10px;
-            }
-
-            .nav-menu {
-                display: flex !important;
-                gap: 5px;
-                align-items: center;
-            }
-
-            .nav-link,
-            .dropbtn {
-                padding: 0 8px;
-                font-size: 12px;
-                font-weight: 600;
-                height: 32px;
-                display: flex;
-                align-items: center;
-                gap: 4px;
-                margin: 0;
-                line-height: 1;
-            }
-
-            .nav-link .icon,
-            .dropbtn .icon {
-                font-size: 14px;
-                display: flex;
-                align-items: center;
-            }
-
-            .admin-btn {
-                padding: 0 12px;
-                height: 32px;
-                font-size: 12px;
-                white-space: nowrap;
-                display: flex;
-                align-items: center;
-            }
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #f3f4f6;
         }
 
         .admin-btn {
@@ -288,18 +174,144 @@
             cursor: pointer;
             font-weight: 600;
             color: var(--text-muted);
+            width: 100%;
         }
 
-        .admin-btn:hover {
+        /* --- CONTENT WRAPPER FIX --- */
+        .content-wrapper {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper.expanded {
+            margin-left: 0;
+        }
+
+        /* --- TOP NAV --- */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 10px 25px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+            box-sizing: border-box;
+        }
+
+        .top-nav img {
+            height: 35px !important;
+            width: auto !important;
+            max-width: 150px;
+        }
+
+        @media (min-width: 1101px) {
+            #sidebar:not(.collapsed)+#contentWrapper .top-nav {
+                display: none;
+            }
+
+            #sidebar.collapsed+#contentWrapper .top-nav {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .top-nav {
+                display: flex !important;
+            }
+
+            .sidebar {
+                left: calc(var(--sidebar-width) * -1);
+            }
+
+            .sidebar.is-mobile-open {
+                left: 0;
+            }
+
+            .content-wrapper {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* --- RESTORED MODAL CSS --- */
+        .modal {
+            border-radius: var(--radius);
+            padding: 30px;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
             border-color: var(--primary);
-            color: var(--primary);
-            background: #eff6ff;
         }
 
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-login {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-login:hover {
+            background: #0060aa;
+        }
+
+        /* --- QUICK NAV SMALLER FIX --- */
         .main {
             max-width: 1400px;
             margin: 30px auto;
             padding: 0 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .quick-nav {
@@ -313,30 +325,27 @@
 
         .nav-card {
             flex: 1;
-            min-width: 140px;
+            min-width: 120px;
+            max-width: 300px;
             background: var(--bg-card);
-            padding: 15px 10px;
+            padding: 12px 10px;
             border-radius: var(--radius);
             text-align: center;
             box-shadow: var(--shadow);
             cursor: pointer;
             border: 1px solid #e5e7eb;
             white-space: nowrap;
-            transition: transform 0.2s;
-        }
-
-        .nav-card:hover {
-            transform: translateY(-3px);
+            transition: all 0.2s;
         }
 
         .nav-card h3 {
-            margin: 0 0 5px;
-            font-size: 16px;
+            margin: 5px 0 2px;
+            font-size: 14px;
         }
 
         .nav-card p {
             margin: 0;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
         }
 
@@ -348,14 +357,7 @@
             border-bottom: 4px solid #0078d4;
         }
 
-        .iqc {
-            border-bottom: 4px solid #10b981;
-        }
-
-        .oqc {
-            border-bottom: 4px solid #f59e0b;
-        }
-
+        /* KPI & CHARTS */
         .tab-container {
             background: var(--bg-card);
             border-radius: var(--radius);
@@ -413,35 +415,7 @@
             padding: 10px;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
-            font-family: inherit;
             min-width: 150px;
-            color: var(--text-main);
-        }
-
-        .date-input-group {
-            display: none;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .refresh-btn {
-            margin-left: auto;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            height: 42px;
-            align-self: flex-end;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: auto;
-            padding: 20px;
-            color: var(--text-muted);
-            font-size: 12px;
         }
 
         .kpi-row {
@@ -465,14 +439,6 @@
             color: var(--text-main);
         }
 
-        .kpi-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-top: 5px;
-        }
-
         .ok-color {
             color: var(--success);
         }
@@ -481,40 +447,99 @@
             color: var(--danger);
         }
 
-        .chart-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-
-        .chart-box {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 20px;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            height: auto !important;
-        }
-
         .canvas-container {
             position: relative;
-            height: auto;
-            min-height: 350px;
+            height: 300px;
             width: 100%;
         }
 
-        .chart-title {
-            font-size: 16px;
+        /* TOOLTIP CSS */
+        #chartjs-tooltip {
+            opacity: 0;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.98);
+            color: #1f2937;
+            border-radius: 12px;
+            padding: 15px;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            z-index: 3000;
+            min-width: 240px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: var(--primary);
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 5px;
+        }
+
+        .process-item {
             font-weight: 600;
-            margin-bottom: 15px;
+            color: #ef4444;
+            margin-top: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .date-group {
+            margin-top: 8px;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .date-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .date-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .time-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .time-tag {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .btn-tooltip-download {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
         }
 
         #loader {
             position: fixed;
             inset: 0;
             background: rgba(255, 255, 255, 0.9);
-            z-index: 999;
+            z-index: 2000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -535,389 +560,16 @@
             }
         }
 
-        .modal {
-            border-radius: var(--radius);
-            padding: 30px;
-            max-width: 400px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1100;
         }
 
-        .modal h2 {
-            margin-top: 0;
-            color: var(--text-main);
-            font-size: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
+        .sidebar-overlay.active {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-cancel {
-            background: #f3f4f6;
-            color: var(--text-main);
-        }
-
-        .btn-login {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-login:hover {
-            background: #0060aa;
-        }
-
-        /* --- COMPREHENSIVE RESPONSIVE DESIGN --- */
-
-        /* Tablets and small laptops */
-        @media (max-width: 1100px) {
-            .navbar {
-                padding: 0 15px;
-                min-height: auto;
-                padding-top: 10px;
-                padding-bottom: 10px;
-            }
-
-            .nav-left {
-                gap: 15px;
-            }
-
-            .nav-menu {
-                gap: 5px;
-            }
-
-            .nav-link,
-            .dropbtn {
-                font-size: 13px !important;
-                padding: 0 10px;
-            }
-        }
-
-        /* Phones (Standard Mobile View) */
-        @media (max-width: 768px) {
-            body {
-                padding: 0;
-            }
-
-            /* Navbar: Stack Logo and Menu */
-            .navbar {
-                height: auto;
-                max-height: 90vh;
-                /* Prevents menu from being longer than the screen */
-                overflow-y: auto;
-                /* Adds scrollbar if menu items exceed screen height */
-                display: block;
-                /* Stack logo and menu vertically */
-            }
-
-            .nav-actions {
-                width: 100%;
-                margin-top: 10px;
-            }
-
-            .admin-btn {
-                width: 100%;
-                justify-content: center;
-            }
-
-            /* Make Navigation Menu Scrollable horizontally so it doesn't break rows */
-            .nav-menu {
-                display: flex;
-                flex-direction: column;
-                width: 100%;
-                overflow-x: hidden;
-                /* Disable the horizontal scroll we added earlier */
-                gap: 0;
-            }
-
-            /* 3. Make the dropdown button full width */
-            .dropdown {
-                width: 100%;
-                display: block;
-            }
-
-            .dropbtn,
-            .nav-link {
-                width: 100%;
-                justify-content: flex-start;
-                /* Align text to the left */
-                padding: 12px 16px;
-                height: auto;
-                border-radius: 0;
-                border-bottom: 1px solid #eee;
-            }
-
-            /* 4. THE KEY FIX: Change dropdown from floating to "in-flow" */
-            .dropdown-content {
-                position: static;
-                /* This makes it push content down instead of floating over it */
-                width: 100%;
-                box-shadow: none;
-                border: none;
-                border-radius: 0;
-                background-color: #f9fafb;
-                /* Slightly different background to show it's a sub-menu */
-                padding: 0;
-                display: none;
-                /* Controlled by .is-active */
-            }
-
-            /* 5. Show dropdown content when parent is active */
-            .dropdown.is-active .dropdown-content {
-                display: block;
-            }
-
-            /* Adjust sub-links in the dropdown */
-            .dropdown-content a {
-                padding-left: 40px;
-                /* Indent sub-items */
-                border-bottom: 1px solid #f0f0f0;
-            }
-
-            /* Adjust Main Content Padding */
-            .main {
-                margin: 15px auto;
-                padding: 0 10px;
-            }
-
-            /* Quick Nav: 2x2 Grid */
-            .quick-nav {
-                display: grid !important;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-                overflow-x: hidden;
-            }
-
-            .nav-card {
-                min-width: 0;
-                padding: 15px 5px;
-            }
-
-            .nav-card h3 {
-                font-size: 13px;
-            }
-
-            /* Tabs: Allow horizontal scroll if too many */
-            .tabs {
-                overflow-x: auto;
-                display: flex;
-                white-space: nowrap;
-            }
-
-            /* Filters/Toolbar: Stack items vertically */
-            .toolbar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 12px;
-            }
-
-            .filter-group {
-                width: 100%;
-            }
-
-            select,
-            input[type="date"] {
-                width: 100%;
-                min-width: 0;
-            }
-
-            /* KPI Cards: 2 Columns */
-            .kpi-row {
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-
-            .kpi-card {
-                padding: 15px 10px;
-            }
-
-            .kpi-val {
-                font-size: 20px;
-            }
-
-            .kpi-label {
-                font-size: 10px;
-            }
-
-            /* Charts: Scale to full width */
-            .chart-box {
-                padding: 10px;
-            }
-
-            .chart-title {
-                font-size: 14px;
-            }
-
-            /* Modals: Make them wider on small screens */
-            .modal {
-                width: 90% !important;
-                padding: 20px;
-                margin: 0 5%;
-            }
-
-            /* Tooltip: Adjust for touch */
-            #chartjs-tooltip {
-                width: 280px;
-                padding: 12px;
-            }
-        }
-
-        /* Very Small Phones */
-        @media (max-width: 400px) {
-            .quick-nav {
-                grid-template-columns: 1fr;
-                /* Stack cards 1-by-1 */
-            }
-
-            .kpi-row {
-                grid-template-columns: 1fr;
-                /* Stack KPIs 1-by-1 */
-            }
-        }
-
-        #chartjs-tooltip {
-            opacity: 0;
-            position: absolute;
-            background: rgba(25, 28, 35, 0.98);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            pointer-events: auto;
-            max-width: 400px;
-            max-height: 450px;
-            overflow-y: auto;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            font-family: sans-serif;
-            transition: opacity 0.2s ease;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        #chartjs-tooltip:hover {
-            overscroll-behavior: contain;
-        }
-
-        .tooltip-title {
-            font-weight: 800;
-            font-size: 16px;
-            margin-bottom: 12px;
-            border-bottom: 2px solid #ef4444;
-            padding-bottom: 8px;
-            color: #fff;
-        }
-
-        .process-item {
-            margin-top: 15px;
-            color: #fca5a5;
-            font-weight: 700;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .date-group {
-            margin-top: 10px;
-            padding-left: 8px;
-            border-left: 2px solid #4b5563;
-        }
-
-        .date-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .date-header {
-            font-size: 12px;
-            color: #d1d5db;
-            font-weight: 600;
-        }
-
-        .time-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-
-        .time-tag {
-            background: rgba(239, 68, 68, 0.25);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            padding: 3px 8px;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #fecaca;
-        }
-
-        .btn-tooltip-download {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .btn-tooltip-download:hover {
-            background: #1d4ed8;
-        }
-
-        .sub-chart-wrapper {
-            height: auto;
-            position: relative;
-        }
-
-        .sub-chart-wrapper::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sub-chart-wrapper::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 10px;
         }
     </style>
 </head>
@@ -927,189 +579,9 @@
         <div class="spinner"></div>
     </div>
 
-    <nav class="navbar">
-        <div class="nav-left">
-            <div class="logo">
-                <!-- Use <img> tag and forward slashes (/) -->
-                <img src="assets/Famax Logo.png" alt="famax logo" style="height: 40px;">
-            </div>
-
-            <div class="nav-menu">
-                <!-- Normal Link -->
-                <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link">
-                    <span class="icon">✔️</span> Famax Quality Hub
-                </a>
-
-                <!-- Dropdown Menu for Summaries -->
-                <div class="dropdown">
-                    <button class="dropbtn">
-                        <span class="icon">📊</span> Report Summary
-                        <span class="arrow">▼</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="screen_page/report_summary/qcReport.html">
-                            <span>📝</span> IPQC Report Summary
-                        </a>
-                        <a href="screen_page/report_summary/machineStopReport.html">
-                            <span>⚠️</span> Machine Stop Summary
-                        </a>
-                        <a href="screen_page/report_summary/jobOrderSummary.html">
-                            <span>📋</span> Job Order Summary
-                        </a>
-
-                        <!-- Future links can be added here -->
-                    </div>
-                </div>
-
-                <!-- Dropdown Menu for Packing -->
-                <div class="dropdown">
-                    <button class="dropbtn">
-                        <span class="icon">📦</span> Packing, Store & Shipment 
-                        <span class="arrow">▼</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="screen_page/packaging_checklist/packingList.html">
-                            <span class="icon">📦</span> Packing List Form
-                        </a>
-                        <a href="screen_page/packaging_checklist/packagingChecklist.html">
-                            <span class="icon">🚛</span> Shipment Checklist Form
-                        </a>
-                        <a href="screen_page/store/store_record.html">
-                            <span class="icon"></span> Store List Form
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Dropdown Menu for Maintanence} -->
-                <div class="dropdown">
-                    <button class="dropbtn">
-                        <span class="icon">⚙️</span> Maintenance
-                        <span class="arrow">▼</span>
-                    </button>
-                    <div class="dropdown-content">
-                        <a href="screen_page/maintenance/preventive_maintenance.html">
-                            <span class="icon">🛠️</span> Preventive Maintenance
-                        </a>
-                        <!-- <a href="screen_page/packaging_checklist/packingList.html">
-                            <span class="icon">📦</span> Packing List Form
-                        </a> -->
-                    </div>
-                </div>
-
-
-            </div>
-        </div>
-
-        <div class="nav-actions">
-            <button class="admin-btn" id="loginButton">Admin Login</button>
-        </div>
-    </nav>
-
-    <div class="main">
-        <div class="quick-nav">
-            <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
-                <h3>Buyoff Checking</h3>
-                <p>Initial Checks</p>
-            </div>
-            <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
-                <h3>IPQC Checking</h3>
-                <p>In-Process QC</p>
-            </div>
-            <div class="nav-card iqc" style="opacity: 0.5; cursor: not-allowed">
-                <h3>IQC Checking</h3>
-                <p>Incoming QC</p>
-            </div>
-            <div class="nav-card oqc" style="opacity: 0.5; cursor: not-allowed">
-                <h3>OQC Checking</h3>
-                <p>Outgoing QC</p>
-            </div>
-        </div>
-
-        <div class="tab-container">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('ipqc', this)">
-                    IPQC Overview
-                </button>
-                <button class="tab-btn" onclick="switchTab('iqc', this)">
-                    IQC Overview
-                </button>
-                <button class="tab-btn" onclick="switchTab('oqc', this)">
-                    OQC Overview
-                </button>
-            </div>
-
-            <div class="toolbar">
-                <div class="filter-group">
-                    <label>Time Range</label>
-                    <select id="timeFilter" onchange="handleTimeFilterChange()">
-                        <option value="custom">Custom Range</option>
-                        <option value="7">Last 7 Days</option>
-                        <option value="30">Last 30 Days</option>
-                        <option value="90">Last 90 Days</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>From</label><input type="date" id="startDateInput" onchange="renderCurrentView()" />
-                </div>
-                <div class="filter-group">
-                    <label>To</label><input type="date" id="endDateInput" onchange="renderCurrentView()" />
-                </div>
-                <div class="filter-group">
-                    <label>Part Name</label><select id="partFilter" onchange="renderCurrentView()">
-                        <option value="all">All Parts</option>
-                    </select>
-                </div>
-                <button class="admin-btn" style="
-              margin-left: auto;
-              background: var(--primary);
-              color: white;
-              border: none;
-            " onclick="fetchAllData()">
-                    Refresh
-                </button>
-
-
-            </div>
-
-            <div class="kpi-row">
-                <div class="kpi-card">
-                    <div class="kpi-val" id="kpi-total">0</div>
-                    <div>Total Checks</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-val ok-color" id="kpi-ok">0</div>
-                    <div>Go (OK)</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-val ng-color" id="kpi-ng">0</div>
-                    <div>No Go (NG)</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-val" id="kpi-rate">0%</div>
-                    <div>Yield Rate</div>
-                </div>
-            </div>
-
-            <div class="chart-box">
-                <h3>Daily Trend</h3>
-                <div class="canvas-container"><canvas id="mainChart"></canvas></div>
-            </div>
-            <div class="chart-box">
-                <h3>Breakdown</h3>
-                <select id="breakdownFilter" onchange="renderCurrentView()" style="width: 100%; margin-bottom: 10px">
-                    <option value="part">By Part</option>
-                    <option value="default">By Machine</option>
-                </select>
-                <div class="canvas-container"><canvas id="subChart"></canvas></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- LOGIN MODAL -->
-    <!-- LOGIN MODAL -->
+    <!-- LOGIN MODAL (STRICT STYLING) -->
     <div id="login-modal" class="modal" style="display: none">
         <h2>Admin Login</h2>
-        <!-- The onsubmit here handles the Enter key trigger -->
         <form id="loginForm" onsubmit="event.preventDefault(); document.getElementById('submitLogin').click();">
             <div class="form-group">
                 <label for="userId">User ID</label>
@@ -1121,369 +593,425 @@
                     autocomplete="current-password" />
             </div>
             <div class="modal-buttons">
-                <!-- Ensure type is "submit" -->
-                <button type="submit" class="btn btn-login" id="submitLogin">
-                    Login
-                </button>
+                <button type="submit" class="btn btn-login" id="submitLogin">Login</button>
             </div>
         </form>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="assets/Famax Logo.png" alt="logo">
+            <button class="toggle-btn" id="closeSidebar"
+                style="border:none; font-size: 24px; cursor:pointer;">×</button>
+        </div>
+        <nav class="nav-menu">
+            <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link"><span class="icon-wrap">✔️</span>
+                Famax Quality Hub</a>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="13" width="4" height="8" rx="1" fill="#3B82F6" />
+                            <rect x="10" y="8" width="4" height="13" rx="1" fill="#60A5FA" />
+                            <rect x="17" y="3" width="4" height="18" rx="1" fill="#93C5FD" />
+                            <path d="M3 11L9 6L15 8L21 2" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    Report Summary <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/report_summary/qcReport.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
+                                    fill="#F0FDFA" stroke="#14B8A6" stroke-width="1.5" />
+                                <path d="M14 2V8H20" stroke="#14B8A6" stroke-width="1.5" />
+                                <path d="M9 15L11 17L15 13" stroke="#0D9488" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg></span> IPQC Report Summary
+                    </a>
+                    <a href="screen_page/report_summary/machineStopReport.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <rect x="4" y="4" width="16" height="16" rx="2" fill="#FEF2F2" stroke="#EF4444"
+                                    stroke-width="1.5" />
+                                <circle cx="12" cy="12" r="5" stroke="#EF4444" stroke-width="1.5"
+                                    stroke-dasharray="2 2" />
+                                <path d="M12 9V13M12 15H12.01" stroke="#EF4444" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg></span> Machine Stop Summary
+                    </a>
+                    <a href="screen_page/report_summary/jobOrderSummary.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M16 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4H8"
+                                    stroke="#6366F1" stroke-width="1.5" />
+                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#EEF2FF" stroke="#6366F1"
+                                    stroke-width="1.5" />
+                                <path d="M7 10H17M7 14H17M7 18H13" stroke="#818CF8" stroke-width="1.5"
+                                    stroke-linecap="round" />
+                            </svg></span> Job Order Summary
+                    </a>
+                    <a href="screen_page/report_summary/out_of_spec_summary.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 6H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-dasharray="3 3" />
+                                <path d="M3 18H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-dasharray="3 3" />
+                                <path d="M3 14L8 14L12 3L17 14L21 14" stroke="#6366F1" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <circle cx="12" cy="3" r="2.5" fill="#EF4444" stroke="white" stroke-width="1" />
+                            </svg></span> Out of Spec Summary
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 10V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V10"
+                                stroke="#0078D4" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M21 10L12 5L3 10" stroke="#0078D4" stroke-width="1.5" stroke-linejoin="round" />
+                            <path d="M12 18L7.5 15.5V10.5L12 13L16.5 10.5V15.5L12 18Z" fill="#FBBF24" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M7.5 10.5L12 8L16.5 10.5L12 13L7.5 10.5Z" fill="#FDE68A" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M17 6L21 6M19 3L22 6L19 9" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    Packing & Shipment <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/packaging_checklist/packingList.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 8L12 13L3 8L12 3L21 8Z" fill="#FDE68A" stroke="#B45309"
+                                    stroke-width="1.5" />
+                                <path d="M3 8V16L12 21V13L3 8Z" fill="#FBBF24" stroke="#B45309" stroke-width="1.5" />
+                                <path d="M12 21L21 16V8L12 13V21Z" fill="#F59E0B" stroke="#B45309" stroke-width="1.5" />
+                                <rect x="14" y="14" width="7" height="8" rx="1" fill="white" stroke="#0078D4"
+                                    stroke-width="1" />
+                                <path d="M16 17H19M16 19H18" stroke="#0078D4" stroke-width="1" stroke-linecap="round" />
+                            </svg></span> Packing List Form
+                    </a>
+                    <a href="screen_page/packaging_checklist/shipmentChecklist.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 17H16V7H6C4.89543 7 4 7.89543 4 9V17H3" stroke="#0078D4" stroke-width="2"
+                                    stroke-linecap="round" />
+                                <path d="M16 17H21V12L18 9H16V17Z" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
+                                <circle cx="7" cy="18" r="2" fill="#334155" />
+                                <circle cx="18" cy="18" r="2" fill="#334155" />
+                                <path d="M7 11L9 13L13 9" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg></span> Shipment Checklist Form
+                    </a>
+                    <a href="screen_page/store/store_record.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                                    fill="#F1F5F9" stroke="#64748B" stroke-width="1.5" />
+                                <rect x="7" y="7" width="10" height="12" fill="white" stroke="#E2E8F0"
+                                    stroke-width="0.5" />
+                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#94A3B8" stroke="#475569"
+                                    stroke-width="1.5" />
+                                <rect x="10" y="13" width="4" height="3.5" rx="0.5" fill="#FBBF24" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M10 14.5H14" stroke="#B45309" stroke-width="0.5" />
+                                <path d="M9 10H15M9 12H12" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                            </svg></span> Store Record Form
+                    </a>
+                    <a href="screen_page/store/deliver_out_checklist.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <rect x="4" y="3" width="16" height="18" rx="2" fill="#F5F3FF" stroke="#6366F1"
+                                    stroke-width="1.5" />
+                                <path d="M9 3H15" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+                                <path d="M12 8H17M12 11H15" stroke="#818CF8" stroke-width="1.5"
+                                    stroke-linecap="round" />
+                                <path d="M7 7.5L8.5 9L11 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M10 18.5L7 20L4 18.5V15.5L7 14L10 15.5V18.5Z" fill="#FBBF24" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M4 15.5L7 14L10 15.5L7 17L4 15.5Z" fill="#FDE68A" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                            </svg></span> Packaging Checklist Form
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <circle cx="9" cy="9" r="5" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
+                            <circle cx="17" cy="17" r="3" fill="#F1F5F9" stroke="#64748B" stroke-width="2" />
+                            <path d="M9 2V4M9 14V16" stroke="#0078D4" stroke-width="2" />
+                        </svg>
+                    </span>
+                    Maintenance <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/maintenance/preventive_maintenance.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22" stroke="#10B981"
+                                    stroke-width="2" stroke-linecap="round" />
+                                <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2" stroke="#E2E8F0"
+                                    stroke-width="2" stroke-dasharray="2 2" />
+                                <path
+                                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z"
+                                    fill="#FEF3C7" stroke="#D97706" stroke-width="1.5" />
+                            </svg></span> Preventive Maintenance
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer"><button class="admin-btn" id="loginButton">Admin Login</button></div>
+    </aside>
+
+    <div class="content-wrapper" id="contentWrapper">
+        <header class="top-nav">
+            <div class="nav-logo-group">
+                <button class="toggle-btn" id="menuToggle">☰</button>
+                <img src="assets/Famax Logo.png" alt="logo">
+            </div>
+            <div style="font-size: 14px; font-weight: 700; color: #64748b;">IPQC DASHBOARD</div>
+        </header>
+
+        <main class="main">
+            <div class="quick-nav">
+                <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
+                    <h3>Buyoff Checking</h3>
+                    <p>Initial Checks</p>
+                </div>
+                <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
+                    <h3>IPQC Checking</h3>
+                    <p>In-Process QC</p>
+                </div>
+                <div class="nav-card iqc" style="opacity: 0.5; cursor: not-allowed">
+                    <h3>IQC Checking</h3>
+                    <p>Incoming QC</p>
+                </div>
+                <div class="nav-card oqc" style="opacity: 0.5; cursor: not-allowed">
+                    <h3>OQC Checking</h3>
+                    <p>Outgoing QC</p>
+                </div>
+            </div>
+
+            <div class="tab-container">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('ipqc', this)">IPQC Overview</button>
+                    <button class="tab-btn" onclick="switchTab('iqc', this)">IQC Overview</button>
+                    <button class="tab-btn" onclick="switchTab('oqc', this)">OQC Overview</button>
+                </div>
+
+                <div class="toolbar">
+                    <div class="filter-group"><label>Time Range</label>
+                        <select id="timeFilter" onchange="handleTimeFilterChange()">
+                            <option value="custom">Custom Range</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group"><label>From</label><input type="date" id="startDateInput"
+                            onchange="renderCurrentView()" /></div>
+                    <div class="filter-group"><label>To</label><input type="date" id="endDateInput"
+                            onchange="renderCurrentView()" /></div>
+                    <div class="filter-group"><label>Part Name</label><select id="partFilter"
+                            onchange="renderCurrentView()">
+                            <option value="all">All Parts</option>
+                        </select></div>
+                    <button class="admin-btn"
+                        style="margin-left: auto; background: var(--primary); color: white; border: none; width: auto; height: 42px; align-self: flex-end;"
+                        onclick="fetchAllData()">Refresh</button>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpi-total">0</div>
+                        <div>Total Checks</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val ok-color" id="kpi-ok">0</div>
+                        <div>Go (OK)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val ng-color" id="kpi-ng">0</div>
+                        <div>No Go (NG)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpi-rate">0%</div>
+                        <div>Yield Rate</div>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Daily Trend</h3>
+                    <div class="canvas-container"><canvas id="mainChart"></canvas></div>
+                </div>
+                <div class="chart-box">
+                    <h3>Breakdown</h3>
+                    <select id="breakdownFilter" onchange="renderCurrentView()"
+                        style="width: 100%; margin-bottom: 10px">
+                        <option value="part">By Part</option>
+                        <option value="default">By Machine</option>
+                    </select>
+                    <div class="canvas-container"><canvas id="subChart"></canvas></div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
         const API_URL = "http://192.168.0.5:8000";
-        const API_KEY =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
-        const supabaseClient = axios.create({
-            baseURL: API_URL,
-            headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
-        });
+        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
+        const supabaseClient = axios.create({ baseURL: API_URL, headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` } });
 
-        let currentTab = "ipqc";
-        let allData = { ipqc: [], iqc: [], oqc: [] };
-        let mainChartInst = null;
-        let subChartInst = null;
+        let currentTab = "ipqc", allData = { ipqc: [], iqc: [], oqc: [] }, mainChartInst = null, subChartInst = null;
+        let isTooltipHovered = false, tooltipHideTimeout;
+        let currentMousePos = { x: 0, y: 0 };
 
-        $(document).ready(() => {
-            const today = new Date().toISOString().split("T")[0];
-            $("#startDateInput").val(today);
-            $("#endDateInput").val(today);
-            fetchAllData();
-            $("#loginButton").click(() => $("#login-modal").modal());
-            // Add this: Trigger Login on Enter key
-            $("#userId, #password").on("keydown", function (e) {
-                if (e.key === "Enter") {
-                    e.preventDefault(); // Prevent page reload
-                    $("#submitLogin").click(); // Trigger the login button
-                }
-            });
-
-            // 1. Handle Hover: Open current and close ALL others
-            // $('.dropdown').on('mouseenter', function () {
-            //     // Remove 'is-active' from every dropdown EXCEPT the one currently being hovered
-            //     $('.dropdown').not(this).removeClass('is-active');
-
-            //     // Add 'is-active' to the current one
-            //     $(this).addClass('is-active');
-            // });
-
-            // 2. Close only when clicking outside the dropdown area
-            // $(document).on('click', function (event) {
-            //     // If the click is not inside a dropdown container, close all dropdowns
-            //     if (!$(event.target).closest('.dropdown').length) {
-            //         $('.dropdown').removeClass('is-active');
-            //     }
-            // });
-
-            // 3. Optional: Close the dropdown immediately if a link inside is clicked
-            $('.dropdown-content a').on('click', function () {
-                $(this).closest('.dropdown').removeClass('is-active');
-            });
-
-            // Dropdown Toggle for Mobile/Desktop
-            $('.dropbtn').on('click', function (e) {
-                // Prevent event from bubbling up to the "document click" listener
-                e.stopPropagation();
-
-                const $parent = $(this).closest('.dropdown');
-                const isActive = $parent.hasClass('is-active');
-
-                // Close all other dropdowns
-                $('.dropdown').removeClass('is-active');
-
-                // If it wasn't active, open it
-                if (!isActive) {
-                    $parent.addClass('is-active');
-                }
-            });
-
-            // Close dropdowns when clicking anywhere else on the page
-            $(document).on('click', function () {
-                $('.dropdown').removeClass('is-active');
-            });
-
-
-        });
-
-        // Other utility functions (handleTimeFilterChange, fetchFromSupabase, etc.) stay the same...
-        function handleTimeFilterChange() {
-            const val = $("#timeFilter").val();
-            if (val === "custom") return;
-            const end = new Date();
-            const start = new Date();
-            start.setDate(end.getDate() - parseInt(val));
-            $("#startDateInput").val(start.toISOString().split("T")[0]);
-            $("#endDateInput").val(end.toISOString().split("T")[0]);
-            renderCurrentView();
-        }
-
-        // --- ADDED: Missing Login Logic and Enter Key Support ---
-
-        // 1. Fetch User from Database
         async function fetchFromSupabase(userId) {
             try {
-                const response = await supabaseClient.get("/rest/v1/AdminCredential", {
-                    params: { select: "*", UserId: `eq.${userId}` },
-                });
-                return { data: response.data, error: null };
+                const response = await supabaseClient.get(
+                    "/rest/v1/AdminCredential",
+                    {
+                        params: {
+                            select: "*",
+                            UserId: `eq.${userId}`
+                        }
+                    });
+                return {
+                    data: response.data,
+                    error: null
+                };
             } catch (error) {
-                console.error("Supabase query error:", error);
-                return { data: null, error: error };
+                return {
+                    data: null,
+                    error: error
+                };
             }
         }
 
-        // 2. Notification Helper
         function showNotification(message, type) {
             Toastify({
                 text: message,
                 duration: 3000,
                 gravity: "top",
                 position: "left",
-                style: { background: type === "error" ? "#ef4444" : "#10b981" },
+                style: { background: type === "error" ? "#ef4444" : "#10b981" }
             }).showToast();
         }
 
-        // 3. The Actual Login Function
-        document.getElementById("submitLogin").addEventListener("click", async function () {
-            const userId = document.getElementById("userId").value.trim();
-            const password = document.getElementById("password").value.trim();
-
-            if (!userId || !password) {
-                showNotification("Please enter both user ID and password", "error");
-                return;
-            }
-
-            try {
-                const { data, error } = await fetchFromSupabase(userId);
-                if (error) throw error;
-
-                if (data && data.length > 0) {
-                    const userRecord = data[0];
-                    if (userRecord.Password === password) {
-                        showNotification("Login successful!", "success");
-                        sessionStorage.setItem("isLoggedIn", "true");
-                        sessionStorage.setItem("userId", userId);
-                        sessionStorage.setItem("userPassword", password);
-                        $.modal.close();
-                        setTimeout(() => {
-                            window.location.href =
-                                "AdminLogin.html?UserId=" +
-                                encodeURIComponent(userId) +
-                                "&Password=" +
-                                encodeURIComponent(password);
-                        }, 1000);
-                    } else {
-                        showNotification("Invalid password.", "error");
-                    }
-                } else {
-                    showNotification("User not found.", "error");
-                }
-            } catch (error) {
-                console.error("Login error:", error);
-                showNotification("Login failed.", "error");
-            }
-        });
-
-        async function fetchAllData() {
-            $("#loader").show();
-            try {
-                const [resIPQC, resIQC, resOQC] = await Promise.all([
-                    supabaseClient.get(
-                        "/rest/v1/Data_IPQC?select=*&order=created_at.asc"
-                    ),
-                    supabaseClient.get(
-                        "/rest/v1/Data_IQC?select=*&order=created_at.asc"
-                    ),
-                    supabaseClient.get(
-                        "/rest/v1/Data_OQC?select=*&order=created_at.asc"
-                    ),
-                ]);
-                allData.ipqc = processReadings(resIPQC.data, "IPQC");
-                allData.iqc = processReadings(resIQC.data, "IQC");
-                allData.oqc = processReadings(resOQC.data, "OQC");
-                updatePartDropdown();
-                renderCurrentView();
-            } catch (e) {
-                console.error(e);
-            } finally {
-                $("#loader").hide();
-            }
-        }
-
-        function processReadings(data, type) {
-            if (!data) return [];
-            const groups = {};
-            data.forEach((row) => {
-                const fullTimeStr = row.created_at
-                    ? row.created_at.substring(0, 16).replace("T", " ")
-                    : "unknown";
-                const groupKey = `${fullTimeStr}_${row.Part_Name}_${row.Process}`;
-                if (!groups[groupKey]) {
-                    groups[groupKey] = {
-                        date: row.created_at.split("T")[0],
-                        fullTimestamp: fullTimeStr,
-                        part: row.Part_Name || "Unknown",
-                        process: row.Process || "General",
-                        source: type === "IPQC" ? row.Machine : row.Process,
-                        isNG: false,
-                        // Add meta for Excel bridge
-                        Part_Name: row.Part_Name,
-                        Part_Number: row.Part_Number,
-                        Raw_Material: row.Raw_Material,
-                        Raw_Material_Grade: row.Raw_Material_Grade,
-                        Raw_Material_Size: row.Raw_Material_Size,
-                        WI_Number: row.WI_Number,
-                        Drawing_Number: row.Drawing_Number,
-                        Revision_No: row.Revision_No,
-                        Process_Sequence: row.Process_Sequence,
-                    };
-                }
-                const lsl = parseFloat(type === "IPQC" ? row.LSL_OK : row.Min) || 0;
-                const usl = parseFloat(type === "IPQC" ? row.USL_NG : row.Max) || 0;
-                for (let i = 1; i <= 5; i++) {
-                    const val = parseFloat(row[`Reading_${i}`]);
-                    if (!isNaN(val) && (val < lsl || val > usl)) {
-                        groups[groupKey].isNG = true;
-                        break;
-                    }
-                }
-            });
-            return Object.values(groups);
-        }
-
-        function updatePartDropdown() {
-            const pSelect = document.getElementById("partFilter");
-            const currentVal = pSelect.value;
-            const uniqueParts = [
-                ...new Set(allData[currentTab].map((d) => d.part)),
-            ];
-            pSelect.innerHTML = '<option value="all">All Parts</option>';
-            uniqueParts.forEach((p) => pSelect.add(new Option(p, p)));
-            pSelect.value = currentVal;
-        }
-
-        function switchTab(tab, btn) {
-            currentTab = tab;
-            $(".tab-btn").removeClass("active");
-            $(btn).addClass("active");
-            updatePartDropdown();
-            renderCurrentView();
-        }
-
-        function renderCurrentView() {
-            const start = $("#startDateInput").val(),
-                end = $("#endDateInput").val(),
-                part = $("#partFilter").val();
-            const filtered = allData[currentTab].filter(
-                (d) =>
-                    d.date >= start &&
-                    d.date <= end &&
-                    (part === "all" || d.part === part)
-            );
-            const ok = filtered.filter((d) => !d.isNG).length,
-                ng = filtered.filter((d) => d.isNG).length,
-                total = filtered.length;
-            $("#kpi-total").text(total);
-            $("#kpi-ok").text(ok);
-            $("#kpi-ng").text(ng);
-            $("#kpi-rate").text(
-                total > 0 ? ((ok / total) * 100).toFixed(1) + "%" : "0%"
-            );
-            updateMainChart(filtered);
-            updateSubChart(filtered);
-        }
-
-        function updateMainChart(data) {
-            const canvas = document.getElementById("mainChart");
-            const ctx = canvas.getContext("2d");
-            if (mainChartInst) mainChartInst.destroy();
-
-            const partFilter = $("#partFilter").val();
-            const groupedData = {};
-            data.forEach((d) => {
-                let key =
-                    partFilter === "all"
-                        ? d.part.match(/\(([^)]+)\)/)?.[1] || d.part
-                        : d.process;
-                if (!groupedData[key]) groupedData[key] = { ok: 0, ng: 0 };
-                d.isNG ? groupedData[key].ng++ : groupedData[key].ok++;
-            });
-
-            const labels = Object.keys(groupedData).sort();
-
-            // --- AUTO HEIGHT LOGIC ---
-            const barHeight = 40;
-            canvas.style.height =
-                Math.max(350, labels.length * barHeight + 100) + "px";
-
-            mainChartInst = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: "Go (OK)",
-                            data: labels.map((l) => groupedData[l].ok),
-                            backgroundColor: "#10b981",
-                            borderRadius: 4,
-                        },
-                        {
-                            label: "No Go (NG)",
-                            data: labels.map((l) => groupedData[l].ng),
-                            backgroundColor: "#ef4444",
-                            borderRadius: 4,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // Required for auto-height
-                    scales: {
-                        x: { stacked: true, ticks: { font: { size: 10 } } },
-                        y: { stacked: true, beginAtZero: true },
-                    },
-                },
-            });
-        }
-
-        const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
-
-        // Helper: Get image for Excel (Logo)
+        // --- EXCEL ENGINE ---
         async function getImageBuffer(url) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Could not load image: ${url}`);
-            return await response.arrayBuffer();
+            const r = await fetch(url);
+            return await r.arrayBuffer();
         }
 
-        // Helper: Save the file to browser
-        async function saveWorkbook(wb, name) {
-            const buf = await wb.xlsx.writeBuffer();
-            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = `${name}.xlsx`;
-            a.click();
-        }
-
-        // Helper: Safe number parsing
         function safeNum(v) {
             if (v === 0 || v === "0") return 0;
             if (v == null || v === "") return null;
             const n = parseFloat(v);
             return isNaN(n) ? null : n;
         }
-
-        // Helper: Get Hour from Timestamp
         function getMYTHour(iso) {
             if (!iso) return 0;
-            // Convert the ISO string to a Date object, then force it to Malaysia Time string
-            // This handles the +8 hour shift automatically
-            const localTime = new Date(iso).toLocaleString("en-GB", {
-                timeZone: "Asia/Kuala_Lumpur",
-                hour12: false
+            const local = new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kuala_Lumpur", hour12: false });
+            const m = local.match(/, (\d{2}):/);
+            return m ? parseInt(m[1], 10) : new Date(iso).getHours();
+        }
+
+        async function triggerExcelFromTooltip(partName, processName, dateStr) {
+            showNotification("Generating Excel...", "success");
+            try {
+                const start = dateStr + "T00:00:00", end = dateStr + "T23:59:59";
+                const [resRows, resMeta] = await Promise.all([
+                    supabaseClient.get(`/rest/v1/Data_IPQC?Part_Name=eq.${partName}&Process=eq.${processName}&created_at=gte.${start}&created_at=lte.${end}`),
+                    supabaseClient.get(`/rest/v1/Parts?Part_Name=eq.${partName}&select=*`)
+                ]);
+                if (!resRows.data.length) {
+                    showNotification("No raw data found.", "error");
+                    return;
+                }
+                await buildProcessCategorizedExcel(resRows.data, resMeta.data[0] || {});
+            } catch (err) {
+                showNotification("Failed to generate Excel", "error");
+            }
+        }
+
+        async function buildProcessCategorizedExcel(rows, meta) {
+            const resp = await fetch(TEMPLATE_URL);
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(await resp.arrayBuffer());
+            const templateSheet = workbook.worksheets[0];
+
+            const [famaxBuf, confBuf] = await Promise.all([
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
+            ]);
+            const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
+            const logoConf = workbook.addImage({ buffer: confBuf, extension: "png" });
+
+            const dataByGroup = {};
+            rows.forEach(r => {
+                const k = `${r.Process} | ${r.Machine}`;
+                if (!dataByGroup[k]) dataByGroup[k] = { process: r.Process, machine: r.Machine, records: [], inspector: r.Person };
+                dataByGroup[k].records.push(r);
             });
-            // extract the hour part from "DD/MM/YYYY, HH:MM:SS"
-            const match = localTime.match(/, (\d{2}):/);
-            return match ? parseInt(match[1], 10) : new Date(iso).getHours();
+
+            Object.keys(dataByGroup).forEach(groupKey => {
+                const group = dataByGroup[groupKey];
+                const finalName = groupKey.replace(/[:\\/?*\[\]]/g, "_").substring(0, 31);
+                const ws = workbook.addWorksheet(finalName);
+                copySheetFormat(templateSheet, ws);
+                ws.addImage(logoFamax, { tl: { col: 0, row: 0 }, ext: { width: 125, height: 51 } });
+                ws.addImage(logoConf, { tl: { col: 18, row: 0 }, ext: { width: 189, height: 56 } });
+                ws.getCell(4, 3).value = meta.Part_Name || "";
+                ws.getCell(5, 3).value = meta.Part_Number || "";
+                ws.getCell(9, 3).value = group.process;
+                ws.getCell(10, 19).value = group.machine;
+                ws.getCell(45, 17).value = group.inspector || "";
+                const pts = {};
+                group.records.forEach(r => { const p = r.Point_DWG_Zone || "Unknown"; if (!pts[p]) pts[p] = []; pts[p].push(r); });
+                Object.keys(pts).forEach((pt, idx) => {
+                    if (idx >= 12) return;
+                    const rIdx = 14 + idx;
+                    const info = pts[pt][0];
+                    ws.getCell(rIdx, 1).value = info.Point_DWG_Zone;
+                    ws.getCell(rIdx, 4).value = safeNum(info.LSL_OK);
+                    ws.getCell(rIdx, 5).value = safeNum(info.USL_NG);
+                    pts[pt].forEach(rec => {
+                        const hr = getMYTHour(rec.created_at);
+                        const targetRow = (hr >= 8 && hr < 12) ? rIdx : (hr >= 14 && hr < 21 ? rIdx + 13 : null);
+                        if (targetRow) {
+                            let bCol = (hr < 12) ? 10 + (hr - 8) * 3 : 4 + (hr - 14) * 3;
+                            [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, ri) => {
+                                if (val != null) ws.getRow(targetRow).getCell(bCol + ri).value = safeNum(val);
+                            });
+                        }
+                    });
+                });
+            });
+            workbook.removeWorksheet(templateSheet.id);
+            const buf = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `Report_${meta.Part_Name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
         }
 
         function copySheetFormat(src, dest) {
@@ -1493,464 +1021,220 @@
                 destRow.height = row.height;
                 row.eachCell({ includeEmpty: true }, (cell, colNum) => {
                     const destCell = destRow.getCell(colNum);
-                    if (rowNum < 14 || (rowNum > 25 && rowNum < 27) || rowNum > 38) destCell.value = cell.value;
                     destCell.style = JSON.parse(JSON.stringify(cell.style));
+                    if (rowNum < 14 || rowNum > 38) destCell.value = cell.value;
                 });
             });
-            if (src._merges) {
-                Object.values(src._merges).forEach((m) => dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right));
-            }
+            if (src._merges) { Object.values(src._merges).forEach(m => dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right)); }
         }
 
-        // Bridge to Excel logic
-        async function triggerExcelFromTooltip(partName, processName, dateStr) {
-            showNotification("Generating Excel...", "success");
-            try {
-                // 1. Fetch RAW data for this specific part/process/day
-                // We fetch from Data_IPQC directly to get all Reading_1, Reading_2 etc.
-                const start = dateStr + "T00:00:00";
-                const end = dateStr + "T23:59:59";
+        // --- DASHBOARD JS ---
+        $(document).ready(() => {
+            const sidebar = $('#sidebar'), wrapper = $('#contentWrapper'), overlay = $('#sidebarOverlay');
+            $('#menuToggle').on('click', () => {
+                if ($(window).width() > 1100) {
+                    sidebar.toggleClass('collapsed');
+                    wrapper.toggleClass('expanded');
+                } else {
+                    sidebar.addClass('is-mobile-open');
+                    overlay.addClass('active');
+                }
+            });
+            $('#closeSidebar, #sidebarOverlay').on('click', () => {
+                if ($(window).width() > 1100) {
+                    sidebar.addClass('collapsed');
+                    wrapper.addClass('expanded');
+                } else {
+                    sidebar.removeClass('is-mobile-open');
+                    overlay.removeClass('active');
+                }
+            });
+            $('.dropbtn').on('click', function () {
+                $(this).parent().toggleClass('is-active');
+            });
+            const today = new Date().toISOString().split("T")[0];
+            $("#startDateInput").val(today); $("#endDateInput").val(today);
+            fetchAllData();
+            $("#loginButton").click(() => $("#login-modal").modal());
 
-                const [resRows, resMeta] = await Promise.all([
-                    supabaseClient.get(`/rest/v1/Data_IPQC?Part_Name=eq.${partName}&Process=eq.${processName}&created_at=gte.${start}&created_at=lte.${end}`),
-                    supabaseClient.get(`/rest/v1/Parts?Part_Name=eq.${partName}&select=*`)
+            
+
+            $(document).on('mousemove', function (e) {
+                currentMousePos.x = e.pageX;
+                currentMousePos.y = e.pageY;
+            });
+
+            // --- RESTORED ORIGINAL LOGIN HANDLER ---
+            document.getElementById("submitLogin").addEventListener("click", async function () {
+                const userId = document.getElementById("userId").value.trim();
+                const password = document.getElementById("password").value.trim();
+                if (!userId || !password) { showNotification("Please enter both user ID and password", "error"); return; }
+                try {
+                    const { data, error } = await fetchFromSupabase(userId);
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        const userRecord = data[0];
+                        if (userRecord.Password === password) {
+                            showNotification("Login successful!", "success");
+                            sessionStorage.setItem("isLoggedIn", "true");
+                            sessionStorage.setItem("userId", userId);
+                            sessionStorage.setItem("userPassword", password);
+                            $.modal.close();
+                            setTimeout(() => {
+                                window.location.href = "AdminLogin.html?UserId=" + encodeURIComponent(userId) + "&Password=" + encodeURIComponent(password);
+                            }, 1000);
+                        } else { showNotification("Invalid password.", "error"); }
+                    } else { showNotification("User not found.", "error"); }
+                } catch (error) { showNotification("Login failed.", "error"); }
+            });
+        });
+
+        async function fetchAllData() {
+            $("#loader").show();
+            try {
+                const [resIPQC, resIQC, resOQC] = await Promise.all([
+                    supabaseClient.get("/rest/v1/Data_IPQC?select=*&order=created_at.asc"),
+                    supabaseClient.get("/rest/v1/Data_IQC?select=*&order=created_at.asc"),
+                    supabaseClient.get("/rest/v1/Data_OQC?select=*&order=created_at.asc"),
                 ]);
-
-                if (!resRows.data.length) {
-                    showNotification("No raw data found for this selection.", "error");
-                    return;
-                }
-
-                // 2. Call the builder
-                await buildProcessCategorizedExcel(resRows.data, resMeta.data[0] || {});
-                showNotification("Download started", "success");
-            } catch (err) {
-                console.error(err);
-                showNotification("Failed to generate Excel", "error");
-            }
+                allData.ipqc = processReadings(resIPQC.data, "IPQC");
+                allData.iqc = processReadings(resIQC.data, "IQC");
+                allData.oqc = processReadings(resOQC.data, "OQC");
+                updatePartDropdown(); renderCurrentView();
+            } finally { $("#loader").hide(); }
         }
 
-        // --- MAIN EXCEL GENERATOR ---
-        async function buildProcessCategorizedExcel(rows, meta) {
-            const resp = await fetch(TEMPLATE_URL);
-            const arrayBuffer = await resp.arrayBuffer();
-            const workbook = new ExcelJS.Workbook();
-            await workbook.xlsx.load(arrayBuffer);
-            const templateSheet = workbook.worksheets[0];
-            let dateInspect = "";
-
-            const [famaxBuf, confBuf] = await Promise.all([
-                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
-                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
-            ]);
-            const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
-            const logoConfidential = workbook.addImage({ buffer: confBuf, extension: "png" });
-
-            const rawProcessData = meta.Process_Sequence || meta.process || meta.Process || "[]";
-            let processList = [];
-            try {
-                processList = typeof rawProcessData === "string" ? JSON.parse(rawProcessData) : rawProcessData;
-            } catch (e) { }
-            const totalProcessCount = Array.isArray(processList) ? processList.length : 0;
-
-            const dataByGroup = {};
-            rows.forEach((r) => {
-                const m = r.Machine || "N/A", p = r.Process || "Unknown", i = r.Person || "";
-                const key = `${p} | ${m}`;
-                if (!dataByGroup[key]) dataByGroup[key] = { process: p, machine: m, records: [], inspector: i };
-                dataByGroup[key].records.push(r);
-            });
-
-            Object.keys(dataByGroup).forEach((groupKey, idx) => {
-                let ws;
-                // 1. Clean the name of invalid characters
-                let baseName = groupKey.replace(/[:\\/?*\[\]]/g, "_");
-
-                // 2. Logic to prevent duplicate names and stay under 31 characters
-                let finalName = baseName.substring(0, 31);
-                let counter = 1;
-
-                // While a sheet with this name already exists, try a new name with a suffix (e.g. _1)
-                while (workbook.getWorksheet(finalName)) {
-                    let suffix = `_${counter}`;
-                    // Cut the base name shorter to make room for the suffix
-                    finalName = baseName.substring(0, 31 - suffix.length) + suffix;
-                    counter++;
+        function processReadings(data, type) {
+            if (!data) return []; const groups = {};
+            data.forEach((row) => {
+                const ts = row.created_at ? row.created_at.substring(0, 16).replace("T", " ") : "unknown";
+                const k = `${ts}_${row.Part_Name}_${row.Process}`;
+                if (!groups[k]) {
+                    groups[k] = { date: row.created_at.split("T")[0], fullTimestamp: ts, part: row.Part_Name || "Unknown", process: row.Process || "General", source: type === "IPQC" ? row.Machine : row.Process, isNG: false };
                 }
-
-                // 3. Add the worksheet with the unique name
-                ws = workbook.addWorksheet(finalName);
-                copySheetFormat(templateSheet, ws);
-
-                const group = dataByGroup[groupKey];
-                const currentProcessName = (group.process || "").trim().toUpperCase();
-                let currentProcessIndex = Array.isArray(processList) ? processList.findIndex((p) => String(p).trim().toUpperCase() === currentProcessName) : -1;
-                const currentProcessNumber = currentProcessIndex !== -1 ? currentProcessIndex + 1 : "";
-
-                const ptGroups = {};
-                group.records.forEach((r) => {
-                    const pt = r.Point_DWG_Zone || "Unknown";
-                    if (!ptGroups[pt]) ptGroups[pt] = [];
-                    ptGroups[pt].push(r);
-                });
-                const sortedPts = Object.keys(ptGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-                const pointsPerTable = 12;
-                const totalTablesNeeded = Math.ceil(sortedPts.length / pointsPerTable);
-                const rowsPerTableBlock = 50;
-
-                for (let tableIdx = 0; tableIdx < totalTablesNeeded; tableIdx++) {
-                    const rowOffset = tableIdx * rowsPerTableBlock;
-                    if (tableIdx > 0) copyTemplateToBottom(ws, 1, 46, rowOffset + 1);
-
-                    ws.addImage(logoFamax, { tl: { col: 0, row: rowOffset }, ext: { width: 125, height: 51 } });
-                    ws.addImage(logoConfidential, { tl: { col: 18, row: rowOffset }, ext: { width: 189, height: 56 } });
-
-                    // --- RESTORED ALL YOUR INPUT DATA FIELDS ---
-                    ws.getCell(4 + rowOffset, 3).value = meta.Part_Name || "";
-                    ws.getCell(5 + rowOffset, 3).value = meta.Part_Number || "";
-                    ws.getCell(6 + rowOffset, 3).value = meta.Raw_Material || "";
-                    ws.getCell(7 + rowOffset, 3).value = meta.Raw_Material_Grade || "";
-                    ws.getCell(8 + rowOffset, 3).value = meta.Raw_Material_Size || "";
-                    ws.getCell(9 + rowOffset, 3).value = group.process;
-                    ws.getCell(10 + rowOffset, 3).value = currentProcessNumber;
-                    ws.getCell(10 + rowOffset, 5).value = totalProcessCount > 0 ? totalProcessCount : "";
-                    ws.getCell(4 + rowOffset, 19).value = meta.WI_Number || "";
-                    ws.getCell(5 + rowOffset, 19).value = meta.Drawing_Number || "";
-                    ws.getCell(6 + rowOffset, 19).value = meta.Revision_No || "";
-                    ws.getCell(10 + rowOffset, 19).value = group.machine || "";
-                    ws.getCell(11 + rowOffset, 17).value = group.records[0].JO_Number || "";
-                    ws.getCell(45 + rowOffset, 17).value = group.inspector || "";
-
-                    if (group.records.length > 0) {
-                        const dateCell = ws.getCell(46 + rowOffset, 18);
-                        dateCell.value = new Date(group.records[0].created_at);
-                        dateCell.numFmt = "dd/mm/yyyy";
-                        dateInspect = new Date(group.records[0].created_at).toISOString().split('T')[0];
-                    }
-
-                    const pointsInThisTable = sortedPts.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
-
-                    pointsInThisTable.forEach((pt, pIdxInTable) => {
-                        const morningRow = 14 + pIdxInTable + rowOffset;
-                        const afternoonRow = 27 + pIdxInTable + rowOffset;
-                        const info = ptGroups[pt][0];
-
-                        // ws.getCell(morningRow, 1).value = info.Point_DWG_Zone;
-                        // ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
-                        // ws.getCell(morningRow, 4).value = info.LSL_OK;
-                        // ws.getCell(morningRow, 5).value = info.USL_NG;
-
-                        const pzVal = safeNum(info.Point_DWG_Zone);
-
-                        ws.getCell(morningRow, 1).value = pzVal !== null ? pzVal : info.Point_DWG_Zone;
-                        ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
-                        // If safeNum returns a number, use it; otherwise, keep the original (e.g., for "OK")
-                        const lslVal = safeNum(info.LSL_OK);
-                        ws.getCell(morningRow, 4).value = lslVal !== null ? lslVal : info.LSL_OK;
-                        const uslVal = safeNum(info.USL_NG);
-                        ws.getCell(morningRow, 5).value = uslVal !== null ? uslVal : info.USL_NG;
-
-
-
-                        ws.getCell(morningRow, 6).value = !isNaN(parseFloat(info.LSL_OK)) && !isNaN(parseFloat(info.USL_NG)) ? "Variable" : "Attribute";
-                        ws.getCell(morningRow, 7).value = info.SC;
-                        ws.getCell(40 + rowOffset, 17).value = "Remark: " + (info.Remarks || "");
-
-
-                        const lsl = safeNum(info.LSL_OK);
-                        const usl = safeNum(info.USL_NG);
-
-                        ptGroups[pt].forEach((rec) => {
-                            const hr = getMYTHour(rec.created_at);
-                            if ((hr >= 8 && hr < 12) || hr === 12 || (hr >= 14 && hr < 21)) {
-                                const targetRow = hr < 12 ? morningRow : afternoonRow;
-                                let baseCol = hr < 12 ? 10 + (hr - 8) * 3 : (hr === 12 ? 1 : 4 + (hr - 14) * 3);
-
-                                const rowObj = ws.getRow(targetRow);
-
-                                [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, rIdx) => {
-                                    // const cell = rowObj.getCell(baseCol + rIdx);
-                                    // if (val !== null && val !== undefined && String(val).trim() !== "") {
-                                    //   cell.value = val;
-                                    //   const nVal = safeNum(val);
-                                    const cell = rowObj.getCell(baseCol + rIdx);
-                                    if (val !== null && val !== undefined && String(val).trim() !== "") {
-                                        // Convert to number for Excel, otherwise keep as string (for "OK"/"NG")
-                                        const numericValue = safeNum(val);
-                                        cell.value = numericValue !== null ? numericValue : val;
-
-                                        const nVal = numericValue;
-
-
-                                        // --- IMPROVED NG LOGIC ---
-                                        let isNG = false;
-                                        if (nVal !== null) {
-                                            if (lsl !== null && nVal < lsl) isNG = true;
-                                            if (usl !== null && nVal > usl) isNG = true;
-                                        }
-                                        if (String(val).trim().toUpperCase() === "NG") isNG = true;
-
-                                        if (isNG) {
-                                            // Apply red formatting
-                                            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF0000" } };
-                                            cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
-                                        } else {
-                                            // Clean cell
-                                            cell.fill = { type: 'pattern', pattern: 'none' };
-                                            cell.font = { color: { argb: "FF000000" }, bold: false };
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                    });
+                const lsl = parseFloat(type === "IPQC" ? row.LSL_OK : row.Min) || 0, usl = parseFloat(type === "IPQC" ? row.USL_NG : row.Max) || 0;
+                for (let i = 1; i <= 5; i++) {
+                    const v = parseFloat(row[`Reading_${i}`]);
+                    if (!isNaN(v) && (v < lsl || v > usl)) { groups[k].isNG = true; break; }
                 }
             });
-
-            // FINALLY: Remove the empty first sheet (template)
-            workbook.removeWorksheet(templateSheet.id);
-
-            await saveWorkbook(workbook, `IPQC_Daily_${meta.Part_Name}_${dateInspect}`);
+            return Object.values(groups);
         }
 
-        function copyTemplateToBottom(ws, startRow, endRow, targetStartRow) {
-            const rowOffset = targetStartRow - startRow;
-            // Increase maxColumn to 50 to ensure we capture all Analysis and Remark columns (up to Col AX)
-            const maxColumn = 50;
-
-            // Helper to shift formulas: only shifts references that fall inside the template range (1-46)
-            const shiftFormula = (formula, offset) => {
-                if (!formula || typeof formula !== 'string') return formula;
-                // Regex matches [Optional $][Column Letters][Optional $][Row Digits]
-                return formula.replace(/(\$?[A-Z]+)(\$?)(\d+)/g, (match, col, absRow, row) => {
-                    const rowNum = parseInt(row, 10);
-                    // Only shift if the reference points to a row within our template block
-                    if (rowNum >= startRow && rowNum <= endRow) {
-                        return col + absRow + (rowNum + offset);
-                    }
-                    return match;
-                });
-            };
-
-            for (let i = startRow; i <= endRow; i++) {
-                const srcRow = ws.getRow(i);
-                const destRow = ws.getRow(i + rowOffset);
-                destRow.height = srcRow.height;
-
-                // Define the data entry rows for Morning and Night shifts
-                const isMeasurementRow = (i >= 14 && i <= 25) || (i >= 27 && i <= 38);
-
-                for (let colNum = 1; colNum <= maxColumn; colNum++) {
-                    const srcCell = srcRow.getCell(colNum);
-                    const destCell = destRow.getCell(colNum);
-
-                    // 1. Copy the full style (Borders, Alignment, Colors)
-                    destCell.style = JSON.parse(JSON.stringify(srcCell.style));
-
-                    // 2. Handle the content
-                    if (isMeasurementRow) {
-                        // IMPORTANT: Clear the measurement rows completely in the destination table.
-                        // This prevents old formulas/errors from the template (in Cols S-AD) 
-                        // from breaking the Analysis summary below.
-                        destCell.value = null;
-                    } else {
-                        // For non-measurement rows (Headers, Analysis, Remarks)
-                        const srcVal = srcCell.value;
-                        if (srcVal && typeof srcVal === 'object' && srcVal.formula) {
-                            // If it's a formula (like in the Analysis section), shift it to the new table rows
-                            destCell.value = {
-                                formula: shiftFormula(srcVal.formula, rowOffset),
-                                result: undefined
-                            };
-                        } else {
-                            // If it's a static value (labels, images), copy it as-is
-                            destCell.value = srcVal;
-                        }
-                    }
-                }
-            }
-
-            // 3. Re-apply Merged Cells for the new table block
-            if (ws._merges) {
-                Object.values(ws._merges).forEach((m) => {
-                    const model = m.model;
-                    // Only duplicate merges that are part of the template we are currently copying
-                    if (model.top >= startRow && model.bottom <= endRow) {
-                        ws.mergeCells(
-                            model.top + rowOffset,
-                            model.left,
-                            model.bottom + rowOffset,
-                            model.right
-                        );
-                    }
-                });
-            }
+        function updatePartDropdown() {
+            const pSelect = document.getElementById("partFilter");
+            const parts = [...new Set(allData[currentTab].map(d => d.part))];
+            pSelect.innerHTML = '<option value="all">All Parts</option>';
+            parts.forEach(p => pSelect.add(new Option(p, p)));
         }
 
+        function switchTab(tab, btn) { currentTab = tab; $(".tab-btn").removeClass("active"); $(btn).addClass("active"); updatePartDropdown(); renderCurrentView(); }
 
-        let isTooltipHovered = false;
-        let tooltipHideTimeout;
-        let currentChartRawData = [];
+        function renderCurrentView() {
+            const start = $("#startDateInput").val(), end = $("#endDateInput").val(), part = $("#partFilter").val();
+            const filtered = allData[currentTab].filter(d => d.date >= start && d.date <= end && (part === "all" || d.part === part));
+            const ok = filtered.filter(d => !d.isNG).length, ng = filtered.filter(d => d.isNG).length, total = filtered.length;
+            $("#kpi-total").text(total); $("#kpi-ok").text(ok); $("#kpi-ng").text(ng);
+            $("#kpi-rate").text(total > 0 ? ((ok / total) * 100).toFixed(1) + "%" : "0%");
+            updateMainChart(filtered); updateSubChart(filtered);
+        }
+
+        function updateMainChart(data) {
+            const ctx = document.getElementById("mainChart").getContext("2d"); if (mainChartInst) mainChartInst.destroy();
+            const grouped = {}; data.forEach(d => {
+                let k = $("#partFilter").val() === "all" ? (d.part.match(/\(([^)]+)\)/)?.[1] || d.part) : d.process;
+                if (!grouped[k]) grouped[k] = { ok: 0, ng: 0 };
+                d.isNG ? grouped[k].ng++ : grouped[k].ok++;
+            });
+            const labels = Object.keys(grouped).sort();
+            mainChartInst = new Chart(ctx, {
+                type: "bar", data: {
+                    labels: labels, datasets: [
+                        { label: "Go (OK)", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" },
+                        { label: "No Go (NG)", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+            });
+        }
 
         function updateSubChart(data) {
-            currentChartRawData = data;
-            const canvas = document.getElementById("subChart");
-            const ctx = canvas.getContext("2d");
-            if (subChartInst) subChartInst.destroy();
-
-            const field =
-                $("#breakdownFilter").val() === "part" ? "part" : "source";
+            const ctx = document.getElementById("subChart").getContext("2d"); if (subChartInst) subChartInst.destroy();
+            const field = $("#breakdownFilter").val() === "part" ? "part" : "source";
             const grouped = {};
-            data.forEach((d) => {
-                const key = d[field] || "N/A";
-                if (!grouped[key]) grouped[key] = { ok: 0, ng: 0, details: {} };
-                d.isNG ? grouped[key].ng++ : grouped[key].ok++;
-                const proc = d.process || "Unknown Process";
-                if (!grouped[key].details[proc])
-                    grouped[key].details[proc] = { ng: 0, history: {} };
+            data.forEach(d => {
+                const k = d[field] || "N/A"; if (!grouped[k]) grouped[k] = { ok: 0, ng: 0, details: {} };
+                d.isNG ? grouped[k].ng++ : grouped[k].ok++;
+                const proc = d.process || "Unknown";
+                if (!grouped[k].details[proc]) grouped[k].details[proc] = { ng: 0, history: {} };
                 if (d.isNG) {
-                    grouped[key].details[proc].ng++;
-                    const dateStr = d.date;
-                    const timeStr = d.fullTimestamp.split(" ")[1] || d.fullTimestamp;
-                    if (!grouped[key].details[proc].history[dateStr])
-                        grouped[key].details[proc].history[dateStr] = [];
-                    grouped[key].details[proc].history[dateStr].push(timeStr);
+                    grouped[k].details[proc].ng++;
+                    const dt = d.date; if (!grouped[k].details[proc].history[dt]) grouped[k].details[proc].history[dt] = [];
+                    grouped[k].details[proc].history[dt].push(d.fullTimestamp.split(" ")[1]);
                 }
             });
-
-            const labels = Object.keys(grouped).sort(
-                (a, b) => grouped[b].ng - grouped[a].ng
-            );
-
-            // --- AUTO HEIGHT LOGIC ---
-            const barHeight = 45;
-            canvas.style.height =
-                Math.max(350, labels.length * barHeight + 100) + "px";
-
+            const labels = Object.keys(grouped).sort((a, b) => grouped[b].ng - grouped[a].ng);
+            document.getElementById("subChart").style.height = Math.max(300, labels.length * 45 + 100) + "px";
             subChartInst = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: "NG",
-                            data: labels.map((l) => grouped[l].ng),
-                            backgroundColor: "#ef4444",
-                            borderRadius: 4,
-                        },
-                        {
-                            label: "OK",
-                            data: labels.map((l) => grouped[l].ok),
-                            backgroundColor: "#10b981",
-                            borderRadius: 4,
-                        },
-                    ],
+                type: "bar", data: {
+                    labels: labels, datasets: [
+                        { label: "NG", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" },
+                        { label: "OK", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" }
+                    ]
                 },
                 options: {
                     indexAxis: "y",
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: true, position: "top" },
-                        y: {
-                            stacked: true,
-                            ticks: { font: { size: 9 }, autoSkip: false },
-                        },
+                    // Add these two lines to make tooltips react to movement, not just intersections
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: false,
                     },
+                    scales: { x: { stacked: true }, y: { stacked: true } },
                     plugins: {
                         tooltip: {
                             enabled: false,
                             external: function (context) {
                                 let tooltipEl = document.getElementById("chartjs-tooltip");
                                 if (!tooltipEl) {
-                                    tooltipEl = document.createElement("div");
-                                    tooltipEl.id = "chartjs-tooltip";
+                                    tooltipEl = document.createElement("div"); tooltipEl.id = "chartjs-tooltip";
                                     document.body.appendChild(tooltipEl);
-                                    tooltipEl.addEventListener("mouseenter", () => {
-                                        isTooltipHovered = true;
-                                        clearTimeout(tooltipHideTimeout);
-                                    });
-                                    tooltipEl.addEventListener("mouseleave", () => {
-                                        isTooltipHovered = false;
-                                        tooltipEl.style.opacity = 0;
-                                    });
+                                    tooltipEl.onmouseenter = () => { isTooltipHovered = true; clearTimeout(tooltipHideTimeout); };
+                                    tooltipEl.onmouseleave = () => { isTooltipHovered = false; tooltipEl.style.opacity = 0; };
                                 }
-
                                 const model = context.tooltip;
                                 if (model.opacity === 0) {
-                                    if (!isTooltipHovered) {
-                                        tooltipHideTimeout = setTimeout(() => {
-                                            if (!isTooltipHovered) tooltipEl.style.opacity = 0;
-                                        }, 600);
-                                    }
+                                    if (!isTooltipHovered) tooltipHideTimeout = setTimeout(() => { tooltipEl.style.opacity = 0; }, 600);
                                     return;
                                 }
                                 clearTimeout(tooltipHideTimeout);
-
-                                if (model.body) {
-                                    const index = model.dataPoints[0].dataIndex;
-                                    const fullKey = labels[index];
-                                    const itemData = grouped[fullKey];
-
-                                    let innerHtml = `<div class="tooltip-title">${fullKey}</div>`;
-                                    innerHtml += `<div style="margin-bottom:10px; font-size:13px; color:#9ca3af;">Total: ${itemData.ok} OK / ${itemData.ng} NG</div>`;
-
-                                    for (const [procName, info] of Object.entries(
-                                        itemData.details
-                                    )) {
-                                        if (info.ng > 0) {
-                                            innerHtml += `<div class="process-item">⚠️ ${procName}</div>`;
-                                            for (const [date, times] of Object.entries(
-                                                info.history
-                                            )) {
-                                                innerHtml += `
-                                                <div class="date-group">
-                                                    <div class="date-header-row">
-                                                        <span class="date-header">${date}</span>
-                                                        <button class="btn-tooltip-download" onclick="triggerExcelFromTooltip('${fullKey.replace(
-                                                    /'/g,
-                                                    "\\'"
-                                                )}', '${procName.replace(
-                                                    /'/g,
-                                                    "\\'"
-                                                )}', '${date}')">Excel</button>
-                                                    </div>
-                                                    <div class="time-grid">
-                                                        ${[...new Set(times)]
-                                                        .sort()
-                                                        .map(
-                                                            (t) =>
-                                                                `<span class="time-tag">${t}</span>`
-                                                        )
-                                                        .join("")}
-                                                    </div>
-                                                </div>`;
-                                            }
+                                const index = model.dataPoints[0].dataIndex, key = labels[index], item = grouped[key];
+                                let html = `<div class="tooltip-title">${key}</div><div style="font-size:12px;color:#9ca3af;">Total: ${item.ok} OK / ${item.ng} NG</div>`;
+                                for (const [proc, info] of Object.entries(item.details)) {
+                                    if (info.ng > 0) {
+                                        html += `<div class="process-item">⚠️ ${proc}</div>`;
+                                        for (const [dt, times] of Object.entries(info.history)) {
+                                            html += `<div class="date-group"><div class="date-header-row"><span class="date-header">${dt}</span><button class="btn-tooltip-download" onclick="triggerExcelFromTooltip('${key.replace(/'/g, "\\'")}', '${proc.replace(/'/g, "\\'")}', '${dt}')">Excel</button></div><div class="time-grid">${[...new Set(times)].sort().map(t => `<span class="time-tag">${t}</span>`).join("")}</div></div>`;
                                         }
                                     }
-                                    tooltipEl.innerHTML = innerHtml;
                                 }
-
-                                const position = context.chart.canvas.getBoundingClientRect();
+                                tooltipEl.innerHTML = html;
                                 tooltipEl.style.opacity = 1;
-                                tooltipEl.style.left =
-                                    position.left +
-                                    window.pageXOffset +
-                                    model.caretX +
-                                    15 +
-                                    "px";
-                                tooltipEl.style.top =
-                                    position.top +
-                                    window.pageYOffset +
-                                    model.caretY -
-                                    40 +
-                                    "px";
-                            },
-                        },
-                    },
-                },
+                                tooltipEl.style.left = currentMousePos.x + 15 + "px"; // 15px offset to the right
+                                tooltipEl.style.top = currentMousePos.y - 40 + "px";  // 40px offset upwards                            
+                            }
+                        }
+                    }
+                }
             });
+        }
+
+        function handleTimeFilterChange() {
+            const val = $("#timeFilter").val(); if (val === "custom") return;
+            const end = new Date(), start = new Date(); start.setDate(end.getDate() - parseInt(val));
+            $("#startDateInput").val(start.toISOString().split("T")[0]); $("#endDateInput").val(end.toISOString().split("T")[0]);
+            renderCurrentView();
         }
     </script>
 </body>

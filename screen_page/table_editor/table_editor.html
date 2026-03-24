@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPQC Management - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-hover: #005a9e;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --special-bg: #fef3c7;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            text-align: left;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-nav {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header-nav h2 {
+            margin: 0;
+            font-weight: 800;
+            font-size: 24px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        #date-filter {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 5px;
+            font-weight: 600;
+            color: var(--primary);
+            outline: none;
+        }
+
+        .part-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .part-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 14px;
+            display: flex;
+            gap: 30px;
+            cursor: pointer;
+        }
+
+        .part-content {
+            display: none;
+            padding: 15px;
+        }
+
+        .session-group {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .session-header {
+            background: #f8fafc;
+            padding: 12px 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .session-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .session-meta-grid {
+            display: grid;
+            grid-template-columns: 250px 180px 1fr;
+            gap: 40px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            padding-right: 40px;
+            border-bottom: 1px solid var(--bg);
+            align-items: end;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .meta-item label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .meta-item span {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-dark);
+            padding: 8px 0;
+        }
+
+        input[type="text"],
+        input[type="date"] {
+            height: 38px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fff;
+            width: 100%;
+            transition: border-color 0.2s;
+            text-align: left;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px;
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        td {
+            padding: 12px 15px;
+            /* Increased from 10px to 15px for horizontal spacing */
+            border-bottom: 1px solid var(--bg);
+        }
+
+        .reading-input {
+            width: 100% !important;
+            /* Ensure it fills the cell */
+            max-width: 140px;
+            /* Prevents it from getting too long on big screens */
+            background: #f0f9ff;
+            font-weight: 700;
+            border: 2px solid #bee3f8;
+            color: var(--text-dark);
+            display: inline-block;
+            box-sizing: border-box;
+            /* Ensures padding doesn't increase width */
+        }
+
+        /* Special Accept UI */
+        .special-accept-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .row-special-accepted {
+            background-color: var(--special-bg) !important;
+        }
+
+        /* --- RED STATUS STYLE --- */
+        .out-of-spec {
+            background-color: #fee2e2 !important;
+            border-color: var(--danger) !important;
+            color: var(--danger) !important;
+        }
+
+        .chevron::before {
+            content: '▶';
+            display: inline-block;
+            margin-right: 12px;
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .active>.chevron::before {
+            transform: rotate(90deg);
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header-nav">
+            <div>
+                <h2>IPQC Inspection Editor</h2>
+                <div style="font-size: 13px; color: var(--text-muted);" id="last-sync">Loading...</div>
+            </div>
+            <div class="filter-group">
+                <label style="font-size: 11px; font-weight:700; color:var(--text-muted)">SELECT DATE:</label>
+                <input type="date" id="date-filter">
+            </div>
+        </div>
+
+        <div id="ipqc-content"></div>
+    </div>
+
+    <script>
+        const SB_URL = "http://192.168.0.5:8000";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        $(document).ready(function () {
+            const today = new Date().toISOString().split('T')[0];
+            $('#date-filter').val(today);
+            fetchIPQCByDate(today);
+
+            $('#date-filter').on('change', function () {
+                fetchIPQCByDate(this.value);
+            });
+        });
+
+        // Validation logic for coloring
+        function validateSpec(input, lsl, usl) {
+            const $row = $(input).closest('tr');
+            const isSpecialAccept = $row.find('.special-accept-checkbox').is(':checked');
+            const val = $(input).val().trim().toUpperCase();
+
+            // Default: In Spec
+            $(input).removeClass('out-of-spec');
+
+            // If Special Accept is checked, we bypass the red color logic
+            if (isSpecialAccept) return;
+
+            if (val === "") return;
+
+            // 1. Check Keywords
+            if (val === "NG" || val === "STOP") {
+                $(input).addClass('out-of-spec');
+                return;
+            }
+
+            // 2. Check Numeric Range
+            const numVal = parseFloat(val);
+            const numLsl = parseFloat(lsl);
+            const numUsl = parseFloat(usl);
+
+            if (!isNaN(numVal)) {
+                if ((!isNaN(numLsl) && numVal < numLsl) || (!isNaN(numUsl) && numVal > numUsl)) {
+                    $(input).addClass('out-of-spec');
+                }
+            }
+        }
+
+        async function toggleAllSessionSA(headerCheckbox, idList) {
+            const isChecked = $(headerCheckbox).is(':checked') ? 1 : 0;
+            $('#overlay').css('display', 'flex');
+            const { error } = await _supabase.from('Data_IPQC').update({ special_accept: isChecked }).in('id', idList);
+            if (error) {
+                Toastify({ text: "Error updating batch", background: "var(--danger)" }).showToast();
+                $(headerCheckbox).prop('checked', !isChecked);
+            } else {
+                Toastify({ text: "Batch Special Accept Updated", background: "var(--success)" }).showToast();
+                const $table = $(headerCheckbox).closest('table');
+                $table.find('.special-accept-checkbox').prop('checked', isChecked).each(function () { revalidateRow(this); });
+            }
+            $('#overlay').hide();
+        }
+
+        // Run validation for all inputs in a row (called when Special Accept toggled)
+        function revalidateRow(checkbox) {
+            const $row = $(checkbox).closest('tr');
+            const lsl = $row.find('td:nth-child(4)').text(); // Shifted because of new column
+            const usl = $row.find('td:nth-child(5)').text();
+
+            $row.find('.reading-input').each(function () {
+                validateSpec(this, lsl, usl);
+            });
+
+            if ($(checkbox).is(':checked')) {
+                $row.addClass('row-special-accepted');
+            } else {
+                $row.removeClass('row-special-accepted');
+            }
+        }
+
+        function toggleCollapse(element) {
+            const $header = $(element);
+            const $content = $header.next();
+            $header.toggleClass('active');
+            $content.slideToggle(200);
+        }
+
+        async function fetchIPQCByDate(dateStr) {
+            if (!dateStr) return;
+            $('#overlay').css('display', 'flex');
+
+            const startOfDay = `${dateStr}T00:00:00.000Z`;
+            const endOfDay = `${dateStr}T23:59:59.999Z`;
+
+            const { data, error } = await _supabase
+                .from('Data_IPQC')
+                .select('*')
+                .gte('created_at', startOfDay)
+                .lte('created_at', endOfDay)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                Toastify({ text: "Error fetching data", background: "var(--danger)" }).showToast();
+                $('#overlay').hide();
+                return;
+            }
+
+            renderGroupedData(data);
+            $('#last-sync').text(`(${data.length} entries)`);
+            $('#overlay').hide();
+        }
+
+        function renderGroupedData(data) {
+            const grouped = data.reduce((acc, row) => {
+                const part = row.Part_Name;
+                const sessionKey = `${row.Process}|${row.JO_Number}|${row.created_at}`;
+                if (!acc[part]) acc[part] = {};
+                if (!acc[part][sessionKey]) {
+                    acc[part][sessionKey] = {
+                        process: row.Process, jo: row.JO_Number,
+                        time: row.created_at, remarks: row.Remarks || '',
+                        machine: row.Machine || '', points: []
+                    };
+                }
+                acc[part][sessionKey].points.push(row);
+                return acc;
+            }, {});
+
+            let html = '';
+            const entries = Object.entries(grouped);
+
+            if (entries.length === 0) {
+                html = '<div style="background:white; padding:40px; border-radius:12px; border:1px solid var(--border);">No records found for this date.</div>';
+            } else {
+                for (const [partName, sessions] of entries) {
+                    html += `
+                    <div class="part-card">
+                        <div class="part-header chevron" onclick="toggleCollapse(this)">
+                            <span>${partName}</span>
+                            <span style="font-weight:400; font-size:11px; opacity:0.8;">(${Object.keys(sessions).length} Sessions)</span>
+                        </div>
+                        <div class="part-content">`;
+
+                    for (const [sKey, s] of Object.entries(sessions)) {
+                        const timeOnly = new Date(s.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        html += `
+                        <div class="session-group">
+                            <div class="session-header chevron" onclick="toggleCollapse(this)">
+                                <span>TIME: ${timeOnly}</span>
+                                <span style="color:var(--text-muted)">|</span>
+                                <span>PROCESS: ${s.process}</span>
+                            </div>
+                            <div class="session-content">
+                                <div class="session-meta-grid">
+                                    <div class="meta-item"><label>JO Number</label><span>${s.jo}</span></div>
+                                    <div class="meta-item">
+                                        <label>Machine</label>
+                                        <input type="text" value="${s.machine}" 
+                                            onblur="updateSessionField('${partName}','${s.process}','${s.jo}','${s.time}', 'Machine', this.value)"
+                                            placeholder="MC NO.">
+                                    </div>
+                                    <div class="meta-item">
+                                        <label>Batch Remarks</label>
+                                        <input type="text" value="${s.remarks}" 
+                                            onblur="updateSessionField('${partName}','${s.process}','${s.jo}','${s.time}', 'Remarks', this.value)"
+                                            placeholder="Add process remarks...">
+                                    </div>
+                                </div>
+                                <table>
+                                 <thead>
+                                    <tr>
+                                      <th style="width:50px; text-align:center">
+                                         <!-- Select All Checkbox -->
+                                        <input type="checkbox" class="header-sa-checkbox" 
+                                            onclick="toggleAllSessionSA(this, ${JSON.stringify(s.points.map(p => p.id))})"> SA
+                                         </th>
+                                        <th>Zone</th><th>Instrument</th><th>LSL</th><th>USL</th>
+                                        <th>Reading 1</th><th>Reading 2</th><th>Reading 3</th>
+                                         </tr>
+                                </thead>
+                                    <tbody>`;
+
+                        s.points.sort((a, b) => a.Point_DWG_Zone - b.Point_DWG_Zone).forEach(p => {
+                            const r1 = p.Reading_1 === null ? '' : p.Reading_1;
+                            const r2 = p.Reading_2 === null ? '' : p.Reading_2;
+                            const r3 = p.Reading_3 === null ? '' : p.Reading_3;
+                            const saChecked = p.special_accept === 1 ? 'checked' : '';
+                            const saRowClass = p.special_accept === 1 ? 'row-special-accepted' : '';
+
+                            html += `
+                            <tr class="${saRowClass}">
+                                <td style="text-align:center">
+                                    <input type="checkbox" class="special-accept-checkbox" ${saChecked} 
+                                        onchange="updateSpecialAccept(${p.id}, this)">
+                                </td>
+                                <td style="font-weight:700">#${p.Point_DWG_Zone}</td>
+                                <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600;">${p.Measuring_Instrument}</span></td>
+                                <td style="color:var(--text-muted)">${p.LSL_OK}</td>
+                                <td style="color:var(--text-muted)">${p.USL_NG}</td>
+                                <td><input type="text" class="reading-input" value="${r1}" 
+                                    onkeyup="validateSpec(this, '${p.LSL_OK}', '${p.USL_NG}')"
+                                    onblur="updateReading(${p.id}, 'Reading_1', this.value)"></td>
+                                <td><input type="text" class="reading-input" value="${r2}" 
+                                    onkeyup="validateSpec(this, '${p.LSL_OK}', '${p.USL_NG}')"
+                                    onblur="updateReading(${p.id}, 'Reading_2', this.value)"></td>
+                                <td><input type="text" class="reading-input" value="${r3}" 
+                                    onkeyup="validateSpec(this, '${p.LSL_OK}', '${p.USL_NG}')"
+                                    onblur="updateReading(${p.id}, 'Reading_3', this.value)"></td>
+                            </tr>`;
+                        });
+                        html += `</tbody></table></div></div>`;
+                    }
+                    html += `</div></div>`;
+                }
+            }
+            $('#ipqc-content').html(html);
+
+            // Run validation once on initial load
+            $('.reading-input').each(function () {
+                const lsl = $(this).closest('tr').find('td:nth-child(4)').text();
+                const usl = $(this).closest('tr').find('td:nth-child(5)').text();
+                validateSpec(this, lsl, usl);
+            });
+        }
+
+        async function updateSpecialAccept(rowId, checkbox) {
+            const isChecked = $(checkbox).is(':checked') ? 1 : 0;
+
+            const { error } = await _supabase.from('Data_IPQC')
+                .update({ special_accept: isChecked })
+                .eq('id', rowId);
+
+            if (error) {
+                Toastify({ text: "Error updating Special Accept", background: "var(--danger)" }).showToast();
+                // Revert UI if error
+                $(checkbox).prop('checked', !$(checkbox).is(':checked'));
+            } else {
+                Toastify({ text: "Special Accept Updated", background: "var(--primary)" }).showToast();
+                revalidateRow(checkbox);
+            }
+        }
+
+        async function updateSessionField(part, process, jo, time, field, newVal) {
+            const updateObj = {};
+            updateObj[field] = newVal;
+            const { error } = await _supabase.from('Data_IPQC').update(updateObj)
+                .match({ Part_Name: part, Process: process, JO_Number: jo, created_at: time });
+
+            if (error) Toastify({ text: `Error updating ${field}`, background: "var(--danger)" }).showToast();
+            else Toastify({ text: `${field} Updated`, background: "var(--primary)" }).showToast();
+        }
+
+        async function updateReading(rowId, field, newVal) {
+            const updateObj = {};
+            updateObj[field] = newVal;
+            const { error } = await _supabase.from('Data_IPQC').update(updateObj).eq('id', rowId);
+
+            if (error) Toastify({ text: "Error saving reading", background: "var(--danger)" }).showToast();
+            else Toastify({ text: "Reading Saved", background: "var(--success)" }).showToast();
+        }
+    </script>
+</body>
+
+</html>

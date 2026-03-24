@@ -247,7 +247,8 @@
             background: white;
             padding: 24px;
             border-radius: 16px;
-            width: 100%;
+            width: 90%;
+            /* Increased for mobile */
             max-width: 500px;
             box-shadow: var(--shadow-lg);
             position: relative;
@@ -331,6 +332,67 @@
             color: var(--text-muted);
             font-size: 12px;
         }
+
+        /* --- RESPONSIVE ADJUSTMENTS --- */
+        @media (max-width: 768px) {
+            header {
+                padding: 0 1rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .header-brand h1 {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                height: 60px;
+            }
+
+            .header-brand h1 {
+                font-size: 1rem;
+            }
+
+            /* Hide the text in the button on very small screens to save space */
+            .header-actions .btn-outline {
+                padding: 8px 12px;
+            }
+
+            .header-actions .btn-outline span {
+                display: none;
+            }
+
+            .main-wrapper {
+                padding: 1rem 0.5rem;
+            }
+
+            .card {
+                padding: 1.25rem;
+                border-radius: 0;
+                /* Optional: Full width look on mobile */
+                box-shadow: none;
+                border: none;
+                background: transparent;
+            }
+
+            .section-header h2 {
+                font-size: 1.25rem;
+            }
+
+            .button-container {
+                justify-content: center;
+                /* Center button on mobile */
+            }
+
+            .btn {
+                width: 100%;
+                /* Full width button on mobile */
+            }
+        }
     </style>
 </head>
 
@@ -350,7 +412,7 @@
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                Active Job Orders
+                <span>Active Jobs</span>
             </button>
         </div>
     </header>
@@ -373,7 +435,7 @@
         <div class="card">
             <div class="section-header">
                 <h2>Inspection Setup</h2>
-                <p>Select the required details to begin the buyoff process</p>
+                <p>Select details to begin buyoff</p>
             </div>
 
             <div class="form-group">
@@ -422,10 +484,11 @@
     </div>
 
     <div class="footer">
-        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+        © 2025 Famax Technology (M) Sdn. Bhd.
     </div>
 
     <script>
+        /* Existing JavaScript logic remains unchanged */
         const SUPABASE_URL = "http://192.168.0.5:8000";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
 

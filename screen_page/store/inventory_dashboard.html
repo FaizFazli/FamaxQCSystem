@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Status - Famax Finished Goods</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header & Stats */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-weight: 800;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        } */
+
+        .stat-card label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        /* Search Bar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .btn-export {
+            background: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        /* Table Styling */
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead th {
+            background: #f1f5f9;
+            padding: 15px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #ffedd5;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .barcode-text {
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .status-col {
+            white-space: nowrap;
+            width: 1%;
+            /* Forces the column to be as narrow as possible without wrapping */
+        }
+
+        /* Ensure the badges themselves don't wrap internally */
+        .badge {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .stat-card {
+            height: fit-content;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Bottom Row Layout: 2 columns */
+        /* Bottom Row Layout: Force 2 equal columns spanning 100% width */
+        .stats-grid-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            /* This splits the row exactly in half */
+            gap: 20px;
+            /* Space between the two cards */
+            margin-bottom: 30px;
+            width: 100%;
+            /* Ensures it fills the container width */
+        }
+
+        /* Updated Insight Card styling for a clean, balanced look */
+        .insight-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .insight-card label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Ensure the list fills the card width */
+        .insight-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+
+        .insight-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .insight-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* This container holds the Barcode and Description */
+        .insight-item-info {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* Important to keep the 50/50 split if text is long */
+            padding-right: 10px;
+        }
+
+        .insight-name {
+            font-size: 13px;
+            color: var(--text-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            /* Adds ... if the product name is too long */
+        }
+
+        .insight-qty {
+            font-weight: 800;
+            background: #f1f5f9;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--primary);
+            min-width: fit-content;
+        }
+
+        /* Responsive: stack them only on mobile phones */
+        @media (max-width: 768px) {
+            .stats-grid-bottom {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sync-wrapper {
+            font-size: 12px;
+        }
+
+        #sync-link {
+            color: var(--primary);
+            /* Uses your existing blue */
+            text-decoration: underline;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #sync-link:hover {
+            opacity: 0.8;
+        }
+
+        .sync-icon {
+            transition: transform 0.5s ease;
+        }
+
+        /* Optional: Animation when loading */
+        .is-loading .sync-icon {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Main Container: Adjust padding for small screens */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            /* Stats Grid: 3 columns -> 1 column on mobile */
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            /* Insight Cards: 2 columns -> 1 column */
+            .stats-grid-bottom {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            /* Toolbar: Search and Export stack vertically */
+            .toolbar {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .search-input {
+                width: 100%;
+            }
+
+            .btn-export {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* Tablet view: 2 columns for top stats */
+        @media (min-width: 481px) and (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* --- TABLE RESPONSIVENESS --- */
+        .table-card {
+            width: 100%;
+            overflow-x: auto;
+            /* Enables horizontal scroll */
+            -webkit-overflow-scrolling: touch;
+            /* Smooth scroll for iOS */
+        }
+
+        table {
+            min-width: 900px;
+            /* Ensures table doesn't squish too much */
+        }
+
+        /* Ensure the container stays within screen bounds */
+        .container {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        /* Compact specific columns on small screens */
+        @media (max-width: 600px) {
+            .barcode-text {
+                font-size: 12px;
+            }
+
+            tbody td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Finished Goods Inventory Balance</h1>
+                <p style="color: var(--text-muted); margin: 5px 0 0 0;">Real-time stock availability for FG</p>
+            </div>
+            <div class="sync-wrapper">
+                <a href="javascript:void(0)" onclick="fetchStock()" id="sync-link">
+                    <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    <span id="last-updated">Syncing...</span>
+                </a>
+            </div>
+
+        </div>
+
+        <!-- Top Row: 3 Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <label>Total Item Types</label>
+                <div class="value" id="stat-count">-</div>
+            </div>
+            <div class="stat-card">
+                <label>Total Pieces (Available)</label>
+                <div class="value" id="stat-pcs">-</div>
+            </div>
+            <div class="stat-card">
+                <label>Total Cartons</label>
+                <div class="value" id="stat-cartons">-</div>
+            </div>
+        </div>
+        <div class="stats-grid-bottom">
+            <div class="insight-card">
+                <label>🔥 Top 5 Highest Stock</label>
+                <ul id="top-highest-list" class="insight-list"></ul>
+            </div>
+            <div class="insight-card">
+                <label>⚠️ Top 5 Lowest Stock (>0)</label>
+                <ul id="top-lowest-list" class="insight-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="search" class="search-input" placeholder="Search by Barcode, Product, or Customer...">
+        <button class="btn-export" onclick="exportStock()">Export to Excel</button>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Barcode</th>
+                    <th>Product Description</th>
+                    <th>Status</th>
+                    <th>UOM</th>
+                    <th>Qty Per Ctn</th>
+                    <th>Available Cartons</th>
+                    <th>Loose Pcs</th>
+                    <th style="background: #e0f2fe; color: #0369a1;">Total Available (PCS)</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-table">
+                <!-- Data loaded here -->
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <script>
+        const SB_URL = "http://192.168.0.5:8000";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let fullData = [];
+
+        $(document).ready(function () {
+            fetchStock();
+
+            // Search filter logic
+            $("#search").on("keyup", function () {
+                const value = $(this).val().toLowerCase();
+                renderTable(fullData.filter(item =>
+                    String(item.barcode).toLowerCase().includes(value) ||
+                    String(item.product_name).toLowerCase().includes(value) ||
+                    String(item.customer).toLowerCase().includes(value)
+                ));
+            });
+        });
+        async function fetchStock() {
+            // Start animation and overlay
+            $('#sync-link').addClass('is-loading');
+            $('#overlay').show();
+
+            const { data, error } = await _supabase
+                .from('inventory')
+                .select('*')
+                .order('customer', { ascending: true });
+
+            // Stop animation and overlay
+            $('#overlay').hide();
+            $('#sync-link').removeClass('is-loading');
+
+            if (error) {
+                alert("Error fetching data: " + error.message);
+                return;
+            }
+
+            fullData = data;
+            renderTable(data);
+            updateStats(data);
+
+            // Update the timestamp
+            const now = new Date();
+            const timeString = now.toLocaleDateString() + ", " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            $('#last-updated').text("Last Sync: " + timeString);
+        }
+
+        function renderTable(data) {
+            let html = "";
+            data.forEach(row => {
+                const avail = parseInt(row.available_pcs) || 0;
+                let statusBadge = "";
+
+                if (avail > 500) statusBadge = '<span class="badge badge-success">IN STOCK</span>';
+                else if (avail > 0) statusBadge = '<span class="badge badge-warning">LOW STOCK</span>';
+                else statusBadge = '<span class="badge badge-danger">OUT OF STOCK</span>';
+
+                html += `
+                    <tr>
+                        <td style="font-weight:600">${row.customer || '-'}</td>
+                        <td class="barcode-text">${row.barcode}</td>
+                        <td>${row.product_name || '-'}</td>
+                        <td class="status-col">${statusBadge}</td> <!-- ADDED CLASS HERE -->
+                        <td>${row.uom || 'PCS'}</td>
+                        <td>${row.units_per_carton || 0}</td>
+                        <td>${row.available_cartons || 0}</td>
+                        <td>${row.loose_remainder || 0}</td>
+                        <td style="font-weight:800; color:var(--primary); background: #f0f9ff;">${avail.toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+            $("#inventory-table").html(html || '<tr><td colspan="9" align="center">No inventory found.</td></tr>');
+        }
+
+        function updateStats(data) {
+            let totalPcs = 0;
+            let totalCtns = 0;
+
+            // Calculate basic totals
+            data.forEach(item => {
+                totalPcs += (parseInt(item.available_pcs) || 0);
+                totalCtns += (parseInt(item.available_cartons) || 0);
+            });
+
+            $("#stat-count").text(data.length);
+            $("#stat-pcs").text(totalPcs.toLocaleString());
+            $("#stat-cartons").text(totalCtns.toLocaleString());
+
+            // --- Logic for Top 5 Highest ---
+            const highest = [...data]
+                .sort((a, b) => (parseInt(b.available_pcs) || 0) - (parseInt(a.available_pcs) || 0))
+                .slice(0, 5);
+
+            // --- Logic for Top 5 Lowest (where Qty > 0) ---
+            const lowest = [...data]
+                .filter(item => (parseInt(item.available_pcs) || 0) > 0)
+                .sort((a, b) => (parseInt(a.available_pcs) || 0) - (parseInt(b.available_pcs) || 0))
+                .slice(0, 5);
+
+            // Helper to render lists
+            const renderInsightList = (list, elementId) => {
+                let html = list.map(item => `
+            <li>
+                <div class="insight-item-info">
+                    <span class="insight-barcode">${item.barcode}</span>
+                    <span class="insight-name">${item.product_name || 'No Description'}</span>
+                </div>
+                <span class="insight-qty">${(parseInt(item.available_pcs) || 0).toLocaleString()}</span>
+            </li>
+        `).join('');
+                $(`#${elementId}`).html(html || '<li>No data available</li>');
+            };
+
+            renderInsightList(highest, 'top-highest-list');
+            renderInsightList(lowest, 'top-lowest-list');
+        }
+        function exportStock() {
+            const ws = XLSX.utils.json_to_sheet(fullData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventory_Status");
+            XLSX.writeFile(wb, `Stock_Availability_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+    </script>
+</body>
+
+</html>

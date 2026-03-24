@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Store Inventory Dashboard - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -12,6 +14,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
 
     <style>
         :root {
@@ -29,9 +33,14 @@
             font-family: "Inter", sans-serif;
             background: var(--bg);
             color: var(--text-dark);
-            padding: 20px;
+            padding: 15px;
             margin: 0;
             box-sizing: border-box;
+        }
+
+        /* VISUAL CAPITALIZATION */
+        input[type="text"] {
+            text-transform: uppercase;
         }
 
         .container {
@@ -39,30 +48,51 @@
             margin: 0 auto;
         }
 
-        /* Top Header */
         .header-nav {
             display: flex;
             justify-content: space-between;
+            /* Pushes H2 to left, header-btns to right */
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
-        .header-nav h2 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 800;
-            color: var(--text-dark);
+        .header-btns {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* This creates the space between the two buttons */
         }
 
-        /* Grid Layout: Equal Height Cards */
+        /* Optional: Ensure buttons look consistent height-wise */
+        .btn-add,
+        .btn-save {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            height: 36px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            color: white;
+        }
+
+
         .grid-layout {
             display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 25px;
+            grid-template-columns: 420px 1fr;
+            gap: 20px;
             align-items: stretch;
-            /* Forces equal height */
-            height: calc(100vh - 120px);
-            min-height: 650px;
+        }
+
+        @media (min-width: 1101px) {
+            .grid-layout {
+                height: calc(100vh - 100px);
+                min-height: 750px;
+            }
         }
 
         @media (max-width: 1100px) {
@@ -72,7 +102,6 @@
             }
         }
 
-        /* Unified Card Style */
         .card {
             background: #fff;
             border-radius: 12px;
@@ -101,7 +130,6 @@
             letter-spacing: 0.05em;
         }
 
-        /* Form Content */
         .card-body {
             padding: 20px;
             overflow-y: auto;
@@ -109,7 +137,7 @@
         }
 
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 15px;
             position: relative;
         }
 
@@ -122,36 +150,35 @@
             margin-bottom: 6px;
         }
 
-        /* SYMMETRY FIX: All inputs must have exact same height and box-sizing */
         input,
         select {
             width: 100%;
-            height: 46px;
+            height: 42px;
             padding: 10px 12px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
-            text-transform: uppercase;
-            outline: none;
             box-sizing: border-box;
-            display: block;
         }
 
         input:focus {
             border-color: var(--primary);
+            outline: none;
             box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
         }
 
-        /* Row Symmetry Fix */
+        #qty {
+            background: #f0f9ff;
+            font-weight: 800;
+            color: var(--primary);
+            border: 2px solid #bae6fd;
+        }
+
         .form-row-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 18px;
-        }
-
-        .form-row-grid .form-group {
-            margin-bottom: 0;
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
         .type-switcher {
@@ -168,28 +195,33 @@
             cursor: pointer;
             text-align: center;
             font-weight: 700;
-            background: white;
             font-size: 12px;
             transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .t-btn.active-in {
             border-color: var(--success);
             color: var(--success);
             background: #f0fdf4;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
         }
 
         .t-btn.active-out {
             border-color: var(--danger);
             color: var(--danger);
             background: #fef2f2;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
         }
 
         .btn-save {
             background: var(--primary);
             color: white;
             width: 100%;
-            padding: 16px;
+            padding: 12px;
             border-radius: 8px;
             font-weight: 800;
             border: none;
@@ -198,92 +230,37 @@
             margin-top: 10px;
         }
 
-        .btn-save:hover {
-            background: var(--primary-hover);
-        }
-
-        /* Table UI */
-        .filter-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .filter-group select {
-            height: 38px;
-            width: auto;
-            background: #f1f5f9;
-            border: none;
-            font-size: 12px;
-        }
-
-        .table-container {
-            flex: 1;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        /* Sticky Table Header */
-        thead th {
-            position: sticky;
-            top: 0;
-            background: #fff;
-            z-index: 10;
-            padding: 15px;
-            text-align: left;
-            font-weight: 700;
-            font-size: 11px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            border-bottom: 2px solid var(--bg);
-        }
-
-        tbody td {
-            padding: 14px 15px;
-            border-bottom: 1px solid var(--bg);
-        }
-
-        tbody tr:hover {
-            background-color: #f8fafc;
-        }
-
-        /* Badges */
-        .badge {
-            padding: 5px 10px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 10px;
-            text-transform: uppercase;
-        }
-
-        .badge-in {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-out {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .btn-excel {
-            border: none;
-            padding: 0 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 700;
-            height: 38px;
+        .btn-add {
+            background: var(--success);
             color: white;
+            padding: 0 15px;
+            border-radius: 8px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            height: 36px;
         }
 
-        /* Autocomplete */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal-card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            width: 450px;
+        }
+
         .autocomplete-items {
             position: absolute;
             border: 1px solid var(--border);
@@ -296,17 +273,64 @@
             overflow-y: auto;
             border-radius: 8px;
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            display: none;
         }
 
         .autocomplete-items div {
-            padding: 12px;
+            padding: 10px;
             cursor: pointer;
             border-bottom: 1px solid var(--bg);
+            font-size: 13px;
         }
 
         .autocomplete-items div:hover {
-            background-color: var(--bg);
+            background: var(--bg);
             color: var(--primary);
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            padding: 15px;
+            text-align: left;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--bg);
+        }
+
+        tbody td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 10px;
+        }
+
+        .badge-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-out {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         #overlay {
@@ -331,6 +355,83 @@
             animation: spin 1s linear infinite;
         }
 
+        #history-rows tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #history-rows tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        .detail-item {
+            margin-bottom: 10px;
+        }
+
+        .detail-label {
+            font-weight: 800;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: block;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .scan-btn {
+            position: absolute;
+            right: 10px;
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        /* Scanner Modal Styles */
+        #scanner-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20000;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .scanner-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -340,15 +441,6 @@
                 transform: rotate(360deg);
             }
         }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
     </style>
 </head>
 
@@ -357,96 +449,209 @@
         <div class="spinner"></div>
     </div>
 
+    <!-- ADD INVENTORY MODAL -->
+    <div id="modal-overlay">
+        <div class="modal-card">
+            <h3>Add New Inventory Item</h3>
+            <div class="form-group"><label>Customer</label><input type="text" id="inv_customer"
+                    placeholder="Customer Name"></div>
+            <div class="form-group"><label>Barcode</label><input type="text" id="inv_barcode" placeholder="Barcode ID">
+            </div>
+            <div class="form-group"><label>Product Name</label><input type="text" id="inv_product"
+                    placeholder="Product Name"></div>
+            <div class="form-row-grid">
+                <div class="form-group"><label>UOM</label><input type="text" id="inv_uom" placeholder="e.g. PCS"></div>
+                <div class="form-group"><label>Units per Carton</label><input type="number" id="inv_units"
+                        placeholder="0"></div>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-save" style="background:var(--danger)" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" onclick="saveNewInventory()">Save Item</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="scanner-modal">
+        <div id="reader"></div>
+        <div class="scanner-controls">
+            <button class="btn-save" style="background:var(--danger); width: auto;" onclick="stopScanner()">Close
+                Camera</button>
+        </div>
+    </div>
+
+    <!-- TRANSACTION DETAILS MODAL -->
+    <div id="details-modal-overlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 10000;">
+        <div class="modal-card" style="width: 500px; max-width: 90%;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px;">
+                <h3 id="det-title" style="margin:0;">Transaction Details</h3>
+                <span onclick="closeDetailsModal()"
+                    style="cursor:pointer; font-weight:800; color:var(--danger);">✕</span>
+            </div>
+
+            <div id="details-content"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
+                <!-- Content will be injected here -->
+            </div>
+
+            <button class="btn-save" style="background: var(--text-muted); margin-top: 25px;"
+                onclick="closeDetailsModal()">Close Detail</button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-nav">
             <h2>Store Record Dashboard</h2>
-            <div id="live-clock" style="font-size:14px; color:var(--text-muted); font-weight:600;"></div>
+
+            <!-- This wrapper acts as a single unit to be pushed to the right -->
+            <div class="header-btns">
+                <button class="btn-add" onclick="openModal()">+ New Inventory</button>
+
+                <button class="btn-save"
+                    style="background: var(--primary); width:auto; margin:0; height:36px; padding: 0 15px;"
+                    onclick="window.location.href='inventory_dashboard.html'">
+                    Stock Availability
+                </button>
+            </div>
         </div>
 
         <div class="grid-layout">
-            <!-- LEFT: FORM -->
             <div class="card">
                 <div class="card-header" style="background: var(--primary); color: white;">
                     <h3 style="color:white">New Transaction</h3>
                 </div>
                 <div class="card-body">
-                    <label
-                        style="display:block; font-weight: 700; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">Type</label>
                     <div class="type-switcher">
-                        <div id="btn-in" class="t-btn active-in" onclick="changeEntryType('IN')">IN (Arrival)</div>
-                        <div id="btn-out" class="t-btn" onclick="changeEntryType('OUT')">OUT (Dispatch)</div>
+                        <div id="btn-in" class="t-btn active-in" onclick="changeEntryType('IN')">IN</div>
+                        <div id="btn-out" class="t-btn" onclick="changeEntryType('OUT')">OUT</div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Part Name / Number</label>
-                        <input type="text" id="part_name" placeholder="Search component..." autocomplete="off">
-                        <div id="autocomplete-list" class="autocomplete-items"></div>
-                    </div>
-
                     <div class="form-row-grid">
                         <div class="form-group">
-                            <label>Qty (PCS)</label>
-                            <input type="number" id="qty" placeholder="0">
+                            <label>Barcode</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="barcode" placeholder="Scan or Search Barcode..."
+                                    autocomplete="off">
+                                <div class="scan-btn" onclick="startScanner('barcode')">📷</div>
+                            </div>
+                            <div id="list-barcode" class="autocomplete-items"></div>
                         </div>
+                        <div class="form-group">
+                            <label>Job Number</label>
+                            <input type="text" id="job_no" placeholder="Enter Job No." autocomplete="off">
+                            <div id="list-jobs" class="autocomplete-items"></div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="customer-group" style="display: none;">
+                        <label>Customer Name</label>
+                        <input type="text" id="customer_name" placeholder="Search or add new customer..."
+                            autocomplete="off">
+                        <div id="list-customers" class="autocomplete-items"></div>
+                    </div>
+                    <!-- Add this below the Item Location form-group -->
+                    <!-- Place this below the Item Location form-group -->
+                    <div id="qa-return-section" style="display: none; margin-bottom: 15px;">
+                        <div class="form-group"
+                            style="display: flex; align-items: center; gap: 10px; background: #fff1f2; padding: 10px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 10px;">
+                            <input type="checkbox" id="is_return_qa"
+                                style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
+                            <label for="is_return_qa"
+                                style="margin: 0; color: var(--danger); font-size: 11px; font-weight:800; cursor: pointer;">RETURN
+                                TO QA (SCM ISSUE)</label>
+                        </div>
+
+                        <div class="form-group" id="remark-group" style="display: none;">
+                            <label>SCM REMARK</label>
+                            <input type="text" id="scm_remark" placeholder="Reason for return...">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="remark-group" style="display: none;">
+                        <label>SCM REMARK</label>
+                        <input type="text" id="scm_remark" placeholder="Enter reason for returning to QA...">
+                    </div>
+                    <div
+                        style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
+                        <label
+                            style="font-size: 10px; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 10px;">QUANTITY
+                            CALCULATION</label>
+                        <div class="form-row-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>Qty Per Ctn</label>
+                                <input type="number" id="std_pack" placeholder="0" oninput="calculateTotal()">
+                            </div>
+                            <div class="form-group">
+                                <label>No. of Ctns</label>
+                                <input type="number" id="ctn_count" placeholder="0" oninput="calculateTotal()">
+                            </div>
+                        </div>
+                        <div class="form-row-grid">
+                            <div class="form-group">
+                                <label>Loose Pcs</label>
+                                <input type="number" id="loose_qty" placeholder="0" oninput="calculateTotal()">
+                            </div>
+                            <div class="form-group">
+                                <label>Total Qty (PCS)</label>
+                                <input type="number" id="qty" readonly placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row-grid">
                         <div class="form-group">
                             <label>Date</label>
                             <input type="date" id="r_date">
                         </div>
+                        <div class="form-group">
+                            <label>Staff Name</label>
+                            <input type="text" id="pic" placeholder="Name">
+                        </div>
                     </div>
-
                     <div class="form-group">
-                        <label>Carton Detail</label>
-                        <input type="text" id="carton" placeholder="E.G. 5 CTN X 100">
+                        <label>Item Location</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="item_location" placeholder="Scan or Search location..."
+                                autocomplete="off">
+                            <div class="scan-btn" onclick="startScanner('location')">📷</div>
+                        </div>
+                        <div id="list-location" class="autocomplete-items"></div>
                     </div>
-
-                    <div class="form-group">
-                        <label>Staff Name</label>
-                        <input type="text" id="pic" placeholder="YOUR NAME">
-                    </div>
-
+                    <!-- <div class="form-group">
+                        <label>Item Location</label>
+                        <select id="item_location">
+                            <option value="">-- Select Location --</option>
+                        </select>
+                    </div> -->
                     <button class="btn-save" onclick="saveToStoreRecord()">SAVE TRANSACTION</button>
                 </div>
             </div>
 
-            <!-- RIGHT: HISTORY -->
             <div class="card">
                 <div class="card-header">
-                    <h3>Transaction History</h3>
-                    <div class="filter-group">
-                        <!-- New Entry Type Filter -->
-                        <select id="f-type" onchange="fetchHistory()">
-                            <option value="ALL">ALL TYPES</option>
-                            <option value="IN">IN (Arrival)</option>
-                            <option value="OUT (Dispatch)">OUT (Dispatch)</option>
-                        </select>
-
-                        <select id="f-month" onchange="fetchHistory()"></select>
-                        <select id="f-year" onchange="fetchHistory()"></select>
-                        <button class="btn-excel" style="background:var(--success)"
-                            onclick="exportExcel('monthly')">Month</button>
-                        <button class="btn-excel" style="background:var(--text-dark)"
-                            onclick="exportExcel('yearly')">Year</button>
+                    <h3>History</h3>
+                    <div style="display:flex; gap:5px;">
+                        <select id="f-month" onchange="fetchHistory()"
+                            style="width:100px; height:32px; font-size:11px;"></select>
+                        <button class="btn-save"
+                            style="margin:0; width:auto; padding:0 15px; height:32px; background:var(--success)"
+                            onclick="exportExcel()">Export</button>
                     </div>
                 </div>
-
                 <div class="table-container">
-                    <table id="history-table">
+                    <table>
                         <thead>
                             <tr>
-                                <th width="110">Date</th>
-                                <th width="80">Type</th>
-                                <th>Part Description</th>
-                                <th width="90">Qty</th>
-                                <th>Carton</th>
-                                <th>Staff</th>
+                                <th>Manufacturing / Shipment Date</th>
+                                <th>Type</th>
+                                <th>Job No</th>
+                                <th>Barcode</th>
+                                <th>Breakdown</th>
+                                <th>Customer</th>
+                                <th>Qty</th>
+                                <th>PIC</th>
                             </tr>
                         </thead>
                         <tbody id="history-rows"></tbody>
                     </table>
-                </div>
-                <div
-                    style="padding:10px 20px; border-top: 1px solid var(--bg); font-size:11px; color:var(--text-muted); font-style:italic;">
-                    * Scroll to see more history. Most recent entries are at the top.
                 </div>
             </div>
         </div>
@@ -458,149 +663,525 @@
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let currentEntryType = 'IN';
-        let partsList = [];
+        let selectedProductName = "";
+        let inventoryList = [], customersList = [], jobsList = [], locationsList = [];
+        let currentHistoryData = [];
 
         $(document).ready(function () {
             setupDates();
-            loadPartSuggestions();
+            loadAllSuggestions();
             fetchHistory();
-            setInterval(() => { $('#live-clock').text(new Date().toLocaleString()); }, 1000);
-            $(document).click(function (e) { if (!$(e.target).closest('.form-group').length) $('.autocomplete-items').empty(); });
+
+            $(document).on('input', 'input[type="text"]', function () {
+                this.value = this.value.toUpperCase();
+            });
+
+            $(document).click(function (e) { if (!$(e.target).closest('.form-group').length) $('.autocomplete-items').hide(); });
+            $('#is_qa_return').on('change', function () {
+                if (this.checked) {
+                    changeEntryType('OUT'); // Forcing OUT because it's leaving the store
+                    $('#customer_name').val('RETURN TO QA').prop('readonly', true);
+                    $('#remark-group').show();
+                    $('#customer-group').show();
+                } else {
+                    $('#customer_name').val('').prop('readonly', false);
+                    $('#remark-group').hide();
+                    // If it was already OUT before checking, keep it shown, else hide
+                    if (currentEntryType === 'IN') $('#customer-group').hide();
+                }
+            });
+            $('#is_return_qa').on('change', function () {
+                if (this.checked) {
+                    $('#customer_name').val('RETURN TO QA').prop('readonly', true);
+                    $('#remark-group').show();
+                } else {
+                    $('#customer_name').val('').prop('readonly', false);
+                    $('#remark-group').hide();
+                    $('#scm_remark').val('');
+                }
+            });
         });
 
         function setupDates() {
-            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const now = new Date();
             months.forEach((m, i) => $('#f-month').append(`<option value="${i + 1}" ${i === now.getMonth() ? 'selected' : ''}>${m}</option>`));
-            for (let y = now.getFullYear(); y >= 2024; y--) $('#f-year').append(`<option value="${y}">${y}</option>`);
             $('#r_date').val(now.toISOString().split('T')[0]);
+        }
+
+        function openModal() { $('#modal-overlay').css('display', 'flex'); }
+        function closeModal() { $('#modal-overlay').hide(); }
+
+        function calculateTotal() {
+            const std = parseInt($('#std_pack').val()) || 0;
+            const ctn = parseInt($('#ctn_count').val()) || 0;
+            const loose = parseInt($('#loose_qty').val()) || 0;
+            $('#qty').val((std * ctn) + loose);
         }
 
         function changeEntryType(type) {
             currentEntryType = type;
             $('.t-btn').removeClass('active-in active-out');
-            if (type === 'IN') $('#btn-in').addClass('active-in');
-            else $('#btn-out').addClass('active-out');
+            if (type === 'IN') {
+                $('#btn-in').addClass('active-in');
+                $('#customer-group').hide();
+                $('#customer_name').val('');
+                $('#qa-return-section').hide();
+                $('#is_return_qa').prop('checked', false).trigger('change');
+            }
+            else {
+                $('#btn-out').addClass('active-out');
+                $('#customer-group').show();
+                $('#qa-return-section').show();
+
+            }
         }
 
-        async function loadPartSuggestions() {
-            const { data } = await _supabase.from('Parts').select('Part_Name');
-            partsList = data || [];
-            $('#part_name').on('input', function () {
+        async function loadAllSuggestions() {
+            const invRes = await _supabase.from('inventory').select('barcode, product_name, units_per_carton, customer, item_location');
+            inventoryList = invRes.data || [];
+            setupBarcodeAutocomplete();
+            const custRes = await _supabase.from('inventory').select('customer_name');
+            customersList = custRes.data || [];
+            setupAutocomplete('#customer_name', '#list-customers', customersList, 'customer_name');
+            const jobRes = await _supabase.from('JobOrder').select('job_no');
+            jobsList = jobRes.data || [];
+            setupAutocomplete('#job_no', '#list-jobs', jobsList, 'job_no');
+            const locRes = await _supabase.from('inventory_locations').select('rack_code');
+            locationsList = locRes.data || [];
+            setupLocationAutocomplete();
+        }
+
+        function setupBarcodeAutocomplete() {
+            $('#barcode').on('focus input', function () {
                 let val = this.value.toUpperCase();
-                let container = $('#autocomplete-list').empty();
-                if (!val) return false;
-                let matches = partsList.filter(p => p.Part_Name.includes(val)).slice(0, 10);
-                matches.forEach(m => {
-                    let item = $(`<div>${m.Part_Name}</div>`);
-                    item.click(() => { $('#part_name').val(m.Part_Name); container.empty(); });
-                    container.append(item);
-                });
+                let container = $('#list-barcode').empty();
+
+                let matches = inventoryList.filter(p => {
+                    const bCode = p.barcode ? String(p.barcode).toUpperCase() : "";
+                    const pName = p.product_name ? String(p.product_name).toUpperCase() : "";
+                    const cName = p.customer ? String(p.customer).toUpperCase() : "";
+
+                    return bCode.includes(val) || pName.includes(val) || cName.includes(val);
+                }).slice(0, 10);
+
+                if (matches.length > 0) {
+                    matches.forEach(m => {
+                        const customerPrefix = m.customer ? `${m.customer.toUpperCase()} - ` : "";
+
+                        let item = $(` 
+                        <div style="padding:10px; border-bottom:1px solid #eee;">
+                            <strong>${m.barcode}</strong><br>                        
+                            <small style="color: #64748b;">${customerPrefix}${m.product_name || ''}</small>
+                        </div>`);
+
+                        item.on('mousedown', function () {
+                            $('#barcode').val(m.barcode.toUpperCase());
+                            $('#std_pack').val(m.units_per_carton || 0);
+
+                            selectedProductName = m.product_name;
+
+                            if (m.location) {
+                                if (Array.isArray(m.location)) {
+                                    // If it's an array, show the locations joined by comma
+                                    $('#item_location').val(m.location.join(', ').toUpperCase());
+                                } else {
+                                    // If it's just a string
+                                    $('#item_location').val(String(m.location).toUpperCase());
+                                }
+                            } else {
+                                $('#item_location').val(''); // Clear if no location found
+                            }
+
+                            if (currentEntryType === 'OUT') $('#customer_name').val(m.customer ? m.customer.toUpperCase() : '');
+
+                            container.hide();
+                            calculateTotal();
+                        });
+                        container.append(item);
+                    });
+                    container.show();
+                } else {
+                    container.hide();
+                }
             });
         }
 
-        async function saveToStoreRecord() {
+        function setupAutocomplete(inputId, listId, dataArray, fieldName) {
+            $(inputId).on('focus input', function () {
+                let val = this.value.toUpperCase();
+                let container = $(listId).empty();
+                let matches = !val ? dataArray.slice(0, 10) : dataArray.filter(p => p[fieldName].toString().toUpperCase().includes(val)).slice(0, 10);
+                if (matches.length > 0) {
+                    matches.forEach(m => {
+                        let item = $(`<div>${m[fieldName].toUpperCase()}</div>`);
+                        item.on('mousedown', function () { $(inputId).val(m[fieldName].toUpperCase()); container.hide(); });
+                        container.append(item);
+                    }); container.show();
+                } else { container.hide(); }
+            });
+        }
+
+        function setupLocationAutocomplete() {
+            $('#item_location').on('focus input', function () {
+                let val = this.value.toUpperCase();
+                let container = $('#list-location').empty();
+
+                // Filter locations based on input
+                let matches = locationsList.filter(l => {
+                    const rCode = l.rack_code ? String(l.rack_code).toUpperCase() : "";
+                    return rCode.includes(val);
+                }).slice(0, 10);
+
+                if (matches.length > 0) {
+                    matches.forEach(m => {
+                        let item = $(`
+                    <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
+                        <strong>${m.rack_code.toUpperCase()}</strong>
+                    </div>
+                `);
+
+                        item.on('mousedown', function () {
+                            $('#item_location').val(m.rack_code.toUpperCase());
+                            container.hide();
+                        });
+                        container.append(item);
+                    });
+                    container.show();
+                } else {
+                    container.hide();
+                }
+            });
+        }
+
+        async function saveNewInventory() {
             const payload = {
-                entry_type: currentEntryType,
-                part_name: $('#part_name').val().toUpperCase(),
-                quantity: $('#qty').val(),
-                carton_info: $('#carton').val().toUpperCase(),
-                pic_name: $('#pic').val().toUpperCase(),
-                record_date: $('#r_date').val()
+                customer: $('#inv_customer').val().toUpperCase(),
+                barcode: $('#inv_barcode').val().toUpperCase(),
+                product_name: $('#inv_product').val().toUpperCase(),
+                uom: $('#inv_uom').val().toUpperCase(),
+                units_per_carton: parseInt($('#inv_units').val()) || 0,
+                in_qa_pass_pcs: 0, out_shipped_pcs: 0, qa_rejected_pcs: 0, reserved_pcs: 0, available_pcs: 0, ready_to_ship_pcs: 0, available_cartons: 0, loose_remainder: 0
             };
-
-            if (!payload.part_name || !payload.quantity || !payload.pic_name) {
-                alert("Please fill in required fields."); return;
-            }
-
-            $('#overlay').css('display', 'flex');
-            const { error } = await _supabase.from('storeRecords').insert([payload]);
-            $('#overlay').hide();
-
+            const { error } = await _supabase.from('inventory').insert([payload]);
             if (error) { alert("Error: " + error.message); }
             else {
-                Toastify({ text: "SAVED", background: "var(--success)" }).showToast();
-                $('#part_name, #qty, #carton').val('');
-                fetchHistory();
-                $('.table-container').scrollTop(0);
+                closeModal();
+                loadAllSuggestions();
+                Toastify({ text: "INVENTORY ADDED", background: "var(--success)" }).showToast();
+                $('#inv_customer, #inv_barcode, #inv_product, #inv_uom, #inv_units').val('');
             }
+        }
+
+        async function saveToStoreRecord() {
+            const barcodeVal = $('#barcode').val().toUpperCase();
+            const jobNo = $('#job_no').val().toUpperCase();
+            const isReturnQA = $('#is_return_qa').is(':checked') ? 1 : 0;
+            const custName = isReturnQA ? "RETURN TO QA" : $('#customer_name').val().toUpperCase();
+            const scmRemark = $('#scm_remark').val().toUpperCase();
+
+            const quantity = parseInt($('#qty').val()) || 0;
+            const pic = $('#pic').val().toUpperCase();
+            const ctnCount = parseInt($('#ctn_count').val()) || 0;
+            const stdPack = parseInt($('#std_pack').val()) || 0;
+            const looseQty = parseInt($('#loose_qty').val()) || 0;
+            const locationVal = $('#item_location').val().toUpperCase(); // Get location
+
+
+            if (!barcodeVal || quantity <= 0 || !pic || (currentEntryType === 'OUT' && !custName)) {
+                alert("Please fill all required fields."); return;
+            }
+            $('#overlay').css('display', 'flex');
+
+            // --- 1. FETCH ALL MATCHING ENTRIES (Barcode + Name) ---
+            // We use selectedProductName to ensure we only update the specific product type
+            let query = _supabase.from('inventory').select('*').eq('barcode', barcodeVal);
+            if (selectedProductName) {
+                query = query.eq('product_name', selectedProductName);
+            }
+
+            const { data: matchedItems, error: fetchErr } = await query;
+
+            if (fetchErr || !matchedItems || matchedItems.length === 0) {
+                $('#overlay').hide();
+                alert("Error: No matching product found in inventory database.");
+                return;
+            }
+
+            // --- 2. VALIDATE STOCK FOR OUT TRANSACTIONS ---
+            if (currentEntryType === 'OUT') {
+                const available = parseInt(matchedItems[0].available_pcs) || 0;
+                if (quantity > available) {
+                    $('#overlay').hide();
+                    alert(`STOCK ERROR!\n\nYou are trying to move out ${quantity} PCS, but only ${available} PCS are available in stock.`);
+                    return;
+                }
+            }
+
+            // --- 3. SAVE TRANSACTION RECORD ---
+            let cartonInfo = "";
+            if (ctnCount > 0) {
+                cartonInfo = `${ctnCount} CTN X ${stdPack}`;
+                if (looseQty > 0) cartonInfo += ` + ${looseQty} PCS`;
+            } else {
+                cartonInfo = `${looseQty} PCS (LOOSE)`;
+            }
+
+            const payload = {
+                entry_type: currentEntryType,
+                part_name: barcodeVal,
+                quantity: quantity,
+                customer_name: currentEntryType === 'OUT' ? custName : null,
+                jo_number: jobNo,
+                pic_name: pic,
+                manu_date: currentEntryType === 'IN' ? dateVal : null,
+                out_date: currentEntryType === 'OUT' ? dateVal : null,
+                carton_info: cartonInfo.toUpperCase(),
+                item_location: locationVal,
+                is_return_qa: isReturnQA,
+                remarkBD: scmRemark // Saved in remarkBD column
+            };
+
+            const { error: recError } = await _supabase.from('storeRecords').insert([payload]);
+
+            if (recError) {
+                $('#overlay').hide();
+                alert("Error saving record: " + recError.message);
+                return;
+            }
+
+
+            // --- 4. UPDATE ALL MATCHING INVENTORY ROWS ---
+            const multiplier = (currentEntryType === 'IN') ? 1 : -1;
+
+            // Loop through each matched item and calculate its specific new balance
+            const updatePromises = matchedItems.map(item => {
+                const std = parseInt(item.units_per_carton) || 1; // Standard pack (prevent div by 0)
+                const totalQtyChange = quantity * multiplier;
+
+                // Calculate the absolute NEW total pieces first
+                const newTotalPcs = (item.available_pcs || 0) + totalQtyChange;
+
+                // Recalculate Cartons and Loose pieces based on the new total
+                // This ensures if loose reaches the limit, it rolls over to cartons automatically
+                const newAvailableCartons = Math.floor(newTotalPcs / std);
+                const newLooseRemainder = newTotalPcs % std;
+
+                let locArray = Array.isArray(item.location) ? item.location : (item.location ? [item.location] : []);
+                if (!locArray.includes(locationVal)) {
+                    locArray.push(locationVal);
+                }
+
+                const updatedData = {
+                    in_qa_pass_pcs: (item.in_qa_pass_pcs || 0) + (quantity * multiplier),
+                    available_pcs: (item.available_pcs || 0) + (quantity * multiplier),
+                    ready_to_ship_pcs: (item.ready_to_ship_pcs || 0) + (quantity * multiplier),
+                    available_cartons: newAvailableCartons, // Recalculated
+                    loose_remainder: newLooseRemainder,
+                    item_location: locArray,
+                    updated_at: new Date().toISOString()
+                };
+
+                return _supabase
+                    .from('inventory')
+                    .update(updatedData)
+                    .eq('id', item.id); // Update by unique ID to be safe
+            });
+
+            await Promise.all(updatePromises);
+
+            $('#overlay').hide();
+            // Toastify({ text: "SUCCESS: " + matchedItems.length + " RECORDS UPDATED", background: "var(--success)" }).showToast();
+            Toastify({ text: isReturnQA === 1 ? "RETURNED TO QA & RECORDED" : "TRANSACTION SUCCESSFUL", background: "var(--success)" }).showToast();
+
+            // Reset Form
+            $('#barcode, #qty, #std_pack, #ctn_count, #loose_qty, #job_no, #customer_name, #scm_remark').val('');
+            $('#is_qa_return').prop('checked', false).trigger('change');
+            selectedProductName = "";
+            fetchHistory();
         }
 
         async function fetchHistory() {
             const month = $('#f-month').val();
-            const year = $('#f-year').val();
-            const typeFilter = $('#f-type').val(); // Get selected type
-
+            const year = new Date().getFullYear();
             const start = `${year}-${month.toString().padStart(2, '0')}-01`;
             const end = new Date(year, month, 0).toISOString().split('T')[0];
 
-            // Build the base query
-            let query = _supabase.from('storeRecords').select('*')
-                .gte('record_date', start)
-                .lte('record_date', end);
-
-            // Apply Entry Type filter if not "ALL"
-            if (typeFilter !== 'ALL') {
-                query = query.eq('entry_type', typeFilter);
-            }
-
-            const { data, error } = await query
-                .order('record_date', { ascending: false })
+            const { data, error } = await _supabase.from('storeRecords')
+                .select('*')
+                .gte('manu_date', start)
+                .lte('manu_date', end)
                 .order('created_at', { ascending: false });
 
             if (error) return;
 
+            currentHistoryData = data; // Store data globally
             let rows = '';
-            data.forEach(r => {
-                rows += `<tr>
-            <td>${r.record_date}</td>
-            <td><span class="badge ${r.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${r.entry_type}</span></td>
-            <td style="font-weight:700">${r.part_name}</td>
-            <td style="font-weight:700">${r.quantity}</td>
-            <td>${r.carton_info || '-'}</td>
-            <td>${r.pic_name}</td>
-        </tr>`;
+
+            data.forEach((r, index) => {
+                // --- UPDATED LOGIC HERE ---
+                // Show whichever date is not null
+                const displayDate = r.manu_date || r.out_date || '-';
+
+                rows += `
+            <tr onclick="showDetails(${index})">
+                <td>${displayDate}</td> 
+                <td><span class="badge ${r.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${r.entry_type}</span></td>
+                <td style="color:var(--primary); font-weight:600">${r.jo_number || '-'}</td>
+                <td style="font-weight:700">${r.part_name}</td>
+                <td style="font-size:11px; color:var(--text-muted)">${r.carton_info || '-'}</td>
+                <td>${r.customer_name || '-'}</td>
+                <td style="font-weight:700">${r.quantity}</td>
+                <td>${r.pic_name}</td>
+            </tr>`;
             });
-            $('#history-rows').html(rows || '<tr><td colspan="6" align="center" style="padding:30px; color:var(--text-muted)">No records.</td></tr>');
+            $('#history-rows').html(rows || '<tr><td colspan="8" align="center">No data for this month.</td></tr>');
         }
 
-        async function exportExcel(mode) {
-            const year = $('#f-year').val();
+
+        async function exportExcel() {
             const month = $('#f-month').val();
-            const typeFilter = $('#f-type').val(); // Get selected type
+            const year = new Date().getFullYear();
+            const start = `${year}-${month.toString().padStart(2, '0')}-01`, end = new Date(year, month, 0).toISOString().split('T')[0];
+            const { data } = await _supabase.from('storeRecords').select('*').gte('manu_date', start).lte('manu_date', end);
+            if (!data || data.length === 0) return alert("No data to export.");
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+            XLSX.writeFile(wb, `StoreReport_${month}_${year}.xlsx`);
+        }
 
-            let query = _supabase.from('storeRecords').select('*');
+        function showDetails(index) {
+            const item = currentHistoryData[index];
+            const isQA = item.is_return_qa == '1' || item.is_return_qa === true;
 
-            // Date Filtering
-            if (mode === 'monthly') {
-                const start = `${year}-${month.toString().padStart(2, '0')}-01`,
-                    end = new Date(year, month, 0).toISOString().split('T')[0];
-                query = query.gte('record_date', start).lte('record_date', end);
+            // Determine label and date value
+            const dateLabel = item.entry_type === 'IN' ? 'Manufacturing Date' : 'Shipment Date';
+            const dateValue = item.manu_date || item.out_date || 'N/A';
+
+            $('#det-title').html(`Record #${item.id} <span class="badge ${item.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${item.entry_type}</span>`);
+
+            let html = `
+        <div class="detail-item"><span class="detail-label">${dateLabel}</span><div class="detail-value">${dateValue}</div></div>
+        <div class="detail-item"><span class="detail-label">Created At</span><div class="detail-value">${new Date(item.created_at).toLocaleString()}</div></div>
+        <div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Part Name / Barcode</span><div class="detail-value">${item.part_name}</div></div>
+        <div class="detail-item"><span class="detail-label">Quantity</span><div class="detail-value">${item.quantity} PCS</div></div>
+        <div class="detail-item"><span class="detail-label">Job Order</span><div class="detail-value">${item.jo_number || 'N/A'}</div></div>
+        <div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Breakdown</span><div class="detail-value">${item.carton_info}</div></div>
+        <div class="detail-item"><span class="detail-label">Staff (PIC)</span><div class="detail-value">${item.pic_name}</div></div>
+        <div class="detail-item"><span class="detail-label">Location</span><div class="detail-value">${item.item_location || 'N/A'}</div></div>
+    `;
+
+            // Only show Customer/QA details for OUT or specific scenarios
+            if (item.entry_type === 'OUT') {
+                html += `<div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Recipient / Customer</span><div class="detail-value" style="color:${isQA ? 'var(--danger)' : 'inherit'}">${item.customer_name || 'N/A'}</div></div>`;
+            }
+
+            if (isQA) {
+                html += `
+            <div class="detail-item" style="grid-column: span 2; background: #fff1f2; padding: 10px; border-radius: 5px;">
+                <span class="detail-label" style="color:var(--danger)">QA Return Status</span>
+                <div class="detail-value">YES (SCM ISSUE)</div>
+            </div>
+            <div class="detail-item" style="grid-column: span 2; border-left: 3px solid var(--danger); padding-left: 10px;">
+                <span class="detail-label">SCM Remark (to BD)</span>
+                <div class="detail-value">${item.remarkBD || 'No remark provided'}</div>
+            </div>
+        `;
+            } else if (item.remarkBD) {
+                // If it has a remark but isn't a QA return
+                html += `<div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Remark</span><div class="detail-value">${item.remarkBD}</div></div>`;
+            }
+
+            $('#details-content').html(html);
+            $('#details-modal-overlay').css('display', 'flex');
+        }
+
+        function closeDetailsModal() {
+            $('#details-modal-overlay').hide();
+        }
+
+        let html5QrCode;
+        let currentScanTarget = ''; // 'barcode' or 'location'
+
+        async function startScanner(target) {
+            currentScanTarget = target;
+            $('#scanner-modal').css('display', 'flex');
+
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    onScanSuccess
+                );
+            } catch (err) {
+                console.error("Camera error:", err);
+                alert("Unable to access camera. Ensure you are using HTTPS and have granted permissions.");
+                stopScanner();
+            }
+        }
+
+        async function stopScanner() {
+            if (html5QrCode) {
+                await html5QrCode.stop();
+                html5QrCode = null;
+            }
+            $('#scanner-modal').hide();
+        }
+
+        function onScanSuccess(decodedText) {
+            const val = decodedText.toUpperCase();
+            stopScanner();
+
+            if (currentScanTarget === 'barcode') {
+                processBarcodeMatch(val);
+            } else if (currentScanTarget === 'location') {
+                processLocationMatch(val);
+            }
+        }
+
+        function processBarcodeMatch(scannedBarcode) {
+            // Look for match in the inventoryList (already loaded via loadAllSuggestions)
+            const match = inventoryList.find(p => String(p.barcode).toUpperCase() === scannedBarcode);
+
+            if (match) {
+                $('#barcode').val(match.barcode.toUpperCase());
+                $('#std_pack').val(match.units_per_carton || 0);
+                selectedProductName = match.product_name;
+
+                // Set location if exists
+                if (match.location) {
+                    const locText = Array.isArray(match.location) ? match.location.join(', ') : match.location;
+                    $('#item_location').val(String(locText).toUpperCase());
+                }
+
+                if (currentEntryType === 'OUT') {
+                    $('#customer_name').val(match.customer ? match.customer.toUpperCase() : '');
+                }
+
+                calculateTotal();
+                Toastify({ text: "ITEM MATCHED: " + match.product_name, background: "var(--success)" }).showToast();
             } else {
-                query = query.gte('record_date', `${year}-01-01`).lte('record_date', `${year}-12-31`);
+                // ERROR MODAL
+                alert(`❌ SCAN ERROR\n\nBarcode "${scannedBarcode}" not found in inventory database.\nPlease add the item first using 'New Inventory' button.`);
+                $('#barcode').val('');
             }
+        }
 
-            // Apply Entry Type filter to export if not "ALL"
-            if (typeFilter !== 'ALL') {
-                query = query.eq('entry_type', typeFilter);
+        function processLocationMatch(scannedLocation) {
+            // Look for match in locationsList
+            const match = locationsList.find(l => String(l.rack_code).toUpperCase() === scannedLocation);
+
+            if (match) {
+                $('#item_location').val(match.rack_code.toUpperCase());
+                Toastify({ text: "LOCATION VALIDATED: " + match.rack_code, background: "var(--success)" }).showToast();
+            } else {
+                alert(`❌ LOCATION ERROR\n\nLocation "${scannedLocation}" is not a registered warehouse location.`);
+                $('#item_location').val('');
             }
-
-            const { data } = await query.order('record_date', { ascending: false });
-
-            if (!data || data.length === 0) return alert("No data.");
-
-            const exportData = data.map(r => ({
-                Date: r.record_date,
-                Type: r.entry_type,
-                Part: r.part_name,
-                Qty: r.quantity,
-                Carton: r.carton_info,
-                PIC: r.pic_name
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(exportData), wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Records");
-            XLSX.writeFile(wb, `StoreReport_${typeFilter}_${mode}_${year}.xlsx`);
         }
     </script>
 </body>
