@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Famax | Out-of-Spec (OOS) Report</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --oos-danger: #e11d48;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 10px;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+        }
+
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--oos-danger);
+            padding: 15px 20px;
+            color: white;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* TOOLBAR IN-LINE FIX */
+        .toolbar {
+            padding: 15px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            flex-wrap: wrap;
+            /* Allows wrapping on very small screens */
+            align-items: flex-end;
+            /* Aligns buttons with the Input, not the Label */
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="month"] {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-family: inherit;
+            font-size: 14px;
+            height: 38px;
+            /* Fixed height for alignment */
+            box-sizing: border-box;
+        }
+
+        .btn {
+            height: 38px;
+            /* Matching input height */
+            padding: 0 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn-blue {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-green {
+            background: #10b981;
+            color: white;
+            margin-left: auto;
+        }
+
+        /* margin-left auto pushes to right */
+
+        /* Table & Content Styling */
+        .report-content {
+            padding: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .report-content {
+                padding: 30px;
+            }
+        }
+
+        .part-group-header {
+            background: #f1f5f9;
+            padding: 12px 15px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-top: 25px;
+            border-left: 5px solid var(--oos-danger);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #64748b;
+            text-align: left;
+        }
+
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            font-size: 12px;
+            vertical-align: top;
+        }
+
+        .oos-bold {
+            color: #e11d48;
+            font-weight: 800;
+            background: #fff1f2;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        .remark-text {
+            font-size: 11px;
+            color: #1e293b;
+            padding: 4px;
+            min-height: 20px;
+            cursor: text;
+            outline: none;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+            font-size: 11px;
+        }
+
+        .saving {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="card-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Out-of-Spec Report
+            </h1>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <label>Select Month</label>
+                <input type="month" id="monthPicker" onchange="generateReport()">
+            </div>
+
+            <!-- Removed inline margin-top styles -->
+            <button class="btn btn-blue" onclick="generateReport()">Update Report</button>
+
+            <button id="exportBtn" class="btn btn-green" onclick="exportToExcel()" disabled>Export to Excel</button>
+        </div>
+
+        <div id="reportContent" class="report-content">
+            <p style="text-align:center; color:#64748b;">Loading data...</p>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd.</div>
+
+    <script>
+        // ... Keep existing Supabase, logic, generateReport, and saveRemark functions exactly as they were ...
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let globalOOSData = [];
+
+        window.onload = () => {
+            const currentMonth = dayjs().format("YYYY-MM");
+            document.getElementById("monthPicker").value = currentMonth;
+            generateReport();
+        };
+
+        async function generateReport() {
+            const selectedMonth = document.getElementById("monthPicker").value;
+            const container = document.getElementById("reportContent");
+            container.innerHTML = "<p style='text-align:center'>Fetching and sorting data...</p>";
+
+            let start = dayjs(selectedMonth).startOf('month').toISOString();
+            let end = dayjs(selectedMonth).endOf('month').toISOString();
+
+            const { data, error } = await _supabase.from("Data_IPQC").select("*").gte("created_at", start).lte("created_at", end);
+
+            if (error) { container.innerHTML = `<p style='color:red; text-align:center;'>Error: ${error.message}</p>`; return; }
+
+            const oosRecords = data.filter(row => {
+                const lsl = parseFloat(row.LSL_OK), usl = parseFloat(row.USL_NG);
+                const r = [row.Reading_1, row.Reading_2, row.Reading_3];
+                if (r.some(v => String(v || "").toUpperCase().includes("STOP"))) return false;
+                return r.some(val => {
+                    const n = parseFloat(val);
+                    return !isNaN(n) && ((!isNaN(lsl) && n < lsl) || (!isNaN(usl) && n > usl));
+                });
+            });
+
+            if (oosRecords.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:50px;"><p style="color:#64748b;">No Numeric OOS Found</p></div>`;
+                document.getElementById("exportBtn").disabled = true;
+                return;
+            }
+
+            globalOOSData = oosRecords.map(row => ({
+                id: row.id, date: dayjs(row.created_at).format("YYYY-MM-DD HH:mm"),
+                machine: row.Machine || "N/A", process: row.Process || "N/A", part: row.Part_Name || "N/A",
+                zone: row.Point_DWG_Zone || "-", r1: row.Reading_1, r2: row.Reading_2, r3: row.Reading_3,
+                lsl: row.LSL_OK, usl: row.USL_NG, remarks: row.Remarks || "", ts: dayjs(row.created_at).unix()
+            })).sort((a, b) => b.ts - a.ts);
+
+            renderTable(selectedMonth);
+            document.getElementById("exportBtn").disabled = false;
+        }
+
+        async function saveRemark(element, rowId) {
+            const text = element.innerText.trim();
+            element.classList.add('saving');
+            await _supabase.from("Data_IPQC").update({ Remarks: text }).eq("id", rowId);
+            element.classList.remove('saving');
+        }
+
+        function renderTable(selectedMonth) {
+            const container = document.getElementById("reportContent");
+            container.innerHTML = `<h2 style="text-align:center; font-size: 16px; margin-bottom: 20px;">Quality Exceptions: ${dayjs(selectedMonth).format("MMMM YYYY")}</h2>`;
+            const parts = [...new Set(globalOOSData.map(d => d.part))];
+
+            parts.forEach(partName => {
+                const rows = globalOOSData.filter(d => d.part === partName);
+                let html = `<div class="part-group-header"><span>PART: ${partName}</span><span style="font-weight:400; font-size:11px;">OOS: ${rows.length}</span></div><div class="table-responsive"><table><thead><tr><th width="120">Date</th><th width="80">Machine</th><th width="150">Process</th><th width="60">Zone</th><th width="100">LSL/USL</th><th width="80">R1</th><th width="80">R2</th><th width="80">R3</th><th>Remarks</th></tr></thead><tbody>`;
+                rows.forEach(row => {
+                    const f = (v) => {
+                        const n = parseFloat(v);
+                        const isOos = !isNaN(n) && ((!isNaN(row.lsl) && n < row.lsl) || (!isNaN(row.usl) && n > row.usl));
+                        return isOos ? `<span class="oos-bold">${n}</span>` : (v || "-");
+                    };
+                    html += `<tr><td>${row.date}</td><td><b>${row.machine}</b></td><td>${row.process}</td><td style="text-align:center">${row.zone}</td><td>${row.lsl || '-'}/${row.usl || '-'}</td><td>${f(row.r1)}</td><td>${f(row.r2)}</td><td>${f(row.r3)}</td><td><div class="remark-text" contenteditable="true" onblur="saveRemark(this, '${row.id}')">${row.remarks}</div></td></tr>`;
+                });
+                container.innerHTML += html + `</tbody></table></div>`;
+            });
+        }
+
+        async function exportToExcel() {
+            const monthLabel = dayjs(document.getElementById("monthPicker").value).format("MMMM_YYYY");
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Numeric OOS');
+
+            // 1. Setup Columns
+            sheet.columns = [
+                { header: 'Date & Time', key: 'date', width: 20 },
+                { header: 'Machine', key: 'machine', width: 12 },
+                { header: 'Process', key: 'process', width: 20 },
+                { header: 'Zone', key: 'zone', width: 10 },
+                { header: 'LSL', key: 'lsl', width: 10 },
+                { header: 'USL', key: 'usl', width: 10 },
+                { header: 'Reading 1', key: 'r1', width: 12 },
+                { header: 'Reading 2', key: 'r2', width: 12 },
+                { header: 'Reading 3', key: 'r3', width: 12 },
+                { header: 'Remarks', key: 'remarks', width: 40 }
+            ];
+
+            // Style the main header
+            const headerRow = sheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }; // Blue header
+
+            // 2. Grouping Logic (Same as display)
+            const parts = [...new Set(globalOOSData.map(d => d.part))];
+
+            parts.forEach(partName => {
+                const partRows = globalOOSData.filter(d => d.part === partName);
+
+                // Add a Part Group Header Row
+                const groupHeader = sheet.addRow(['PART: ' + partName]);
+                sheet.mergeCells(groupHeader.number, 1, groupHeader.number, 10); // Merge across all columns
+
+                groupHeader.font = { bold: true };
+                groupHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }; // Light grey background
+                groupHeader.border = { bottom: { style: 'thin', color: { argb: 'FFE11D48' } } };
+
+                // Add Data Rows for this part
+                partRows.forEach(row => {
+                    const excelRow = sheet.addRow({
+                        date: row.date,
+                        machine: row.machine,
+                        process: row.process,
+                        zone: row.zone,
+                        lsl: row.lsl,
+                        usl: row.usl,
+                        r1: row.r1,
+                        r2: row.r2,
+                        r3: row.r3,
+                        remarks: row.remarks
+                    });
+
+                    // Highlight OOS cells in Red text within Excel
+                    const readings = ['r1', 'r2', 'r3'];
+                    const lsl = parseFloat(row.lsl);
+                    const usl = parseFloat(row.usl);
+
+                    readings.forEach((key, index) => {
+                        const cell = excelRow.getCell(7 + index); // R1 starts at column 7
+                        const val = parseFloat(cell.value);
+                        if (!isNaN(val)) {
+                            if ((!isNaN(lsl) && val < lsl) || (!isNaN(usl) && val > usl)) {
+                                cell.font = { color: { argb: 'FFE11D48' }, bold: true };
+                            }
+                        }
+                    });
+                });
+
+                // Add an empty row for spacing
+                sheet.addRow([]);
+            });
+
+            // 3. Finalize and Download
+            const buffer = await workbook.xlsx.writeBuffer();
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(new Blob([buffer]));
+            link.download = `Numeric_OOS_Report_${monthLabel}.xlsx`;
+            link.click();
+        }
+    </script>
+</body>
+
+</html>

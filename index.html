@@ -1,8 +1,256 @@
+<<<<<<< HEAD
 .modal {
+=======
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="600" />
+    <title>Famax | IPQC System</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Scripts & Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.2/jquery.modal.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.2/jquery.modal.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --sidebar-width: 300px;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-card);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1200;
+            transition: all 0.3s ease;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar.collapsed {
+            left: calc(var(--sidebar-width) * -1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .sidebar-header img {
+            height: 40px;
+            width: auto;
+        }
+
+        .nav-menu {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .nav-menu::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-link,
+        .dropbtn {
+            width: 100%;
+            text-decoration: none;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 12px 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .nav-link:hover,
+        .dropbtn:hover {
+            background: #f0f7ff;
+            color: var(--primary);
+        }
+
+        .icon-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            flex-shrink: 0;
+        }
+
+        .arrow {
+            font-size: 10px;
+            color: #94a3b8;
+            transition: transform 0.3s;
+            margin-left: auto;
+        }
+
+        .dropdown-content {
+            display: none;
+            padding-left: 10px;
+            margin-top: 2px;
+        }
+
+        .dropdown.is-active .dropdown-content {
+            display: block;
+        }
+
+        .dropdown.is-active .arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-content a {
+            padding: 10px 15px;
+            font-size: 14px;
+            color: #475569;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .admin-btn {
+            border: 1px solid #e5e7eb;
+            background: transparent;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            width: 100%;
+        }
+
+        /* --- CONTENT WRAPPER FIX --- */
+        .content-wrapper {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper.expanded {
+            margin-left: 0;
+        }
+
+        /* --- TOP NAV --- */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 10px 25px;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+            box-sizing: border-box;
+        }
+
+        .top-nav img {
+            height: 35px !important;
+            width: auto !important;
+            max-width: 150px;
+        }
+
+        @media (min-width: 1101px) {
+            #sidebar:not(.collapsed)+#contentWrapper .top-nav {
+                display: none;
+            }
+
+            #sidebar.collapsed+#contentWrapper .top-nav {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .top-nav {
+                display: flex !important;
+            }
+
+            .sidebar {
+                left: calc(var(--sidebar-width) * -1);
+            }
+
+            .sidebar.is-mobile-open {
+                left: 0;
+            }
+
+            .content-wrapper {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* --- RESTORED MODAL CSS --- */
+        .modal {
+>>>>>>> 7963f1678a2e054b37a9c967f0e2724fb58a42d3
             border-radius: var(--radius);
             padding: 30px;
             max-width: 400px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+<<<<<<< HEAD
         }
 
         .modal h2 {
@@ -11,3 +259,999 @@
             font-size: 20px;
             margin-bottom: 20px;
         }
+=======
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            color: var(--text-main);
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-login {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-login:hover {
+            background: #0060aa;
+        }
+
+        /* --- QUICK NAV SMALLER FIX --- */
+        .main {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .quick-nav {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .nav-card {
+            flex: 1;
+            min-width: 120px;
+            max-width: 300px;
+            background: var(--bg-card);
+            padding: 12px 10px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .nav-card h3 {
+            margin: 5px 0 2px;
+            font-size: 14px;
+        }
+
+        .nav-card p {
+            margin: 0;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .buyoff {
+            border-bottom: 4px solid #8b5cf6;
+        }
+
+        .ipqc {
+            border-bottom: 4px solid #0078d4;
+        }
+
+        /* KPI & CHARTS */
+        .tab-container {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            position: relative;
+            top: 2px;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        select,
+        input[type="date"] {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            min-width: 150px;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .kpi-val {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .ok-color {
+            color: var(--success);
+        }
+
+        .ng-color {
+            color: var(--danger);
+        }
+
+        .canvas-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* TOOLTIP CSS */
+        #chartjs-tooltip {
+            opacity: 0;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.98);
+            color: #1f2937;
+            border-radius: 12px;
+            padding: 15px;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+            z-index: 3000;
+            min-width: 240px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 8px;
+            color: var(--primary);
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 5px;
+        }
+
+        .process-item {
+            font-weight: 600;
+            color: #ef4444;
+            margin-top: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .date-group {
+            margin-top: 8px;
+            background: #f8fafc;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .date-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .date-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+        }
+
+        .time-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .time-tag {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .btn-tooltip-download {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1100;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- LOGIN MODAL (STRICT STYLING) -->
+    <div id="login-modal" class="modal" style="display: none">
+        <h2>Admin Login</h2>
+        <form id="loginForm" onsubmit="event.preventDefault(); document.getElementById('submitLogin').click();">
+            <div class="form-group">
+                <label for="userId">User ID</label>
+                <input type="text" id="userId" placeholder="Enter your user ID" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password"
+                    autocomplete="current-password" />
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="btn btn-login" id="submitLogin">Login</button>
+            </div>
+        </form>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="assets/Famax Logo.png" alt="logo">
+            <button class="toggle-btn" id="closeSidebar"
+                style="border:none; font-size: 24px; cursor:pointer;">×</button>
+        </div>
+        <nav class="nav-menu">
+            <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link"><span class="icon-wrap">✔️</span>
+                Famax Quality Hub</a>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="13" width="4" height="8" rx="1" fill="#3B82F6" />
+                            <rect x="10" y="8" width="4" height="13" rx="1" fill="#60A5FA" />
+                            <rect x="17" y="3" width="4" height="18" rx="1" fill="#93C5FD" />
+                            <path d="M3 11L9 6L15 8L21 2" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    Report Summary <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/report_summary/qcReport.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
+                                    fill="#F0FDFA" stroke="#14B8A6" stroke-width="1.5" />
+                                <path d="M14 2V8H20" stroke="#14B8A6" stroke-width="1.5" />
+                                <path d="M9 15L11 17L15 13" stroke="#0D9488" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg></span> IPQC Report Summary
+                    </a>
+                    <a href="screen_page/report_summary/machineStopReport.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <rect x="4" y="4" width="16" height="16" rx="2" fill="#FEF2F2" stroke="#EF4444"
+                                    stroke-width="1.5" />
+                                <circle cx="12" cy="12" r="5" stroke="#EF4444" stroke-width="1.5"
+                                    stroke-dasharray="2 2" />
+                                <path d="M12 9V13M12 15H12.01" stroke="#EF4444" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg></span> Machine Stop Summary
+                    </a>
+                    <a href="screen_page/report_summary/jobOrderSummary.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M16 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4H8"
+                                    stroke="#6366F1" stroke-width="1.5" />
+                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#EEF2FF" stroke="#6366F1"
+                                    stroke-width="1.5" />
+                                <path d="M7 10H17M7 14H17M7 18H13" stroke="#818CF8" stroke-width="1.5"
+                                    stroke-linecap="round" />
+                            </svg></span> Job Order Summary
+                    </a>
+                    <a href="screen_page/report_summary/out_of_spec_summary.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 6H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-dasharray="3 3" />
+                                <path d="M3 18H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                    stroke-dasharray="3 3" />
+                                <path d="M3 14L8 14L12 3L17 14L21 14" stroke="#6366F1" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                                <circle cx="12" cy="3" r="2.5" fill="#EF4444" stroke="white" stroke-width="1" />
+                            </svg></span> Out of Spec Summary
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 10V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V10"
+                                stroke="#0078D4" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M21 10L12 5L3 10" stroke="#0078D4" stroke-width="1.5" stroke-linejoin="round" />
+                            <path d="M12 18L7.5 15.5V10.5L12 13L16.5 10.5V15.5L12 18Z" fill="#FBBF24" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M7.5 10.5L12 8L16.5 10.5L12 13L7.5 10.5Z" fill="#FDE68A" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M17 6L21 6M19 3L22 6L19 9" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </span>
+                    Packing & Shipment <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/packaging_checklist/packingList.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 8L12 13L3 8L12 3L21 8Z" fill="#FDE68A" stroke="#B45309"
+                                    stroke-width="1.5" />
+                                <path d="M3 8V16L12 21V13L3 8Z" fill="#FBBF24" stroke="#B45309" stroke-width="1.5" />
+                                <path d="M12 21L21 16V8L12 13V21Z" fill="#F59E0B" stroke="#B45309" stroke-width="1.5" />
+                                <rect x="14" y="14" width="7" height="8" rx="1" fill="white" stroke="#0078D4"
+                                    stroke-width="1" />
+                                <path d="M16 17H19M16 19H18" stroke="#0078D4" stroke-width="1" stroke-linecap="round" />
+                            </svg></span> Packing List Form
+                    </a>
+                    <a href="screen_page/packaging_checklist/shipmentChecklist.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 17H16V7H6C4.89543 7 4 7.89543 4 9V17H3" stroke="#0078D4" stroke-width="2"
+                                    stroke-linecap="round" />
+                                <path d="M16 17H21V12L18 9H16V17Z" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
+                                <circle cx="7" cy="18" r="2" fill="#334155" />
+                                <circle cx="18" cy="18" r="2" fill="#334155" />
+                                <path d="M7 11L9 13L13 9" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                            </svg></span> Shipment Checklist Form
+                    </a>
+                    <a href="screen_page/store/store_record.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                                    fill="#F1F5F9" stroke="#64748B" stroke-width="1.5" />
+                                <rect x="7" y="7" width="10" height="12" fill="white" stroke="#E2E8F0"
+                                    stroke-width="0.5" />
+                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#94A3B8" stroke="#475569"
+                                    stroke-width="1.5" />
+                                <rect x="10" y="13" width="4" height="3.5" rx="0.5" fill="#FBBF24" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M10 14.5H14" stroke="#B45309" stroke-width="0.5" />
+                                <path d="M9 10H15M9 12H12" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                            </svg></span> Store Record Form
+                    </a>
+                    <a href="screen_page/store/deliver_out_checklist.html"
+                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <rect x="4" y="3" width="16" height="18" rx="2" fill="#F5F3FF" stroke="#6366F1"
+                                    stroke-width="1.5" />
+                                <path d="M9 3H15" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+                                <path d="M12 8H17M12 11H15" stroke="#818CF8" stroke-width="1.5"
+                                    stroke-linecap="round" />
+                                <path d="M7 7.5L8.5 9L11 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" />
+                                <path d="M10 18.5L7 20L4 18.5V15.5L7 14L10 15.5V18.5Z" fill="#FBBF24" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M4 15.5L7 14L10 15.5L7 17L4 15.5Z" fill="#FDE68A" stroke="#B45309"
+                                    stroke-width="1" />
+                                <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                            </svg></span> Packaging Checklist Form
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="dropbtn">
+                    <span class="icon-wrap">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <circle cx="9" cy="9" r="5" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
+                            <circle cx="17" cy="17" r="3" fill="#F1F5F9" stroke="#64748B" stroke-width="2" />
+                            <path d="M9 2V4M9 14V16" stroke="#0078D4" stroke-width="2" />
+                        </svg>
+                    </span>
+                    Maintenance <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-content">
+                    <a href="screen_page/maintenance/preventive_maintenance.html"
+                        style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; text-decoration: none; color: #475569; font-size: 14px;">
+                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22" stroke="#10B981"
+                                    stroke-width="2" stroke-linecap="round" />
+                                <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2" stroke="#E2E8F0"
+                                    stroke-width="2" stroke-dasharray="2 2" />
+                                <path
+                                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z"
+                                    fill="#FEF3C7" stroke="#D97706" stroke-width="1.5" />
+                            </svg></span> Preventive Maintenance
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer"><button class="admin-btn" id="loginButton">Admin Login</button></div>
+    </aside>
+
+    <div class="content-wrapper" id="contentWrapper">
+        <header class="top-nav">
+            <div class="nav-logo-group">
+                <button class="toggle-btn" id="menuToggle">☰</button>
+                <img src="assets/Famax Logo.png" alt="logo">
+            </div>
+            <div style="font-size: 14px; font-weight: 700; color: #64748b;">IPQC DASHBOARD</div>
+        </header>
+
+        <main class="main">
+            <div class="quick-nav">
+                <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
+                    <h3>Buyoff Checking</h3>
+                    <p>Initial Checks</p>
+                </div>
+                <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
+                    <h3>IPQC Checking</h3>
+                    <p>In-Process QC</p>
+                </div>
+                <div class="nav-card iqc" style="opacity: 0.5; cursor: not-allowed">
+                    <h3>IQC Checking</h3>
+                    <p>Incoming QC</p>
+                </div>
+                <div class="nav-card oqc" style="opacity: 0.5; cursor: not-allowed">
+                    <h3>OQC Checking</h3>
+                    <p>Outgoing QC</p>
+                </div>
+            </div>
+
+            <div class="tab-container">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('ipqc', this)">IPQC Overview</button>
+                    <button class="tab-btn" onclick="switchTab('iqc', this)">IQC Overview</button>
+                    <button class="tab-btn" onclick="switchTab('oqc', this)">OQC Overview</button>
+                </div>
+
+                <div class="toolbar">
+                    <div class="filter-group"><label>Time Range</label>
+                        <select id="timeFilter" onchange="handleTimeFilterChange()">
+                            <option value="custom">Custom Range</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                        </select>
+                    </div>
+                    <div class="filter-group"><label>From</label><input type="date" id="startDateInput"
+                            onchange="renderCurrentView()" /></div>
+                    <div class="filter-group"><label>To</label><input type="date" id="endDateInput"
+                            onchange="renderCurrentView()" /></div>
+                    <div class="filter-group"><label>Part Name</label><select id="partFilter"
+                            onchange="renderCurrentView()">
+                            <option value="all">All Parts</option>
+                        </select></div>
+                    <button class="admin-btn"
+                        style="margin-left: auto; background: var(--primary); color: white; border: none; width: auto; height: 42px; align-self: flex-end;"
+                        onclick="fetchAllData()">Refresh</button>
+                </div>
+
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpi-total">0</div>
+                        <div>Total Checks</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val ok-color" id="kpi-ok">0</div>
+                        <div>Go (OK)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val ng-color" id="kpi-ng">0</div>
+                        <div>No Go (NG)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val" id="kpi-rate">0%</div>
+                        <div>Yield Rate</div>
+                    </div>
+                </div>
+
+                <div class="chart-box">
+                    <h3>Daily Trend</h3>
+                    <div class="canvas-container"><canvas id="mainChart"></canvas></div>
+                </div>
+                <div class="chart-box">
+                    <h3>Breakdown</h3>
+                    <select id="breakdownFilter" onchange="renderCurrentView()"
+                        style="width: 100%; margin-bottom: 10px">
+                        <option value="part">By Part</option>
+                        <option value="default">By Machine</option>
+                    </select>
+                    <div class="canvas-container"><canvas id="subChart"></canvas></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_URL = "http://192.168.0.5:8000";
+        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
+        const supabaseClient = axios.create({ baseURL: API_URL, headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` } });
+
+        let currentTab = "ipqc", allData = { ipqc: [], iqc: [], oqc: [] }, mainChartInst = null, subChartInst = null;
+        let isTooltipHovered = false, tooltipHideTimeout;
+        let currentMousePos = { x: 0, y: 0 };
+
+        async function fetchFromSupabase(userId) {
+            try {
+                const response = await supabaseClient.get(
+                    "/rest/v1/AdminCredential",
+                    {
+                        params: {
+                            select: "*",
+                            UserId: `eq.${userId}`
+                        }
+                    });
+                return {
+                    data: response.data,
+                    error: null
+                };
+            } catch (error) {
+                return {
+                    data: null,
+                    error: error
+                };
+            }
+        }
+
+        function showNotification(message, type) {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "left",
+                style: { background: type === "error" ? "#ef4444" : "#10b981" }
+            }).showToast();
+        }
+
+        // --- EXCEL ENGINE ---
+        async function getImageBuffer(url) {
+            const r = await fetch(url);
+            return await r.arrayBuffer();
+        }
+
+        function safeNum(v) {
+            if (v === 0 || v === "0") return 0;
+            if (v == null || v === "") return null;
+            const n = parseFloat(v);
+            return isNaN(n) ? null : n;
+        }
+        function getMYTHour(iso) {
+            if (!iso) return 0;
+            const local = new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kuala_Lumpur", hour12: false });
+            const m = local.match(/, (\d{2}):/);
+            return m ? parseInt(m[1], 10) : new Date(iso).getHours();
+        }
+
+        async function triggerExcelFromTooltip(partName, processName, dateStr) {
+            showNotification("Generating Excel...", "success");
+            try {
+                const start = dateStr + "T00:00:00", end = dateStr + "T23:59:59";
+                const [resRows, resMeta] = await Promise.all([
+                    supabaseClient.get(`/rest/v1/Data_IPQC?Part_Name=eq.${partName}&Process=eq.${processName}&created_at=gte.${start}&created_at=lte.${end}`),
+                    supabaseClient.get(`/rest/v1/Parts?Part_Name=eq.${partName}&select=*`)
+                ]);
+                if (!resRows.data.length) {
+                    showNotification("No raw data found.", "error");
+                    return;
+                }
+                await buildProcessCategorizedExcel(resRows.data, resMeta.data[0] || {});
+            } catch (err) {
+                showNotification("Failed to generate Excel", "error");
+            }
+        }
+
+        async function buildProcessCategorizedExcel(rows, meta) {
+            const resp = await fetch(TEMPLATE_URL);
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(await resp.arrayBuffer());
+            const templateSheet = workbook.worksheets[0];
+
+            const [famaxBuf, confBuf] = await Promise.all([
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
+            ]);
+            const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
+            const logoConf = workbook.addImage({ buffer: confBuf, extension: "png" });
+
+            const dataByGroup = {};
+            rows.forEach(r => {
+                const k = `${r.Process} | ${r.Machine}`;
+                if (!dataByGroup[k]) dataByGroup[k] = { process: r.Process, machine: r.Machine, records: [], inspector: r.Person };
+                dataByGroup[k].records.push(r);
+            });
+
+            Object.keys(dataByGroup).forEach(groupKey => {
+                const group = dataByGroup[groupKey];
+                const finalName = groupKey.replace(/[:\\/?*\[\]]/g, "_").substring(0, 31);
+                const ws = workbook.addWorksheet(finalName);
+                copySheetFormat(templateSheet, ws);
+                ws.addImage(logoFamax, { tl: { col: 0, row: 0 }, ext: { width: 125, height: 51 } });
+                ws.addImage(logoConf, { tl: { col: 18, row: 0 }, ext: { width: 189, height: 56 } });
+                ws.getCell(4, 3).value = meta.Part_Name || "";
+                ws.getCell(5, 3).value = meta.Part_Number || "";
+                ws.getCell(9, 3).value = group.process;
+                ws.getCell(10, 19).value = group.machine;
+                ws.getCell(45, 17).value = group.inspector || "";
+                const pts = {};
+                group.records.forEach(r => { const p = r.Point_DWG_Zone || "Unknown"; if (!pts[p]) pts[p] = []; pts[p].push(r); });
+                Object.keys(pts).forEach((pt, idx) => {
+                    if (idx >= 12) return;
+                    const rIdx = 14 + idx;
+                    const info = pts[pt][0];
+                    ws.getCell(rIdx, 1).value = info.Point_DWG_Zone;
+                    ws.getCell(rIdx, 4).value = safeNum(info.LSL_OK);
+                    ws.getCell(rIdx, 5).value = safeNum(info.USL_NG);
+                    pts[pt].forEach(rec => {
+                        const hr = getMYTHour(rec.created_at);
+                        const targetRow = (hr >= 8 && hr < 12) ? rIdx : (hr >= 14 && hr < 21 ? rIdx + 13 : null);
+                        if (targetRow) {
+                            let bCol = (hr < 12) ? 10 + (hr - 8) * 3 : 4 + (hr - 14) * 3;
+                            [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, ri) => {
+                                if (val != null) ws.getRow(targetRow).getCell(bCol + ri).value = safeNum(val);
+                            });
+                        }
+                    });
+                });
+            });
+            workbook.removeWorksheet(templateSheet.id);
+            const buf = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `Report_${meta.Part_Name}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
+        }
+
+        function copySheetFormat(src, dest) {
+            src.columns.forEach((col, i) => (dest.getColumn(i + 1).width = col.width));
+            src.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                const destRow = dest.getRow(rowNum);
+                destRow.height = row.height;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    const destCell = destRow.getCell(colNum);
+                    destCell.style = JSON.parse(JSON.stringify(cell.style));
+                    if (rowNum < 14 || rowNum > 38) destCell.value = cell.value;
+                });
+            });
+            if (src._merges) { Object.values(src._merges).forEach(m => dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right)); }
+        }
+
+        // --- DASHBOARD JS ---
+        $(document).ready(() => {
+            const sidebar = $('#sidebar'), wrapper = $('#contentWrapper'), overlay = $('#sidebarOverlay');
+            $('#menuToggle').on('click', () => {
+                if ($(window).width() > 1100) {
+                    sidebar.toggleClass('collapsed');
+                    wrapper.toggleClass('expanded');
+                } else {
+                    sidebar.addClass('is-mobile-open');
+                    overlay.addClass('active');
+                }
+            });
+            $('#closeSidebar, #sidebarOverlay').on('click', () => {
+                if ($(window).width() > 1100) {
+                    sidebar.addClass('collapsed');
+                    wrapper.addClass('expanded');
+                } else {
+                    sidebar.removeClass('is-mobile-open');
+                    overlay.removeClass('active');
+                }
+            });
+            $('.dropbtn').on('click', function () {
+                $(this).parent().toggleClass('is-active');
+            });
+            const today = new Date().toISOString().split("T")[0];
+            $("#startDateInput").val(today); $("#endDateInput").val(today);
+            fetchAllData();
+            $("#loginButton").click(() => $("#login-modal").modal());
+
+            
+
+            $(document).on('mousemove', function (e) {
+                currentMousePos.x = e.pageX;
+                currentMousePos.y = e.pageY;
+            });
+
+            // --- RESTORED ORIGINAL LOGIN HANDLER ---
+            document.getElementById("submitLogin").addEventListener("click", async function () {
+                const userId = document.getElementById("userId").value.trim();
+                const password = document.getElementById("password").value.trim();
+                if (!userId || !password) { showNotification("Please enter both user ID and password", "error"); return; }
+                try {
+                    const { data, error } = await fetchFromSupabase(userId);
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        const userRecord = data[0];
+                        if (userRecord.Password === password) {
+                            showNotification("Login successful!", "success");
+                            sessionStorage.setItem("isLoggedIn", "true");
+                            sessionStorage.setItem("userId", userId);
+                            sessionStorage.setItem("userPassword", password);
+                            $.modal.close();
+                            setTimeout(() => {
+                                window.location.href = "AdminLogin.html?UserId=" + encodeURIComponent(userId) + "&Password=" + encodeURIComponent(password);
+                            }, 1000);
+                        } else { showNotification("Invalid password.", "error"); }
+                    } else { showNotification("User not found.", "error"); }
+                } catch (error) { showNotification("Login failed.", "error"); }
+            });
+        });
+
+        async function fetchAllData() {
+            $("#loader").show();
+            try {
+                const [resIPQC, resIQC, resOQC] = await Promise.all([
+                    supabaseClient.get("/rest/v1/Data_IPQC?select=*&order=created_at.asc"),
+                    supabaseClient.get("/rest/v1/Data_IQC?select=*&order=created_at.asc"),
+                    supabaseClient.get("/rest/v1/Data_OQC?select=*&order=created_at.asc"),
+                ]);
+                allData.ipqc = processReadings(resIPQC.data, "IPQC");
+                allData.iqc = processReadings(resIQC.data, "IQC");
+                allData.oqc = processReadings(resOQC.data, "OQC");
+                updatePartDropdown(); renderCurrentView();
+            } finally { $("#loader").hide(); }
+        }
+
+        function processReadings(data, type) {
+            if (!data) return []; const groups = {};
+            data.forEach((row) => {
+                const ts = row.created_at ? row.created_at.substring(0, 16).replace("T", " ") : "unknown";
+                const k = `${ts}_${row.Part_Name}_${row.Process}`;
+                if (!groups[k]) {
+                    groups[k] = { date: row.created_at.split("T")[0], fullTimestamp: ts, part: row.Part_Name || "Unknown", process: row.Process || "General", source: type === "IPQC" ? row.Machine : row.Process, isNG: false };
+                }
+                const lsl = parseFloat(type === "IPQC" ? row.LSL_OK : row.Min) || 0, usl = parseFloat(type === "IPQC" ? row.USL_NG : row.Max) || 0;
+                for (let i = 1; i <= 5; i++) {
+                    const v = parseFloat(row[`Reading_${i}`]);
+                    if (!isNaN(v) && (v < lsl || v > usl)) { groups[k].isNG = true; break; }
+                }
+            });
+            return Object.values(groups);
+        }
+
+        function updatePartDropdown() {
+            const pSelect = document.getElementById("partFilter");
+            const parts = [...new Set(allData[currentTab].map(d => d.part))];
+            pSelect.innerHTML = '<option value="all">All Parts</option>';
+            parts.forEach(p => pSelect.add(new Option(p, p)));
+        }
+
+        function switchTab(tab, btn) { currentTab = tab; $(".tab-btn").removeClass("active"); $(btn).addClass("active"); updatePartDropdown(); renderCurrentView(); }
+
+        function renderCurrentView() {
+            const start = $("#startDateInput").val(), end = $("#endDateInput").val(), part = $("#partFilter").val();
+            const filtered = allData[currentTab].filter(d => d.date >= start && d.date <= end && (part === "all" || d.part === part));
+            const ok = filtered.filter(d => !d.isNG).length, ng = filtered.filter(d => d.isNG).length, total = filtered.length;
+            $("#kpi-total").text(total); $("#kpi-ok").text(ok); $("#kpi-ng").text(ng);
+            $("#kpi-rate").text(total > 0 ? ((ok / total) * 100).toFixed(1) + "%" : "0%");
+            updateMainChart(filtered); updateSubChart(filtered);
+        }
+
+        function updateMainChart(data) {
+            const ctx = document.getElementById("mainChart").getContext("2d"); if (mainChartInst) mainChartInst.destroy();
+            const grouped = {}; data.forEach(d => {
+                let k = $("#partFilter").val() === "all" ? (d.part.match(/\(([^)]+)\)/)?.[1] || d.part) : d.process;
+                if (!grouped[k]) grouped[k] = { ok: 0, ng: 0 };
+                d.isNG ? grouped[k].ng++ : grouped[k].ok++;
+            });
+            const labels = Object.keys(grouped).sort();
+            mainChartInst = new Chart(ctx, {
+                type: "bar", data: {
+                    labels: labels, datasets: [
+                        { label: "Go (OK)", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" },
+                        { label: "No Go (NG)", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+            });
+        }
+
+        function updateSubChart(data) {
+            const ctx = document.getElementById("subChart").getContext("2d"); if (subChartInst) subChartInst.destroy();
+            const field = $("#breakdownFilter").val() === "part" ? "part" : "source";
+            const grouped = {};
+            data.forEach(d => {
+                const k = d[field] || "N/A"; if (!grouped[k]) grouped[k] = { ok: 0, ng: 0, details: {} };
+                d.isNG ? grouped[k].ng++ : grouped[k].ok++;
+                const proc = d.process || "Unknown";
+                if (!grouped[k].details[proc]) grouped[k].details[proc] = { ng: 0, history: {} };
+                if (d.isNG) {
+                    grouped[k].details[proc].ng++;
+                    const dt = d.date; if (!grouped[k].details[proc].history[dt]) grouped[k].details[proc].history[dt] = [];
+                    grouped[k].details[proc].history[dt].push(d.fullTimestamp.split(" ")[1]);
+                }
+            });
+            const labels = Object.keys(grouped).sort((a, b) => grouped[b].ng - grouped[a].ng);
+            document.getElementById("subChart").style.height = Math.max(300, labels.length * 45 + 100) + "px";
+            subChartInst = new Chart(ctx, {
+                type: "bar", data: {
+                    labels: labels, datasets: [
+                        { label: "NG", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" },
+                        { label: "OK", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" }
+                    ]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // Add these two lines to make tooltips react to movement, not just intersections
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: false,
+                    },
+                    scales: { x: { stacked: true }, y: { stacked: true } },
+                    plugins: {
+                        tooltip: {
+                            enabled: false,
+                            external: function (context) {
+                                let tooltipEl = document.getElementById("chartjs-tooltip");
+                                if (!tooltipEl) {
+                                    tooltipEl = document.createElement("div"); tooltipEl.id = "chartjs-tooltip";
+                                    document.body.appendChild(tooltipEl);
+                                    tooltipEl.onmouseenter = () => { isTooltipHovered = true; clearTimeout(tooltipHideTimeout); };
+                                    tooltipEl.onmouseleave = () => { isTooltipHovered = false; tooltipEl.style.opacity = 0; };
+                                }
+                                const model = context.tooltip;
+                                if (model.opacity === 0) {
+                                    if (!isTooltipHovered) tooltipHideTimeout = setTimeout(() => { tooltipEl.style.opacity = 0; }, 600);
+                                    return;
+                                }
+                                clearTimeout(tooltipHideTimeout);
+                                const index = model.dataPoints[0].dataIndex, key = labels[index], item = grouped[key];
+                                let html = `<div class="tooltip-title">${key}</div><div style="font-size:12px;color:#9ca3af;">Total: ${item.ok} OK / ${item.ng} NG</div>`;
+                                for (const [proc, info] of Object.entries(item.details)) {
+                                    if (info.ng > 0) {
+                                        html += `<div class="process-item">⚠️ ${proc}</div>`;
+                                        for (const [dt, times] of Object.entries(info.history)) {
+                                            html += `<div class="date-group"><div class="date-header-row"><span class="date-header">${dt}</span><button class="btn-tooltip-download" onclick="triggerExcelFromTooltip('${key.replace(/'/g, "\\'")}', '${proc.replace(/'/g, "\\'")}', '${dt}')">Excel</button></div><div class="time-grid">${[...new Set(times)].sort().map(t => `<span class="time-tag">${t}</span>`).join("")}</div></div>`;
+                                        }
+                                    }
+                                }
+                                tooltipEl.innerHTML = html;
+                                tooltipEl.style.opacity = 1;
+                                tooltipEl.style.left = currentMousePos.x + 15 + "px"; // 15px offset to the right
+                                tooltipEl.style.top = currentMousePos.y - 40 + "px";  // 40px offset upwards                            
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function handleTimeFilterChange() {
+            const val = $("#timeFilter").val(); if (val === "custom") return;
+            const end = new Date(), start = new Date(); start.setDate(end.getDate() - parseInt(val));
+            $("#startDateInput").val(start.toISOString().split("T")[0]); $("#endDateInput").val(end.toISOString().split("T")[0]);
+            renderCurrentView();
+        }
+    </script>
+</body>
+
+</html>
+>>>>>>> 7963f1678a2e054b37a9c967f0e2724fb58a42d3
