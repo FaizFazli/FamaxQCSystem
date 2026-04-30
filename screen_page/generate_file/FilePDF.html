@@ -387,7 +387,7 @@
     <div class="header-section">
       <div>
         <!-- Using local path as requested, ensure file exists -->
-        <img src=" http://192.168.0.5/FamaxQCSystem/assets/Famax.png" alt="Logo" class="logo" onerror="this.style.display='none'" />
+        <img src=" http://192.168.2.195/FamaxQCSystem/assets/Famax.png" alt="Logo" class="logo" onerror="this.style.display='none'" />
       </div>
       <div class="header-content">
         <h1>FAMAX TECHNOLOGY (M) SDN BHD</h1>
@@ -645,7 +645,7 @@
         formData.append("folderPath", `C:\\Users\\FamaxQC_Doc\\${safeFolderName}`);
         formData.append("documentType", "ProcessFlow");
 
-        const response = await fetch(`http://192.168.0.5/FamaxQCSystem/savePdf`, {
+        const response = await fetch(`http://192.168.2.195/FamaxQCSystem/savePdf`, {
           method: "POST",
           body: formData,
         });

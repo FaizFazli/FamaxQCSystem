@@ -424,7 +424,7 @@
             document.getElementById('selected-jo').textContent = joNumber || '-';
             document.getElementById('selected-machine').textContent = machineNumber || '-';
 
-            const supabaseUrl = 'http://192.168.0.5:8000';
+            const supabaseUrl = 'http://192.168.2.195:8000';
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
             const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -462,7 +462,7 @@
 
                     setupProgress();
                     const imageElement = document.getElementById('ipqc-image');
-                    imageElement.src = buyOffData[0].Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
+                    imageElement.src = buyOffData[0].Path.replace('http://localhost:8000', 'http://192.168.2.195:8000');
                     imageElement.onclick = () => imageElement.classList.toggle('zoomed');
 
                     document.getElementById('loading-indicator').classList.add('hidden');
