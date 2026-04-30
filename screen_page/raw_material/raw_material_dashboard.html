@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Raw Material Analytics - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+
+    <!-- Fonts for both themes -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root {
+            /* Light Theme */
+            --primary: #0078d4;
+            --primary-soft: rgba(0, 120, 212, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --font-body: 'Inter', sans-serif;
+            --font-head: 'Inter', sans-serif;
+            --radius: 20px;
+            --clip: none;
+            --border-style: 1px solid var(--glass-border);
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            --bg-img: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+        }
+
+        body.cyber-theme {
+            /* Cyberpunk Theme Overrides */
+            --primary: #00ffff;
+            --primary-soft: rgba(0, 255, 255, 0.1);
+            --success: #39ff14;
+            --warning: #ffff00;
+            --danger: #ff3131;
+            --bg: #050505;
+            --text-main: #ffffff;
+            --text-muted: #00ffff;
+            --glass-bg: rgba(15, 15, 15, 0.9);
+            --glass-border: #00ffff;
+            --font-body: 'Rajdhani', sans-serif;
+            --font-head: 'Orbitron', sans-serif;
+            --radius: 0px;
+            --clip: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            --border-style: 1px solid var(--primary);
+            --shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            --bg-img: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+        }
+
+        /* --- GLOBAL STYLES --- */
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg);
+            background-image: var(--bg-img);
+            /* background-size: 30px 30px; */
+            color: var(--text-main);
+            margin: 0;
+            padding: 30px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        body.cyber-theme .header {
+            border-left: 5px solid #ff00ff;
+            padding-left: 20px;
+        }
+
+        .header h1 {
+            font-family: var(--font-head);
+            margin: 0;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        body.cyber-theme .header h1 {
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+        }
+
+        .btn-sync {
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: var(--font-head);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.cyber-theme .btn-sync {
+            border-radius: 0;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .btn-sync.secondary {
+            background: var(--glass-bg);
+            color: var(--text-main);
+            border: var(--border-style);
+        }
+
+        .btn-sync.primary {
+            background: var(--text-main);
+            color: var(--bg);
+            margin-left: 10px;
+        }
+
+        body.cyber-theme .btn-sync.primary {
+            background: #ff00ff;
+            color: #fff;
+        }
+
+        .theme-toggle {
+            background: var(--glass-bg);
+            border: var(--border-style);
+            color: var(--text-main);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: var(--font-head);
+            font-weight: 700;
+            font-size: 11px;
+            clip-path: var(--clip);
+            margin-right: 10px;
+        }
+
+        /* --- KPI CARDS --- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: var(--border-style);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            clip-path: var(--clip);
+            padding: 25px;
+        }
+
+        .stat-card label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-family: var(--font-head);
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .stat-card .subtext {
+            font-size: 11px;
+            margin-top: 5px;
+            color: var(--text-muted);
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        body.cyber-theme .stat-card {
+            border-bottom: 3px solid var(--primary);
+        }
+
+        /* --- CHART CARD --- */
+        .card h3 {
+            margin-top: 0;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            font-family: var(--font-head);
+        }
+
+        /* --- DASHBOARD GRID --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        /* --- TABLES --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 10px;
+            background: rgba(128, 128, 128, 0.05);
+            color: var(--text-muted);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            font-weight: 500;
+        }
+
+        body.cyber-theme tbody tr:hover {
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border: 1px solid currentColor;
+        }
+
+        body.cyber-theme .badge {
+            border-radius: 0;
+        }
+
+        .badge-in {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .badge-out {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .low-stock {
+            color: var(--danger);
+            font-weight: 800;
+        }
+
+        @media (max-width: 1024px) {
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-info">
+                <h1 id="main-title">Raw Material Analytics</h1>
+            </div>
+
+            <div class="header-actions">
+                <button class="theme-toggle" onclick="toggleTheme()">Change Theme</button>
+                <button class="btn-sync secondary" onclick="fetchDashboardData()">🔄 Sync Data</button>
+                <button class="btn-sync primary" onclick="window.location.href='raw_material_movement.html'">➕ Update
+                    Stock</button>
+                <button class="btn-sync primary" onclick="window.location.href='raw_material_inventory.html'">📦
+                    Inventory</button>
+            </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="kpi-grid">
+            <div class="glass-card stat-card">
+                <label id="lbl-weight">Inventory Weight</label>
+                <div class="value" id="kpi-total-weight">0 KG</div>
+                <div class="subtext">Across all categories</div>
+            </div>
+            <div class="glass-card stat-card">
+                <label id="lbl-items">Total Items</label>
+                <div class="value" id="kpi-total-pcs">0</div>
+                <div class="subtext">Stock units available</div>
+            </div>
+            <div class="glass-card stat-card">
+                <label id="lbl-low">Low Stock Alerts</label>
+                <div class="value" style="color:var(--danger)" id="kpi-low-stock">0</div>
+                <div class="subtext">Items below 5 PCS</div>
+            </div>
+            <div class="glass-card stat-card">
+                <label id="lbl-cats">Active Categories</label>
+                <div class="value" style="color:var(--success)" id="kpi-cats">0</div>
+                <div class="subtext">Material groupings</div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="glass-card card" style="margin-bottom: 25px;">
+            <h3 id="chart-title">Inventory Volume by Category (KG)</h3>
+            <div style="position: relative; overflow-y: auto; max-height: 500px;">
+                <canvas id="categoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tables Row -->
+        <div class="dashboard-grid">
+            <div class="glass-card card">
+                <h3 id="audit-title">Movement Audit Trail</h3>
+                <table id="movement-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Material</th>
+                            <th>Type</th>
+                            <th>Qty</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="glass-card card">
+                <h3 id="critical-title">⚠️ Critical Low Stock</h3>
+                <table id="low-stock-table">
+                    <thead>
+                        <tr>
+                            <th>Grade</th>
+                            <th>Balance</th>
+                            <th>Rack</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA LOGIC: AS PROVIDED ---
+        const SB_URL = 'http://192.168.0.5:8000';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let categoryChart;
+        let lastStockData = [];
+        let lastCategoriesData = [];
+
+        $(document).ready(function () {
+            // Check permanent theme preference
+            const savedTheme = localStorage.getItem('rm_analytics_theme');
+            if (savedTheme === 'cyber') {
+                $('body').addClass('cyber-theme');
+                updateLabels(true);
+            }
+
+            fetchDashboardData();
+        });
+
+        // --- THEME TOGGLE ---
+        function toggleTheme() {
+            $('body').toggleClass('cyber-theme');
+            const isCyber = $('body').hasClass('cyber-theme');
+            localStorage.setItem('rm_analytics_theme', isCyber ? 'cyber' : 'light');
+
+            updateLabels(isCyber);
+            // Re-render chart to update colors
+            if (lastStockData.length > 0) renderCategoryChart(lastStockData, lastCategoriesData);
+        }
+
+        function updateLabels(isCyber) {
+            $('#main-title').text(isCyber ? 'Raw_Material_Analytics' : 'Raw Material Analytics');
+            $('#lbl-weight').text(isCyber ? 'Inventory_Net_Weight' : 'Inventory Weight');
+            $('#lbl-items').text(isCyber ? 'Database_Entities' : 'Total Items');
+            $('#lbl-low').text(isCyber ? '☢️ DEPLETED_NODES' : 'Low Stock Alerts');
+            $('#lbl-cats').text(isCyber ? 'Sectors' : 'Active Categories');
+            $('#chart-title').text(isCyber ? 'VOLUME_DISTRIBUTION_BY_SECTOR' : 'Inventory Volume by Category (KG)');
+            $('#audit-title').text(isCyber ? 'LOG_STREAM_TRAIL' : 'Movement Audit Trail');
+            $('#critical-title').text(isCyber ? '⚠️ CRITICAL_NODE_FAILURE' : '⚠️ Critical Low Stock');
+        }
+
+        async function fetchDashboardData() {
+            const { data: stock } = await _supabase.from('RawMaterialStock').select('*');
+            const { data: movements } = await _supabase.from('RawMaterialMovement').select('*, RawMaterialStock(grade)').order('created_at', { ascending: false }).limit(10);
+            const { data: categories } = await _supabase.from('RawMaterialCategory').select('*');
+
+            if (!stock) return;
+
+            lastStockData = stock;
+            lastCategoriesData = categories;
+
+            updateKPIs(stock, categories);
+            renderCategoryChart(stock, categories);
+            renderMovements(movements);
+            renderLowStock(stock);
+        }
+
+        function updateKPIs(stock, categories) {
+            let totalWeight = stock.reduce((sum, item) => sum + (item.total_weight_kg || 0), 0);
+            let totalPcs = stock.reduce((sum, item) => sum + (item.qty_pcs || 0), 0);
+            let lowStockCount = stock.filter(item => item.qty_pcs <= 5).length;
+
+            $('#kpi-total-weight').text(totalWeight.toLocaleString() + " KG");
+            $('#kpi-total-pcs').text(totalPcs.toLocaleString());
+            $('#kpi-low-stock').text(lowStockCount);
+            $('#kpi-cats').text(categories.length);
+        }
+
+        function renderCategoryChart(stock, categories) {
+            const isCyber = $('body').hasClass('cyber-theme');
+            const catMap = {};
+            categories.forEach(c => catMap[c.id] = c.category_name);
+
+            const dataByCat = {};
+            stock.forEach(item => {
+                const name = catMap[item.product_category] || "Unknown";
+                dataByCat[name] = (dataByCat[name] || 0) + (item.total_weight_kg || 0);
+            });
+
+            const filteredLabels = [];
+            const filteredValues = [];
+            for (const [key, value] of Object.entries(dataByCat)) {
+                if (value > 0) {
+                    filteredLabels.push(key);
+                    filteredValues.push(value);
+                }
+            }
+
+            const canvas = document.getElementById('categoryChart');
+            const chartHeight = Math.max(300, filteredLabels.length * 45);
+            canvas.parentElement.style.height = chartHeight + "px";
+
+            if (categoryChart) categoryChart.destroy();
+
+            // Dynamic Chart Colors based on theme
+            const primaryColor = getComputedStyle(document.body).getPropertyValue('--primary').trim();
+            const gridColor = isCyber ? 'rgba(0, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = getComputedStyle(document.body).getPropertyValue('--text-muted').trim();
+
+            categoryChart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: filteredLabels,
+                    datasets: [{
+                        label: 'Weight (KG)',
+                        data: filteredValues,
+                        backgroundColor: primaryColor,
+                        borderRadius: isCyber ? 0 : 8,
+                        barThickness: 25,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) { return `Weight: ${context.parsed.x.toLocaleString()} KG`; }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, callback: function (value) { return value.toLocaleString(); } }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: textColor, font: { size: 12, weight: '600', family: isCyber ? 'Rajdhani' : 'Inter' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMovements(movements) {
+            const isCyber = $('body').hasClass('cyber-theme');
+            let html = '';
+            movements.forEach(m => {
+                const date = new Date(m.created_at).toLocaleDateString();
+                const badgeClass = m.move_type === 'IN' ? 'badge-in' : 'badge-out';
+                const label = isCyber ? (m.move_type === 'IN' ? 'LOAD' : 'DISPATCH') : m.move_type;
+                html += `<tr>
+                    <td>${date}</td>
+                    <td><strong style="${isCyber ? 'color:var(--warning)' : ''}">${m.RawMaterialStock?.grade || 'N/A'}</strong></td>
+                    <td><span class="badge ${badgeClass}">${label}</span></td>
+                    <td>${m.qty_change}</td>
+                    <td style="color:var(--text-muted); opacity: 0.8">${m.reason || '-'}</td>
+                </tr>`;
+            });
+            $('#movement-table tbody').html(html);
+        }
+
+        function renderLowStock(stock) {
+            let html = '';
+            const low = stock.filter(i => i.qty_pcs <= 5).sort((a, b) => a.qty_pcs - b.qty_pcs).slice(0, 10);
+            low.forEach(i => {
+                html += `<tr>
+                    <td>${i.grade}</td>
+                    <td class="low-stock">${i.qty_pcs} PCS</td>
+                    <td>${i.area || '-'}</td>
+                </tr>`;
+            });
+            $('#low-stock-table tbody').html(html || '<tr><td colspan="3">All stock healthy</td></tr>');
+        }
+    </script>
+
+</body>
+
+</html>

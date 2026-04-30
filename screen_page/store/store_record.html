@@ -15,6 +15,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap"
+        rel="stylesheet" />
+    <!-- Add Font Awesome for better icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet" />
 
 
     <style>
@@ -27,79 +35,269 @@
             --border: #e2e8f0;
             --text-dark: #1e293b;
             --text-muted: #64748b;
+            --primary-light: #eef2ff;
+            --slate-50: #f8fafc;
+            --slate-100: #f1f5f9;
+            --slate-400: #94a3b8;
+            --slate-600: #475569;
+            --slate-800: #1e293b;
         }
 
+        /* ============================================================
+   CYBERPUNK OVERRIDE ONLY (NO CHANGES TO ORIGINAL THEME)
+   ============================================================ */
+
+        /* 1. Root & Background */
+        body.cyber-theme {
+            background-color: #050505 !important;
+            background-image:
+                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px) !important;
+            background-size: 30px 30px !important;
+            color: #ffffff !important;
+            font-family: 'Rajdhani', sans-serif !important;
+        }
+
+        /* 2. Cards & Containers */
+        body.cyber-theme .card,
+        body.cyber-theme .table-container,
+        body.cyber-theme .modal-card {
+            background: #0f0f0f !important;
+            border: 1px solid #00ffff !important;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2) !important;
+            border-radius: 0 !important;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%) !important;
+        }
+
+        /* 3. Headers (Dashboard Sidebar & Table Headers) */
+        body.cyber-theme .card-header {
+            background: #ff00ff !important;
+            /* Magenta Header */
+            color: #fff !important;
+            border-bottom: 2px solid #00ffff !important;
+        }
+
+        body.cyber-theme .card-header h3 {
+            font-family: 'Orbitron', sans-serif !important;
+            letter-spacing: 2px !important;
+            text-transform: uppercase !important;
+        }
+
+        /* 4. Table Styles */
+        body.cyber-theme table {
+            background: transparent !important;
+        }
+
+        body.cyber-theme thead th {
+            background: #1a1a1a !important;
+            color: #00ffff !important;
+            border-bottom: 2px solid #00ffff !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-size: 10px !important;
+        }
+
+        body.cyber-theme tbody td {
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+        }
+
+        body.cyber-theme #history-rows tr:hover {
+            background: rgba(0, 255, 255, 0.1) !important;
+            border-left: 4px solid #ff00ff !important;
+        }
+
+        /* 5. Form Inputs */
+        body.cyber-theme input,
+        body.cyber-theme select,
+        body.cyber-theme textarea {
+            background: #000 !important;
+            border: 1px solid #00ffff !important;
+            color: #00ffff !important;
+            border-radius: 0 !important;
+        }
+
+        body.cyber-theme input::placeholder {
+            color: rgba(0, 255, 255, 0.5) !important;
+        }
+
+        /* 6. Transaction Buttons (IN / OUT / RES) */
+        body.cyber-theme .t-btn {
+            background: #111 !important;
+            color: #00ffff !important;
+            border: 1px solid #00ffff !important;
+            border-radius: 0 !important;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%) !important;
+        }
+
+        body.cyber-theme .t-btn.active-in {
+            background: #39ff14 !important;
+            /* Neon Green */
+            color: #000 !important;
+            box-shadow: 0 0 10px #39ff14 !important;
+        }
+
+        body.cyber-theme .t-btn.active-out {
+            background: #ff3131 !important;
+            /* Neon Red */
+            color: #fff !important;
+            box-shadow: 0 0 10px #ff3131 !important;
+        }
+
+        body.cyber-theme .t-btn.active-res {
+            background: #ffff00 !important;
+            /* Neon Yellow */
+            color: #000 !important;
+            box-shadow: 0 0 10px #ffff00 !important;
+        }
+
+        /* 7. Action Buttons (Export, Save, Add) */
+        body.cyber-theme .btn-save,
+        body.cyber-theme .btn-add,
+        body.cyber-theme button[style*="background: #10b981"] {
+            background: #00ffff !important;
+            color: #000 !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-weight: bold !important;
+            border-radius: 0 !important;
+            clip-path: polygon(15% 0, 100% 0, 85% 100%, 0 100%) !important;
+        }
+
+        body.cyber-theme .btn-add:hover {
+            background: #ff00ff !important;
+            color: #fff !important;
+        }
+
+        /* 8. Labels and Badges */
+        body.cyber-theme .form-group label {
+            color: #00ffff !important;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5) !important;
+        }
+
+        body.cyber-theme .badge-in {
+            background: #39ff14 !important;
+            color: #000 !important;
+        }
+
+        body.cyber-theme .badge-out {
+            background: #ff3131 !important;
+            color: #fff !important;
+        }
+
+        body.cyber-theme .badge-res {
+            background: #ffff00 !important;
+            color: #000 !important;
+        }
+
+        /* 9. Overlay / Modals */
+        body.cyber-theme #overlay,
+        body.cyber-theme #modal-overlay {
+            background: rgba(0, 0, 0, 0.85) !important;
+            backdrop-filter: blur(5px) !important;
+        }
+
+        /* 10. Quantity Calculation Box (The yellow-ish box in your screenshot) */
+        body.cyber-theme .card-body>div[style*="background: #f8fafc"] {
+            background: rgba(255, 255, 0, 0.05) !important;
+            border: 1px dashed #ffff00 !important;
+            color: #ffff00 !important;
+        }
+
+        
+
+
+        /* Prevent the whole window from scrolling so only the cards scroll */
+        html,
         body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
             font-family: "Inter", sans-serif;
             background: var(--bg);
             color: var(--text-dark);
-            padding: 15px;
-            margin: 0;
-            box-sizing: border-box;
         }
 
-        /* VISUAL CAPITALIZATION */
         input[type="text"] {
             text-transform: uppercase;
+        }
+
+        #packing-list-table {
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            /* Creates the "floating row" effect */
+        }
+
+        .record-row {
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .record-row:hover {
+            transform: scale(1.002);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background-color: var(--slate-50);
+        }
+
+        .item-card {
+            background: var(--slate-50);
+            border: 1px solid var(--slate-100);
+            padding: 6px 10px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .ctn-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #f0fdf4;
+            /* Light green */
+            color: #166534;
+            /* Dark green */
+            border: 1px solid #dcfce7;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            margin: 2px;
+        }
+
+        .date-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--slate-600);
         }
 
         .container {
             max-width: 1450px;
             margin: 0 auto;
+            padding: 15px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
         }
 
         .header-nav {
             display: flex;
             justify-content: space-between;
-            /* Pushes H2 to left, header-btns to right */
             align-items: center;
             margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 15px;
+            flex-shrink: 0;
         }
 
         .header-btns {
             display: flex;
             align-items: center;
             gap: 10px;
-            /* This creates the space between the two buttons */
         }
 
-        /* Optional: Ensure buttons look consistent height-wise */
-        .btn-add,
-        .btn-save {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-            height: 36px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            color: white;
-        }
-
-
+        /* The Fix: Force the grid to stay within the viewport */
         .grid-layout {
             display: grid;
             grid-template-columns: 420px 1fr;
             gap: 20px;
-            align-items: stretch;
-        }
-
-        @media (min-width: 1101px) {
-            .grid-layout {
-                height: calc(100vh - 100px);
-                min-height: 750px;
-            }
-        }
-
-        @media (max-width: 1100px) {
-            .grid-layout {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
+            flex: 1;
+            min-height: 0;
+            /* Crucial for internal scrolling */
         }
 
         .card {
@@ -109,25 +307,36 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            min-height: 0;
+            /* Allows the card to be smaller than its content */
         }
 
         .card-header {
-            padding: 15px 20px;
+            padding: 12px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
+            /* Enables flexbox */
             justify-content: space-between;
+            /* Pushes Title to left, Controls to right */
             align-items: center;
+            /* Vertical alignment */
             flex-shrink: 0;
             background: #fff;
         }
 
         .card-header h3 {
             margin: 0;
+            /* Important: removes default margins that push buttons down */
             font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .card-body {
@@ -136,6 +345,37 @@
             flex: 1;
         }
 
+        /* The Fix: History Table Area */
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            padding: 15px;
+            text-align: left;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-bottom: 2px solid var(--bg);
+        }
+
+        tbody td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        /* Rest of your styles kept identical */
         .form-group {
             margin-bottom: 15px;
             position: relative;
@@ -159,12 +399,6 @@
             border-radius: 8px;
             font-size: 14px;
             box-sizing: border-box;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
         }
 
         #qty {
@@ -241,30 +475,27 @@
             height: 36px;
         }
 
-        #modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 10px;
         }
 
-        .modal-card {
-            background: #fff;
-            padding: 25px;
-            border-radius: 12px;
-            width: 450px;
+        .badge-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-out {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .autocomplete-items {
             position: absolute;
             border: 1px solid var(--border);
-            z-index: 99;
+            z-index: 10001;
             top: 100%;
             left: 0;
             right: 0;
@@ -288,51 +519,6 @@
             color: var(--primary);
         }
 
-        .table-container {
-            flex: 1;
-            overflow: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
-        thead th {
-            position: sticky;
-            top: 0;
-            background: #fff;
-            z-index: 10;
-            padding: 15px;
-            text-align: left;
-            font-size: 11px;
-            color: var(--text-muted);
-            border-bottom: 2px solid var(--bg);
-        }
-
-        tbody td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--bg);
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 10px;
-        }
-
-        .badge-in {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-out {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
         #overlay {
             position: fixed;
             top: 0;
@@ -346,6 +532,35 @@
             z-index: 9999;
         }
 
+        #history-rows tr {
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+            /* Initial transparent border */
+        }
+
+        /* Hover State */
+        #history-rows tr:hover {
+            background-color: #f1f5f9 !important;
+            /* Light blue-grey background */
+            border-left: 4px solid var(--primary);
+            /* The "Accent" color on the left */
+            transform: translateX(4px);
+            /* Subtle nudge to the right */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            /* Slight shadow to lift it */
+        }
+
+        /* Make sure the text inside doesn't feel cramped with the nudge */
+        #history-rows td {
+            transition: padding 0.2s ease;
+        }
+
+        #history-rows tr:hover td {
+            color: #000;
+            /* Darken text slightly on hover */
+        }
+
         .spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid var(--primary);
@@ -355,31 +570,14 @@
             animation: spin 1s linear infinite;
         }
 
-        #history-rows tr {
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
 
-        #history-rows tr:hover {
-            background-color: #f1f5f9;
-        }
-
-        .detail-item {
-            margin-bottom: 10px;
-        }
-
-        .detail-label {
-            font-weight: 800;
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            display: block;
-        }
-
-        .detail-value {
-            font-size: 14px;
-            color: var(--text-dark);
-            font-weight: 600;
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .input-wrapper {
@@ -394,15 +592,10 @@
             cursor: pointer;
             color: var(--primary);
             font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             background: white;
             padding: 4px;
-            border-radius: 4px;
         }
 
-        /* Scanner Modal Styles */
         #scanner-modal {
             position: fixed;
             top: 0;
@@ -425,22 +618,76 @@
             overflow: hidden;
         }
 
-        .scanner-controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
 
+        .modal-card {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            width: 450px;
+        }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
+        .edit-input {
+            width: 100%;
+            height: 32px;
+            padding: 5px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .edit-input:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        @media (max-width: 1100px) {
+            body {
+                overflow: auto;
+                height: auto;
             }
 
-            100% {
-                transform: rotate(360deg);
+            .grid-layout {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+            }
+
+            .card {
+                height: 600px;
             }
         }
+
+        .t-btn.active-res {
+            border-color: #f59e0b;
+            color: #f59e0b;
+            background: #fffbeb;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.1);
+        }
+
+        /* Badge Reservation */
+        .badge-res {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Cyber theme support */
+        /* body.cyber-theme .active-res {
+            background: #ffff00 !important;
+            color: #000 !important;
+        } */
     </style>
 </head>
 
@@ -494,9 +741,39 @@
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
                 <!-- Content will be injected here -->
             </div>
-
+            <!-- 
             <button class="btn-save" style="background: var(--text-muted); margin-top: 25px;"
-                onclick="closeDetailsModal()">Close Detail</button>
+                onclick="updateHistoryRecord()">Update Record</button> -->
+        </div>
+    </div>
+
+    <!-- PACKING LIST MODAL -->
+    <div id="packing-modal-overlay"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(4px);">
+        <div class="modal-card"
+            style="width: 1000px; max-width: 95vw; height: 80vh; display: flex; flex-direction: column;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--bg); padding-bottom: 10px;">
+                <h3 style="margin:0;">Packing List Records</h3>
+                <span onclick="$('#packing-modal-overlay').hide()"
+                    style="cursor:pointer; font-weight:800; color:var(--danger); font-size: 20px;">✕</span>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                        <tr style="text-align: left; border-bottom: 2px solid var(--border);">
+                            <th style="padding: 10px;">Date</th>
+                            <th style="padding: 10px;">Customer</th>
+                            <th style="padding: 10px;">Items (Part & Qty)</th>
+                            <th style="padding: 10px;">Carton Description</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packing-list-body">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -506,13 +783,16 @@
 
             <!-- This wrapper acts as a single unit to be pushed to the right -->
             <div class="header-btns">
+                <button class="btn-theme-toggle" onclick="toggleTheme()">CHANGE THEME</button>
+                <button class="btn-add" style="background: var(--primary)" onclick="openPackingListModal()">📦 Packing
+                    Lists</button>
                 <button class="btn-add" onclick="openModal()">+ New Inventory</button>
 
-                <button class="btn-save"
+                <!-- <button class="btn-save"
                     style="background: var(--primary); width:auto; margin:0; height:36px; padding: 0 15px;"
                     onclick="window.location.href='inventory_dashboard.html'">
                     Stock Availability
-                </button>
+                </button> -->
             </div>
         </div>
 
@@ -525,6 +805,7 @@
                     <div class="type-switcher">
                         <div id="btn-in" class="t-btn active-in" onclick="changeEntryType('IN')">IN</div>
                         <div id="btn-out" class="t-btn" onclick="changeEntryType('OUT')">OUT</div>
+                        <div id="btn-res" class="t-btn" onclick="changeEntryType('RESERVATION')">RES</div>
                     </div>
                     <div class="form-row-grid">
                         <div class="form-group">
@@ -532,7 +813,10 @@
                             <div class="input-wrapper">
                                 <input type="text" id="barcode" placeholder="Scan or Search Barcode..."
                                     autocomplete="off">
-                                <div class="scan-btn" onclick="startScanner('barcode')">📷</div>
+                                <!-- Inside Barcode Group -->
+                                <div class="scan-btn" onclick="startScanner('barcode')">
+                                    <i class="fa-solid fa-expand"></i>
+                                </div>
                             </div>
                             <div id="list-barcode" class="autocomplete-items"></div>
                         </div>
@@ -552,7 +836,7 @@
                     <!-- Place this below the Item Location form-group -->
                     <div id="qa-return-section" style="display: none; margin-bottom: 15px;">
                         <div class="form-group"
-                            style="display: flex; align-items: center; gap: 10px; background: #fff1f2; padding: 10px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 10px;">
+                            style="display: flex; align-items: center; gap: 10px; background: #0f0f0f ; padding: 10px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 10px;">
                             <input type="checkbox" id="is_return_qa"
                                 style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
                             <label for="is_return_qa"
@@ -611,9 +895,17 @@
                         <div class="input-wrapper">
                             <input type="text" id="item_location" placeholder="Scan or Search location..."
                                 autocomplete="off">
-                            <div class="scan-btn" onclick="startScanner('location')">📷</div>
+                            <!-- Inside Location Group -->
+                            <div class="scan-btn" onclick="startScanner('location')">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </div>
                         </div>
                         <div id="list-location" class="autocomplete-items"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Transaction Remark</label>
+                        <input type="text" id="remark_in_out" placeholder="Enter general remarks here..."
+                            autocomplete="off">
                     </div>
                     <!-- <div class="form-group">
                         <label>Item Location</label>
@@ -628,12 +920,19 @@
             <div class="card">
                 <div class="card-header">
                     <h3>History</h3>
-                    <div style="display:flex; gap:5px;">
+                    <div class="header-controls">
+                        <input type="text" id="history-search" placeholder="Quick Search..." onkeyup="filterHistory()"
+                            style="width: 180px; height: 36px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border); padding: 0 10px;">
                         <select id="f-month" onchange="fetchHistory()"
-                            style="width:100px; height:32px; font-size:11px;"></select>
-                        <button class="btn-save"
-                            style="margin:0; width:auto; padding:0 15px; height:32px; background:var(--success)"
-                            onclick="exportExcel()">Export</button>
+                            style="width: 130px; height: 40px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; cursor: pointer;">
+                        </select>
+
+                        <!-- Export Button -->
+                        <button class="btn-add"
+                            style="height: 32px; background: var(--success); padding: 0 15px; margin: 0;"
+                            onclick="exportExcel()">
+                            Export
+                        </button>
                     </div>
                 </div>
                 <div class="table-container">
@@ -700,6 +999,17 @@
                     $('#scm_remark').val('');
                 }
             });
+
+            // --- THEME INITIALIZATION ---
+            if (localStorage.getItem('theme') === 'cyber') {
+                $('body').addClass('cyber-theme');
+            }
+
+            window.toggleTheme = function () {
+                $('body').toggleClass('cyber-theme');
+                const isCyber = $('body').hasClass('cyber-theme');
+                localStorage.setItem('theme', isCyber ? 'cyber' : 'light');
+            };
         });
 
         function setupDates() {
@@ -721,32 +1031,66 @@
 
         function changeEntryType(type) {
             currentEntryType = type;
-            $('.t-btn').removeClass('active-in active-out');
+            $('.t-btn').removeClass('active-in active-out active-res');
+
             if (type === 'IN') {
                 $('#btn-in').addClass('active-in');
                 $('#customer-group').hide();
-                $('#customer_name').val('');
                 $('#qa-return-section').hide();
-                $('#is_return_qa').prop('checked', false).trigger('change');
-            }
-            else {
+            } else if (type === 'OUT') {
                 $('#btn-out').addClass('active-out');
                 $('#customer-group').show();
                 $('#qa-return-section').show();
-
+            } else if (type === 'RESERVATION') {
+                $('#btn-res').addClass('active-res');
+                $('#customer-group').show(); // Reservation needs a customer
+                $('#qa-return-section').hide();
             }
         }
 
         async function loadAllSuggestions() {
+            // 1. Load Inventory (Barcode, Product, etc.)
             const invRes = await _supabase.from('inventory').select('barcode, product_name, units_per_carton, customer, item_location');
             inventoryList = invRes.data || [];
             setupBarcodeAutocomplete();
-            const custRes = await _supabase.from('inventory').select('customer_name');
+
+            // 2. Load Customers (Changed 'customer_name' to 'customer')
+            const custRes = await _supabase.from('inventory').select('customer');
+
+            // We filter out duplicates locally so the list isn't huge
+            const rawCustomers = custRes.data || [];
+            const uniqueCustomers = [...new Set(rawCustomers.map(item => item.customer))].filter(Boolean);
+
+            // Convert back to object format for the autocomplete function
+            customersList = uniqueCustomers.map(c => ({ customer: c }));
+
+            // Updated to use the correct field name 'customer'
+            setupAutocomplete('#customer_name', '#list-customers', customersList, 'customer');
+
+            // 3. Setup Job No (Dynamic search)
+            setupJobNoAutocomplete();
+
+            // 4. Load Locations
+            const locRes = await _supabase.from('inventory_locations').select('rack_code');
+            locationsList = locRes.data || [];
+            setupLocationAutocomplete();
+        }
+
+        async function loadAllSuggestions() {
+            // 1. Load Inventory
+            const invRes = await _supabase.from('inventory').select('barcode, product_name, units_per_carton, customer, item_location');
+            inventoryList = invRes.data || [];
+            setupBarcodeAutocomplete();
+
+            // 2. Load Customers
+            const custRes = await _supabase.from('inventory').select('customer');
             customersList = custRes.data || [];
-            setupAutocomplete('#customer_name', '#list-customers', customersList, 'customer_name');
-            const jobRes = await _supabase.from('JobOrder').select('job_no');
-            jobsList = jobRes.data || [];
-            setupAutocomplete('#job_no', '#list-jobs', jobsList, 'job_no');
+            setupAutocomplete('#customer_name', '#list-customers', customersList, 'customer');
+
+            // 3. Setup Job No (Now dynamic, no pre-loading needed)
+            setupJobNoAutocomplete();
+
+            // 4. Load Locations
             const locRes = await _supabase.from('inventory_locations').select('rack_code');
             locationsList = locRes.data || [];
             setupLocationAutocomplete();
@@ -778,6 +1122,7 @@
                         item.on('mousedown', function () {
                             $('#barcode').val(m.barcode.toUpperCase());
                             $('#std_pack').val(m.units_per_carton || 0);
+                            $('#job_no').val('');
 
                             selectedProductName = m.product_name;
 
@@ -824,35 +1169,99 @@
 
         function setupLocationAutocomplete() {
             $('#item_location').on('focus input', function () {
-                let val = this.value.toUpperCase();
+                let val = this.value.toUpperCase().trim();
                 let container = $('#list-location').empty();
 
-                // Filter locations based on input
+                // 1. Filter existing matches from database
                 let matches = locationsList.filter(l => {
                     const rCode = l.rack_code ? String(l.rack_code).toUpperCase() : "";
                     return rCode.includes(val);
-                }).slice(0, 10);
+                }).slice(0, 8);
 
-                if (matches.length > 0) {
-                    matches.forEach(m => {
-                        let item = $(`
-                    <div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <strong>${m.rack_code.toUpperCase()}</strong>
-                    </div>
-                `);
+                // 2. Render matches
+                matches.forEach(m => {
+                    let item = $(`<div style="padding:5px; border-bottom:1px solid #f1f5f9; cursor:pointer;">
+                            <div style="font-weight:800; color:var(--primary);">${m.rack_code}</div>
+                         </div>`);
+                    item.on('mousedown', function () {
+                        $('#item_location').val(m.rack_code);
+                        container.hide();
+                    });
+                    container.append(item);
+                });
+
+                // 3. Show "Add New" if user typed a pattern like A-1-1 and it doesn't exist
+                const exactMatch = locationsList.find(l => l.rack_code === val);
+                if (val.length > 0 && !exactMatch) {
+                    let addNew = $(`<div class="add-new-option" style="padding:12px; cursor:pointer; background:#f0f9ff; border-top:1px solid #bae6fd;">
+                                <div style="font-weight:800; color:var(--primary);">+ CREATE NEW LOCATION</div>
+                                <div style="font-size:11px;">Save "${val}" to Database</div>
+                            </div>`);
+
+                    addNew.on('mousedown', function (e) {
+                        e.preventDefault();
+                        saveNewLocation(val);
+                    });
+                    container.append(addNew);
+                }
+
+                if (container.children().length > 0) container.show();
+                else container.hide();
+            });
+        }
+
+        function setupJobNoAutocomplete() {
+            $('#job_no').on('focus input', async function () {
+                const match = $('#barcode').val().match(/\d+/);
+                const barcodeVal = match ? match[0] : '';
+                const inputVal = $(this).val().toUpperCase();
+                const container = $('#list-jobs').empty();
+
+                if (!barcodeVal) {
+                    container.append('<div style="padding:10px; color:#ef4444; font-size:11px; font-weight:700;">⚠️ SELECT BARCODE FIRST</div>');
+                    container.show();
+                    return;
+                }
+
+                // 1. Fetch Job Orders matching the barcode
+                const { data: matches, error } = await _supabase
+                    .from('JobOrder')
+                    .select('JO_Number')
+                    .ilike('Part_Name', `%${barcodeVal}%`)
+                    .ilike('JO_Number', `%${inputVal}%`)
+                    .limit(100); // Fetch a larger set to ensure we find matches after filtering
+
+                if (error) {
+                    console.error("Fetch error:", error);
+                    return;
+                }
+
+                if (matches && matches.length > 0) {
+                    // 2. Filter for DISTINCT job numbers using a Set
+                    const distinctJobs = [...new Set(matches.map(m => m.JO_Number.toUpperCase()))];
+
+                    // 3. Take only the first 10 distinct results for the UI
+                    const finalDisplayList = distinctJobs.slice(0, 10);
+
+                    finalDisplayList.forEach(jobNo => {
+                        let item = $(`<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; font-weight:600; color:var(--text-dark);">
+                                ${jobNo}
+                             </div>`);
 
                         item.on('mousedown', function () {
-                            $('#item_location').val(m.rack_code.toUpperCase());
+                            $('#job_no').val(jobNo);
                             container.hide();
                         });
                         container.append(item);
                     });
                     container.show();
                 } else {
-                    container.hide();
+                    container.append('<div style="padding:10px; font-size:11px; color:var(--text-muted);">No matching Job Orders</div>');
+                    container.show();
                 }
             });
         }
+
 
         async function saveNewInventory() {
             const payload = {
@@ -861,7 +1270,14 @@
                 product_name: $('#inv_product').val().toUpperCase(),
                 uom: $('#inv_uom').val().toUpperCase(),
                 units_per_carton: parseInt($('#inv_units').val()) || 0,
-                in_qa_pass_pcs: 0, out_shipped_pcs: 0, qa_rejected_pcs: 0, reserved_pcs: 0, available_pcs: 0, ready_to_ship_pcs: 0, available_cartons: 0, loose_remainder: 0
+                in_qa_pass_pcs: 0,
+                out_shipped_pcs: 0,
+                qa_rejected_pcs: 0,
+                reserved_pcs: 0,
+                available_pcs: 0,
+                ready_to_ship_pcs: 0,
+                available_cartons: 0,
+                loose_remainder: 0
             };
             const { error } = await _supabase.from('inventory').insert([payload]);
             if (error) { alert("Error: " + error.message); }
@@ -874,72 +1290,76 @@
         }
 
         async function saveToStoreRecord() {
+            // 1. Get all input values
             const barcodeVal = $('#barcode').val().toUpperCase();
             const jobNo = $('#job_no').val().toUpperCase();
             const isReturnQA = $('#is_return_qa').is(':checked') ? 1 : 0;
             const custName = isReturnQA ? "RETURN TO QA" : $('#customer_name').val().toUpperCase();
             const scmRemark = $('#scm_remark').val().toUpperCase();
+            const dateVal = $('#r_date').val(); // Fix: Define dateVal
+            const locationVal = $('#item_location').val().toUpperCase(); // Get location
+            const remarkInOut = $('#remark_in_out').val().toUpperCase(); // Get the value
 
+            // Quantity defaults to 0 if not input
             const quantity = parseInt($('#qty').val()) || 0;
+
             const pic = $('#pic').val().toUpperCase();
             const ctnCount = parseInt($('#ctn_count').val()) || 0;
             const stdPack = parseInt($('#std_pack').val()) || 0;
             const looseQty = parseInt($('#loose_qty').val()) || 0;
-            const locationVal = $('#item_location').val().toUpperCase(); // Get location
 
+            // 2. NEW VALIDATION RULES:
+            // Required: Barcode, Staff Name (PIC), and Location Code
+            // Optional: Quantity and Job Order
+            if (!barcodeVal) { alert("Please scan or enter a Barcode."); return; }
+            if (!pic) { alert("Please enter Staff Name (PIC)."); return; }
+            if (!locationVal) { alert("MANDATORY: Please enter or scan an Item Location."); return; }
+            if (currentEntryType === 'OUT' && !custName) { alert("Please enter Customer Name for OUT transactions."); return; }
 
-            if (!barcodeVal || quantity <= 0 || !pic || (currentEntryType === 'OUT' && !custName)) {
-                alert("Please fill all required fields."); return;
-            }
             $('#overlay').css('display', 'flex');
 
-            // --- 1. FETCH ALL MATCHING ENTRIES (Barcode + Name) ---
-            // We use selectedProductName to ensure we only update the specific product type
-            let query = _supabase.from('inventory').select('*').eq('barcode', barcodeVal);
-            if (selectedProductName) {
-                query = query.eq('product_name', selectedProductName);
-            }
+            /// 3. Fetch matching inventory items
+            console.log("Searching for Barcode:", barcodeVal); // Debugging log
+
+            // Search ONLY by barcode to be safe
+            let query = _supabase.from('inventory').select('*').ilike('barcode', barcodeVal);
+
 
             const { data: matchedItems, error: fetchErr } = await query;
 
-            if (fetchErr || !matchedItems || matchedItems.length === 0) {
+            if (fetchErr) {
+                console.error("Supabase Error:", fetchErr);
                 $('#overlay').hide();
-                alert("Error: No matching product found in inventory database.");
+                alert("Database connection error: " + fetchErr.message);
                 return;
             }
 
-            // --- 2. VALIDATE STOCK FOR OUT TRANSACTIONS ---
-            if (currentEntryType === 'OUT') {
-                const available = parseInt(matchedItems[0].available_pcs) || 0;
-                if (quantity > available) {
-                    $('#overlay').hide();
-                    alert(`STOCK ERROR!\n\nYou are trying to move out ${quantity} PCS, but only ${available} PCS are available in stock.`);
-                    return;
-                }
+            if (!matchedItems || matchedItems.length === 0) {
+                console.log("No match found for:", barcodeVal);
+                $('#overlay').hide();
+                alert(`Error: Barcode "${barcodeVal}" not found in inventory table.\n\nPlease add it via '+ New Inventory' first.`);
+                return;
             }
 
-            // --- 3. SAVE TRANSACTION RECORD ---
-            let cartonInfo = "";
-            if (ctnCount > 0) {
-                cartonInfo = `${ctnCount} CTN X ${stdPack}`;
-                if (looseQty > 0) cartonInfo += ` + ${looseQty} PCS`;
-            } else {
-                cartonInfo = `${looseQty} PCS (LOOSE)`;
-            }
+            // 5. Save Transaction Record
+            let cartonInfo = (ctnCount > 0) ? `${ctnCount} CTN X ${stdPack}` : `${looseQty} PCS (LOOSE)`;
+            if (ctnCount > 0 && looseQty > 0) cartonInfo += ` + ${looseQty} PCS`;
 
             const payload = {
                 entry_type: currentEntryType,
                 part_name: barcodeVal,
                 quantity: quantity,
-                customer_name: currentEntryType === 'OUT' ? custName : null,
+                customer_name: (currentEntryType === 'OUT' || currentEntryType === 'RESERVATION') ? custName : null,
                 jo_number: jobNo,
                 pic_name: pic,
+                // Only set manu_date if IN, only set out_date if OUT. RESERVATION remains null.
                 manu_date: currentEntryType === 'IN' ? dateVal : null,
                 out_date: currentEntryType === 'OUT' ? dateVal : null,
                 carton_info: cartonInfo.toUpperCase(),
                 item_location: locationVal,
                 is_return_qa: isReturnQA,
-                remarkBD: scmRemark // Saved in remarkBD column
+                remarkBD: scmRemark,
+                remark_in_out: remarkInOut,
             };
 
             const { error: recError } = await _supabase.from('storeRecords').insert([payload]);
@@ -950,94 +1370,136 @@
                 return;
             }
 
-
-            // --- 4. UPDATE ALL MATCHING INVENTORY ROWS ---
+            // 6. Update Stock Levels
             const multiplier = (currentEntryType === 'IN') ? 1 : -1;
 
-            // Loop through each matched item and calculate its specific new balance
             const updatePromises = matchedItems.map(item => {
-                const std = parseInt(item.units_per_carton) || 1; // Standard pack (prevent div by 0)
+                const std = parseInt(item.units_per_carton) || 1;
                 const totalQtyChange = quantity * multiplier;
 
-                // Calculate the absolute NEW total pieces first
+                // Calculate New Balance (Synced for both columns)
                 const newTotalPcs = (item.available_pcs || 0) + totalQtyChange;
-
-                // Recalculate Cartons and Loose pieces based on the new total
-                // This ensures if loose reaches the limit, it rolls over to cartons automatically
                 const newAvailableCartons = Math.floor(newTotalPcs / std);
                 const newLooseRemainder = newTotalPcs % std;
 
-                let locArray = Array.isArray(item.location) ? item.location : (item.location ? [item.location] : []);
-                if (!locArray.includes(locationVal)) {
-                    locArray.push(locationVal);
-                }
-
-                const updatedData = {
-                    in_qa_pass_pcs: (item.in_qa_pass_pcs || 0) + (quantity * multiplier),
-                    available_pcs: (item.available_pcs || 0) + (quantity * multiplier),
-                    ready_to_ship_pcs: (item.ready_to_ship_pcs || 0) + (quantity * multiplier),
-                    available_cartons: newAvailableCartons, // Recalculated
+                // Prepare Update Payload
+                let updateData = {
+                    available_pcs: newTotalPcs,        // Primary Stock
+                    ready_to_ship_pcs: newTotalPcs,    // Synced Stock (Always same as available)
+                    available_cartons: newAvailableCartons,
                     loose_remainder: newLooseRemainder,
-                    item_location: locArray,
                     updated_at: new Date().toISOString()
                 };
 
-                return _supabase
-                    .from('inventory')
-                    .update(updatedData)
-                    .eq('id', item.id); // Update by unique ID to be safe
-            });
+                // --- LOGIC FOR SPECIFIC COUNTERS ---
+                if (currentEntryType === 'IN') {
+                    // Increment total received/passed QA
+                    updateData.in_qa_pass_pcs = (item.in_qa_pass_pcs || 0) + quantity;
+                } else {
+                    // Increment total shipped out
+                    updateData.out_shipped_pcs = (item.out_shipped_pcs || 0) + quantity;
+                }
+                // -----------------------------------
 
+                // Handle location updates
+                let locArray = Array.isArray(item.item_location) ? item.item_location : (item.item_location ? [item.item_location] : []);
+                if (locationVal && !locArray.includes(locationVal)) {
+                    locArray.push(locationVal);
+                }
+                updateData.item_location = locArray;
+
+                return _supabase.from('inventory').update(updateData).eq('id', item.id);
+            });
             await Promise.all(updatePromises);
 
             $('#overlay').hide();
-            // Toastify({ text: "SUCCESS: " + matchedItems.length + " RECORDS UPDATED", background: "var(--success)" }).showToast();
-            Toastify({ text: isReturnQA === 1 ? "RETURNED TO QA & RECORDED" : "TRANSACTION SUCCESSFUL", background: "var(--success)" }).showToast();
+            Toastify({ text: "TRANSACTION SAVED", background: "var(--success)" }).showToast();
 
             // Reset Form
-            $('#barcode, #qty, #std_pack, #ctn_count, #loose_qty, #job_no, #customer_name, #scm_remark').val('');
+            $('#barcode, #qty, #std_pack, #ctn_count, #loose_qty, #job_no, #customer_name, #scm_remark, #item_location, #remark_in_out').val('');
             $('#is_qa_return').prop('checked', false).trigger('change');
+            $('#r_date').val(new Date().toISOString().split('T')[0]);
             selectedProductName = "";
-            fetchHistory();
+            fetchHistory(); // Refresh history
         }
 
+        // 1. UPDATED FETCH FUNCTION
         async function fetchHistory() {
             const month = $('#f-month').val();
             const year = new Date().getFullYear();
-            const start = `${year}-${month.toString().padStart(2, '0')}-01`;
-            const end = new Date(year, month, 0).toISOString().split('T')[0];
+            const start = `${year}-${month.toString().padStart(2, '0')}-01T00:00:00Z`;
+            const lastDay = new Date(year, month, 0).getDate();
+            const end = `${year}-${month.toString().padStart(2, '0')}-${lastDay}T23:59:59Z`;
 
             const { data, error } = await _supabase.from('storeRecords')
                 .select('*')
-                .gte('manu_date', start)
-                .lte('manu_date', end)
+                .gte('created_at', start)
+                .lte('created_at', end)
                 .order('created_at', { ascending: false });
 
             if (error) return;
 
-            currentHistoryData = data; // Store data globally
-            let rows = '';
-
-            data.forEach((r, index) => {
-                // --- UPDATED LOGIC HERE ---
-                // Show whichever date is not null
-                const displayDate = r.manu_date || r.out_date || '-';
-
-                rows += `
-            <tr onclick="showDetails(${index})">
-                <td>${displayDate}</td> 
-                <td><span class="badge ${r.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${r.entry_type}</span></td>
-                <td style="color:var(--primary); font-weight:600">${r.jo_number || '-'}</td>
-                <td style="font-weight:700">${r.part_name}</td>
-                <td style="font-size:11px; color:var(--text-muted)">${r.carton_info || '-'}</td>
-                <td>${r.customer_name || '-'}</td>
-                <td style="font-weight:700">${r.quantity}</td>
-                <td>${r.pic_name}</td>
-            </tr>`;
-            });
-            $('#history-rows').html(rows || '<tr><td colspan="8" align="center">No data for this month.</td></tr>');
+            currentHistoryData = data; // Store the original data
+            renderHistoryTable(data);  // Call the render function
+            $('#history-search').val(''); // Clear search on month change
         }
 
+        // 2. NEW RENDERING FUNCTION
+        function renderHistoryTable(data) {
+            let rows = '';
+            if (!data || data.length === 0) {
+                $('#history-rows').html('<tr><td colspan="8" align="center">No data found.</td></tr>');
+                return;
+            }
+
+            data.forEach((r) => {
+                // Find the index in the ORIGINAL array to ensure details modal opens correctly
+                const originalIndex = currentHistoryData.findIndex(item => item.id === r.id);
+                const displayDate = r.entry_type === 'RESERVATION' ? 'PENDING' : (r.manu_date || r.out_date || '-');
+                const badgeClass = r.entry_type === 'IN' ? 'badge-in' : (r.entry_type === 'OUT' ? 'badge-out' : 'badge-res');
+
+                rows += `
+        <tr onclick="showDetails(${originalIndex})">
+            <td style="${r.entry_type === 'RESERVATION' ? 'color:#f59e0b; font-weight:bold;' : ''}">${displayDate}</td> 
+    <td><span class="badge ${badgeClass}">${r.entry_type}</span></td>
+
+            
+            <td style="color:var(--primary); font-weight:600">${r.jo_number || '-'}</td>
+            <td style="font-weight:700">${r.part_name}</td>
+            <td style="font-size:11px; color:var(--text-muted)">${r.carton_info || '-'}</td>
+            <td>${r.customer_name || '-'} ${r.remarkBD ? ' - ' + r.remarkBD : ''}</td>
+            <td style="font-weight:700">${r.quantity}</td>
+            <td>${r.pic_name}</td>
+        </tr>`;
+            });
+            $('#history-rows').html(rows);
+        }
+
+        // 3. NEW SEARCH/FILTER FUNCTION
+        function filterHistory() {
+            const term = $('#history-search').val().toUpperCase();
+
+            if (!term) {
+                renderHistoryTable(currentHistoryData);
+                return;
+            }
+
+            const filtered = currentHistoryData.filter(r => {
+                const jo = (r.jo_number || "").toUpperCase();
+                const barcode = (r.part_name || "").toUpperCase();
+                const customer = (r.customer_name || "").toUpperCase();
+                const remark = (r.remarkBD || "").toUpperCase();
+                const pic = (r.pic_name || "").toUpperCase();
+
+                return jo.includes(term) ||
+                    barcode.includes(term) ||
+                    customer.includes(term) ||
+                    remark.includes(term) ||
+                    pic.includes(term);
+            });
+
+            renderHistoryTable(filtered);
+        }
 
         async function exportExcel() {
             const month = $('#f-month').val();
@@ -1051,50 +1513,132 @@
             XLSX.writeFile(wb, `StoreReport_${month}_${year}.xlsx`);
         }
 
-        function showDetails(index) {
+        async function showDetails(index) {
             const item = currentHistoryData[index];
             const isQA = item.is_return_qa == '1' || item.is_return_qa === true;
+            const isReservation = item.entry_type === 'RESERVATION';
 
-            // Determine label and date value
-            const dateLabel = item.entry_type === 'IN' ? 'Manufacturing Date' : 'Shipment Date';
+            // 1. FETCH CURRENT STOCK FROM INVENTORY TABLE
+            let availableStock = 0;
+            try {
+                // We only filter by Barcode (part_name) to get the true system balance
+                // regardless of who we are shipping it to.
+                const { data: invData, error: invErr } = await _supabase
+                    .from('inventory')
+                    .select('available_pcs')
+                    .eq('barcode', item.part_name);
+
+                if (invData && invData.length > 0) {
+                    // Sum up in case the same barcode exists under multiple owners
+                    availableStock = invData.reduce((sum, entry) => sum + (entry.available_pcs || 0), 0);
+                }
+            } catch (err) {
+                console.error("Error fetching available stock:", err);
+            }
+
+            const dateLabel = isReservation ? 'Set Shipment Date' : (item.entry_type === 'IN' ? 'Manufacturing Date' : 'Shipment Date');
             const dateValue = item.manu_date || item.out_date || 'N/A';
 
-            $('#det-title').html(`Record #${item.id} <span class="badge ${item.entry_type === 'IN' ? 'badge-in' : 'badge-out'}">${item.entry_type}</span>`);
+            // If Reservation, show a date input. If OUT/IN, show plain text.
+            let dateDisplayHtml = '';
+            if (isReservation) {
+                dateDisplayHtml = `<input type="date" id="edit-out-date" class="edit-input" style="border: 2px solid #f59e0b">`;
+            } else {
+                dateDisplayHtml = `<div class="detail-value">${item.manu_date || item.out_date || 'N/A'}</div>`;
+            }
+
+            $('#det-title').html(`Edit Record #${item.id} <span class="badge ${isReservation ? 'badge-res' : (item.entry_type === 'IN' ? 'badge-in' : 'badge-out')}">${item.entry_type}</span>`);
 
             let html = `
-        <div class="detail-item"><span class="detail-label">${dateLabel}</span><div class="detail-value">${dateValue}</div></div>
-        <div class="detail-item"><span class="detail-label">Created At</span><div class="detail-value">${new Date(item.created_at).toLocaleString()}</div></div>
-        <div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Part Name / Barcode</span><div class="detail-value">${item.part_name}</div></div>
-        <div class="detail-item"><span class="detail-label">Quantity</span><div class="detail-value">${item.quantity} PCS</div></div>
-        <div class="detail-item"><span class="detail-label">Job Order</span><div class="detail-value">${item.jo_number || 'N/A'}</div></div>
-        <div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Breakdown</span><div class="detail-value">${item.carton_info}</div></div>
-        <div class="detail-item"><span class="detail-label">Staff (PIC)</span><div class="detail-value">${item.pic_name}</div></div>
-        <div class="detail-item"><span class="detail-label">Location</span><div class="detail-value">${item.item_location || 'N/A'}</div></div>
+        <div class="detail-item" style="grid-column: span 2; background: #f0fdf4 !important; border: 3px solid #15803d !important; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align:center;">
+             <span style="color: #15803d; font-weight: 900; font-size: 14px; text-transform: uppercase;">Current System Stock Balance</span>
+             <div style="font-size: 32px; font-weight: 900; color: #15803d; margin-top: 5px;">
+                ${availableStock.toLocaleString()} <small style="font-size: 14px;">PCS</small>
+             </div>
+        </div>
+
+        <div class="detail-item" style="grid-column: span 2;">
+            <span class="detail-label" style="${isReservation ? 'color:#f59e0b; font-weight:bold;' : ''}">${dateLabel}</span>
+            ${dateDisplayHtml}
+        </div>
+        
+        <div class="detail-item" style="grid-column: span 2;">
+            <span class="detail-label">Part Name / Barcode</span>
+            <div class="detail-value" style="font-size: 18px; font-weight: 800;">${item.part_name}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Transaction Qty</span>
+            <div class="detail-value" style="font-size: 18px; font-weight: 800; color: ${item.entry_type === 'IN' ? '#16a34a' : '#dc2626'}">
+                ${item.entry_type === 'IN' ? '+' : '-'}${item.quantity.toLocaleString()} PCS
+            </div>
+        </div>
+
+        <div class="detail-item">
+            <span class="detail-label">Job Order</span>
+            <input type="text" id="edit-jo" class="edit-input" value="${item.jo_number || ''}">
+        </div>
+
+        <div class="detail-item" style="grid-column: span 2;">
+            <span class="detail-label">Breakdown</span>
+            <div class="detail-value">${item.carton_info}</div>
+        </div>
+
+        <div class="detail-item">
+            <span class="detail-label">Staff (PIC)</span>
+            <div class="detail-value">${item.pic_name}</div>
+        </div>
+
+        <div class="detail-item">
+            <span class="detail-label">Location</span>
+            <input type="text" id="edit-location" class="edit-input" value="${item.item_location || ''}">
+        </div>
+
+        <div class="detail-item" style="grid-column: span 2;">
+            <span class="detail-label">Transaction Remark</span>
+            <input type="text" id="edit-remark-io" class="edit-input" value="${item.remark_in_out || ''}">
+        </div>
     `;
 
-            // Only show Customer/QA details for OUT or specific scenarios
             if (item.entry_type === 'OUT') {
-                html += `<div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Recipient / Customer</span><div class="detail-value" style="color:${isQA ? 'var(--danger)' : 'inherit'}">${item.customer_name || 'N/A'}</div></div>`;
+                html += `
+            <div class="detail-item" style="grid-column: span 2;">
+                <span class="detail-label">Recipient / Customer</span>
+                <input type="text" id="edit-customer" class="edit-input" 
+                style="color:${isQA ? 'var(--danger)' : 'inherit'}; font-weight: bold;" 
+                value="${item.customer_name || ''}">
+            </div>
+        `;
             }
 
             if (isQA) {
                 html += `
-            <div class="detail-item" style="grid-column: span 2; background: #fff1f2; padding: 10px; border-radius: 5px;">
+            <div class="detail-item" style="grid-column: span 2; background: #fff1f2; padding: 10px; border-radius: 5px; border: 1px solid #fecdd3;">
                 <span class="detail-label" style="color:var(--danger)">QA Return Status</span>
-                <div class="detail-value">YES (SCM ISSUE)</div>
+                <div class="detail-value" style="color:var(--danger); font-weight: bold;">YES (SCM ISSUE)</div>
             </div>
-            <div class="detail-item" style="grid-column: span 2; border-left: 3px solid var(--danger); padding-left: 10px;">
+            <div class="detail-item" style="grid-column: span 2;">
                 <span class="detail-label">SCM Remark (to BD)</span>
-                <div class="detail-value">${item.remarkBD || 'No remark provided'}</div>
+                <input type="text" id="edit-remark-bd" class="edit-input" value="${item.remarkBD || ''}">
             </div>
         `;
             } else if (item.remarkBD) {
-                // If it has a remark but isn't a QA return
-                html += `<div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Remark</span><div class="detail-value">${item.remarkBD}</div></div>`;
+                html += `<div class="detail-item" style="grid-column: span 2;"><span class="detail-label">Other Remark</span><input type="text" id="edit-remark-bd" class="edit-input" value="${item.remarkBD}"></div>`;
             }
 
-            $('#details-content').html(html);
+            const footerHtml = `
+        <div style="display:flex; gap:15px; margin-top:25px;">
+            <button class="btn-save" style="background: #64748b; flex:1; height: 50px;" onclick="closeDetailsModal()">CLOSE</button>
+            <button class="btn-save" style="background: #0078d4; flex:2; height: 50px; font-weight: 900;" onclick="updateHistoryRecord(${item.id})">UPDATE RECORD</button>
+        </div>
+    `;
+
+            $('#details-content').html(html).append(footerHtml);
             $('#details-modal-overlay').css('display', 'flex');
+
+            // Re-setup autocomplete
+            setTimeout(() => {
+                setupAutocomplete('#edit-customer', '#list-customers', customersList, 'customer');
+            }, 100);
         }
 
         function closeDetailsModal() {
@@ -1105,11 +1649,16 @@
         let currentScanTarget = ''; // 'barcode' or 'location'
 
         async function startScanner(target) {
+            3.
             currentScanTarget = target;
             $('#scanner-modal').css('display', 'flex');
 
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+            const config = {
+                fps: 15,
+                qrbox: { width: 300, height: 150 }, // Wider for barcodes
+                aspectRatio: 1.0
+            };
 
             try {
                 await html5QrCode.start(
@@ -1144,17 +1693,18 @@
         }
 
         function processBarcodeMatch(scannedBarcode) {
-            // Look for match in the inventoryList (already loaded via loadAllSuggestions)
+            // Look for match in the inventoryList
             const match = inventoryList.find(p => String(p.barcode).toUpperCase() === scannedBarcode);
 
             if (match) {
                 $('#barcode').val(match.barcode.toUpperCase());
+                $('#job_no').val(''); // Clear old Job No
                 $('#std_pack').val(match.units_per_carton || 0);
                 selectedProductName = match.product_name;
 
-                // Set location if exists
-                if (match.location) {
-                    const locText = Array.isArray(match.location) ? match.location.join(', ') : match.location;
+                // FIX: Changed match.location to match.item_location
+                if (match.item_location) {
+                    const locText = Array.isArray(match.item_location) ? match.item_location.join(', ') : match.item_location;
                     $('#item_location').val(String(locText).toUpperCase());
                 }
 
@@ -1165,9 +1715,9 @@
                 calculateTotal();
                 Toastify({ text: "ITEM MATCHED: " + match.product_name, background: "var(--success)" }).showToast();
             } else {
-                // ERROR MODAL
-                alert(`❌ SCAN ERROR\n\nBarcode "${scannedBarcode}" not found in inventory database.\nPlease add the item first using 'New Inventory' button.`);
-                $('#barcode').val('');
+                // If no match found, we still put the barcode in the field so the user can see what they scanned
+                $('#barcode').val(scannedBarcode);
+                alert(`⚠️ NEW ITEM\n\nBarcode "${scannedBarcode}" is not in the system.\n\nPlease click '+ New Inventory' to register it.`);
             }
         }
 
@@ -1183,6 +1733,207 @@
                 $('#item_location').val('');
             }
         }
+
+        async function saveNewLocation(newRackCode) {
+            if (!newRackCode) return;
+
+            // Parsing logic: Split "A-1-1" into ["A", "1", "1"]
+            const parts = newRackCode.split('-');
+
+            // We expect 3 parts, but we handle cases where it might be different
+            const rack_name = parts[0] || newRackCode; // "A"
+            const rack_row = parts[1] || null;        // "1"
+            const rack_column = parts[2] || null;     // "1"
+
+            $('#overlay').css('display', 'flex');
+
+            const payload = {
+                rack_code: newRackCode.toUpperCase(),
+                rack_name: rack_name.toUpperCase(),
+                rack_row: rack_row,
+                rack_column: rack_column
+            };
+
+            const { data, error } = await _supabase
+                .from('inventory_locations')
+                .insert([payload])
+                .select();
+
+            $('#overlay').hide();
+
+            if (error) {
+                // Handle case where location might have been added by someone else simultaneously
+                if (error.code === '23505') { // Unique violation
+                    Toastify({ text: "Location already exists in database", background: "#f59e0b" }).showToast();
+                } else {
+                    alert("Error creating location: " + error.message);
+                    return;
+                }
+            } else {
+                Toastify({
+                    text: `LOCATION ${newRackCode} REGISTERED`,
+                    background: "var(--success)"
+                }).showToast();
+
+                // Add to the local list for autocomplete
+                locationsList.push(payload);
+            }
+
+            // Set value and close dropdown
+            $('#item_location').val(newRackCode.toUpperCase());
+            $('.autocomplete-items').hide();
+        }
+
+        async function updateHistoryRecord(id) {
+            // 1. Safely grab values. If a field doesn't exist in the modal, it returns null.
+            const joField = $('#edit-jo');
+            const locField = $('#edit-location');
+            const remarkIOField = $('#edit-remark-io');
+            const remarkBDField = $('#edit-remark-bd');
+            const custField = $('#edit-customer');
+            const item = currentHistoryData.find(r => r.id === id);
+            const isReservation = item.entry_type === 'RESERVATION';
+
+            const updatedJo = joField.length ? joField.val().toUpperCase() : null;
+            const updatedLoc = locField.length ? locField.val().toUpperCase() : null;
+            const updatedRemIO = remarkIOField.length ? remarkIOField.val().toUpperCase() : null;
+            const updatedRemBD = remarkBDField.length ? remarkBDField.val().toUpperCase() : null;
+            const updatedCust = custField.length ? custField.val().toUpperCase() : null;
+
+            $('#overlay').css('display', 'flex');
+
+            // 2. Build the payload only with fields that were actually in the modal
+            const payload = {};
+            if (updatedJo !== null) payload.jo_number = updatedJo;
+            if (updatedLoc !== null) payload.item_location = updatedLoc;
+            if (updatedRemIO !== null) payload.remark_in_out = updatedRemIO;
+            if (updatedCust !== null) payload.customer_name = updatedCust;
+            if (updatedRemBD !== null) payload.remarkBD = updatedRemBD;
+
+            console.log("Updating Record ID:", id, "with payload:", payload);
+
+            if (isReservation) {
+                const newOutDate = $('#edit-out-date').val();
+                if (!newOutDate) {
+                    $('#overlay').hide();
+                    alert("Please select a Shipment Date to complete this Reservation.");
+                    return;
+                }
+                payload.entry_type = 'OUT';
+                payload.out_date = newOutDate;
+                payload.remark_in_out = (updatedRemIO || "") + " (CONVERTED FROM RESERVATION)";
+            }
+
+            // 3. Send to Supabase
+            const { error } = await _supabase
+                .from('storeRecords')
+                .update(payload)
+                .eq('id', id);
+
+            $('#overlay').hide();
+
+            if (error) {
+                console.error("Supabase Update Error:", error);
+                alert("Update Error: " + error.message);
+            } else {
+                Toastify({
+                    text: "RECORD UPDATED SUCCESSFULLY",
+                    background: "var(--success)"
+                }).showToast();
+
+                closeDetailsModal();
+                fetchHistory(); // Refresh the table
+            }
+        }
+
+        async function openPackingListModal() {
+            $('#packing-modal-overlay').css('display', 'flex');
+            $('#packing-list-body').html('<tr><td colspan="4" style="text-align:center; padding:50px;">Loading Packing Lists...</td></tr>');
+
+            try {
+                const { data, error } = await _supabase
+                    .from('packing_list_records')
+                    .select('*')
+                    .order('doc_date', { ascending: false });
+
+                if (error) throw error;
+
+                let rows = '';
+                data.forEach(record => {
+                    let itemsArray = [];
+                    try {
+                        itemsArray = typeof record.items === 'string' ? JSON.parse(record.items) : record.items;
+                    } catch (e) { itemsArray = []; }
+
+                    // --- Column 3: Build Part Cards ---
+                    const itemCardsHtml = itemsArray
+                        .filter(i => i.type === 'item')
+                        .map(i => {
+                            // Fix for NaN: Strip commas and convert to number
+                            const rawQty = String(i.qty || '0').replace(/,/g, '');
+                            const qtyNum = parseFloat(rawQty);
+                            const displayQty = isNaN(qtyNum) ? (i.qty || '0') : qtyNum.toLocaleString();
+
+                            return `
+            <div class="item-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size: 13px; font-weight: 800; color: var(--primary);">
+                        ${displayQty} <small style="color:var(--slate-400)">PCS</small>
+                    </span>
+                </div>
+                <div style="font-size: 11px; font-weight: 600; color: var(--slate-800); margin-top: 2px;">
+                    ${i.part}
+                </div>
+            </div>
+        `;
+                        }).join('');
+
+                    // --- Column 4: Build Structured Carton Badges ---
+                    // We look at every item and every detail inside those items
+                    const ctnBadgesHtml = itemsArray
+                        .filter(i => i.type === 'item')
+                        .flatMap(i => i.details || [])
+                        .map(d => d.ctn ? `<span class="ctn-badge"><i class="fas fa-box" style="margin-right:5px; opacity:0.5"></i>${d.ctn.trim()}</span>` : '')
+                        .join('');
+
+                    rows += `
+    <tr class="record-row shadow-sm">
+        <!-- Date Column Fixed: white-space: nowrap keeps it on one line -->
+        <td style="padding: 16px; border-radius: 12px 0 0 12px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; border-left: 1px solid #eee; white-space: nowrap; width: 110px;">
+            <div class="date-text" style="letter-spacing: -0.5px;">${record.doc_date}</div>
+        </td>
+
+        <!-- Customer Column -->
+        <td style="padding: 16px; border-top: 1px solid #eee; border-bottom: 1px solid #eee; min-width: 200px;">
+            <div style="font-weight: 800; color: var(--primary); text-transform: uppercase; font-size: 13px; line-height: 1.2;">
+                ${record.customer_name}
+            </div>
+        </td>
+
+        <!-- Items Column -->
+        <td style="padding: 16px; border-top: 1px solid #eee; border-bottom: 1px solid #eee;">
+            ${itemCardsHtml || '<span style="color:var(--slate-400); font-size:11px;">No items</span>'}
+        </td>
+
+        <!-- Carton Column -->
+        <td style="padding: 16px; border-radius: 0 12px 12px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; border-right: 1px solid #eee;">
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; max-width: 300px;">
+                ${ctnBadgesHtml || '<span style="color:var(--slate-400); font-size:11px;">-</span>'}
+            </div>
+        </td>
+    </tr>
+`;
+
+                });
+
+                $('#packing-list-body').html(rows || '<tr><td colspan="4" style="text-align:center; padding: 40px;">No records found.</td></tr>');
+
+            } catch (err) {
+                console.error("Error fetching packing lists:", err);
+                $('#packing-list-body').html(`<tr><td colspan="4" style="text-align:center; color:red;">Error: ${err.message}</td></tr>`);
+            }
+        }
+
     </script>
 </body>
 

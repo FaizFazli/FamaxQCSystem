@@ -290,6 +290,24 @@
             color: #6b21a8;
         }
 
+        .badge-RESOURCE {
+            background: #cadd5c;
+            color: #5e6e03;
+        }
+
+        .badge-BUSINESSDEV {
+            background: #ecfeff;
+            /* Cyan-ish */
+            color: #0891b2;
+        }
+
+        
+        .badge-QUALITY {
+            background: #df97b2;
+            /* Cyan-ish */
+            color: #8a042c;
+        }
+
         /* Small Buttons */
         .btn-sm {
             padding: 6px 12px;
@@ -472,9 +490,12 @@
                     <select id="new-access" required>
                         <option value="" disabled selected>Select Role...</option>
                         <option value="ALL">ALL (Admin)</option>
+                        <option value="QUALITY">QUALITY</option>
                         <option value="ENGINEER">ENGINEER</option>
                         <option value="PRODUCTION">PRODUCTION</option>
                         <option value="REGISTER">REGISTER</option>
+                        <option value="RESOURCE">RESOURCE</option>
+                        <option value="BUSINESSDEV">BUSINESSDEV</option>
                     </select>
                 </div>
 
@@ -511,9 +532,12 @@
                     <label>Access Level</label>
                     <select id="edit-access" required>
                         <option value="ALL">ALL</option>
+                        <option value="QUALITY">QUALITY</option>
                         <option value="ENGINEER">ENGINEER</option>
                         <option value="PRODUCTION">PRODUCTION</option>
                         <option value="REGISTER">REGISTER</option>
+                        <option value="RESOURCE">RESOURCE</option>
+                        <option value="BUSINESSDEV">BUSINESSDEV</option>
                     </select>
                 </div>
                 <div class="modal-footer">
@@ -590,15 +614,18 @@
 
                 data.forEach(user => {
                     const tr = document.createElement('tr');
+                    // This forces the class to be uppercase and removes any spaces
+                    const safeRole = (user.Access || "").toUpperCase().replace(/\s/g, '');
+
                     tr.innerHTML = `
-                        <td style="font-weight:500;">${user.Name}</td>
-                        <td style="color:var(--text-muted);">${user.UserId}</td>
-                        <td><span class="badge badge-${user.Access}">${user.Access}</span></td>
-                        <td style="text-align:right;">
-                            <button class="btn-sm btn-edit" onclick='openEditModal(${JSON.stringify(user)})'>Edit</button>
-                            <button class="btn-sm btn-delete" onclick="deleteUser('${user.UserId}')">Delete</button>
-                        </td>
-                    `;
+                                    <td style="font-weight:500;">${user.Name}</td>
+                                    <td style="color:var(--text-muted);">${user.UserId}</td>
+                                    <td><span class="badge badge-${safeRole}">${user.Access}</span></td>
+                                    <td style="text-align:right;">
+                                    <button class="btn-sm btn-edit" onclick='openEditModal(${JSON.stringify(user)})'>Edit</button>
+                                    <button class="btn-sm btn-delete" onclick="deleteUser('${user.UserId}')">Delete</button>
+                                    </td>
+                                    `;
                     tbody.appendChild(tr);
                 });
             } catch (err) { console.error(err); }

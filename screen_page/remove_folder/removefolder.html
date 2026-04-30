@@ -1,540 +1,649 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>Remove Folder</title>
-    <!-- Add /FamaxQCSystem to the beginning of the path -->
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- JQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<head>
+  <meta charset="utf-8" />
+  <title>Remove Folder</title>
+  <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Select2 CSS & JS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 
-    <!-- Axios & Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- JQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <style>
-      :root {
-        --primary: #0078d4;
-        --primary-dark: #005a9e;
-        --bg-body: #f3f4f6;
-        --bg-card: #ffffff;
-        --text-main: #1f2937;
-        --text-muted: #6b7280;
-        --border-color: #e5e7eb;
-        --danger: #ef4444;
-        --danger-hover: #dc2626;
-        --focus-ring: rgba(0, 120, 212, 0.25);
-        --input-height: 46px;
-        --radius: 8px;
-      }
+  <!-- Select2 CSS & JS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-      * { box-sizing: border-box; }
+  <!-- Axios & Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: var(--bg-body);
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-        justify-content: top;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        padding: 20px;
-      }
+  <style>
+    :root {
+      --primary: #0078d4;
+      --primary-soft: rgba(0, 120, 212, 0.1);
+      --bg-body: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.6);
+      --danger: #ef4444;
+      --danger-hover: #be123c;
+      --radius: 12px;
+    }
 
-      /* Navigation Link */
-      .nav-top {
-        width: 100%;
-        max-width: 550px;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: flex-start;
-      }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-      .back-link {
-        color: var(--text-muted);
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: color 0.2s;
-        cursor: pointer;
-      }
-      .back-link:hover { color: var(--primary); }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+        radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+        radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
 
-      /* Main Card Container */
-      .action-card {
-        background: var(--bg-card);
-        width: 100%;
-        max-width: 550px;
-        border-radius: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-      }
+    .nav-top {
+      width: 100%;
+      max-width: 550px;
+      margin-bottom: 25px;
+    }
 
-      /* Header */
-      .card-header {
-        background: var(--primary);
-        padding: 24px 30px;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.3s;
+      cursor: pointer;
+    }
 
-      .card-header h1 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+    .back-link:hover {
+      color: var(--primary);
+      transform: translateX(-3px);
+    }
 
-      .user-badge {
-        font-size: 12px;
-        background: rgba(255,255,255,0.2);
-        padding: 4px 10px;
-        border-radius: 20px;
-      }
+    /* Glass Card Container */
+    .action-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      width: 100%;
+      max-width: 550px;
+      border-radius: 24px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+      overflow: hidden;
+    }
 
-      /* Card Body */
-      .card-body { padding: 30px; }
+    /* Header */
+    .card-header {
+      background: #1e293b;
+      padding: 25px 35px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-      fieldset { border: none; padding: 0; margin: 0 0 20px 0; }
-      label { display: block; font-size: 14px; font-weight: 500; color: var(--text-main); margin-bottom: 8px; }
+    .card-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-      /* --- Select2 Overrides (Matching Generate Page) --- */
-      .select2-container { width: 100% !important; }
-      .select2-container .select2-selection--single {
-        height: var(--input-height) !important;
-        border: 1px solid var(--border-color) !important;
-        border-radius: var(--radius) !important;
-        display: flex !important;
-        align-items: center !important;
-      }
-      .select2-container--default .select2-selection--single .select2-selection__rendered {
-        padding-left: 12px !important;
-        color: var(--text-main) !important;
-        font-size: 14px !important;
-      }
-      .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 100% !important; top: 0 !important; right: 8px !important;
-      }
-      .select2-container--default.select2-container--focus .select2-selection--single,
-      .select2-container--default.select2-container--open .select2-selection--single {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 4px var(--focus-ring) !important;
-      }
-      .select2-dropdown {
-        border-color: var(--border-color) !important;
-        border-radius: var(--radius) !important;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-        margin-top: 4px;
-      }
-      .select2-results__option { padding: 10px 12px !important; font-size: 14px !important; }
-      .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: var(--primary) !important;
-      }
+    .user-badge {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-      /* --- Details Box (The content) --- */
-      .details-box {
-        background-color: #f9fafb;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        padding: 15px;
-        margin-bottom: 20px;
-        font-size: 13px;
-      }
+    /* Card Body */
+    .card-body {
+      padding: 35px;
+    }
 
-      .detail-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .detail-row:last-child { border-bottom: none; }
-      .detail-label { color: var(--text-muted); font-weight: 500; }
-      .detail-value { color: var(--text-main); font-weight: 600; text-align: right;}
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0 0 25px 0;
+    }
 
-      .process-tag {
-        display: inline-block;
-        background: #e0f2fe;
-        color: #0369a1;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-      }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+      margin-left: 4px;
+    }
 
-      /* --- Action Buttons --- */
-      .actions { margin-top: 24px; }
+    /* Select2 Custom Overrides */
+    .select2-container {
+      width: 100% !important;
+    }
 
-      button#btnDelete {
-        width: 100%;
-        height: 48px;
-        background-color: var(--danger);
-        color: white;
-        border: none;
-        border-radius: var(--radius);
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background-color 0.2s, transform 0.1s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
-      button#btnDelete:hover:not([disabled]) { background-color: var(--danger-hover); }
-      button#btnDelete:active:not([disabled]) { transform: translateY(1px); }
-      button#btnDelete:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+    .select2-container .select2-selection--single {
+      height: 48px !important;
+      background-color: white !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
 
-      /* --- Messages --- */
-      .error-message {
-        color: var(--danger);
-        font-size: 13px;
-        margin-top: 10px;
-        text-align: center;
-      }
-      .loader {
-        text-align: center;
-        color: var(--primary);
-        font-size: 14px;
-        padding: 10px;
-      }
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+      padding-left: 15px !important;
+      color: var(--text-main) !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+    }
 
-      /* --- Modal --- */
-      .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0; top: 0;
-        width: 100%; height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        backdrop-filter: blur(2px);
-        align-items: center;
-        justify-content: center;
-      }
-      .modal-content {
-        background-color: white;
-        padding: 25px;
-        border-radius: 12px;
-        width: 90%;
-        max-width: 400px;
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-      }
-      .modal-title { font-size: 18px; font-weight: 700; color: var(--danger); margin-bottom: 15px; }
-      .warning-text { background: #fef2f2; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; }
-      .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-      .btn-cancel {
-        background: white; border: 1px solid var(--border-color);
-        padding: 8px 16px; border-radius: 6px; cursor: pointer;
-      }
-      .btn-confirm {
-        background: var(--danger); color: white; border: none;
-        padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 46px !important;
+      right: 10px !important;
+    }
 
-    <!-- Back Navigation -->
-    <div class="nav-top">
-      <a onclick="goBack()" class="back-link">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        Back to Dashboard
-      </a>
+    .select2-container--default.select2-container--focus .select2-selection--single {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 4px var(--primary-soft) !important;
+    }
+
+    /* Details Box */
+    .details-box {
+      background-color: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .detail-value {
+      color: var(--text-main);
+      font-weight: 700;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .process-tag {
+      display: inline-block;
+      background: var(--primary-soft);
+      color: var(--primary);
+      padding: 2px 10px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
+
+    /* Action Button */
+    .actions {
+      margin-top: 25px;
+    }
+
+    button#btnDelete {
+      width: 100%;
+      height: 54px;
+      background-color: #1e293b;
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    button#btnDelete:hover:not([disabled]) {
+      background-color: var(--danger);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px rgba(239, 68, 68, 0.2);
+    }
+
+    button#btnDelete:disabled {
+      background-color: #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Messages */
+    .error-message {
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .loader {
+      text-align: center;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 15px;
+    }
+
+    /* Confirmation Modal - Modernized */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background-color: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 35px;
+      border-radius: 24px;
+      width: 90%;
+      max-width: 420px;
+      border: 1px solid white;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--danger);
+      margin-bottom: 15px;
+      letter-spacing: -0.5px;
+    }
+
+    .warning-text {
+      background: #ffe4e6;
+      color: #be123c;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 13px;
+      margin-bottom: 25px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-cancel {
+      flex: 1;
+      background: #f1f5f9;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: 0.2s;
+    }
+
+    .btn-confirm {
+      flex: 2;
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: 0.3s;
+    }
+
+    .btn-confirm:hover {
+      background: var(--danger-hover);
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Back Navigation -->
+  <div class="nav-top">
+    <a onclick="goBack()" class="back-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Main Card -->
+  <div class="action-card">
+    <div class="card-header">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+        Remove Folder
+      </h1>
+      <div class="user-badge" id="userName">Admin</div>
     </div>
 
-    <!-- Main Card -->
-    <div class="action-card">
-      <div class="card-header">
-        <h1>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Remove Folder
-        </h1>
-        <div class="user-badge" id="userName">Admin</div>
+    <div class="card-body">
+
+      <!-- Part Selection -->
+      <fieldset>
+        <label for="part-select">Component Selection</label>
+        <select id="part-select" class="searchable-dropdown">
+          <option value="">Search part identity...</option>
+        </select>
+      </fieldset>
+
+      <!-- Loading Spinner -->
+      <div id="loading" class="loader" style="display:none;">
+        Syncing database records...
       </div>
 
-      <div class="card-body">
-        
-        <!-- Part Selection -->
-        <fieldset>
-          <label for="part-select">Select Part to Delete</label>
-          <select id="part-select" class="searchable-dropdown">
-            <option value="">Search and select part...</option>
-          </select>
-        </fieldset>
-
-        <!-- Loading Spinner -->
-        <div id="loading" class="loader" style="display:none;">
-            Fetching part details...
+      <!-- Details Preview -->
+      <div id="detailsBox" class="details-box" style="display:none;">
+        <div class="detail-row">
+          <span class="detail-label">Part Number</span>
+          <span class="detail-value" id="d-number">-</span>
         </div>
-
-        <!-- Details Preview -->
-        <div id="detailsBox" class="details-box" style="display:none;">
-            <div class="detail-row">
-                <span class="detail-label">Part Number</span>
-                <span class="detail-value" id="d-number">-</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Material</span>
-                <span class="detail-value" id="d-material">-</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Process</span>
-                <span class="detail-value" id="d-process">-</span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Revision</span>
-                <span class="detail-value" id="d-rev">-</span>
-            </div>
+        <div class="detail-row">
+          <span class="detail-label">Material Info</span>
+          <span class="detail-value" id="d-material">-</span>
         </div>
-
-        <!-- Action Button -->
-        <div class="actions">
-          <button type="button" id="btnDelete" disabled onclick="showModal()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            Delete Part & Folder
-          </button>
+        <div class="detail-row">
+          <span class="detail-label">Active Processes</span>
+          <span class="detail-value" id="d-process">-</span>
         </div>
-        
-        <div id="errorMessage" class="error-message" style="display:none;"></div>
+        <div class="detail-row">
+          <span class="detail-label">Master Revision</span>
+          <span class="detail-value" id="d-rev">-</span>
+        </div>
+      </div>
 
+      <!-- Action Button -->
+      <div class="actions">
+        <button type="button" id="btnDelete" disabled onclick="showModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+          </svg>
+          Permanent Delete Sequence
+        </button>
+      </div>
+
+      <div id="errorMessage" class="error-message" style="display:none;"></div>
+
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Confirm Deletion</div>
+      <p style="font-size: 14px; color: var(--text-main); margin-bottom: 15px;">Are you sure you want to delete <strong
+          id="modalPartName" style="color: var(--primary);">this part</strong>?</p>
+      <div class="warning-text">
+        This action is irreversible. It will wipe the part record from the cloud database and destroy all physical
+        folders/files on the production server.
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Abort</button>
+        <button class="btn-confirm" onclick="confirmDelete()">Execute Delete</button>
       </div>
     </div>
+  </div>
 
-    <!-- Confirmation Modal -->
-    <div id="confirmModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-title">Confirm Deletion</div>
-            <p>Are you sure you want to delete <strong id="modalPartName">this part</strong>?</p>
-            <div class="warning-text">
-                <strong>Warning:</strong> This will permanently delete the part record from the database AND remove the associated folder/files from the server.
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="btn-confirm" onclick="confirmDelete()">Yes, Delete It</button>
-            </div>
-        </div>
-    </div>
+  <!-- Script Block - No changes to logic -->
+  <script>
+    // --- Config ---
+    const SUPABASE_URL = 'http://192.168.0.5:8000';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+    const API_URL = 'http://192.168.0.5/FamaxQCSystem';
 
-    <!-- Script -->
-    <script>
-      // --- Config ---
-      const SUPABASE_URL = 'http://192.168.0.5:8000';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
-      const API_URL = 'http://192.168.0.5/FamaxQCSystem';
+    const supabaseClient = axios.create({
+      baseURL: SUPABASE_URL,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      }
+    });
 
-      const supabaseClient = axios.create({
-          baseURL: SUPABASE_URL,
-          headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-          }
+    let selectedPartId = null;
+    let selectedPartName = null;
+
+    $(document).ready(function () {
+      checkLogin();
+
+      $('#part-select').on("select2:open", function () {
+        setTimeout(function () {
+          const search = document.querySelector(
+            ".select2-container--open .select2-search__field"
+          );
+          if (search) search.focus();
+        }, 0);
+      });
+      $('#part-select').select2({
+        placeholder: 'Search and select part...',
+        allowClear: true,
+        width: '100%'
       });
 
-      // --- State ---
-      let selectedPartId = null;
-      let selectedPartName = null;
+      loadParts();
 
-      // --- Init ---
-      $(document).ready(function() {
-          checkLogin();
-          
-          // Init Select2
-
-          $('#part-select').on("select2:open", function () {
-                // Slight delay improves reliability across browsers
-                setTimeout(function () {
-                    const search = document.querySelector(
-                        ".select2-container--open .select2-search__field"
-                    );
-                    if (search) search.focus();
-                }, 0);
-            });
-          $('#part-select').select2({
-              placeholder: 'Search and select part...',
-              allowClear: true,
-              width: '100%'
-          });
-
-          // Load Data
-          loadParts();
-
-          // Handle Selection
-          $('#part-select').on('select2:select', function (e) {
-              const partId = e.params.data.id;
-              if(partId) fetchPartDetails(partId);
-          });
-
-          // Handle Clear
-          $('#part-select').on('select2:clear', function (e) {
-              resetUI();
-          });
+      $('#part-select').on('select2:select', function (e) {
+        const partId = e.params.data.id;
+        if (partId) fetchPartDetails(partId);
       });
 
-      // --- Navigation ---
-      function goBack() { window.location.href = '../../AdminLogin.html'; }
+      $('#part-select').on('select2:clear', function (e) {
+        resetUI();
+      });
+    });
 
-      async function checkLogin() {
-          const userId = sessionStorage.getItem('userId');
-          if (!userId) { window.location.href = '../../index.html'; return; }
-          $('#userName').text(userId);
+    function goBack() { window.location.href = '../../AdminLogin.html'; }
 
-          // Check Access
-          try {
-              const { data } = await supabaseClient.get('/rest/v1/AdminCredential', {
-                  params: { select: 'Access', UserId: `eq.${userId}` }
-              });
-              if(data && data.length > 0) {
-                  const access = data[0].Access;
-                  if(access !== 'ENGINEER' && access !== 'ALL') {
-                      alert('Access Denied');
-                      goBack();
-                  }
-              }
-          } catch(e) { console.error(e); }
-      }
+    async function checkLogin() {
+      const userId = sessionStorage.getItem('userId');
+      if (!userId) { window.location.href = '../../index.html'; return; }
+      $('#userName').text(userId);
 
-      // --- Data Logic ---
-      async function loadParts() {
-          try {
-              const { data } = await supabaseClient.get('/rest/v1/Parts', {
-                  params: { select: 'id,Part_Name', order: 'Part_Name.asc' }
-              });
-              
-              if(data) {
-                  const $select = $('#part-select');
-                  $select.empty().append(new Option('', '')); // Placeholder
-                  data.forEach(p => {
-                      const option = new Option(p.Part_Name, p.id, false, false);
-                      $(option).data('partname', p.Part_Name); // Store name in data attribute
-                      $select.append(option);
-                  });
-                  $select.trigger('change');
-              }
-          } catch (err) {
-              showError('Failed to load parts list.');
+      try {
+        const { data } = await supabaseClient.get('/rest/v1/AdminCredential', {
+          params: { select: 'Access', UserId: `eq.${userId}` }
+        });
+        if (data && data.length > 0) {
+          const access = data[0].Access;
+          if (access !== 'ENGINEER' && access !== 'ALL') {
+            alert('Access Denied');
+            goBack();
           }
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadParts() {
+      try {
+        const { data } = await supabaseClient.get('/rest/v1/Parts', {
+          params: { select: 'id,Part_Name', order: 'Part_Name.asc' }
+        });
+
+        if (data) {
+          const $select = $('#part-select');
+          $select.empty().append(new Option('', ''));
+          data.forEach(p => {
+            const option = new Option(p.Part_Name, p.id, false, false);
+            $(option).data('partname', p.Part_Name);
+            $select.append(option);
+          });
+          $select.trigger('change');
+        }
+      } catch (err) {
+        showError('Failed to load parts list.');
       }
+    }
 
-      async function fetchPartDetails(id) {
-          $('#loading').show();
-          $('#detailsBox').hide();
-          $('#btnDelete').prop('disabled', true);
-          $('#errorMessage').hide();
+    async function fetchPartDetails(id) {
+      $('#loading').show();
+      $('#detailsBox').hide();
+      $('#btnDelete').prop('disabled', true);
+      $('#errorMessage').hide();
 
-          try {
-              const { data } = await supabaseClient.get('/rest/v1/Parts', {
-                  params: { select: '*', id: `eq.${id}` }
-              });
+      try {
+        const { data } = await supabaseClient.get('/rest/v1/Parts', {
+          params: { select: '*', id: `eq.${id}` }
+        });
 
-              if(data && data.length > 0) {
-                  const part = data[0];
-                  selectedPartId = part.id;
-                  selectedPartName = part.Part_Name;
+        if (data && data.length > 0) {
+          const part = data[0];
+          selectedPartId = part.id;
+          selectedPartName = part.Part_Name;
 
-                  // Update UI
-                  $('#d-number').text(part.Part_Number || '-');
-                  $('#d-material').text(`${part.Raw_Material || '-'} (${part.Raw_Material_Grade || '-'})`);
-                  $('#d-rev').text(part.Revision || '-');
-                  
-                  // Format Process
-                  let pHTML = '-';
-                  if(Array.isArray(part.Process)) pHTML = part.Process.map(p => `<span class="process-tag">${p}</span>`).join(' ');
-                  else if(part.Process) pHTML = `<span class="process-tag">${part.Process}</span>`;
-                  $('#d-process').html(pHTML);
+          $('#d-number').text(part.Part_Number || '-');
+          $('#d-material').text(`${part.Raw_Material || '-'} (${part.Raw_Material_Grade || '-'})`);
+          $('#d-rev').text(part.Revision || '-');
 
-                  $('#loading').hide();
-                  $('#detailsBox').slideDown();
-                  $('#btnDelete').prop('disabled', false);
-              }
-          } catch (err) {
-              $('#loading').hide();
-              showError('Error fetching details.');
-          }
+          let pHTML = '-';
+          if (Array.isArray(part.Process)) pHTML = part.Process.map(p => `<span class="process-tag">${p}</span>`).join(' ');
+          else if (part.Process) pHTML = `<span class="process-tag">${part.Process}</span>`;
+          $('#d-process').html(pHTML);
+
+          $('#loading').hide();
+          $('#detailsBox').slideDown();
+          $('#btnDelete').prop('disabled', false);
+        }
+      } catch (err) {
+        $('#loading').hide();
+        showError('Error fetching details.');
       }
+    }
 
-      function resetUI() {
-          selectedPartId = null;
-          selectedPartName = null;
-          $('#detailsBox').hide();
-          $('#btnDelete').prop('disabled', true);
-          $('#errorMessage').hide();
+    function resetUI() {
+      selectedPartId = null;
+      selectedPartName = null;
+      $('#detailsBox').hide();
+      $('#btnDelete').prop('disabled', true);
+      $('#errorMessage').hide();
+    }
+
+    function showModal() {
+      $('#modalPartName').text(selectedPartName);
+      $('#confirmModal').css('display', 'flex');
+    }
+
+    function closeModal() {
+      $('#confirmModal').hide();
+    }
+
+    async function confirmDelete() {
+      if (!selectedPartId || !selectedPartName) return;
+
+      const $btn = $('.btn-confirm');
+      $btn.text('Processing...').prop('disabled', true);
+
+      try {
+        const fileRes = await axios.post(`${API_URL}/deleteFolder`, {
+          partName: selectedPartName
+        });
+
+        if (!fileRes.data.success) throw new Error(fileRes.data.message);
+
+        await supabaseClient.delete('/rest/v1/Parts', {
+          params: { id: `eq.${selectedPartId}` }
+        });
+
+        alert('Success: Part and folder deleted.');
+        closeModal();
+
+        $('#part-select').val(null).trigger('change');
+        loadParts();
+
+      } catch (err) {
+        console.error(err);
+        closeModal();
+        showError('Deletion Failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        $btn.text('Execute Delete').prop('disabled', false);
       }
+    }
 
-      // --- Deletion Logic ---
-      function showModal() {
-          $('#modalPartName').text(selectedPartName);
-          $('#confirmModal').css('display', 'flex');
+    function showError(msg) {
+      $('#errorMessage').text(msg).show();
+    }
+
+    window.onclick = function (event) {
+      if (event.target == document.getElementById('confirmModal')) {
+        closeModal();
       }
+    }
+  </script>
+</body>
 
-      function closeModal() {
-          $('#confirmModal').hide();
-      }
-
-      async function confirmDelete() {
-          if(!selectedPartId || !selectedPartName) return;
-
-          const $btn = $('.btn-confirm');
-          $btn.text('Deleting...').prop('disabled', true);
-
-          try {
-              // 1. Delete Folder (Backend)
-              const fileRes = await axios.post(`${API_URL}/deleteFolder`, {
-                  partName: selectedPartName
-              });
-
-              if(!fileRes.data.success) throw new Error(fileRes.data.message);
-
-              // 2. Delete DB Record
-              await supabaseClient.delete('/rest/v1/Parts', {
-                  params: { id: `eq.${selectedPartId}` }
-              });
-
-              alert('Success: Part and folder deleted.');
-              closeModal();
-              
-              // Reset
-              $('#part-select').val(null).trigger('change');
-              loadParts(); // Refresh list
-
-          } catch (err) {
-              console.error(err);
-              closeModal();
-              showError('Deletion Failed: ' + (err.message || 'Unknown error'));
-          } finally {
-              $btn.text('Yes, Delete It').prop('disabled', false);
-          }
-      }
-
-      function showError(msg) {
-          $('#errorMessage').text(msg).show();
-      }
-
-      // Close modal on click outside
-      window.onclick = function(event) {
-          if (event.target == document.getElementById('confirmModal')) {
-              closeModal();
-          }
-      }
-    </script>
-  </body>
 </html>

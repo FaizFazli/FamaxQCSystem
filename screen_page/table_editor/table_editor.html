@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPQC Management - Famax</title>
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,23 +16,27 @@
     <style>
         :root {
             --primary: #0078d4;
-            --primary-hover: #005a9e;
+            --primary-soft: rgba(0, 120, 212, 0.1);
             --success: #10b981;
             --danger: #ef4444;
             --bg: #f8fafc;
-            --border: #e2e8f0;
             --text-dark: #1e293b;
             --text-muted: #64748b;
-            --special-bg: #fef3c7;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --special-bg: #fffbeb;
         }
 
         body {
             font-family: "Inter", sans-serif;
-            background: var(--bg);
+            background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+            background-color: var(--bg);
             color: var(--text-dark);
             margin: 0;
-            padding: 20px;
-            text-align: left;
+            padding: 30px;
+            min-height: 100vh;
         }
 
         .container {
@@ -40,104 +44,131 @@
             margin: 0 auto;
         }
 
+        /* Glass Cards Styling */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+        }
+
         .header-nav {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-            margin-bottom: 25px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
         }
 
         .header-nav h2 {
             margin: 0;
             font-weight: 800;
-            font-size: 24px;
+            font-size: 28px;
+            letter-spacing: -0.5px;
         }
 
+        /* Date Filter Styling */
         .filter-group {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: white;
-            padding: 8px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            gap: 12px;
         }
 
         #date-filter {
             border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 5px;
-            font-weight: 600;
+            background: #fff;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-weight: 700;
             color: var(--primary);
             outline: none;
+            cursor: pointer;
+            transition: 0.3s;
         }
 
+        #date-filter:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+        /* Part Cards (Main Accordions) */
         .part-card {
-            background: #fff;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
             overflow: hidden;
+            border-radius: 20px;
         }
 
         .part-header {
-            background: var(--primary);
+            background: #1e293b;
             color: white;
-            padding: 15px 20px;
+            padding: 18px 25px;
             font-weight: 800;
             text-transform: uppercase;
             font-size: 14px;
             display: flex;
-            gap: 30px;
+            align-items: center;
+            gap: 20px;
             cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .part-header:hover {
+            background: #000;
         }
 
         .part-content {
             display: none;
-            padding: 15px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.4);
         }
 
+        /* Session Groups */
         .session-group {
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            background: #fff;
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
             margin-bottom: 15px;
             overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
         }
 
         .session-header {
             background: #f8fafc;
-            padding: 12px 20px;
+            padding: 14px 20px;
             display: flex;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
             cursor: pointer;
             font-weight: 700;
             font-size: 13px;
             border-bottom: 1px solid var(--border);
+            transition: 0.2s;
+        }
+
+        .session-header:hover {
+            background: #f1f5f9;
         }
 
         .session-content {
             display: none;
-            padding: 20px;
+            padding: 25px;
         }
 
+        /* Metadata Grid */
         .session-meta-grid {
             display: grid;
-            grid-template-columns: 250px 180px 1fr;
-            gap: 40px;
-            margin-bottom: 20px;
-            padding-bottom: 20px;
-            padding-right: 40px;
+            grid-template-columns: 200px 200px 1fr;
+            gap: 30px;
+            margin-bottom: 25px;
+            padding-bottom: 25px;
             border-bottom: 1px solid var(--bg);
             align-items: end;
-        }
-
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
         }
 
         .meta-item label {
@@ -146,106 +177,99 @@
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
         }
 
         .meta-item span {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--text-dark);
-            padding: 8px 0;
         }
 
-        input[type="text"],
-        input[type="date"] {
-            height: 38px;
-            padding: 0 12px;
+        input[type="text"] {
+            height: 42px;
+            padding: 0 15px;
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 13px;
-            background: #fff;
-            width: 100%;
-            transition: border-color 0.2s;
-            text-align: left;
+            font-weight: 600;
+            transition: 0.3s;
         }
 
-        input:focus {
+        input[type="text"]:focus {
             border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+            box-shadow: 0 0 0 4px var(--primary-soft);
         }
 
+        /* Table Styling */
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
         }
 
         th {
             text-align: left;
-            padding: 10px;
+            padding: 12px;
             color: var(--text-muted);
             font-size: 10px;
+            font-weight: 800;
             text-transform: uppercase;
-            border-bottom: 2px solid var(--bg);
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #f1f5f9;
         }
 
         td {
-            padding: 12px 15px;
-            /* Increased from 10px to 15px for horizontal spacing */
-            border-bottom: 1px solid var(--bg);
+            padding: 14px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .reading-input {
             width: 100% !important;
-            /* Ensure it fills the cell */
-            max-width: 140px;
-            /* Prevents it from getting too long on big screens */
-            background: #f0f9ff;
+            max-width: 120px;
+            background: #fff;
             font-weight: 700;
-            border: 2px solid #bee3f8;
+            border: 1px solid var(--border);
             color: var(--text-dark);
-            display: inline-block;
-            box-sizing: border-box;
-            /* Ensures padding doesn't increase width */
+            height: 36px !important;
         }
 
-        /* Special Accept UI */
-        .special-accept-checkbox {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
+        .reading-input:focus {
+            background: #f0f9ff;
+            border-color: var(--primary);
         }
 
+        /* Special States */
         .row-special-accepted {
             background-color: var(--special-bg) !important;
         }
 
-        /* --- RED STATUS STYLE --- */
         .out-of-spec {
-            background-color: #fee2e2 !important;
-            border-color: var(--danger) !important;
+            background-color: #ffe4e6 !important;
+            border: 2px solid var(--danger) !important;
             color: var(--danger) !important;
         }
 
+        /* Chevrons */
         .chevron::before {
-            content: '▶';
+            content: '→';
             display: inline-block;
             margin-right: 12px;
-            transition: transform 0.2s;
-            font-size: 10px;
+            transition: 0.3s;
+            font-weight: bold;
         }
 
         .active>.chevron::before {
             transform: rotate(90deg);
         }
 
+        /* Loader */
         #overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
+            inset: 0;
+            background: rgba(255, 255, 255, 0.7);
             display: none;
             justify-content: center;
             align-items: center;
@@ -256,16 +280,12 @@
             border: 3px solid #f3f3f3;
             border-top: 3px solid var(--primary);
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
             100% {
                 transform: rotate(360deg);
             }
@@ -282,10 +302,13 @@
         <div class="header-nav">
             <div>
                 <h2>IPQC Inspection Editor</h2>
-                <div style="font-size: 13px; color: var(--text-muted);" id="last-sync">Loading...</div>
+                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;" id="last-sync">Loading...
+                </div>
             </div>
             <div class="filter-group">
-                <label style="font-size: 11px; font-weight:700; color:var(--text-muted)">SELECT DATE:</label>
+                <label
+                    style="font-size: 10px; font-weight:800; color:var(--text-muted); text-transform: uppercase;">Select
+                    Date</label>
                 <input type="date" id="date-filter">
             </div>
         </div>
@@ -314,21 +337,16 @@
             const isSpecialAccept = $row.find('.special-accept-checkbox').is(':checked');
             const val = $(input).val().trim().toUpperCase();
 
-            // Default: In Spec
             $(input).removeClass('out-of-spec');
 
-            // If Special Accept is checked, we bypass the red color logic
             if (isSpecialAccept) return;
-
             if (val === "") return;
 
-            // 1. Check Keywords
             if (val === "NG" || val === "STOP") {
                 $(input).addClass('out-of-spec');
                 return;
             }
 
-            // 2. Check Numeric Range
             const numVal = parseFloat(val);
             const numLsl = parseFloat(lsl);
             const numUsl = parseFloat(usl);
@@ -355,10 +373,9 @@
             $('#overlay').hide();
         }
 
-        // Run validation for all inputs in a row (called when Special Accept toggled)
         function revalidateRow(checkbox) {
             const $row = $(checkbox).closest('tr');
-            const lsl = $row.find('td:nth-child(4)').text(); // Shifted because of new column
+            const lsl = $row.find('td:nth-child(4)').text();
             const usl = $row.find('td:nth-child(5)').text();
 
             $row.find('.reading-input').each(function () {
@@ -376,7 +393,7 @@
             const $header = $(element);
             const $content = $header.next();
             $header.toggleClass('active');
-            $content.slideToggle(200);
+            $content.slideToggle(250);
         }
 
         async function fetchIPQCByDate(dateStr) {
@@ -424,14 +441,14 @@
             const entries = Object.entries(grouped);
 
             if (entries.length === 0) {
-                html = '<div style="background:white; padding:40px; border-radius:12px; border:1px solid var(--border);">No records found for this date.</div>';
+                html = '<div class="glass-card" style="padding:50px; text-align:center; font-weight:600; color:var(--text-muted);">No records found for this date.</div>';
             } else {
                 for (const [partName, sessions] of entries) {
                     html += `
-                    <div class="part-card">
+                    <div class="part-card glass-card">
                         <div class="part-header chevron" onclick="toggleCollapse(this)">
                             <span>${partName}</span>
-                            <span style="font-weight:400; font-size:11px; opacity:0.8;">(${Object.keys(sessions).length} Sessions)</span>
+                            <span style="font-weight:400; font-size:11px; opacity:0.8; margin-left:auto;">${Object.keys(sessions).length} Sessions</span>
                         </div>
                         <div class="part-content">`;
 
@@ -464,7 +481,6 @@
                                  <thead>
                                     <tr>
                                       <th style="width:50px; text-align:center">
-                                         <!-- Select All Checkbox -->
                                         <input type="checkbox" class="header-sa-checkbox" 
                                             onclick="toggleAllSessionSA(this, ${JSON.stringify(s.points.map(p => p.id))})"> SA
                                          </th>
@@ -488,7 +504,7 @@
                                         onchange="updateSpecialAccept(${p.id}, this)">
                                 </td>
                                 <td style="font-weight:700">#${p.Point_DWG_Zone}</td>
-                                <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:600;">${p.Measuring_Instrument}</span></td>
+                                <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700;">${p.Measuring_Instrument}</span></td>
                                 <td style="color:var(--text-muted)">${p.LSL_OK}</td>
                                 <td style="color:var(--text-muted)">${p.USL_NG}</td>
                                 <td><input type="text" class="reading-input" value="${r1}" 
@@ -509,7 +525,6 @@
             }
             $('#ipqc-content').html(html);
 
-            // Run validation once on initial load
             $('.reading-input').each(function () {
                 const lsl = $(this).closest('tr').find('td:nth-child(4)').text();
                 const usl = $(this).closest('tr').find('td:nth-child(5)').text();
@@ -519,14 +534,9 @@
 
         async function updateSpecialAccept(rowId, checkbox) {
             const isChecked = $(checkbox).is(':checked') ? 1 : 0;
-
-            const { error } = await _supabase.from('Data_IPQC')
-                .update({ special_accept: isChecked })
-                .eq('id', rowId);
-
+            const { error } = await _supabase.from('Data_IPQC').update({ special_accept: isChecked }).eq('id', rowId);
             if (error) {
                 Toastify({ text: "Error updating Special Accept", background: "var(--danger)" }).showToast();
-                // Revert UI if error
                 $(checkbox).prop('checked', !$(checkbox).is(':checked'));
             } else {
                 Toastify({ text: "Special Accept Updated", background: "var(--primary)" }).showToast();

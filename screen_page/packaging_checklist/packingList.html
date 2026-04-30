@@ -832,6 +832,16 @@
                 img.src = url;
             });
         }
+        function formatQty(input) {
+            // Allow only numbers and commas
+            let val = input.value.replace(/[^0-9,]/g, '');
+
+            // Optional: If you want to automatically add commas while typing, 
+            // use the line below instead. Otherwise, the above line just allows typing them.
+            // val = val.replace(/,/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+            input.value = val;
+        }
 
         $(document).ready(function () {
             loadInitialData();
@@ -865,6 +875,7 @@
                     const addr = (c.address || "").toUpperCase();
                     const tel = (c.tel || "").toUpperCase();
                     const attn = (c.attention || "").toUpperCase();
+                    const ups = (c.ups_code || "").toUpperCase();
 
                     // 1. Truncate address to 30 characters
                     const shortAddr = addr.substring(0, 50) + (addr.length > 30 ? '...' : '');
@@ -874,7 +885,13 @@
                     const displayText = `${name} - ${attn ? attn + ' - ' : ''}`;
 
                     // 3. Append to select
-                    $('#cust_select').append(`<option value="${c.id}" data-addr="${addr}" data-tel="${tel}" data-attn="${attn}" data-name ="${name}">${displayText}</option>`);
+                    $('#cust_select').append(
+                        `<option value="${c.id}" 
+                        data-addr="${addr}" 
+                        data-tel="${tel}" 
+                        data-attn="${attn}" 
+                        data-name ="${name}"
+                        data-ups="${ups}">${displayText}</option>`);
                 });
 
                 const { data: pts } = await _supabase.from('PartsByBD').select('Part_Name');
@@ -912,7 +929,7 @@
     <tr class="item-row">
         <td align="center" style="vertical-align: middle;">${no}</td>
         <td style="vertical-align: middle;"><textarea class="inp-table part-val" rows="1" placeholder="TYPE OR SEARCH..."></textarea></td>
-        <td style="vertical-align: middle;"><input type="number" class="inp-table qty-val"></td>
+        <td style="vertical-align: middle;"><input type="text" class="inp-table qty-val" oninput="formatQty(this)"></td>
         
         <td class="ctn-cell">
             <div class="ctn-container"></div>
@@ -1162,7 +1179,7 @@
 
             if (opt.val() === "NEW") {
                 $('#new_cust_row').show();
-                $('#cust_address, #tel, #attn').val('');
+                $('#cust_address, #tel, #attn, #ship_via').val(''); // Clear ship_via for new cust
             } else {
                 $('#new_cust_row').hide();
 
@@ -1170,6 +1187,7 @@
                 const attn = opt.data('attn') || '';
                 const tel = opt.data('tel') || '';
                 const name = opt.data('name') || '';
+                const ups = opt.data('ups') || '';
 
                 // These fill your input fields correctly
                 $('#cust_address').val(addr.toUpperCase());
@@ -1177,6 +1195,11 @@
                 // Important: this fills the "Attn" input field
                 $('#attn').val(attn);
                 $('#name').val(name);
+                if (ups !== "-") {
+                    $('#ship_via').val(ups);
+                } else {
+                    $('#ship_via').val("SEA OCEAN BRIDGE"); // Default if ups_code is empty
+                }
 
                 // REMOVE OR COMMENT OUT THIS LINE BELOW:
                 // opt.text(`${attn} - ${addr.substring(0, 60)}`); 
@@ -1190,6 +1213,8 @@
             let partsToIdentify = [];
             let palletDescriptions = [];
             const items = [];
+            // const rawQty = $tr.find('.qty-val').val().replace(/,/g, ''); // Removes commas
+            // const numericQty = parseFloat(rawQty) || 0;
 
 
             // 1. Handle New Customer
@@ -1365,124 +1390,94 @@
             Toastify({ text: "PACKING LIST SAVED!", background: "#10b981" }).showToast();
         }
 
-
-        //     const payload = {
-        //         invoice_no: $('#invoice_no').val().toUpperCase(),
-        //         doc_date: $('#doc_date').val(),
-        //         order_no: $('#order_no').val().toUpperCase(),
-        //         shipment_date: $('#ship_date').val(),
-        //         customer_name: shipToName,
-        //         customer_address: shipToAddress,
-        //         tel: shipToTel,
-        //         attn: $('#attn').val().toUpperCase(),
-        //         shipment_from: $('#ship_from').val().toUpperCase(),
-        //         ship_via: $('#ship_via').val().toUpperCase(),
-        //         country_of_origin: $('#origin').val().toUpperCase(),
-        //         shipment_term: finalShipTerm, // Use the new variables here
-        //         payment_term: finalPayTerm,   // Use the new variables here
-        //         items: items,
-        //         total_ctn_desc: $('#total_ctn_desc').val().toUpperCase(),
-        //         total_nw: $('#fin_nw').text(),
-        //         total_gw: $('#fin_gw').text(),
-        //         pallet_info: pallet_info_val // ADD THIS LINE TO SAVE TO DATABASE
-        //     };
-
-        //     const { error } = await _supabase.from('packing_list_records').insert([payload]);
-        //     if (error) { alert(error.message); $('#loading-overlay').hide(); return; }
-        //     generatePDF(payload);
-        //     $('#loading-overlay').hide();
-        //     Toastify({ text: "PACKING LIST SAVED!", background: "#10b981" }).showToast();
-        //     if (isNewCustomer) loadInitialData();
-        // }
-
         // Updated PDF Generation Logic
         function generatePDF(d) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
 
-            // Helper to draw letterhead
+            // Helper to draw Letterhead
             const drawLetterhead = () => {
-                if (letterheadBase64) doc.addImage(letterheadBase64, 'PNG', 0, 0, 210, 45);
+                if (letterheadBase64) {
+                    doc.addImage(letterheadBase64, 'PNG', 0, 0, 210, 45);
+                }
             };
 
-            // First Page Header
             drawLetterhead();
-            doc.setFontSize(16); doc.setFont("helvetica", "bold");
-            doc.text("PACKING LIST", 105, 55, { align: 'center' });
-            doc.setFontSize(10); doc.text("************************************", 105, 60, { align: 'center' });
+
+            // Title
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("PACKING LIST", 105, 52, { align: 'center' });
+            doc.setLineWidth(0.5);
+            doc.line(85, 54, 125, 54); // Decorative underline
 
             const headerTableStyles = {
                 fontSize: 8,
-                cellPadding: 0.5,
+                cellPadding: 1,
                 overflow: 'linebreak',
-                valign: 'top'
+                valign: 'top',
+                fillColor: null // Transparent
             };
 
-            const startY = 65; // Fixed starting point for both sides
+            const startY = 60;
 
-
-            // 1. LEFT TABLE (Label Column narrowed to 22mm to give more room for name)
+            // --- HEADER TABLES ---
+            // Left Table (Customer Info)
             doc.autoTable({
                 startY: startY,
-                tableWidth: 100,
-                margin: { left: 14 },
+                tableWidth: 95,
+                margin: { left: 10 },
                 theme: 'plain',
-                styles: { ...headerTableStyles, valign: 'top' }, // Ensure vertical alignment is at the top
-                // Inside generatePDF function, under LEFT TABLE
+                styles: headerTableStyles,
                 body: [
                     ['FROM', ': FAMAX TECHNOLOGY (M) SDN. BHD.'],
-                    [
-                        'SHIP TO',
-                        ': ' + (d.customer_name || '').trim() + '\n' + (d.customer_address || '').replace(/\n\s*\n/g, '\n').trim()                    // REMOVES start/end spaces
-                    ],
+                    ['SHIP TO', ': ' + (d.customer_name || '').trim()],
+                    ['', '  ' + (d.customer_address || '').trim()], // Address indented
                     ['TEL', ': ' + d.tel],
                     ['ATTN', ': ' + d.attn],
                     ['SHIPMENT FROM', ': ' + d.shipment_from],
                     ['SHIP VIA', ': ' + d.ship_via]
                 ],
                 columnStyles: {
-                    0: { fontStyle: 'bold', cellWidth: 30 },
-                    1: { cellWidth: 78 } // Ensure this column has enough width
+                    0: { fontStyle: 'bold', cellWidth: 28 },
+                    1: { cellWidth: 'auto' }
                 }
             });
             const leftFinalY = doc.lastAutoTable.finalY;
 
-            // 2. RIGHT TABLE (Shifted slightly right to avoid the wider left table)
+            // Right Table (Doc Info)
             doc.autoTable({
                 startY: startY,
-                tableWidth: 80,
-                margin: { left: 116 },
+                tableWidth: 85,
+                margin: { left: 110 },
                 theme: 'plain',
-                styles: { ...headerTableStyles, valign: 'top' },
+                styles: headerTableStyles,
                 body: [
                     ['INVOICE NO.', ': ' + d.invoice_no],
-                    ['DATE', ': ' + formatDate(d.doc_date)],              // Now formatted
+                    ['DATE', ': ' + formatDate(d.doc_date)],
                     ['ORDER NO.', ': ' + d.order_no],
-                    ['SHIPMENT DATE', ': ' + formatDate(d.shipment_date)], // Now formatted
+                    ['SHIPMENT DATE', ': ' + formatDate(d.shipment_date)],
                     ['COUNTRY OF ORIGIN', ': ' + d.country_of_origin],
                     ['SHIPMENT TERM', ': ' + d.shipment_term],
                     ['PAYMENT TERM', ': ' + d.payment_term]
                 ],
                 columnStyles: {
-                    0: { fontStyle: 'bold', cellWidth: 30 },
+                    0: { fontStyle: 'bold', cellWidth: 35 },
                     1: { cellWidth: 'auto' }
                 }
             });
             const rightFinalY = doc.lastAutoTable.finalY;
 
-            const mainTableStartY = Math.max(leftFinalY, rightFinalY) + 10;
+            const mainTableStartY = Math.max(leftFinalY, rightFinalY) + 8;
 
+            // --- PREPARE DATA ---
             let itemCounter = 0;
             const pdfRows = [];
             const palletCount = d.items.filter(it => it.type === 'desc').length;
 
-            // Process all items for the table body
-            // Process all items for the table body
             d.items.forEach((it) => {
                 if (it.type === 'item') {
                     itemCounter++;
-
-                    // Multi-line logic (as established previously)
                     const combinedCtn = it.details.map(det => det.ctn.toUpperCase()).join('\n');
                     const combinedNw = it.details.map(det => parseFloat(det.nw).toFixed(2)).join('\n');
                     const combinedGw = it.details.map(det => parseFloat(det.gw).toFixed(2)).join('\n');
@@ -1498,97 +1493,79 @@
                 }
                 else if (it.type === 'desc') {
                     pdfRows.push([
-                        { content: it.text, colSpan: 4, styles: { fontStyle: 'italic', halign: 'left' } },
-                        parseFloat(it.nw).toFixed(2),
-                        parseFloat(it.gw).toFixed(2)
+                        { content: it.text, colSpan: 4, styles: { fontStyle: 'italic', halign: 'left', fillColor: [250, 250, 250] } },
+                        { content: parseFloat(it.nw).toFixed(2), styles: { fillColor: [250, 250, 250] } },
+                        { content: parseFloat(it.gw).toFixed(2), styles: { fillColor: [250, 250, 250] } }
                     ]);
                 }
-                else if (it.type === 'subtotal') {
-                    // NEW CONDITION: Only push the subtotal row if there is more than 1 pallet
-                    if (palletCount > 1) {
-                        pdfRows.push([
-                            { content: 'SUBTOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
-                            { content: it.nw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
-                            { content: it.gw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } }
-                        ]);
-                    }
+                else if (it.type === 'subtotal' && palletCount > 1) {
+                    pdfRows.push([
+                        { content: 'SUBTOTAL', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                        { content: it.nw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } },
+                        { content: it.gw, styles: { fontStyle: 'bold', halign: 'right', fillColor: [240, 243, 244] } }
+                    ]);
                 }
             });
 
-           doc.autoTable({
+            // --- MAIN TABLE ---
+            doc.autoTable({
                 startY: mainTableStartY,
                 head: [['NO', 'PART NUMBER', 'QTY', 'CTN DESCRIPTION', 'NW (KGS)', 'GW (KGS)']],
                 body: pdfRows,
                 theme: 'grid',
-                headStyles: { fillColor: [240, 240, 240], textColor: 'black', fontStyle: 'bold', halign: 'center' },
-                styles: { fontSize: 8, textColor: 'black', valign: 'top', cellPadding: 2 },
+                headStyles: { fillColor: [50, 50, 50], textColor: 255, fontStyle: 'bold', halign: 'center' },
+                styles: { fontSize: 8, textColor: 0, valign: 'middle', cellPadding: 2.5 },
                 columnStyles: {
                     0: { halign: 'center', cellWidth: 10 },
-                    1: { cellWidth: 50 },
-                    2: { halign: 'center', cellWidth: 15 },
-                    3: { cellWidth: 55 },
-                    4: { halign: 'right', cellWidth: 20 },
-                    5: { halign: 'right', cellWidth: 20 }
+                    1: { cellWidth: 45 },
+                    2: { halign: 'center', cellWidth: 18 },
+                    3: { cellWidth: 62 },
+                    4: { halign: 'right', cellWidth: 25 },
+                    5: { halign: 'right', cellWidth: 25 }
                 },
                 foot: [[
-                    { content: 'GrandTotal:', colSpan: 4, styles: { fillColor: [240, 240, 240], halign: 'right', fontStyle: 'bold' } },
-                    { content: cleanWeightForTable(d.total_nw), styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'right' } },
-                    { content: cleanWeightForTable(d.total_gw), styles: { fillColor: [240, 240, 240], fontStyle: 'bold', halign: 'right' } }
+                    { content: 'GRAND TOTAL', colSpan: 4, styles: { fillColor: [230, 230, 230], halign: 'right', fontStyle: 'bold', fontSize: 9 } },
+                    { content: cleanWeightForTable(d.total_nw), styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'right', fontSize: 9 } },
+                    { content: cleanWeightForTable(d.total_gw), styles: { fillColor: [230, 230, 230], fontStyle: 'bold', halign: 'right', fontSize: 9 } }
                 ]],
-                // REDUCED BOTTOM MARGIN to allow table to go lower
-                margin: { top: 50, bottom: 15 }, 
-                didDrawPage: (data) => { if (data.pageNumber > 1) drawLetterhead(); }
+                margin: { top: 48, bottom: 20 },
+                didDrawPage: (data) => {
+                    if (data.pageNumber > 1) {
+                        drawLetterhead();
+                    }
+                }
             });
 
-            // --- TIGHTENED SUMMARY AND SIGNATURE LOGIC ---
-            
-            // Reduced gap from table to 5mm
-            let finalY = doc.lastAutoTable.finalY + 5; 
+            // --- FOOTER SECTION ---
+            let finalY = doc.lastAutoTable.finalY + 12;
 
-            // INCREASED THRESHOLD: A4 is 297mm. 
-            // 250mm leaves just enough room for the signature at the very bottom.
-            if (finalY > 250) { 
+            // Check for page overflow (Summary block needs ~60mm space)
+            if (finalY > 230) {
                 doc.addPage();
                 drawLetterhead();
-                finalY = 55;
+                finalY = 55; // Start well below the header
             }
 
-            // Summary Text (Tightened spacing)
-            doc.setFontSize(10); doc.setFont("helvetica", "bold");
-            doc.text(`Total Ctn  : ${d.total_ctn_desc}`, 15, finalY + 2);
-            doc.text(`Total NW   : ${d.total_nw}`, 15, finalY + 7);
-            doc.text(`Total GW   : ${d.total_gw}`, 15, finalY + 12);
-
-            // Signature Block (Shifted up to save space)
-            // --- BEAUTIFIED SIGNATORY SECTION ---
-            let sigStartY = finalY + 20; 
             doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+
+            // Total Details
+            doc.text(`Total Ctn  : ${d.total_ctn_desc}`, 15, finalY);
+            doc.text(`Total NW   : : ${d.total_nw}`, 15, finalY + 7);
+            doc.text(`Total GW   : : ${d.total_gw}`, 15, finalY + 14);
+
+            let sigStartY = finalY + 25;
             doc.text("FAMAX TECHNOLOGY (M) SDN. BHD.", 15, sigStartY);
+            doc.setLineWidth(0.4);
+            doc.line(15, sigStartY + 24, 85, sigStartY + 24);
 
-            // 1. Draw the Signature Line
-            // Positioned lower to give the image more space
-            doc.setLineWidth(0.4); 
-            doc.line(15, sigStartY + 24, 85, sigStartY + 24); 
-
-            // 2. Add the Signature & Stamp Image
             if (d.signature_image) {
-                if (d.signatory_name === "Nabila") {
-                    // Nabila: Adjusted for a balanced centered look
-                    // (x, y, width, height)
-                    doc.addImage(d.signature_image, 'PNG', 18, sigStartY - 10, 50, 50);
-                } else if (d.signatory_name === "Adila") {
-                    // Adila: Adjusted to be wider and sit elegantly on the line
-                    // We move Y up slightly (sigStartY + 2) so it doesn't hit the text below
-                    doc.addImage(d.signature_image, 'PNG', 15, sigStartY - 2, 65, 30);
-                } else {
-                    doc.addImage(d.signature_image, 'PNG', 15, sigStartY + 4, 50, 25);
-                }
+                if (d.signatory_name === "Nabila") doc.addImage(d.signature_image, 'PNG', 18, sigStartY - 12, 50, 50);
+                else if (d.signatory_name === "Adila") doc.addImage(d.signature_image, 'PNG', 15, sigStartY - 2, 50, 30);
+                else doc.addImage(d.signature_image, 'PNG', 15, sigStartY + 4, 50, 25);
             }
 
-            // 3. Authorised label
-            // Positioned exactly 5mm below the line
             doc.setFontSize(9);
-            doc.setFont("helvetica", "bold");
             doc.text("AUTHORISED SIGNATORY", 15, sigStartY + 29);
 
             doc.save(`PackingList_${d.invoice_no}.pdf`);
@@ -1621,17 +1598,18 @@
             if (!data || data.length === 0) {
                 html += `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No matching records found.</td></tr>`;
             } else {
-                data.forEach(r => {
+                window.tempRecords = data; // Store data globally
+                data.forEach((r, index) => {
                     html += `
-                <tr>
-                    <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
-                    <td>${r.customer_name}</td>
-                    <td>${formatDate(r.doc_date)}</td>                    
-                    <td>
-                        <button class="btn" style="background:#0078d4; color:white; padding:5px 10px; margin-right:5px;" onclick='loadRecordForEdit(${JSON.stringify(r)})'>EDIT</button>
-                        <button class="btn" style="background:#6b7280; color:white; padding:5px 10px;" onclick='generatePDF(${JSON.stringify(r)})'>PDF</button>
-                    </td>
-                </tr>`;
+                            <tr>
+                                <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
+                                <td>${r.customer_name}</td>
+                                <td>${formatDate(r.doc_date)}</td>                    
+                                <td>
+                                    <button class="btn" style="background:#0078d4; color:white;" onclick="loadRecordForEdit(window.tempRecords[${index}])">EDIT</button>
+                                    <button class="btn" style="background:#6b7280; color:white;" onclick="generatePDF(window.tempRecords[${index}])">PDF</button>
+                                </td>
+                            </tr>`;
                 });
             }
 
@@ -1640,82 +1618,82 @@
         }
 
         function loadRecordForEdit(r) {
-    editingId = r.id;
-    $('#recordsModal').hide();
-    $('.btn-submit').text("UPDATE RECORD & GENERATE PDF").css("background", "#f59e0b");
+            editingId = r.id;
+            $('#recordsModal').hide();
+            $('.btn-submit').text("UPDATE RECORD & GENERATE PDF").css("background", "#f59e0b");
 
-    const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
 
-    // 1. Set Header Fields
-    $('#invoice_no').val(r.invoice_no);
-    $('#doc_date').val(r.doc_date || today);
-    $('#order_no').val(r.order_no);
-    $('#ship_date').val(r.ship_date || today);
-    $('#ship_from').val(r.shipment_from);
-    $('#ship_via').val(r.ship_via);
-    $('#origin').val(r.country_of_origin);
-    $('#ship_term').val(r.shipment_term);
-    $('#pay_term').val(r.payment_term);
-    $('#cust_address').val(r.customer_address);
-    $('#tel').val(r.tel);
-    $('#attn').val(r.attn);
+            // 1. Set Header Fields
+            $('#invoice_no').val(r.invoice_no);
+            $('#doc_date').val(r.doc_date || today);
+            $('#order_no').val(r.order_no);
+            $('#ship_date').val(r.ship_date || today);
+            $('#ship_from').val(r.shipment_from);
+            $('#ship_via').val(r.ship_via);
+            $('#origin').val(r.country_of_origin);
+            $('#ship_term').val(r.shipment_term);
+            $('#pay_term').val(r.payment_term);
+            $('#cust_address').val(r.customer_address);
+            $('#tel').val(r.tel);
+            $('#attn').val(r.attn);
 
-    // 2. Match Customer Dropdown
-    let foundCust = false;
-    $('#cust_select option').each(function () {
-        if ($(this).data('name') === r.customer_name) {
-            $('#cust_select').val($(this).val());
-            foundCust = true;
-        }
-    });
-    if (!foundCust) {
-        $('#cust_select').val("NEW");
-        $('#new_cust_row').show();
-        $('#new_cust_name').val(r.customer_name);
-    }
-
-    // 3. Reconstruct Table Body
-    $('#tableBody').empty();
-    r.items.forEach(it => {
-        if (it.type === 'item') {
-            addItemRow();
-            const $row = $('#tableBody tr.item-row').last();
-            $row.find('.part-val').val(it.part);
-            $row.find('.qty-val').val(it.qty);
-
-            it.details.forEach((det, idx) => {
-                if (idx > 0) addCtnDetail($row.find('.btn-small-add')[0]);
-                $row.find('.ctn-val').eq(idx).val(det.ctn);
-                $row.find('.nw-calc').eq(idx).val(det.nw);
-                $row.find('.gw-calc').eq(idx).val(det.gw);
+            // 2. Match Customer Dropdown
+            let foundCust = false;
+            $('#cust_select option').each(function () {
+                if ($(this).data('name') === r.customer_name) {
+                    $('#cust_select').val($(this).val());
+                    foundCust = true;
+                }
             });
+            if (!foundCust) {
+                $('#cust_select').val("NEW");
+                $('#new_cust_row').show();
+                $('#new_cust_name').val(r.customer_name);
+            }
+
+            // 3. Reconstruct Table Body
+            $('#tableBody').empty();
+            r.items.forEach(it => {
+                if (it.type === 'item') {
+                    addItemRow();
+                    const $row = $('#tableBody tr.item-row').last();
+                    $row.find('.part-val').val(it.part);
+                    $row.find('.qty-val').val(it.qty);
+
+                    it.details.forEach((det, idx) => {
+                        if (idx > 0) addCtnDetail($row.find('.btn-small-add')[0]);
+                        $row.find('.ctn-val').eq(idx).val(det.ctn);
+                        $row.find('.nw-calc').eq(idx).val(det.nw);
+                        $row.find('.gw-calc').eq(idx).val(det.gw);
+                    });
+                }
+                else if (it.type === 'desc') {
+                    addDescriptionRow();
+                    const $row = $('#tableBody tr.desc-row').last();
+                    $row.find('textarea').val(it.text);
+                    $row.find('.nw-calc').val(it.nw);
+                    $row.find('.gw-calc').val(it.gw);
+                }
+            });
+
+            // --- IMPORTANT: THE FIX IS HERE ---
+
+            // 4. Run calculation FIRST to set the subtotal rows correctly
+            calculateTotals();
+
+            // 5. Set the Summary Fields LAST so they overwrite the 
+            // auto-calculated numbers with the full text from the database
+            $('#total_ctn_desc').val(r.total_ctn_desc);
+            $('#fin_nw').val(r.total_nw);
+            $('#fin_gw').val(r.total_gw);
+            $('#table_total_nw').val(r.total_nw);
+            $('#table_total_gw').val(r.total_gw);
+
+            $('#signatory_select').val(r.signatory_name);
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        else if (it.type === 'desc') {
-            addDescriptionRow();
-            const $row = $('#tableBody tr.desc-row').last();
-            $row.find('textarea').val(it.text);
-            $row.find('.nw-calc').val(it.nw);
-            $row.find('.gw-calc').val(it.gw);
-        }
-    });
-
-    // --- IMPORTANT: THE FIX IS HERE ---
-
-    // 4. Run calculation FIRST to set the subtotal rows correctly
-    calculateTotals(); 
-
-    // 5. Set the Summary Fields LAST so they overwrite the 
-    // auto-calculated numbers with the full text from the database
-    $('#total_ctn_desc').val(r.total_ctn_desc);
-    $('#fin_nw').val(r.total_nw); 
-    $('#fin_gw').val(r.total_gw);
-    $('#table_total_nw').val(r.total_nw);
-    $('#table_total_gw').val(r.total_gw);
-    
-    $('#signatory_select').val(r.signatory_name);
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
 
         // function loadRecordForEdit(r) {
         //     editingId = r.id;

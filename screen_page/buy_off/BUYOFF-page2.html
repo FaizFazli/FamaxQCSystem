@@ -307,6 +307,8 @@
             person: localStorage.getItem('personName'),
             tech: localStorage.getItem('qcTechnician'),
             setting: localStorage.getItem('settingType'),
+            // NEW: Get the Attempt ID from Page 1
+            attemptId: localStorage.getItem('lastAttemptGroup'),
             data: JSON.parse(localStorage.getItem('summaryData') || '[]')
         };
 
@@ -360,16 +362,16 @@
                 }).join('');
 
                 card.innerHTML = `
-                    <h3>Zone: ${z.Point_DWG_Zone} (Spec: ${z.LSL_OK} ~ ${z.USL_NG})</h3>
-                    <table class="detail-table">
-                        <thead>
-                            <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr>${cells}</tr>
-                        </tbody>
-                    </table>
-                `;
+                <h3>Zone: ${z.Point_DWG_Zone} (Spec: ${z.LSL_OK} ~ ${z.USL_NG})</h3>
+                <table class="detail-table">
+                    <thead>
+                        <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>${cells}</tr>
+                    </tbody>
+                </table>
+            `;
                 container.appendChild(card);
             });
         }
@@ -394,12 +396,26 @@
                     });
 
                     return {
-                        Part_Name: store.part, Process: store.process, JO_Number: store.jo, Machine: store.machine,
-                        Person: store.person, QC_Technician: store.tech, Setting: store.setting,
-                        Point_DWG_Zone: z.Point_DWG_Zone, Measuring_Instrument: z.Measuring_Instrument,
-                        LSL_OK: z.LSL_OK, USL_NG: z.USL_NG, SC: z.SC,
-                        Reading_1: z.Reading_1, Reading_2: z.Reading_2, Reading_3: z.Reading_3, Reading_4: z.Reading_4, Reading_5: z.Reading_5,
-                        Remarks: remarkValue
+                        Part_Name: store.part,
+                        Process: store.process,
+                        JO_Number: store.jo,
+                        Machine: store.machine,
+                        Person: store.person,
+                        QC_Technician: store.tech,
+                        Setting: store.setting,
+                        Point_DWG_Zone: z.Point_DWG_Zone,
+                        Measuring_Instrument: z.Measuring_Instrument,
+                        LSL_OK: z.LSL_OK,
+                        USL_NG: z.USL_NG,
+                        SC: z.SC,
+                        Reading_1: z.Reading_1,
+                        Reading_2: z.Reading_2,
+                        Reading_3: z.Reading_3,
+                        Reading_4: z.Reading_4,
+                        Reading_5: z.Reading_5,
+                        Remarks: remarkValue,
+                        // UPDATED: Include the Attempt_Group ID
+                        Attempt_Group: store.attemptId
                     };
                 });
 
@@ -408,13 +424,13 @@
                 const { error } = await supabaseClient.from('Data_BUYOFF').insert(payload);
                 if (error) throw error;
 
-                // 2. Alert if NG
+                // 2. Alert if NG (Note: Based on Page 1 logic, this should usually be empty now)
                 if (ngList.length > 0) {
                     btn.textContent = "SENDING ALERTS...";
                     await sendTelegramAlert(ngList, remarkValue);
                 }
 
-                // 3. Prepare UI for PDF (Swap textarea for div)
+                // 3. Prepare UI for PDF
                 btn.textContent = "SAVING TO SERVER...";
                 remarkInput.style.display = "none";
                 let staticRemark = document.getElementById("temp-remark-text");
@@ -435,7 +451,7 @@
                     jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
                 };
 
-                // 5. Generate PDF as blob and upload to Server
+                // 5. Generate PDF and upload
                 const pdfBlob = await html2pdf().set(pdfOptions).from(element).outputPdf('blob');
                 const formData = new FormData();
                 formData.append("pdf", pdfBlob, pdfOptions.filename);
@@ -451,11 +467,9 @@
                     console.error("Server upload fail", serverErr);
                 }
 
-                // 6. Download for User
-                btn.textContent = "DOWNLOADING...";
-                // await html2pdf().set(pdfOptions).from(element).save();
-
-                alert("Success! Data saved and report generated.");
+                // 6. Complete
+                btn.textContent = "DONE!";
+                alert("Success! 5 Good items saved and report generated.");
                 localStorage.clear();
                 window.location.href = "../../index.html";
 

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guide Setup | Quality Hub</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a1a1a;
+            padding: 2rem;
+            background-image: radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 25%), radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 25%);
+            text-transform: uppercase;
+        }
+
+        input {
+            text-transform: uppercase;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        .app-header {
+            background: #ffffff;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 2.5rem;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-accent-bar {
+            width: 0.75rem;
+            height: 2.5rem;
+            background-color: #fbbf24;
+            border-radius: 9999px;
+            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 900;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+            font-style: italic;
+        }
+
+        .inspection-card {
+            background: #ffffff;
+            border-radius: 2.5rem;
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem 2.5rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background-color: #fafafa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 3.5rem;
+            padding: 0 1.5rem;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #fbbf24;
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+        }
+
+        .btn-submit {
+            background-color: #fbbf24;
+            color: black;
+            border-radius: 1.5rem;
+            padding: 1rem 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            box-shadow: 0 10px 20px rgba(251, 191, 36, 0.2);
+        }
+
+        .step-row {
+            background: #f9fafb;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+        }
+
+        .card-id-badge {
+            width: 2rem;
+            height: 2rem;
+            background: #fbbf24;
+            color: #000;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="max-w-[1200px] mx-auto pb-20" v-cloak>
+
+        <!-- Header -->
+        <header class="app-header">
+            <div class="flex items-center gap-4">
+                <div class="header-accent-bar"></div>
+                <h1 class="header-title">Master <span class="text-yellow-500">Guide Setup</span></h1>
+            </div>
+            <button @click="submitAll" :disabled="isSubmitting" class="btn-submit">
+                <i class="fa fa-save mr-2"></i> {{ isSubmitting ? 'Processing...' : 'Save Guide' }}
+            </button>
+        </header>
+
+        <!-- Main Info Section -->
+        <div class="inspection-card">
+            <div class="card-header">
+                <h2 class="font-black uppercase text-xl italic tracking-tighter">
+                    <span class="text-yellow-500">Guide</span> <span class="text-black">Definition</span>
+                </h2>
+            </div>
+            <div class="p-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                        <label class="section-label">Part Number (From Parts Inventory)</label>
+                        <input type="text" list="parts-list" v-model="master.part_no"
+                            placeholder="SEARCH PART NUMBER..." class="form-input"
+                            @input="master.part_no = master.part_no.toUpperCase()">
+                    </div>
+                    <div>
+                        <label class="section-label">Process Name</label>
+                        <input type="text" v-model="master.process" placeholder="E.G. PLATING / RAW PART"
+                            class="form-input" @input="master.process = master.process.toUpperCase()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Steps Section -->
+        <div class="inspection-card">
+            <div class="card-header">
+                <h2 class="font-black uppercase text-xl italic tracking-tighter">
+                    <span class="text-yellow-500">Inspection</span> <span class="text-black">Steps</span>
+                </h2>
+                <button @click="addStep" class="text-yellow-600 font-bold hover:underline">
+                    <i class="fa fa-plus-circle"></i> ADD STEP
+                </button>
+            </div>
+            <div class="p-10">
+                <div v-for="(step, index) in steps" :key="index"
+                    class="step-row flex flex-col md:flex-row gap-6 items-end">
+                    <div class="flex-none">
+                        <div class="card-id-badge">{{ index + 1 }}</div>
+                    </div>
+
+                    <div class="flex-1 w-full">
+                        <label class="section-label">Parameter (Check Item)</label>
+                        <input list="db-params" v-model="step.parameter" placeholder="PARAMETER..." class="form-input"
+                            @input="step.parameter = step.parameter.toUpperCase()">
+                    </div>
+
+                    <div class="flex-1 w-full">
+                        <label class="section-label">Details / Instructions</label>
+                        <input type="text" v-model="step.details" placeholder="E.G. CHECK FOR SCRATCHES..."
+                            class="form-input" @input="step.details = step.details.toUpperCase()">
+                    </div>
+
+                    <div class="w-full md:w-32">
+                        <label class="section-label">Cycle (Sec)</label>
+                        <input type="number" step="0.001" v-model="step.cycle" class="form-input text-center">
+                    </div>
+
+                    <button @click="removeStep(index)" class="h-[3.5rem] px-4 text-red-400 hover:text-red-600">
+                        <i class="fa fa-trash-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datalists -->
+        <datalist id="parts-list">
+            <!-- Fixed variable name to p.val -->
+            <option v-for="p in partsData" :key="p.val" :value="p.val"></option>
+        </datalist>
+
+        <datalist id="db-params">
+            <option v-for="p in existingParams" :key="p.id" :value="p.Parameter"></option>
+        </datalist>
+
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+                const api = axios.create({
+                    baseURL: 'http://192.168.0.5:8000/rest/v1',
+                    headers: {
+                        'apikey': API_KEY,
+                        'Authorization': `Bearer ${API_KEY}`
+                    }
+                });
+
+                const master = ref({ part_no: '', process: '' });
+                const steps = ref([{ parameter: '', details: '', cycle: '0.00' }]);
+                const existingParams = ref([]);
+                const partsData = ref([]);
+                const isSubmitting = ref(false);
+
+                const fetchInitialData = async () => {
+                    try {
+                        const [resParams, resParts] = await Promise.all([
+                            api.get('/InspectionGuide?select=id,Parameter'),
+                            // Select both casing possibilities to be safe
+                            api.get('/Parts?select=*')
+                        ]);
+
+                        existingParams.value = resParams.data;
+
+                        // Normalization: Extract the part number regardless of database casing
+                        partsData.value = resParts.data.map(item => ({
+                            val: (item.Part_Number || item.part_number || item.Part_number || "").toUpperCase()
+                        })).filter(i => i.val !== "");
+
+                    } catch (err) {
+                        console.error("Fetch Error:", err);
+                    }
+                };
+
+                const addStep = () => steps.value.push({ parameter: '', details: '', cycle: '0.00' });
+                const removeStep = (idx) => steps.value.splice(idx, 1);
+                const submitAll = async () => {
+                    // 1. Validation
+                    if (!master.value.part_no || !master.value.process) {
+                        return Toastify({
+                            text: "PLEASE FILL PART NO AND PROCESS",
+                            style: { background: "#ef4444" }
+                        }).showToast();
+                    }
+
+                    // Filter out empty steps
+                    const validSteps = steps.value.filter(s => s.parameter && s.parameter.trim() !== "");
+                    if (validSteps.length === 0) {
+                        return Toastify({
+                            text: "PLEASE ADD AT LEAST ONE PARAMETER",
+                            style: { background: "#ef4444" }
+                        }).showToast();
+                    }
+
+                    isSubmitting.value = true;
+                    try {
+                        const inspection_ids = [];
+                        const cycle_times = [];
+
+                        // 2. Process each step
+                        for (const s of validSteps) {
+                            const paramUpper = s.parameter.trim().toUpperCase();
+                            const detailsUpper = (s.details || "").trim().toUpperCase();
+
+                            // Check if this parameter already exists in our existingParams list
+                            // We find by Parameter name (case insensitive)
+                            let match = existingParams.value.find(p =>
+                                p.Parameter && p.Parameter.toUpperCase() === paramUpper
+                            );
+
+                            let targetId;
+
+                            if (match) {
+                                // PARAMETER EXISTS: Use the existing ID
+                                targetId = match.id;
+                                console.log(`Using existing parameter: ${paramUpper} (ID: ${targetId})`);
+                            } else {
+                                // PARAMETER IS NEW: Create it in the InspectionGuide table
+                                console.log(`Creating new parameter: ${paramUpper}`);
+                                const createRes = await api.post('/InspectionGuide',
+                                    {
+                                        Parameter: paramUpper,
+                                        Details: detailsUpper
+                                    },
+                                    { headers: { 'Prefer': 'return=representation' } }
+                                );
+
+                                // Get the ID of the newly created record
+                                targetId = createRes.data[0].id;
+
+                                // IMPORTANT: Add the new parameter to existingParams locally
+                                // This prevents creating it again if the user used the same name in another step
+                                existingParams.value.push({
+                                    id: targetId,
+                                    Parameter: paramUpper
+                                });
+                            }
+
+                            inspection_ids.push(String(targetId));
+                            cycle_times.push(String(s.cycle || 0));
+                        }
+
+                        // 3. Save to InspectionGuideDetails
+                        // Note: PostgREST/Supabase expects array format for 'text[]' or 'int[]' columns: {val1,val2}
+                        // If your database columns are JSON or simple text, adjust accordingly.
+                        await api.post('/InspectionGuideDetails', {
+                            part_no: master.value.part_no.toUpperCase(),
+                            process: master.value.process.toUpperCase(),
+                            inspection_ids: inspection_ids, // Sending as array
+                            cycle_times: cycle_times        // Sending as array
+                        });
+
+                        Toastify({
+                            text: "SUCCESS: MASTER GUIDE CREATED",
+                            style: { background: "#fbbf24", color: "#000" }
+                        }).showToast();
+
+                        // 4. Reset Form
+                        master.value = { part_no: '', process: '' };
+                        steps.value = [{ parameter: '', details: '', cycle: '0.00' }];
+
+                        // Refresh data to ensure datalists are up to date
+                        fetchInitialData();
+
+                    } catch (err) {
+                        console.error("Submission Error:", err);
+                        const errorMsg = err.response?.data?.message || "FAILED TO SAVE GUIDE";
+                        Toastify({
+                            text: errorMsg,
+                            style: { background: "#ef4444" }
+                        }).showToast();
+                    } finally {
+                        isSubmitting.value = false;
+                    }
+                };
+
+                onMounted(fetchInitialData);
+
+                return { master, steps, existingParams, partsData, isSubmitting, addStep, removeStep, submitAll };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

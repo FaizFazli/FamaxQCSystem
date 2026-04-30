@@ -366,14 +366,14 @@
                     <select class="header-input" id="qc-technician">
                         <option value="">Select Role</option>
                         <option value="QC">QC</option>
-                        <option value="Technician">Technician</option>
+                        <option value="Technician" selected>Technician</option>
                     </select>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Setting</span>
                     <select class="header-input" id="setting-type">
                         <option value="">Select Type</option>
-                        <option value="New Setting">New Setting</option>
+                        <option value="New Setting" selected>New Setting</option>
                         <option value="Resetting">Resetting</option>
                     </select>
                 </div>
@@ -419,6 +419,7 @@
             const joNumber = urlParams.get('jo');
             const machineNumber = urlParams.get('machine');
 
+            // FIX: Assign values to the Info Bar labels
             document.getElementById('selected-part').textContent = partName || '-';
             document.getElementById('selected-process').textContent = processName || '-';
             document.getElementById('selected-jo').textContent = joNumber || '-';
@@ -428,62 +429,193 @@
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
             const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+            // --- STATE ---
             let buyOffData = [];
             let currentZoneIndex = 0;
-            let userReadings = [];
+            let acceptedItemCount = 0;
+            let currentItemReadings = [];
+            let finalAcceptedData = [];
 
             const progressIndicator = document.getElementById('progress-indicator');
             const zoneContainer = document.getElementById('zone-container');
-            const personNameInput = document.getElementById('person-name');
-            const qcTechnicianInput = document.getElementById('qc-technician');
-            const settingTypeInput = document.getElementById('setting-type');
             const nextButton = document.getElementById('next-btn');
             const backButton = document.getElementById('back-btn');
-            const submitButton = document.getElementById('submit-btn');
+
+            // Header Inputs
+            const personNameInput = document.getElementById('person-name');
+            const qcTechInput = document.getElementById('qc-technician');
+            const settingInput = document.getElementById('setting-type');
 
             async function fetchbuyOffData() {
                 try {
                     const { data, error } = await supabaseClient
                         .from('IPQC')
-                        .select('Path, Point_DWG_Zone, Measuring_Instrument, LSL_OK, USL_NG, SC')
-                        .eq('Part_Name', partName)
-                        .eq('Process', processName)
-                        .eq('Status', 'Active');
+                        .select('Point_DWG_Zone, Measuring_Instrument, LSL_OK, USL_NG, SC, Path')
+                        .eq('Part_Name', partName).eq('Process', processName).eq('Status', 'Active');
 
-                    if (error || !data || data.length === 0) return;
+                    if (error || !data.length) return alert("No specs found!");
 
-                    buyOffData = data.sort((a, b) => {
-                        const numA = parseInt(a.Point_DWG_Zone.replace(/\D/g, '')) || 0;
-                        const numB = parseInt(b.Point_DWG_Zone.replace(/\D/g, '')) || 0;
-                        return numA - numB;
-                    });
+                    buyOffData = data.sort((a, b) => (parseInt(a.Point_DWG_Zone.replace(/\D/g, '')) || 0) - (parseInt(b.Point_DWG_Zone.replace(/\D/g, '')) || 0));
 
-                    userReadings = buyOffData.map(() => ({ reading1: '', reading2: '', reading3: '', reading4: '', reading5: '' }));
+                    currentItemReadings = new Array(buyOffData.length).fill('');
 
-                    setupProgress();
-                    const imageElement = document.getElementById('ipqc-image');
-                    imageElement.src = buyOffData[0].Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
-                    imageElement.onclick = () => imageElement.classList.toggle('zoomed');
-
+                    renderProgress();
+                    showZone();
                     document.getElementById('loading-indicator').classList.add('hidden');
                     document.getElementById('content-area').classList.remove('hidden');
-                    showCurrentZone();
                 } catch (e) { console.error(e); }
             }
 
-            function setupProgress() {
+            function isNg(val, min, max) {
+                if (val === "" || val === null) return false;
+                if (String(min).toLowerCase() === 'ok') return !['OK', 'GO'].includes(String(val).toUpperCase());
+                if (String(max).toLowerCase() === 'ng') return ['NG', 'NOGO'].includes(String(val).toUpperCase());
+                const v = parseFloat(val), l = parseFloat(min), u = parseFloat(max);
+                return isNaN(v) || v < l || v > u;
+            }
+
+            function checkHeaderValidation() {
+                return personNameInput.value.trim() !== "" &&
+                    qcTechInput.value !== "" &&
+                    settingInput.value !== "";
+            }
+
+            function showZone() {
+                const zone = buyOffData[currentZoneIndex];
+                zoneContainer.innerHTML = `
+        <div class="zone-card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span style="background:#2c3e50; color:white; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:bold;">
+                    ACCEPTED ITEMS: ${acceptedItemCount} / 5
+                </span>
+                <span class="info-label">Point: ${zone.Point_DWG_Zone}</span>
+            </div>
+            <div class="spec-grid">
+                <div class="spec-item"><span class="spec-label">Instrument</span><br><span class="spec-val">${zone.Measuring_Instrument}</span></div>
+                <div class="spec-item"><span class="spec-label">Min / OK</span><br><span class="spec-val">${zone.LSL_OK}</span></div>
+                <div class="spec-item"><span class="spec-label">Max / NG</span><br><span class="spec-val">${zone.USL_NG}</span></div>
+            </div>
+            <div class="reading-section">
+                <label class="info-label">Enter Measurement for Item ${acceptedItemCount + 1}</label>
+                <input type="text" id="reading-input-main" class="reading-input" value="${currentItemReadings[currentZoneIndex]}" />
+            </div>
+        </div>
+    `;
+                const input = document.getElementById('reading-input-main');
+                input.focus();
+
+                // Validation check
+                const validateInput = () => {
+                    currentItemReadings[currentZoneIndex] = input.value.trim();
+                    nextButton.disabled = !(input.value.trim() !== "" && checkHeaderValidation());
+                };
+
+                input.oninput = validateInput;
+                personNameInput.oninput = validateInput;
+                qcTechInput.onchange = validateInput;
+                settingInput.onchange = validateInput;
+
+                input.onkeydown = (e) => { if (e.key === 'Enter' && !nextButton.disabled) nextButton.click(); };
+
+                document.getElementById('ipqc-image').src = zone.Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
+                backButton.disabled = currentZoneIndex === 0;
+                nextButton.textContent = (currentZoneIndex === buyOffData.length - 1) ? "Validate Item" : "Next Point";
+
+                validateInput(); // Initial check
+            }
+
+            nextButton.onclick = async () => {
+                if (currentZoneIndex < buyOffData.length - 1) {
+                    currentZoneIndex++;
+                    showZone();
+                    updateProgressUI();
+                } else {
+                    await handleItemCompletion();
+                }
+            };
+
+            async function handleItemCompletion() {
+                let itemHasNg = false;
+                const attemptId = Date.now();
+
+                currentItemReadings.forEach((val, idx) => {
+                    const spec = buyOffData[idx];
+                    if (isNg(val, spec.LSL_OK, spec.USL_NG)) {
+                        itemHasNg = true;
+                    }
+                });
+
+                // 2. LOG TO DATABASE
+                // Example of lowercase payload
+                const logPayload = buyOffData.map((spec, idx) => ({
+                    part_name: partName,
+                    process: processName,
+                    jo_number: joNumber,
+                    machine: machineNumber,
+                    person: personNameInput.value,
+                    qc_technician: qcTechInput.value,
+                    point_dwg_zone: spec.Point_DWG_Zone,
+                    reading_value: currentItemReadings[idx],
+                    status: isNg(currentItemReadings[idx], spec.LSL_OK, spec.USL_NG) ? 'NG' : 'OK',
+                    attempt_group: attemptId
+                }));
+
+                await supabaseClient.from('data_buyoff_logs').insert(logPayload);
+
+                if (itemHasNg) {
+                    alert("🚨 ITEM NG! Recording failed attempt. Please adjust and re-measure a NEW item.");
+                    currentItemReadings = new Array(buyOffData.length).fill('');
+                    currentZoneIndex = 0;
+                    showZone();
+                    updateProgressUI();
+                } else {
+                    finalAcceptedData.push([...currentItemReadings]);
+                    acceptedItemCount++;
+
+                    if (acceptedItemCount < 5) {
+                        alert(`✅ Item ${acceptedItemCount} Accepted! Please measure Item ${acceptedItemCount + 1}.`);
+                        currentItemReadings = new Array(buyOffData.length).fill('');
+                        currentZoneIndex = 0;
+                        showZone();
+                        updateProgressUI();
+                    } else {
+                        finalizeAndRedirect(attemptId);
+                    }
+                }
+            }
+
+            function finalizeAndRedirect(lastId) {
+                const summaryFormat = buyOffData.map((zone, zIdx) => {
+                    return {
+                        ...zone,
+                        Reading_1: finalAcceptedData[0][zIdx],
+                        Reading_2: finalAcceptedData[1][zIdx],
+                        Reading_3: finalAcceptedData[2][zIdx],
+                        Reading_4: finalAcceptedData[3][zIdx],
+                        Reading_5: finalAcceptedData[4][zIdx],
+                        Attempt_Group: lastId
+                    };
+                });
+
+                localStorage.setItem('summaryData', JSON.stringify(summaryFormat));
+                localStorage.setItem('personName', personNameInput.value);
+                localStorage.setItem('qcTechnician', qcTechInput.value);
+                localStorage.setItem('settingType', settingInput.value);
+                localStorage.setItem('partName', partName);
+                localStorage.setItem('processName', processName);
+                localStorage.setItem('joNumber', joNumber);
+                localStorage.setItem('machineNumber', machineNumber);
+                localStorage.setItem('lastAttemptGroup', lastId);
+
+                window.location.href = 'BUYOFF-page2.html';
+            }
+
+            function renderProgress() {
                 progressIndicator.innerHTML = '';
                 buyOffData.forEach((_, i) => {
                     const step = document.createElement('div');
                     step.className = 'progress-step';
                     step.textContent = i + 1;
-                    step.onclick = () => {
-                        saveState();
-                        currentZoneIndex = i;
-                        showCurrentZone();
-                        updateProgressUI();
-                        step.scrollIntoView({ behavior: 'smooth', inline: 'center' });
-                    };
                     progressIndicator.appendChild(step);
                 });
                 updateProgressUI();
@@ -492,102 +624,17 @@
             function updateProgressUI() {
                 const steps = document.querySelectorAll('.progress-step');
                 steps.forEach((step, idx) => {
-                    const r = userReadings[idx];
-                    const isDone = r.reading1 && r.reading2 && r.reading3 && r.reading4 && r.reading5;
-                    step.classList.remove('active', 'completed');
-                    step.innerHTML = idx + 1;
-
-                    if (idx === currentZoneIndex) {
-                        step.classList.add('active');
-                    } else if (isDone) {
-                        step.classList.add('completed');
-                        step.innerHTML = '✓';
-                    }
+                    step.classList.toggle('active', idx === currentZoneIndex);
+                    step.classList.toggle('completed', currentItemReadings[idx] !== "");
                 });
             }
 
-            function showCurrentZone() {
-                const zone = buyOffData[currentZoneIndex];
-                zoneContainer.innerHTML = `
-                    <div class="zone-card">
-                        <div class="zone-header">
-                            <h3 class="zone-title">Zone ${currentZoneIndex + 1}</h3>
-                            <div class="info-label">${zone.Point_DWG_Zone}</div>
-                        </div>
-                        <div class="spec-grid">
-                            <div class="spec-item"><span class="spec-label">Instrument</span><br><span class="spec-val">${zone.Measuring_Instrument}</span></div>
-                            <div class="spec-item"><span class="spec-label">Min / OK</span><br><span class="spec-val">${zone.LSL_OK}</span></div>
-                            <div class="spec-item"><span class="spec-label">Max / NG</span><br><span class="spec-val">${zone.USL_NG}</span></div>
-                            <div class="spec-item"><span class="spec-label">SC</span><br><span class="spec-val">${zone.SC || '-'}</span></div>
-                        </div>
-                        <div class="reading-section">
-                            ${[1, 2, 3, 4, 5].map(n => `
-                                <div class="input-wrapper">
-                                    <label class="info-label">Reading ${n}</label>
-                                    <input type="text" id="reading-input-${n}" class="reading-input" autocomplete="off" value="${userReadings[currentZoneIndex][`reading${n}`]}" />
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                [1, 2, 3, 4, 5].forEach(n => setupInputValidation(document.getElementById(`reading-input-${n}`), zone.LSL_OK, zone.USL_NG));
-                document.getElementById('reading-input-1').focus();
-                updateButtonStates();
-            }
-
-            function setupInputValidation(input, min, max) {
-                const isOkNg = String(min).toLowerCase() === 'ok' || String(max).toLowerCase() === 'ng';
-                input.oninput = () => {
-                    if (isOkNg) input.value = input.value.toUpperCase();
-                    checkValidation();
-                };
-                input.onkeydown = (e) => {
-                    if (e.key === 'Enter') {
-                        const nextId = parseInt(input.id.split('-').pop()) + 1;
-                        if (nextId <= 5) document.getElementById(`reading-input-${nextId}`).focus();
-                        else if (!nextButton.disabled) nextButton.click();
-                        else if (!submitButton.disabled) submitButton.click();
-                    }
-                };
-            }
-
-            function checkValidation() {
-                const r = [1, 2, 3, 4, 5].every(n => document.getElementById(`reading-input-${n}`).value.trim() !== "");
-                const h = personNameInput.value.trim() && qcTechnicianInput.value && settingTypeInput.value;
-                if (currentZoneIndex === buyOffData.length - 1) submitButton.disabled = !(r && h);
-                else nextButton.disabled = !(r && h);
-            }
-
-            function updateButtonStates() {
-                backButton.disabled = currentZoneIndex === 0;
-                if (currentZoneIndex === buyOffData.length - 1) {
-                    nextButton.classList.add('hidden');
-                    submitButton.classList.remove('hidden');
-                } else {
-                    nextButton.classList.remove('hidden');
-                    submitButton.classList.add('hidden');
+            backButton.onclick = () => {
+                if (currentZoneIndex > 0) {
+                    currentZoneIndex--;
+                    showZone();
+                    updateProgressUI();
                 }
-                checkValidation();
-            }
-
-            function saveState() {
-                for (let n = 1; n <= 5; n++) {
-                    const val = document.getElementById(`reading-input-${n}`);
-                    if (val) userReadings[currentZoneIndex][`reading${n}`] = val.value.trim();
-                }
-            }
-
-            nextButton.onclick = () => { saveState(); currentZoneIndex++; showCurrentZone(); updateProgressUI(); };
-            backButton.onclick = () => { saveState(); currentZoneIndex--; showCurrentZone(); updateProgressUI(); };
-            [personNameInput, qcTechnicianInput, settingTypeInput].forEach(el => el.onchange = checkValidation);
-
-            submitButton.onclick = async () => {
-                saveState();
-                localStorage.setItem('summaryData', JSON.stringify(buyOffData.map((z, i) => ({ ...z, ...userReadings[i] }))));
-                localStorage.setItem('personName', personNameInput.value);
-                localStorage.setItem('qcTechnician', qcTechnicianInput.value);
-                localStorage.setItem('settingType', settingTypeInput.value);
-                window.location.href = 'BUYOFF-page2.html';
             };
 
             fetchbuyOffData();

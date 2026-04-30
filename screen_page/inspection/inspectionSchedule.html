@@ -180,7 +180,17 @@
             max-width: 48rem;
             border-radius: 3rem;
             border: 1px solid rgba(0, 0, 0, 0.05);
-            overflow: visible;
+
+            /* ADD THESE LINES */
+            max-height: 90vh;
+            /* Prevent modal from going off-screen */
+            display: flex;
+            /* Use flex to manage header vs body */
+            flex-direction: column;
+            /* Stack header and body vertically */
+            overflow: hidden;
+            /* Hide the container's overflow */
+
             animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
@@ -196,6 +206,24 @@
             border-top-left-radius: 3rem;
             border-top-right-radius: 3rem;
             border-bottom: 1px solid #fbbf24;
+        }
+
+        .modal-body {
+            padding: 2.5rem;
+            /* Standardized padding */
+            overflow-y: auto;
+            /* Enable vertical scrolling */
+            flex: 1;
+            /* Take up remaining space */
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background-color: #e5e7eb;
+            border-radius: 10px;
         }
 
         .section-label {
@@ -214,6 +242,8 @@
             width: 100%;
             height: 3.5rem;
             padding: 0 1.5rem;
+            padding-right: 3rem !important;
+            /* Make room for the X button */
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 1.25rem;
@@ -222,25 +252,58 @@
             transition: all 0.2s;
         }
 
+        .clear-btn {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            transition: color 0.2s;
+            z-index: 20;
+            padding: 0.5rem;
+        }
+
+        .clear-btn:hover {
+            color: #ef4444;
+        }
+
         .form-input:focus {
             border-color: #fbbf24;
             outline: none;
             box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
         }
 
+        /* Fix: Ensure the replacement modal has enough vertical room */
+        .replacement-modal-body {
+            min-height: 350px;
+            /* Gives space for the dropdown to breathe */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Fix: Adjust dropdown list to prevent clipping and improve visibility */
         .dropdown-list {
             position: absolute;
-            top: 105%;
+            top: 100%;
+            /* Align directly under the input */
             left: 0;
             right: 0;
             background: #ffffff;
             border-radius: 1.25rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            z-index: 150;
-            max-height: 200px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            /* Stronger shadow */
+            z-index: 999;
+            /* Ensure it stays above everything */
+            max-height: 180px;
             overflow-y: auto;
-            border: 1px solid #fbbf24;
-            padding: 0.5rem;
+            border: 2px solid #fbbf24;
+            /* Thicker border for clarity */
+            margin-top: 5px;
+        }
+
+        /* Fix: Allow the modal content to show the dropdown if not using scrolling */
+        .modal-content.allow-overflow {
+            overflow: visible !important;
         }
 
         .dropdown-item {
@@ -347,61 +410,93 @@
                     <table class="w-full">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="table-th w-[25%]">Job Order & Part</th>
-                                <th class="table-th w-[20%]">Parameter</th>
-                                <th class="table-th w-[25%]">Assignment</th>
-                                <th class="table-th w-[20%]">Replacement</th>
-                                <th class="table-th w-[10%] text-right">Actions</th>
+                                <th class="table-th w-[20%]">Job Order & Part</th>
+                                <th class="table-th w-[10%]">Remaining Qty/Total</th>
+                                <th class="table-th w-[15%]">Parameter</th>
+                                <th class="table-th w-[20%]">Assignment</th>
+                                <th class="table-th w-[20%]">Est. Finished</th>
+                                <th class="table-th w-[15%] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <tr v-for="item in filteredSchedule" :key="item.id"
-                                class="hover:bg-gray-50 transition-all group">
+                                class="hover:bg-gray-50 transition-all group"
+                                :class="{'bg-red-50/50': isOverdue(item)}">
+
+                                <!-- Job & Part -->
                                 <td class="table-td">
                                     <div class="font-black text-yellow-600 text-base leading-tight mb-1">{{
                                         item.JO_Number }}</div>
                                     <div
-                                        class="text-[10px] text-neutral-400 font-bold uppercase tracking-tight max-w-[220px] truncate">
-                                        {{
-                                        item.Part_Name }}</div>
+                                        class="text-[10px] text-neutral-400 font-bold uppercase tracking-tight max-w-[200px] truncate">
+                                        {{ item.Part_Name }}
+                                    </div>
                                 </td>
+
+                                <!-- Quantity -->
+                                <td class="table-td">
+                                    <div class="font-bold text-sm">
+                                        <span class="text-red-600">{{ item.remaining_qty || 0 }}</span>
+                                        <span class="text-gray-300 mx-1">/</span>
+                                        <span class="text-gray-900">{{ item.quantity || 0 }}</span>
+                                        <span class="text-[9px] text-gray-400 font-black ml-1 uppercase">Balance</span>
+                                    </div>
+                                </td>
+
+                                <!-- Parameter -->
                                 <td class="table-td">
                                     <div
                                         class="inline-flex items-center gap-2 bg-gray-100 text-neutral-600 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border border-gray-200 uppercase whitespace-nowrap">
-                                        <i class="fa fa-tag text-[8px] opacity-50"></i> {{ item.Parameter || 'STANDARD'
-                                        }}
+                                        {{ item.Parameter || 'STANDARD' }}
                                     </div>
                                 </td>
+
+                                <!-- Assignment -->
                                 <td class="table-td">
-                                    <div
-                                        class="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-xl font-black text-[10px] border border-yellow-100 whitespace-nowrap">
-                                        <i class="fa fa-user-circle"></i> {{ item.AssignTo }}
+                                    <div class="flex flex-col gap-1">
+                                        <div
+                                            class="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-xl font-black text-[10px] border border-yellow-100 whitespace-nowrap w-fit">
+                                            <i class="fa fa-user-circle"></i> {{ item.AssignTo }}
+                                        </div>
+                                        <div v-if="item.Replacement && item.Replacement !== '-'"
+                                            class="text-[9px] text-blue-600 font-bold italic">
+                                            <i class="fa fa-exchange-alt mr-1"></i> Rep: {{ item.Replacement }}
+                                        </div>
                                     </div>
                                 </td>
+
+                                <!-- Estimated Finished -->
                                 <td class="table-td">
-                                    <div v-if="item.Replacement"
-                                        class="inline-flex items-center gap-2 bg-gray-100 text-neutral-500 px-4 py-2 rounded-xl font-black text-[10px] border border-gray-200 whitespace-nowrap">
-                                        <i class="fa fa-exchange-alt"></i> {{ item.Replacement }}
+                                    <div class="flex flex-col">
+                                        <div class="text-[10px] font-black uppercase flex items-center gap-1.5"
+                                            :class="isOverdue(item) ? 'text-red-600' : 'text-slate-700'">
+                                            <i class="fa fa-clock"
+                                                :class="isOverdue(item) ? 'text-red-500 animate-pulse' : 'text-yellow-500'"></i>
+                                            {{ formatDisplayTime(item.EstFinished) }}
+                                        </div>
+                                        <!-- Overdue text -->
+                                        <div v-if="isOverdue(item)"
+                                            class="text-[9px] font-bold text-red-500 mt-1 italic">
+                                            <i class="fa fa-exclamation-triangle mr-1"></i> {{
+                                            getOverdueDuration(item.EstFinished) }}
+                                        </div>
                                     </div>
-                                    <span v-else class="text-neutral-400 italic text-xs">None</span>
                                 </td>
+
+                                <!-- Actions -->
                                 <td class="table-td text-right">
                                     <div class="flex justify-end gap-1.5">
                                         <button @click="openReplaceModal(item)"
-                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-black hover:text-white">
+                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-black hover:text-white"
+                                            title="Replace Inspector">
                                             <i class="fa fa-user-edit text-sm"></i>
                                         </button>
                                         <button @click="markComplete(item)"
-                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-green-500 hover:text-white">
+                                            class="btn-action bg-gray-100 text-gray-400 hover:bg-green-500 hover:text-white"
+                                            title="Start/Complete">
                                             <i class="fa fa-check text-sm"></i>
                                         </button>
                                     </div>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredSchedule.length === 0">
-                                <td colspan="5" class="py-20 text-center">
-                                    <div class="text-gray-200 mb-2"><i class="fa fa-calendar-times text-5xl"></i></div>
-                                    <div class="text-gray-400 font-bold">No tasks found for this date.</div>
                                 </td>
                             </tr>
                         </tbody>
@@ -412,31 +507,48 @@
 
         <!-- Replacement Modal -->
         <div v-if="showReplaceModal" class="modal-overlay">
-            <div class="modal-content !max-w-md">
+            <!-- Added 'allow-overflow' class here -->
+            <div class="modal-content !max-w-md allow-overflow">
                 <div class="modal-header">
-                    <h3 class="font-black text-xl italic uppercase"><span class="text-yellow-400">Assign</span>
-                        Replacement</h3>
+                    <h3 class="font-black text-xl italic uppercase">
+                        <span class="text-yellow-400">Assign</span> Replacement
+                    </h3>
                     <button @click="showReplaceModal = false"><i class="fa fa-times"></i></button>
                 </div>
-                <div class="p-8 space-y-6">
-                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-4">
+
+                <!-- Added 'replacement-modal-body' class here -->
+                <div class="p-8 space-y-6 replacement-modal-body">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-2">
                         <div class="text-[10px] font-bold text-gray-400">CURRENTLY ASSIGNED TO</div>
                         <div class="font-black text-black">{{ selectedTask?.AssignTo }}</div>
                     </div>
+
                     <div class="relative">
                         <label class="section-label">Select Replacement Personnel</label>
-                        <input type="text" v-model="replacementName" @focus="dropdowns.replace = true"
-                            @blur="closeDropdown('replace')" placeholder="Search Inspector..." class="form-input">
-                        <div v-if="dropdowns.replace" class="dropdown-list">
-                            <div v-for="u in filterList(operators, replacementName)" :key="u"
-                                @mousedown="replacementName = u; dropdowns.replace = false" class="dropdown-item">{{ u
-                                }}</div>
+                        <div class="relative">
+                            <input type="text" v-model="replacementName" @focus="dropdowns.replace = true"
+                                @blur="closeDropdown('replace')" placeholder="Search Inspector..." class="form-input">
+                            <button v-if="replacementName" @click="replacementName = ''" class="clear-btn">
+                                <i class="fa fa-times-circle"></i>
+                            </button>
+
+                            <!-- Dropdown List -->
+                            <div v-if="dropdowns.replace" class="dropdown-list">
+                                <div v-for="u in filterList(operators, replacementName)" :key="u"
+                                    @mousedown="replacementName = u; dropdowns.replace = false" class="dropdown-item">
+                                    {{ u }}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button @click="submitReplacement"
-                        class="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-900 transition-colors shadow-lg">
-                        Update Assignment
-                    </button>
+
+                    <!-- Added margin-top to push button down and leave room for dropdown above it if needed -->
+                    <div class="pt-4">
+                        <button @click="submitReplacement"
+                            class="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-900 transition-colors shadow-lg">
+                            Update Assignment
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -454,58 +566,183 @@
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <div class="p-10 space-y-8">
+                <div class="modal-body space-y-8">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Select Part Name -->
                         <div class="relative">
-                            <label class="section-label">Select Part Name</label>
-                            <input type="text" v-model="newTask.part" @focus="dropdowns.part = true"
-                                @blur="closeDropdown('part')" placeholder="Search Part..." class="form-input">
+                            <label class="section-label">Select Part Name <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="text" v-model="newTask.part" @focus="dropdowns.part = true"
+                                    @blur="closeDropdown('part')" placeholder="Search Part..." class="form-input">
+
+                                <!-- Updated: Now calls clearForm -->
+                                <button v-if="newTask.part" @click="clearForm" class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
                             <div v-if="dropdowns.part" class="dropdown-list">
                                 <div v-for="p in filterList(distinctParts, newTask.part)" :key="p"
                                     @mousedown="selectPart(p)" class="dropdown-item">{{ p }}</div>
                             </div>
                         </div>
+
+                        <!-- Job Order Reference -->
                         <div class="relative">
                             <label class="section-label">Job Order Reference</label>
-                            <input type="text" v-model="newTask.jo" @focus="dropdowns.jo = true"
-                                @blur="closeDropdown('jo')" :disabled="!newTask.part" placeholder="Select JO..."
-                                class="form-input">
+                            <div class="relative">
+                                <input type="text" v-model="newTask.jo" @focus="dropdowns.jo = true"
+                                    @blur="closeDropdown('jo')" :disabled="!newTask.part" placeholder="Select JO..."
+                                    class="form-input">
+                                <button v-if="newTask.jo" @click="newTask.jo = ''" class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
                             <div v-if="dropdowns.jo" class="dropdown-list">
                                 <div v-for="j in filterList(availableJOs, newTask.jo)" :key="j"
                                     @mousedown="newTask.jo = j; dropdowns.jo = false" class="dropdown-item">{{ j }}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="relative">
-                        <label class="section-label">Parameter / Spec</label>
-                        <input type="text" v-model="newTask.param" @focus="dropdowns.param = true"
-                            @blur="closeDropdown('param')" placeholder="Select Specification..." class="form-input">
-                        <div v-if="dropdowns.param" class="dropdown-list">
-                            <div v-for="p in filterList(guideParams, newTask.param)" :key="p"
-                                @mousedown="selectParam(p)" class="dropdown-item">{{ p }}</div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                        <!-- Parameter / Spec Input -->
                         <div class="relative">
-                            <label class="section-label">Assign To Personnel</label>
-                            <input type="text" v-model="newTask.user" @focus="dropdowns.user = true"
-                                @blur="closeDropdown('user')" placeholder="Select Inspector..." class="form-input">
+                            <label class="section-label">Parameter / Spec<span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="text" v-model="newTask.param" @focus="dropdowns.param = true"
+                                    @blur="closeDropdown('param')"
+                                    :placeholder="newTask.part ? 'Select or type new...' : 'Select Part first...'"
+                                    class="form-input">
+                                <button v-if="newTask.param" @click="newTask.param = ''; newTask.paramDetails = '';"
+                                    class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
+
+                            <div v-if="dropdowns.param" class="dropdown-list">
+                                <!-- Loop through allSortedParams -->
+                                <div v-for="pObj in filterList(allSortedParams, newTask.param, 'Parameter')"
+                                    :key="pObj.id" @mousedown="selectParam(pObj)"
+                                    class="dropdown-item flex justify-between items-center">
+
+                                    <span>{{ pObj.Parameter }}</span>
+
+                                    <!-- Visual indicator for related items (Top items) -->
+                                    <span v-if="filteredParams.some(fp => fp.id === pObj.id)"
+                                        class="text-[9px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-black uppercase">
+                                        Related
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Process and Cycle Time (Now auto-filled or recorded) -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative">
+                                <label class="section-label">Process</label>
+                                <input type="text" v-model="newTask.process" placeholder="e.g. Plating"
+                                    class="form-input">
+                            </div>
+                            <div class="relative">
+                                <label class="section-label">Cycle Time (sec)</label>
+                                <input type="number" v-model="newTask.cycleTime" @input="calculateTime"
+                                    placeholder="0.0" class="form-input">
+                            </div>
+                        </div>
+
+                        <!-- Parameter Details (remains the same) -->
+                        <div class="relative">
+                            <label class="section-label">Parameter Details</label>
+                            <div class="relative">
+                                <input type="text" v-model="newTask.paramDetails"
+                                    placeholder="Auto-filled from guide..." class="form-input">
+                                <button v-if="newTask.paramDetails" @click="newTask.paramDetails = ''"
+                                    class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Assign To Personnel -->
+                        <div class="relative">
+                            <label class="section-label">Assign To Personnel<span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="text" v-model="newTask.user" @focus="dropdowns.user = true"
+                                    @blur="closeDropdown('user')" placeholder="Select Inspector..." class="form-input">
+                                <button v-if="newTask.user" @click="newTask.user = ''" class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
                             <div v-if="dropdowns.user" class="dropdown-list">
                                 <div v-for="u in filterList(operators, newTask.user)" :key="u"
                                     @mousedown="newTask.user = u; dropdowns.user = false" class="dropdown-item">{{ u }}
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Start Date & Time -->
                         <div class="relative">
-                            <label class="section-label">Scheduled Start Date</label>
-                            <input type="date" v-model="newTask.startDate" class="form-input">
+                            <label class="section-label">Scheduled Start Date & Time</label>
+                            <input type="datetime-local" v-model="newTask.startDateTime" @change="calculateTime"
+                                class="form-input">
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="relative">
+                            <label class="section-label">Inspection Quantity</label>
+                            <input type="number" v-model="newTask.quantity" @input="calculateTime"
+                                placeholder="Enter Qty" class="form-input">
+                        </div>
+
+
+                        <!-- Calculation Result Display -->
+
+
+
+                    </div>
+
+                    <div v-if="newTask.cycleTime > 0"
+                        class="relative overflow-hidden bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl border-b-8 border-yellow-500">
+                        <!-- Decorative background icon -->
+                        <i class="fa fa-business-time absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"></i>
+
+                        <div
+                            class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                                    <div class="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em]">
+                                        Estimated Completion</div>
+                                </div>
+                                <div class="text-3xl font-black italic tracking-tighter">
+                                    {{ formatDisplayTime(newTask.estFinished) }}
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-1 font-bold">
+                                    <i class="fa fa-info-circle mr-1"></i> Respects 08:00 - 18:00 Shift & 1hr
+                                    Lunch
+                                    Break
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 min-w-[140px]">
+                                <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Working
+                                    Duration
+                                </div>
+                                <div class="text-2xl font-black text-yellow-400">{{ newTask.estimatedDuration }}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button @click="addTask" :disabled="loading"
+
+                    <!-- Find this button near the end of the Add Task Modal -->
+                    <button @click="addTask" :disabled="!isFormValid"
+                        :class="{'opacity-50 cursor-not-allowed': !isFormValid}"
                         class="w-full bg-yellow-400 text-black py-6 rounded-[1.5rem] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-yellow-400/20 hover:bg-yellow-300">
-                        <i v-if="loading" class="fa fa-sync fa-spin"></i> Confirm Assignment
+                        <i v-if="loading" class="fa fa-sync fa-spin"></i>
+                        <span v-if="!isFormValid">Fill Required Fields</span>
+                        <span v-else>Confirm Assignment</span>
                     </button>
+
                 </div>
             </div>
         </div>
@@ -530,46 +767,202 @@
                 const filterDate = ref(new Date().toISOString().split('T')[0]);
                 const showAddModal = ref(false);
                 const showReplaceModal = ref(false);
-
                 const selectedTask = ref(null);
                 const replacementName = ref('');
-                const newTask = ref({ jo: '', part: '', param: '', user: '', startDate: new Date().toISOString().split('T')[0] });
+
+                // Add this near your other refs
+                const isSaturdayOT = ref(false);
+
+                // Update newTask to include this if you want to save it to DB, 
+                // otherwise just use the ref above for calculation.
+                // Function to get current local ISO string for datetime-local input
+                const getLocalISO = () => {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    return now.toISOString().slice(0, 16);
+                };
+
+                const isOverdue = (item) => {
+                    if (!item.EstFinished) return false;
+                    // Overdue if current time is past EstFinished
+                    return new Date() > new Date(item.EstFinished);
+                };
+
+                const getOverdueDuration = (isoString) => {
+                    const diff = new Date() - new Date(isoString);
+                    if (diff <= 0) return '';
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    return `${hours}h ${minutes}m overdue`;
+                };
+
+                const newTask = ref({
+                    jo: '',
+                    part: '',
+                    param: '',
+                    paramDetails: '',
+                    user: '',
+                    startDateTime: getLocalISO(), // Changed from startDate
+                    process: '',
+                    cycleTime: '',
+                    quantity: 1,
+                    estimatedDuration: '', // e.g., "1h 20m"
+                    estFinished: ''        // ISO Timestamp for DB
+                });
+
+                const calculateTime = () => {
+                    const qty = parseFloat(newTask.value.quantity) || 0;
+                    const cycle = parseFloat(newTask.value.cycleTime) || 0;
+                    let remainingSeconds = qty * cycle;
+
+                    // Format duration display
+                    const hDisplay = Math.floor(remainingSeconds / 3600);
+                    const mDisplay = Math.floor((remainingSeconds % 3600) / 60);
+                    const sDisplay = Math.round(remainingSeconds % 60);
+                    newTask.value.estimatedDuration = remainingSeconds > 0
+                        ? `${hDisplay > 0 ? hDisplay + 'h ' : ''}${mDisplay}m ${sDisplay}s`
+                        : "0s";
+
+                    if (!newTask.value.startDateTime || remainingSeconds <= 0) {
+                        newTask.value.estFinished = newTask.value.startDateTime;
+                        return;
+                    }
+
+                    let current = new Date(newTask.value.startDateTime);
+
+                    while (remainingSeconds > 0) {
+                        const day = current.getDay(); // 0 = Sun, 6 = Sat
+                        const year = current.getFullYear();
+                        const month = current.getMonth();
+                        const date = current.getDate();
+
+                        // 1. SKIP WEEKENDS
+                        // If Sunday, always skip to Monday 8am
+                        if (day === 0) {
+                            current = new Date(year, month, date + 1, 8, 0, 0);
+                            continue;
+                        }
+                        // If Saturday and OT is OFF, skip to Monday 8am
+                        if (day === 6 && !isSaturdayOT.value) {
+                            current = new Date(year, month, date + 2, 8, 0, 0);
+                            continue;
+                        }
+
+                        // 2. DEFINE SHIFT (8am-6pm) and NEW LUNCH (1pm-2pm)
+                        const shiftStart = new Date(year, month, date, 8, 0, 0);
+                        const lunchStart = new Date(year, month, date, 13, 0, 0); // Changed to 1pm
+                        const lunchEnd = new Date(year, month, date, 14, 0, 0);   // Changed to 2pm
+                        const shiftEnd = new Date(year, month, date, 18, 0, 0);
+
+                        if (current >= shiftEnd) {
+                            current = new Date(year, month, date + 1, 8, 0, 0);
+                            continue;
+                        }
+                        if (current < shiftStart) current = shiftStart;
+                        if (current >= lunchStart && current < lunchEnd) current = lunchEnd;
+
+                        // 3. CALCULATE SEGMENT
+                        let nextBoundary = (current < lunchStart) ? lunchStart : shiftEnd;
+                        let availableSeconds = (nextBoundary - current) / 1000;
+
+                        if (remainingSeconds <= availableSeconds) {
+                            current = new Date(current.getTime() + (remainingSeconds * 1000));
+                            remainingSeconds = 0;
+                        } else {
+                            remainingSeconds -= availableSeconds;
+                            current = nextBoundary;
+                        }
+                    }
+                    newTask.value.estFinished = current.toISOString();
+                };
+
+                // Formatting helper for the UI display
+                const formatDisplayTime = (isoString) => {
+                    if (!isoString) return '--';
+                    const date = new Date(isoString);
+                    return date.toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                };
+
                 const dropdowns = ref({ part: false, jo: false, param: false, user: false, replace: false });
 
                 const distinctParts = ref([]);
                 const availableJOs = ref([]);
                 const guideParams = ref([]);
                 const operators = ref([]);
+                const guideMapping = ref([]);
+
+                const guideDetails = ref([]); // To store the mapping table
+                const filteredParams = ref([]); // Just the related ones
+                const allSortedParams = ref([]); // Related at top + Others at bottom
 
                 const fetchData = async () => {
                     loading.value = true;
                     try {
-                        const [sRes, pRes, gRes, cRes] = await Promise.all([
+                        const [sRes, pRes, gRes, cRes, gdRes] = await Promise.all([
                             api.get('/InspectionSchedule?select=*&order=id.desc'),
-                            api.get('/JobOrder?select=Part_Name'),
-                            api.get('/InspectionGuide?select=Parameter'),
-                            api.get('/InspectionChecker?select=CheckerName')
+                            api.get('/Parts?select=Part_Name'),
+                            // Fetch ID, Parameter, and Details for mapping
+                            api.get('/InspectionGuide?select=id,Parameter,Details'),
+                            api.get('/InspectionChecker?select=CheckerName'),
+                            // Fetch the new mapping table
+                            api.get('/InspectionGuideDetails?select=*')
                         ]);
+
                         schedule.value = sRes.data;
                         distinctParts.value = [...new Set(pRes.data.map(i => i.Part_Name))].filter(Boolean).sort();
-                        guideParams.value = [...new Set(gRes.data.map(i => i.Parameter))].filter(Boolean).sort();
+
+                        // Store full guide list for lookup by ID later
+                        guideMapping.value = gRes.data;
+
                         operators.value = [...new Set(cRes.data.map(i => i.CheckerName))].filter(Boolean).sort();
-                    } catch (err) { console.error(err); }
-                    finally { loading.value = false; }
+
+                        // Store the part-to-ids mapping
+                        guideDetails.value = gdRes.data;
+
+                    } catch (err) {
+                        console.error("FULL ERROR DETAILS:");
+                        if (err.response) {
+                            // This is the specific message from the Database
+                            console.error("Status:", err.response.status);
+                            console.error("Data:", err.response.data);
+                            alert(`Database Error: ${err.response.data.message || "Unknown Error"}`);
+                        } else {
+                            console.error("Error:", err.message);
+                        }
+                    } finally {
+                        loading.value = false;
+                    }
                 };
 
                 const filteredSchedule = computed(() => {
-                    if (!filterDate.value) return schedule.value;
-                    return schedule.value.filter(item => item.created_at.startsWith(filterDate.value));
+                    return schedule.value.filter(item => {
+                        const remaining = parseFloat(item.remaining_qty) || 0;
+                        const total = parseFloat(item.quantity) || 0;
+
+                        // ONLY show if remaining is exactly equal to the total quantity
+                        // (Meaning not a single piece has been inspected yet)
+                        return remaining === total && total > 0;
+                    });
                 });
 
-                const markComplete = async (item) => {
-                    if (!confirm(`Mark ${item.JO_Number} as complete?`)) return;
-                    try {
-                        await api.delete(`/InspectionSchedule?id=eq.${item.id}`);
-                        Toastify({ text: "Task completed", style: { background: "#fbbf24", color: "#000", borderRadius: "12px" } }).showToast();
-                        fetchData();
-                    } catch (err) { console.error(err); }
+                const markComplete = (item) => {
+                    const params = new URLSearchParams({
+                        schedId: item.id,
+                        part: item.Part_Name, // This will now correctly be the full string
+                        part_no: item.part_no, // Pass the short code separately if needed
+                        jo: item.JO_Number,
+                        param: item.Parameter,
+                        inspector: item.AssignTo,
+                        targetQty: item.quantity || 0
+                    });
+                    window.location.href = `inspectionCheckerForm.html?${params.toString()}`;
                 };
 
                 const openReplaceModal = (item) => {
@@ -588,34 +981,248 @@
                     } catch (err) { console.error(err); }
                 };
 
-                const filterList = (list, search) => !search ? list : list.filter(i => String(i).toLowerCase().includes(search.toLowerCase()));
+                const filterList = (list, search, key = null) => {
+                    if (!search) return list;
 
-                const selectPart = async (p) => {
-                    newTask.value.part = p; dropdowns.value.part = false;
-                    const res = await api.get(`/JobOrder?Part_Name=eq.${encodeURIComponent(p)}&select=JO_Number`);
-                    availableJOs.value = [...new Set(res.data.map(i => i.JO_Number))].filter(Boolean).sort();
+                    // 1. Normalize the search term: lowercase and remove dots, spaces, and dashes
+                    const normalizedSearch = search.toLowerCase().replace(/[.\s-]/g, '');
+
+                    return list.filter(item => {
+                        const val = key ? item[key] : item;
+                        const stringVal = String(val).toLowerCase();
+
+                        // 2. Normalize the item value the same way
+                        const normalizedVal = stringVal.replace(/[.\s-]/g, '');
+
+                        // 3. Compare the cleaned versions
+                        return normalizedVal.includes(normalizedSearch);
+                    });
                 };
 
-                const selectParam = (p) => { newTask.value.param = p; dropdowns.value.param = false; };
+                const selectPart = async (selectedPartName) => {
+                    newTask.value.part = selectedPartName;
+                    dropdowns.value.part = false;
+
+                    // 1. Extract the Part Number (e.g., K.315D31-L0200140)
+                    const match = selectedPartName.match(/\(([^)]+)\)/);
+                    const partNo = match ? match[1].trim() : selectedPartName;
+
+                    try {
+                        // 2. USE % INSTEAD OF * FOR THE WILDCARD
+                        // Also simplified the query to prioritize the extracted part number
+                        const [resJO, resSched] = await Promise.all([
+                            api.get(`/JobOrder?Part_Name=ilike.%${encodeURIComponent(partNo)}%&select=JO_Number`),
+                            api.get(`/InspectionSchedule?part_no=eq.${encodeURIComponent(partNo)}&select=JO_Number`)
+                        ]);
+
+                        console.log("JobOrder results:", resJO.data);
+
+                        // 3. Merge results and clean up 
+                        const combined = [...resJO.data, ...resSched.data];
+
+                        // Extract numbers and remove duplicates
+                        availableJOs.value = [...new Set(combined.map(i => i.JO_Number))]
+                            .filter(jo => jo && jo !== '-' && jo !== 'EMPTY' && jo !== 'null')
+                            .sort();
+
+                        // 4. Handle Parameter Mapping (Keep your existing logic here)
+                        const mapping = guideDetails.value.find(detail =>
+                            selectedPartName.toUpperCase().includes(detail.part_no.toUpperCase())
+                        );
+
+                        let relatedIds = [];
+                        if (mapping && mapping.inspection_ids) {
+                            relatedIds = mapping.inspection_ids.map(id => String(id));
+                        }
+
+                        const related = guideMapping.value.filter(g => relatedIds.includes(String(g.id)));
+                        const others = guideMapping.value.filter(g => !relatedIds.includes(String(g.id)));
+
+                        allSortedParams.value = [...related, ...others];
+                        filteredParams.value = related;
+
+                        if (related.length > 0) {
+                            selectParam(related[0]);
+                        }
+                    } catch (err) {
+                        console.error("API Error fetching JOs:", err);
+                    }
+                };
+
+
+                const clearForm = () => {
+                    // Reset form fields
+                    newTask.value.part = '';
+                    newTask.value.jo = '';
+                    newTask.value.param = '';
+                    newTask.value.paramDetails = '';
+                    // Optional: Uncomment below if you want to clear user/date too
+                    // newTask.value.user = ''; 
+
+                    // Reset dependent dropdown data
+                    availableJOs.value = [];
+                    filteredParams.value = [];
+                };
+
+                const isFormValid = computed(() => {
+                    return (
+                        newTask.value.part &&
+                        newTask.value.param &&
+                        newTask.value.user &&
+                        !loading.value
+                    );
+                });
+
+
+
+
+                // Add this to your selectParam function
+                const selectParam = (paramObj) => {
+                    if (!paramObj) return;
+
+                    // 1. Set the basic parameter info from InspectionGuide
+                    newTask.value.param = paramObj.Parameter;
+                    newTask.value.paramDetails = paramObj.Details || '';
+                    dropdowns.value.param = false;
+
+                    // 2. Try to find if this part + parameter + process is already mapped in InspectionGuideDetails
+                    const specId = String(paramObj.id);
+
+                    // We look through guideDetails (the mapping table)
+                    const mapping = guideDetails.value.find(detail => {
+                        const isPartMatch = newTask.value.part.includes(detail.part_no);
+                        const hasId = detail.inspection_ids && detail.inspection_ids.includes(specId);
+                        return isPartMatch && hasId;
+                    });
+
+                    if (mapping) {
+                        // Auto-fill Process and Cycle Time from the mapping
+                        newTask.value.process = mapping.process;
+                        const idIndex = mapping.inspection_ids.indexOf(specId);
+                        if (idIndex !== -1 && mapping.cycle_times && mapping.cycle_times[idIndex]) {
+                            newTask.value.cycleTime = mapping.cycle_times[idIndex];
+                        }
+                    }
+                    // Note: If no mapping is found, user manually enters Process/Cycle Time
+                };
+
+                // --- Updated addTask function ---
+
+                const addTask = async () => {
+                    if (!newTask.value.part || !newTask.value.param || !newTask.value.process || !newTask.value.user) {
+                        Toastify({
+                            text: "Please fill in Part Name, Parameter, and Assign To",
+                            style: { background: "#ef4444", color: "#fff" }
+                        }).showToast(); return;
+                    }
+
+                    loading.value = true;
+                    try {
+                        // 1. CLEAN DATA
+                        const fullPartName = newTask.value.part.trim();
+                        const match = fullPartName.match(/\(([^)]+)\)/);
+                        const partNoOnly = match ? match[1].trim().toUpperCase() : fullPartName.toUpperCase();
+                        const currentParam = newTask.value.param.trim();
+                        const currentProcess = newTask.value.process.trim();
+
+                        // --- STEP 1: Handle InspectionGuide (Master Spec) ---
+                        // We use 'on_conflict' to handle parameters that might already exist
+                        const specRes = await api.post('/InspectionGuide', {
+                            Parameter: currentParam,
+                            Details: newTask.value.paramDetails
+                        }, {
+                            headers: {
+                                'Prefer': 'return=representation,resolution=merge',
+                                'on_conflict': 'Parameter' // Tells DB to ignore or update if Parameter exists
+                            }
+                        });
+
+                        // Get the ID (either from the new insert or the existing one)
+                        let parameterId;
+                        if (specRes.data && specRes.data.length > 0) {
+                            parameterId = specRes.data[0].id;
+                        } else {
+                            // Fallback: If merge didn't return data, find it in your local list
+                            const found = guideMapping.value.find(g => g.Parameter.toLowerCase() === currentParam.toLowerCase());
+                            parameterId = found ? found.id : null;
+                        }
+
+                        if (!parameterId) throw new Error("Could not determine Parameter ID");
+
+                        // --- STEP 2: Handle InspectionGuideDetails (The Mapping Table) ---
+                        // We check for existing mapping one more time to merge arrays correctly
+                        const { data: existingMapping } = await api.get(
+                            `/InspectionGuideDetails?part_no=eq.${partNoOnly}&process=eq.${currentProcess}`
+                        );
+
+                        const currentCycleTime = String(newTask.value.cycleTime || "0");
+                        const idStr = String(parameterId);
+
+                        if (existingMapping.length > 0) {
+                            const mapEntry = existingMapping[0];
+                            let ids = Array.isArray(mapEntry.inspection_ids) ? mapEntry.inspection_ids : [];
+                            let times = Array.isArray(mapEntry.cycle_times) ? mapEntry.cycle_times : [];
+
+                            const existingIndex = ids.indexOf(idStr);
+                            if (existingIndex !== -1) {
+                                times[existingIndex] = currentCycleTime;
+                            } else {
+                                ids.push(idStr);
+                                times.push(currentCycleTime);
+                            }
+
+                            await api.patch(`/InspectionGuideDetails?id=eq.${mapEntry.id}`, {
+                                inspection_ids: ids,
+                                cycle_times: times
+                            });
+                        } else {
+                            // Use POST but include upsert headers just in case of a race condition
+                            await api.post('/InspectionGuideDetails', {
+                                part_no: partNoOnly,
+                                process: currentProcess,
+                                inspection_ids: [idStr],
+                                cycle_times: [currentCycleTime]
+                            }, {
+                                headers: { 'Prefer': 'resolution=merge' }
+                            });
+                        }
+
+                        // --- STEP 3: Save to InspectionSchedule ---
+                        await api.post('/InspectionSchedule', {
+                            JO_Number: newTask.value.jo.toUpperCase().trim(),
+                            Part_Name: fullPartName,
+                            part_no: partNoOnly,
+                            Parameter: currentParam,
+                            param_details: newTask.value.paramDetails,
+                            AssignTo: newTask.value.user,
+                            created_at: new Date().toISOString(),
+                            StartDate: new Date(newTask.value.startDateTime).toISOString(),
+                            EstFinished: newTask.value.estFinished,
+                            Replacement: "-",
+                            quantity: newTask.value.quantity,
+                            remaining_qty: newTask.value.quantity,
+                            Status: 'Pending'
+                        });
+
+                        Toastify({
+                            text: `Saved Successfully!`,
+                            style: { background: "#10b981", color: "#fff", borderRadius: "10px" }
+                        }).showToast();
+
+                        showAddModal.value = false;
+                        fetchData();
+                    } catch (err) {
+                        console.error("Detailed Error:", err.response?.data || err);
+                        const errorMsg = err.response?.data?.message || err.response?.data?.details || "Conflict in data entry";
+                        alert("Database Error: " + errorMsg);
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
                 const closeDropdown = (type) => setTimeout(() => dropdowns.value[type] = false, 250);
                 const openModal = () => { newTask.value = { jo: '', part: '', param: '', user: '', startDate: new Date().toISOString().split('T')[0] }; showAddModal.value = true; };
 
-                const addTask = async () => {
-                    loading.value = true;
-                    try {
-                        await api.post('/InspectionSchedule', {
-                            JO_Number: newTask.value.jo.toUpperCase(),
-                            Part_Name: newTask.value.part.toUpperCase(),
-                            Parameter: newTask.value.param,
-                            AssignTo: newTask.value.user,
-                            StartDate: newTask.value.startDate,
-                            created_at: new Date().toISOString()
-                        });
-                        Toastify({ text: "Task Assigned!", style: { background: "#fbbf24", color: "#000", borderRadius: "12px" } }).showToast();
-                        showAddModal.value = false;
-                        fetchData();
-                    } catch (err) { console.error(err); } finally { loading.value = false; }
-                };
 
                 onMounted(fetchData);
 
@@ -623,7 +1230,10 @@
                     schedule, loading, filterDate, filteredSchedule, showAddModal, showReplaceModal,
                     newTask, replacementName, selectedTask, distinctParts, availableJOs,
                     guideParams, operators, dropdowns, filterList, selectPart, selectParam,
-                    closeDropdown, openModal, addTask, markComplete, openReplaceModal, submitReplacement, fetchData
+                    closeDropdown, openModal, addTask, markComplete, openReplaceModal, submitReplacement,
+                    newTask, calculateTime, formatDisplayTime, guideMapping, guideDetails, isOverdue,
+                    getOverdueDuration, isFormValid,
+                    fetchData, clearForm, filteredParams, allSortedParams, filterList, // Added clearForm and filteredParams
                 };
             }
         }).mount('#app');

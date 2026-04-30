@@ -758,6 +758,7 @@
     let processCount = 0;
     let hoveredPasteZone = null;
     let currentPartId = null; // Tracks if we are editing an existing part
+    let originalPartName = null;
 
     document.addEventListener("DOMContentLoaded", () => {
       addRow();
@@ -922,11 +923,11 @@
 
     function loadPartForEdit(part) {
       currentPartId = part.id;
+      // Store the full original Part_Name from DB for comparison later
+      originalPartName = part.Part_Name;
 
       // Fill basic info
-      document.getElementById("partDescription").value = (
-        part.Part_Name || ""
-      ).split(" (")[0];
+      document.getElementById("partDescription").value = (part.Part_Name || "").split(" (")[0];
       document.getElementById("partNo").value = part.Part_Number || "";
       document.getElementById("rawMaterial").value = part.Raw_Material || "";
       document.getElementById("rawMaterialGrade").value =
@@ -965,6 +966,7 @@
 
     function resetForm() {
       currentPartId = null;
+      originalPartName = null;
       document.getElementById("partDescription").value = "";
       document.getElementById("partNo").value = "";
       document.getElementById("rawMaterial").value = "";
@@ -978,7 +980,7 @@
       document.getElementById("formTitle").innerText = "Generate New File";
       document.getElementById("resetBtn").style.display = "none";
       document.getElementById("editModeBadge").style.display = "none";
-      document.getElementById("processFlowBtn").style.display = "none"; 
+      document.getElementById("processFlowBtn").style.display = "none";
     }
 
     // Image & Paste logic
@@ -1085,7 +1087,9 @@
 
       document.getElementById("loading-overlay").style.display = "flex";
       const fullPartName = `${partDesc} (${partNo})`;
+      const sanitizedFolder = sanitizeName(fullPartName);
       localStorage.setItem("partDescription", fullPartName);
+      localStorage.setItem("folderName", sanitizedFolder); // <--- ADD THIS LINE
       localStorage.setItem("partNo", partNo);
       localStorage.setItem("rawMaterial", rawMat);
       localStorage.setItem("rawMaterialGrade", matGrade);
@@ -1097,7 +1101,7 @@
 
       try {
         const dbPayload = {
-          Part_Name: sanitizeName(fullPartName),
+          Part_Name: fullPartName,
           Part_Number: partNo,
           Raw_Material: rawMat,
           Raw_Material_Grade: matGrade,
@@ -1109,17 +1113,21 @@
         };
 
         let dbError;
-        if (currentPartId) {
+        if (currentPartId && fullPartName === originalPartName) {
+          // Name is the same: UPDATE existing row
           const { error } = await supabaseClient
             .from("Parts")
             .update(dbPayload)
             .eq("id", currentPartId);
           dbError = error;
+          console.log("Updating existing record...");
         } else {
+          // Name changed OR it's a brand new part: INSERT new row
           const { error } = await supabaseClient
             .from("Parts")
             .insert([dbPayload]);
           dbError = error;
+          console.log("Creating new record because name changed or new part...");
         }
         if (dbError) throw dbError;
 
@@ -1128,7 +1136,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            folderPath: `C:\\Users\\FamaxQC_Doc\\${sanitizeName(fullPartName)}`,
+            folderPath: `C:\\Users\\FamaxQC_Doc\\${sanitizedFolder}`,
             partDescription: partDesc,
             partNo,
             rawMaterial: rawMat,
