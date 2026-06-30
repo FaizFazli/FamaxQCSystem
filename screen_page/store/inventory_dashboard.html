@@ -13,6 +13,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -757,13 +758,8 @@
     </div>
 
     <script>
-<<<<<<< HEAD
-        const SB_URL = "http://192.168.2.195:8000";
-=======
-        // --- LOGIC: AS PROVIDED BY USER ---
-        const SB_URL = "http://192.168.0.5:8000";
->>>>>>> 72a833eef81a2bb1c3e77ad3b74afc275b7d1f8d
-        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const SB_URL = window.APP_CONFIG.url;
+        const SB_KEY = window.APP_CONFIG.key;
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let fullData = [];

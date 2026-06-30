@@ -13,6 +13,7 @@
 
   <!-- Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="/assets/app-config.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
@@ -387,7 +388,7 @@
     <div class="header-section">
       <div>
         <!-- Using local path as requested, ensure file exists -->
-        <img src=" http://192.168.2.195/FamaxQCSystem/assets/Famax.png" alt="Logo" class="logo" onerror="this.style.display='none'" />
+        <img id="logoImg" alt="Logo" class="logo" onerror="this.style.display='none'" />
       </div>
       <div class="header-content">
         <h1>FAMAX TECHNOLOGY (M) SDN BHD</h1>
@@ -474,6 +475,9 @@
 
     // --- Initialization ---
     document.addEventListener("DOMContentLoaded", () => {
+      // Logo source (routed through APP_CONFIG host)
+      document.getElementById("logoImg").src = `${window.APP_CONFIG.host}/FamaxQCSystem/assets/Famax.png`;
+
       // 1. Set Date automatically
       const today = new Date();
       document.getElementById("currentDate").textContent = `${String(
@@ -645,7 +649,7 @@
         formData.append("folderPath", `C:\\Users\\FamaxQC_Doc\\${safeFolderName}`);
         formData.append("documentType", "ProcessFlow");
 
-        const response = await fetch(`http://192.168.2.195/FamaxQCSystem/savePdf`, {
+        const response = await fetch(`${window.APP_CONFIG.host}/FamaxQCSystem/savePdf`, {
           method: "POST",
           body: formData,
         });

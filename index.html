@@ -1097,9 +1097,10 @@
         </main>
     </div>
 
+    <script src="/assets/app-config.js"></script>
     <script>
-        const API_URL = "http://192.168.2.195:8000";
-        const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const API_URL = window.APP_CONFIG.url;
+        const API_KEY = window.APP_CONFIG.key;
         const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
         const supabaseClient = axios.create({ baseURL: API_URL, headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` } });
 
@@ -1189,8 +1190,8 @@
             const templateSheet = workbook.worksheets[0];
 
             const [famaxBuf, confBuf] = await Promise.all([
-                getImageBuffer("http://192.168.2.195:8000/storage/v1/object/public/assets/Famax.png"),
-                getImageBuffer("http://192.168.2.195:8000/storage/v1/object/public/assets/Confidential.png"),
+                getImageBuffer(`${API_URL}/storage/v1/object/public/assets/Famax.png`),
+                getImageBuffer(`${API_URL}/storage/v1/object/public/assets/Confidential.png`),
             ]);
             const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
             const logoConf = workbook.addImage({ buffer: confBuf, extension: "png" });
@@ -1549,4 +1550,3 @@
 </body>
 
 </html>
->>>>>>> 7963f1678a2e054b37a9c967f0e2724fb58a42d3

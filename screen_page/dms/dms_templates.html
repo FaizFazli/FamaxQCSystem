@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Famax DMS - Document Viewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/assets/app-config.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <style>
@@ -146,7 +147,7 @@
         const { createApp, ref, onMounted } = Vue;
         createApp({
             setup() {
-                const baseUrl = "http://192.168.0.5";
+                const baseUrl = window.APP_CONFIG.host;
                 const productName = ref("4  KNOCKOUT DIE (N554205-C2D1)");
                 const revision = ref("REV-0");
                 const activeTab = ref('wi');

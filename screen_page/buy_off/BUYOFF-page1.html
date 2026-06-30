@@ -11,6 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/app-config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -425,8 +426,8 @@
             document.getElementById('selected-jo').textContent = joNumber || '-';
             document.getElementById('selected-machine').textContent = machineNumber || '-';
 
-            const supabaseUrl = 'http://192.168.2.195:8000';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+            const supabaseUrl = window.APP_CONFIG.url;
+            const supabaseKey = window.APP_CONFIG.key;
             const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
             // --- STATE ---
@@ -457,16 +458,7 @@
 
                     buyOffData = data.sort((a, b) => (parseInt(a.Point_DWG_Zone.replace(/\D/g, '')) || 0) - (parseInt(b.Point_DWG_Zone.replace(/\D/g, '')) || 0));
 
-<<<<<<< HEAD
-                    userReadings = buyOffData.map(() => ({ reading1: '', reading2: '', reading3: '', reading4: '', reading5: '' }));
-
-                    setupProgress();
-                    const imageElement = document.getElementById('ipqc-image');
-                    imageElement.src = buyOffData[0].Path.replace('http://localhost:8000', 'http://192.168.2.195:8000');
-                    imageElement.onclick = () => imageElement.classList.toggle('zoomed');
-=======
                     currentItemReadings = new Array(buyOffData.length).fill('');
->>>>>>> 72a833eef81a2bb1c3e77ad3b74afc275b7d1f8d
 
                     renderProgress();
                     showZone();
@@ -526,7 +518,7 @@
 
                 input.onkeydown = (e) => { if (e.key === 'Enter' && !nextButton.disabled) nextButton.click(); };
 
-                document.getElementById('ipqc-image').src = zone.Path.replace('http://localhost:8000', 'http://192.168.0.5:8000');
+                document.getElementById('ipqc-image').src = zone.Path.replace('http://localhost:8000', window.APP_CONFIG.url);
                 backButton.disabled = currentZoneIndex === 0;
                 nextButton.textContent = (currentZoneIndex === buyOffData.length - 1) ? "Validate Item" : "Next Point";
 

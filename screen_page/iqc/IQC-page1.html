@@ -8,6 +8,7 @@
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <!-- Add necessary libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -415,8 +416,8 @@
             }
 
             // Initialize Supabase client
-            const supabaseUrl = 'http://192.168.2.195:8000';
-            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+            const supabaseUrl = window.APP_CONFIG.url;
+            const supabaseKey = window.APP_CONFIG.key;
             
             const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
             
@@ -510,7 +511,7 @@
                     // We need a more robust approach to fix the URL
                     
                     // 1. First check if the URL already contains the IP address
-                    if (originalPath.includes('192.168.2.195:8000')) {
+                    if (originalPath.includes(window.APP_CONFIG.url)) {
                         console.log("URL already contains the correct IP, opening as is");
                         window.open(originalPath, '_blank');
                         return;
@@ -526,7 +527,7 @@
                         console.log("Cleaned path (removed duplication):", cleanedPath);
                         
                         // Replace localhost with IP in the cleaned path
-                        const fixedPath = cleanedPath.replace('localhost:8000', '192.168.2.195:8000');
+                        const fixedPath = cleanedPath.replace('http://localhost:8000', window.APP_CONFIG.url);
                         console.log("Final fixed path:", fixedPath);
                         
                         window.open(fixedPath, '_blank');
@@ -534,7 +535,7 @@
                     }
                     
                     // 3. Standard case - just replace localhost with IP
-                    const fixedPath = originalPath.replace('localhost:8000', '192.168.2.195:8000');
+                    const fixedPath = originalPath.replace('http://localhost:8000', window.APP_CONFIG.url);
                     console.log("Standard fixed path:", fixedPath);
                     
                     // Open the PDF in a new tab with a small delay to ensure console logs are visible
@@ -598,7 +599,7 @@
                     
                     // Display the image
                     const imageElement = document.getElementById('iqc-image');
-                    imageElement.src = iqcData[0].Path.replace('http://localhost:8000', 'http://192.168.2.195:8000');
+                    imageElement.src = iqcData[0].Path.replace('http://localhost:8000', window.APP_CONFIG.url);
                     
                     // Add load event listener to handle image loading errors
                     imageElement.onerror = function() {

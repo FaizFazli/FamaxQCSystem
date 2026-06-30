@@ -7,6 +7,7 @@
     <title>Checker Daily Record | Famax Quality Hub</title>
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/assets/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Library for Excel Export -->
@@ -250,10 +251,10 @@
         createApp({
             setup() {
                 const api = axios.create({
-                    baseURL: 'http://192.168.0.5:8000/rest/v1',
+                    baseURL: `${window.APP_CONFIG.url}/rest/v1`,
                     headers: {
-                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
-                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
+                        'apikey': window.APP_CONFIG.key,
+                        'Authorization': `Bearer ${window.APP_CONFIG.key}`
                     }
                 });
 

@@ -8,6 +8,7 @@
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -312,7 +313,7 @@
             data: JSON.parse(localStorage.getItem('summaryData') || '[]')
         };
 
-        const supabaseClient = window.supabase.createClient('http://192.168.2.195:8000', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE');
+        const supabaseClient = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('val-part').textContent = store.part || "-";

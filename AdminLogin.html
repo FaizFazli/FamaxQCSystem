@@ -531,17 +531,9 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-    <script>
-        // Supabase configuration
-        const SUPABASE_URL = 'http://192.168.2.195:8000';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
-=======
     <div class="footer">
         © 2025 Famax Technology (M) Sdn. Bhd. • All rights reserved.
     </div>
-</body>
->>>>>>> 72a833eef81a2bb1c3e77ad3b74afc275b7d1f8d
 
 <!-- Confirmation modal for back navigation -->
 <div id="backConfirmOverlay"
@@ -561,10 +553,11 @@
     </div>
 </div>
 
+<script src="/assets/app-config.js"></script>
 <script>
-    // Supabase configuration
-    const SUPABASE_URL = 'http://192.168.0.5:8000';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+    // Supabase configuration (centralized in /assets/app-config.js)
+    const SUPABASE_URL = window.APP_CONFIG.url;
+    const SUPABASE_KEY = window.APP_CONFIG.key;
 
     // Initialize Supabase client
     const supabaseClient = axios.create({
