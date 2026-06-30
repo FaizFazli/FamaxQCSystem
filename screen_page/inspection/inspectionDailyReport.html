@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checker Daily Record | Famax Quality Hub</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Library for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Responsive Table Container */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            #printableReport {
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+
+            @page {
+                size: landscape;
+                margin: 1cm;
+            }
+        }
+
+        .checker-table {
+            min-width: 1000px;
+            /* Ensures table doesn't squash on mobile */
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+
+        }
+
+        .checker-table th {
+            border: 1px solid black;
+            padding: 8px 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            background-color: #fff;
+        }
+
+        .checker-table td {
+            border: 1px solid black;
+            padding: 10px 4px;
+            font-size: 12px;
+            text-align: center;
+            height: 45px;
+            text-align: left;
+            /* Changed from center to left */
+
+        }
+    </style>
+</head>
+
+<body class="p-2 md:p-8">
+    <div id="app" class="max-w-[1500px] mx-auto">
+
+        <!-- HEADER & FILTERS -->
+        <header class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-8 no-print">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center gap-3 md:gap-4">
+                    <div class="h-8 md:h-10 w-1 bg-yellow-500 rounded-full"></div>
+                    <h1 class="text-lg md:text-2xl font-black italic uppercase leading-none">
+                        Checker <span class="text-yellow-500">Daily Record</span>
+                    </h1>
+                </div>
+                <button @click="window.location.href='../../inspectionDashboard.html'"
+                    class="w-9 h-9 md:w-10 md:h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors">
+                    <i class="fa fa-home text-sm md:text-base"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Date Filter</label>
+                    <input type="date" v-model="filterDate"
+                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Category</label>
+                    <select v-model="selectedCategory"
+                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">All Categories</option>
+                        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:col-span-2 items-end">
+                    <button @click="fetchData"
+                        class="h-12 bg-yellow-500 text-black font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-yellow-300 transition-all flex items-center justify-center">
+                        <i class="fa fa-sync mr-2"></i> Refresh
+                    </button>
+                    <button @click="exportToExcel"
+                        class="h-12 bg-green-600 text-white font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-green-700 transition-all flex items-center justify-center">
+                        <i class="fa fa-file-excel mr-2"></i> Export
+                    </button>
+                    <button @click="printReport"
+                        class="h-12 bg-black text-white font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-neutral-800 transition-all flex items-center justify-center">
+                        <i class="fa fa-print mr-2"></i> Print
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- REPORT PREVIEW -->
+        <div id="printableReport" class="bg-white p-4 md:p-8 shadow-sm rounded-2xl overflow-hidden">
+            <h2 class="text-center text-xl md:text-2xl font-bold underline mb-4 md:mb-6 uppercase">Checker Daily Record
+            </h2>
+
+            <!-- Mobile Hint -->
+            <div class="md:hidden text-center text-[10px] text-gray-400 mb-2 italic">
+                <i class="fa fa-arrows-left-right mr-1"></i> Swipe horizontally to view full table
+            </div>
+
+            <!-- Scrollable Table Wrapper -->
+            <div class="table-responsive">
+                <table id="checkerTable" class="checker-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%">Date / Time</th>
+                            <th style="width: 12%">Items</th>
+                            <th style="width: 10%">Part No.</th>
+                            <th style="width: 12%">Inspection</th>
+                            <th style="width: 10%">Inspection By</th>
+                            <th style="width: 8%">Total Checking</th>
+                            <th style="width: 8%">Reject Qty</th>
+                            <th style="width: 8%">To Rework Qty</th>
+                            <th style="width: 8%">Okay Qty</th>
+                            <th style="width: 8%">Scrap Qty</th>
+                            <th style="width: 8%">Total Output Per Hour</th>
+                            <th style="width: 12%">Schedule Info (Overdue)</th>
+                            <th style="width: 8%">Remark Finished</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, index) in reportRows" :key="index" @click="startEdit(row)"
+                            class="cursor-pointer hover:bg-yellow-50 transition-colors"
+                            :class="{'bg-yellow-100': editingId === row.id}">
+
+                            <td>{{ formatDateTime(row.actual_finished || row.created_at) }}</td>
+                            <td>{{ row.Part_Name }}</td>
+                            <td>{{ row.part_no || '-' }}</td>
+                            <td>{{ row.Parameter || row.Inspection_Type }}</td>
+                            <td>{{ row.InspectBy }}</td>
+
+                            <!-- Total is calculated automatically -->
+                            <td>
+                                <input v-if="editingId === row.id" type="number" v-model.number="editForm.TotalCheck"
+                                    @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
+                                    class="w-20 border rounded px-1 font-bold bg-blue-50">
+                                <span v-else class="font-bold">{{ row.TotalCheck || calculateTotal(row) }}</span>
+                            </td>
+
+                            <!-- Editable Fields -->
+                            <td>
+                                <input v-if="editingId === row.id" type="number" v-model.number="editForm.RejectQty"
+                                    @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
+                                    class="w-16 border rounded px-1">
+                                <span v-else class="text-red-600 font-bold">{{ row.RejectQty || 0 }}</span>
+                            </td>
+                            <td>
+                                <input v-if="editingId === row.id" type="number" v-model.number="editForm.ReworkQty"
+                                    class="w-16 border rounded px-1">
+                                <span v-else>{{ row.ReworkQty || 0 }}</span>
+                            </td>
+                            <td>
+                                <input v-if="editingId === row.id" type="number" v-model.number="editForm.AcceptQty"
+                                    class="w-16 border rounded px-1">
+                                <span v-else class="text-green-600 font-bold">{{ row.AcceptQty || 0 }}</span>
+                            </td>
+                            <td>
+                                <input v-if="editingId === row.id" type="number" v-model.number="editForm.ScrapQty"
+                                    class="w-16 border rounded px-1">
+                                <span v-else>{{ row.ScrapQty || 0 }}</span>
+                            </td>
+
+                            <!-- Output Calculation -->
+                            <td class="bg-blue-50 font-bold text-blue-700">
+                                <div v-if="editingId === row.id" class="flex flex-col gap-1 no-print">
+                                    <button @click.stop="saveEdit"
+                                        class="bg-green-600 text-white text-[10px] py-1 px-2 rounded">SAVE</button>
+                                    <button @click.stop="cancelEdit"
+                                        class="bg-gray-400 text-white text-[10px] py-1 px-2 rounded">CANCEL</button>
+                                </div>
+                                <span v-else>{{ calculateOutputPerHour(row) }}</span>
+                            </td>
+
+                            <!-- Display Schedule Mapping & Overdue Logic -->
+                            <td class="text-[10px] leading-tight text-left px-2">
+                                <template v-if="getScheduleMatch(row)">
+                                    <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row))}">
+                                        <div>Start: {{ formatTimeOnly(getScheduleMatch(row).StartDate) }}</div>
+                                        <div>Est: {{ formatTimeOnly(getScheduleMatch(row).EstFinished) }}</div>
+                                        <div>Act: {{ formatTimeOnly(getScheduleMatch(row).actual_finished_time) }}</div>
+
+                                        <span v-if="isOverdue(getScheduleMatch(row))"
+                                            class="mt-1 inline-block bg-red-600 text-white px-1 rounded font-black">
+                                            OVERDUE
+                                        </span>
+                                    </div>
+                                </template>
+                                <span v-else class="text-gray-400">No Schedule Found</span>
+                            </td>
+                            <!-- Display Remark Finished -->
+                            <td class="italic text-gray-600">
+                                {{ row.remark_finished || '-' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-between text-[9px] md:text-[10px] font-bold uppercase italic text-gray-400">
+                <span>Famax Quality Management System</span>
+                <span>Page 1</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: 'http://192.168.0.5:8000/rest/v1',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
+                    }
+                });
+
+                const allRecords = ref([]);
+                const cycleTimeMap = ref({});
+                const filterDate = ref(new Date().toISOString().slice(0, 10));
+                const selectedCategory = ref('');
+                const categories = ['Buy-Off', 'IQC', 'IPQC', 'OQC', 'Customer Return'];
+
+                // Add a ref for schedule records
+                const scheduleRecords = ref([]);
+
+                const fetchData = async () => {
+                    try {
+                        const [resRec, resSch, resGui, resDet] = await Promise.all([
+                            api.get('/InspectionRecord?select=*&order=created_at.desc'),
+                            api.get('/InspectionSchedule?select=*'), // Add this line
+                            api.get('/InspectionGuide?select=*'),
+                            api.get('/InspectionGuideDetails?select=*')
+                        ]);
+                        allRecords.value = resRec.data;
+                        scheduleRecords.value = resSch.data; // Add this line
+                        buildCycleTimeMap(resGui.data, resDet.data);
+                    } catch (err) {
+                        console.error("Fetch Error:", err);
+                    }
+                };
+
+                const getScheduleMatch = (row) => {
+                    return scheduleRecords.value.find(s =>
+                        s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
+                        s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
+                        s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase()
+                    );
+                };
+
+                // Check if the actual finished time is later than the estimated time
+                const isOverdue = (schedule) => {
+                    if (!schedule || !schedule.actual_finished_time || !schedule.EstFinished) return false;
+
+                    const act = new Date(schedule.actual_finished_time);
+                    const est = new Date(schedule.EstFinished);
+
+                    // Set seconds and milliseconds to 0 for both to compare only HH:mm
+                    act.setSeconds(0, 0);
+                    est.setSeconds(0, 0);
+
+                    // Now it only returns true if the Actual Minute is strictly later than the Estimated Minute
+                    return act.getTime() > est.getTime();
+                };
+
+                // Simple time formatter for the schedule column
+                const formatTimeOnly = (iso) => {
+                    if (!iso) return '-';
+                    return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                };
+
+                const buildCycleTimeMap = (guides, details) => {
+                    const map = {};
+                    const idToName = {};
+
+                    guides.forEach(g => {
+                        const rawName = g.Parameter || g.parameter || "";
+                        const cleanName = rawName.toString().replace(/\s+/g, '').toLowerCase();
+                        idToName[String(g.id)] = cleanName;
+                    });
+
+                    details.forEach(detail => {
+                        const pNo = (detail.part_no || detail.Part_No || "").toString().trim().toUpperCase();
+                        if (!map[pNo]) map[pNo] = {};
+
+                        let ids = detail.inspection_ids;
+                        let times = detail.cycle_times;
+                        try {
+                            if (typeof ids === 'string') ids = JSON.parse(ids);
+                            if (typeof times === 'string') times = JSON.parse(times);
+                        } catch (e) { console.error("Parse error"); }
+
+                        if (Array.isArray(ids) && Array.isArray(times)) {
+                            ids.forEach((id, index) => {
+                                const cycleTime = parseFloat(times[index]);
+                                map[pNo][String(id).trim()] = cycleTime;
+                                const cleanNameKey = idToName[String(id)];
+                                if (cleanNameKey) {
+                                    map[pNo][cleanNameKey] = cycleTime;
+                                }
+                            });
+                        }
+                    });
+                    cycleTimeMap.value = map;
+                };
+
+                const calculateOutputPerHour = (row) => {
+                    const rawPartNo = row.part_no || "";
+                    const partNo = rawPartNo.toString().trim().toUpperCase();
+                    const rowId = (row.inspection_id || row.InspectionID || "").toString().trim();
+                    const rawName = (row.Parameter || row.Inspection_Type || row.Parameter_Name || "").toString();
+                    const cleanRowName = rawName.replace(/\s+/g, '').toLowerCase();
+
+                    if (partNo && cycleTimeMap.value[partNo]) {
+                        const partData = cycleTimeMap.value[partNo];
+                        const cycleTime = partData[rowId] || partData[cleanRowName];
+                        if (cycleTime && !isNaN(cycleTime) && cycleTime > 0) {
+                            return (3600 / cycleTime).toFixed(0);
+                        }
+                    }
+                    return '-';
+                };
+
+                const formatDateTime = (iso) => {
+                    if (!iso) return '';
+                    const d = new Date(iso);
+                    return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                };
+
+                const calculateTotal = (row) => {
+                    const acc = Number(row.AcceptQty || row.acceptqty || 0);
+                    const rej = Number(row.RejectQty || row.rejectqty || 0);
+                    return (acc + rej);
+                };
+
+                const reportRows = computed(() => {
+                    return allRecords.value.filter(r => {
+                        const dateStr = r.created_at || r.Created_At || "";
+                        const dateMatch = dateStr.startsWith(filterDate.value);
+                        const cat = r.Category || r.category || "";
+                        const catMatch = !selectedCategory.value || cat === selectedCategory.value;
+                        return dateMatch && catMatch;
+                    });
+                });
+
+                const exportToExcel = () => {
+                    const table = document.getElementById("checkerTable");
+                    const wb = XLSX.utils.table_to_book(table, { sheet: "Daily Record" });
+                    XLSX.writeFile(wb, `Checker_Daily_Record_${filterDate.value}.xlsx`);
+                };
+
+                onMounted(fetchData);
+
+                // Inside setup()
+                const editingId = ref(null);
+                const editForm = ref({
+                    id: null,
+                    TotalCheck: 0,
+                    AcceptQty: 0,
+                    RejectQty: 0,
+                    ReworkQty: 0,
+                    ScrapQty: 0
+                });
+
+                const startEdit = (row) => {
+                    // Prevent re-initializing if already editing this row
+                    if (editingId.value === row.id) return;
+
+                    editingId.value = row.id;
+                    editForm.value = {
+                        id: row.id,
+                        TotalCheck: row.TotalCheck || (Number(row.AcceptQty) + Number(row.RejectQty)),
+                        AcceptQty: row.AcceptQty || 0,
+                        RejectQty: row.RejectQty || 0,
+                        ReworkQty: row.ReworkQty || 0,
+                        ScrapQty: row.ScrapQty || 0
+                    };
+                };
+
+                const cancelEdit = () => {
+                    editingId.value = null;
+                };
+
+                const saveEdit = async () => {
+                    try {
+                        // Find the record ID to update
+                        const id = editForm.value.id;
+
+                        // Prepare the update payload
+                        const payload = {
+                            TotalCheck: editForm.value.TotalCheck, // Added this
+                            AcceptQty: editForm.value.AcceptQty,
+                            RejectQty: editForm.value.RejectQty,
+                            ReworkQty: editForm.value.ReworkQty,
+                            ScrapQty: editForm.value.ScrapQty
+                        };
+
+                        // Send PATCH request to Supabase/REST API
+                        // NOTE: We assume 'id' is the primary key column name
+                        await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
+
+                        // Update local data so user sees changes immediately
+                        const index = allRecords.value.findIndex(r => r.id === id);
+                        if (index !== -1) {
+                            allRecords.value[index] = { ...allRecords.value[index], ...payload };
+                        }
+
+                        alert("Record Updated Successfully!");
+                        editingId.value = null; // Close edit mode
+                    } catch (err) {
+                        console.error("Update Error:", err);
+                        alert("Failed to update record.");
+                    }
+                };
+
+                // Update your return statement to include these new variables/methods:
+                return {
+                    filterDate, selectedCategory, categories, reportRows,
+                    fetchData, formatDateTime, calculateTotal, exportToExcel,
+                    calculateOutputPerHour,
+                    printReport: () => window.print(),
+                    // Added for editing:
+                    editingId, editForm, startEdit, cancelEdit, saveEdit,
+                    getScheduleMatch, isOverdue, formatTimeOnly
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

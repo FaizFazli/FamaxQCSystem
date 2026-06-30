@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Generate Buy-off Report</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-soft: rgba(0, 120, 212, 0.1);
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .report-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            width: 100%;
+            max-width: 550px;
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #1e293b;
+            padding: 25px 35px;
+            color: white;
+        }
+
+        .card-header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-body {
+            padding: 35px;
+        }
+
+        fieldset {
+            border: none;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .btn-link-small {
+            background: var(--primary-soft);
+            border: none;
+            color: var(--primary);
+            font-size: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            height: 48px;
+            padding: 0 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 48px !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .divider {
+            height: 1px;
+            background-color: rgba(0, 0, 0, 0.05);
+            margin: 25px 0;
+        }
+
+        button#btnDownload {
+            width: 100%;
+            height: 54px;
+            background-color: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button#btnDownload:hover:not(:disabled) {
+            background-color: #000;
+            transform: translateY(-2px);
+        }
+
+        button#btnDownload:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        /* MODAL STYLES */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            width: 90%;
+            max-width: 420px;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .active-part-item {
+            display: block;
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            width: 100%;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .active-part-item:hover {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .status-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="report-card">
+        <div class="card-header">
+            <h1>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                    </path>
+                    <path d="M9 14l2 2 4-4"></path>
+                </svg>
+                Buy-off Report Generator
+            </h1>
+        </div>
+
+        <div class="card-body">
+            <form id="reportForm">
+                <fieldset>
+                    <label>Inspection Date</label>
+                    <input type="date" id="reportDate" required />
+                </fieldset>
+
+                <fieldset>
+                    <div class="label-row">
+                        <label>Part Name</label>
+                        <button type="button" class="btn-link-small" onclick="openActivePartsModal()">Active Parts
+                            List</button>
+                    </div>
+                    <select id="partName" class="searchable-dropdown" style="width: 100%;">
+                        <option value=""></option>
+                    </select>
+                </fieldset>
+
+                <div class="divider"></div>
+
+                <button type="submit" id="btnDownload">Generate & Download</button>
+                <div id="statusMsg" class="status-msg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="partsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="font-weight: 800;">Active Buy-off Parts</h3>
+                    <span style="cursor: pointer; font-size: 24px; font-weight: 300;"
+                        onclick="closeActivePartsModal()">&times;</span>
+                </div>
+                <div id="activePartsCount"
+                    style="font-size: 11px; color: var(--primary); font-weight: 800; text-transform: uppercase; margin-bottom: 12px;">
+                    Total Items: 0</div>
+                <input type="date" id="modalSearchDate" />
+            </div>
+            <div id="activePartsList" class="modal-body" style="padding: 20px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script>
+        const TEMPLATE_URL = "/Master_Document/BUYOFF_Form.xlsx";
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const api = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+        });
+
+        // Helper functions
+        const qs = (s) => document.querySelector(s);
+        function parseYMD(s) { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+        function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+
+        $(document).ready(() => {
+            $(".searchable-dropdown").select2({ placeholder: "Select Part Name", allowClear: true });
+            loadPartsList();
+            $("#reportDate").val(new Date().toISOString().split('T')[0]);
+
+            $("#modalSearchDate").on("change", function () {
+                fetchActiveParts(this.value);
+            });
+        });
+
+        async function loadPartsList() {
+            try {
+                const res = await api.get("/rest/v1/Parts?select=Part_Name");
+                const unique = [...new Set(res.data.map(i => i.Part_Name))].sort();
+                unique.forEach(p => $("#partName").append(new Option(p, p)));
+            } catch (e) { console.error("Load Parts Error", e); }
+        }
+
+        // --- ACTIVE PARTS MODAL LOGIC ---
+        function openActivePartsModal() {
+            const modal = qs("#partsModal");
+            const mainDate = qs("#reportDate").value;
+            qs("#modalSearchDate").value = mainDate;
+            modal.classList.add("open");
+            fetchActiveParts(mainDate);
+        }
+
+        function closeActivePartsModal() { qs("#partsModal").classList.remove("open"); }
+
+        async function fetchActiveParts(dateStr) {
+            const list = qs("#activePartsList");
+            const countDisplay = qs("#activePartsCount");
+            list.innerHTML = "Loading...";
+
+            if (!dateStr) {
+                countDisplay.textContent = "Total Items: 0";
+                return;
+            }
+
+            try {
+                const start = parseYMD(dateStr);
+                const end = addDays(start, 1);
+
+                // Targets Data_BUYOFF table
+                const res = await api.get(`/rest/v1/Data_BUYOFF?select=Part_Name&created_at=gte.${start.toISOString()}&created_at=lt.${end.toISOString()}`);
+
+                const unique = [...new Set(res.data.map((i) => i.Part_Name))].sort();
+                countDisplay.textContent = `Total Items: ${unique.length}`;
+
+                if (unique.length === 0) {
+                    list.innerHTML = "No active records for this date.";
+                    return;
+                }
+
+                list.innerHTML = "";
+                unique.forEach((name) => {
+                    const btn = document.createElement("button");
+                    btn.className = "active-part-item";
+                    btn.textContent = name;
+                    btn.onclick = () => {
+                        $("#partName").val(name).trigger("change");
+                        qs("#reportDate").value = dateStr; // Sync date back
+                        closeActivePartsModal();
+                    };
+                    list.appendChild(btn);
+                });
+            } catch (e) {
+                list.innerHTML = "Error loading active parts.";
+            }
+        }
+
+        /* --- KEEP ALL YOUR STYLES AND MODAL LOGIC AS IS --- */
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dateVal = document.getElementById('reportDate').value;
+            const partVal = document.getElementById('partName').value;
+            const status = document.getElementById('statusMsg');
+
+            if (!dateVal || !partVal) return alert("Select date and part.");
+
+            try {
+                status.textContent = "Fetching data...";
+                status.style.color = "var(--primary)";
+
+                const selectedDate = parseYMD(dateVal);
+                const fetchStart = new Date(selectedDate.getTime() - (16 * 60 * 60 * 1000));
+                const fetchEnd = addDays(selectedDate, 1);
+
+                // Fetch from BOTH tables
+                const [resAccepted, resLogs, resMeta] = await Promise.all([
+                    api.get(`/rest/v1/Data_BUYOFF?Part_Name=eq.${partVal}&created_at=gte.${fetchStart.toISOString()}&created_at=lt.${fetchEnd.toISOString()}&order=created_at.asc`),
+                    api.get(`/rest/v1/data_buyoff_logs?part_name=eq.${partVal}&created_at=gte.${fetchStart.toISOString()}&created_at=lt.${fetchEnd.toISOString()}&order=created_at.asc`),
+                    api.get(`/rest/v1/Parts?Part_Name=eq.${partVal}&select=*`)
+                ]);
+
+                if (resAccepted.data.length === 0 && resLogs.data.length === 0) throw new Error("No records found.");
+
+                status.textContent = "Building Excel...";
+                await buildExcel(resAccepted.data, resLogs.data, resMeta.data[0] || {}, dateVal, selectedDate);
+
+                status.textContent = "Download Successful!";
+                status.style.color = "green";
+            } catch (err) {
+                status.textContent = err.message;
+                status.style.color = "var(--danger)";
+            }
+        });
+
+        async function buildExcel(acceptedRows, logRows, meta, dateStr, selectedDateObj) {
+            const resp = await fetch(TEMPLATE_URL);
+            const arrayBuffer = await resp.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
+            const templateSheet = workbook.worksheets[0];
+
+            const [famaxBuf, confBuf] = await Promise.all([
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png"),
+            ]);
+            const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
+            const logoConfidential = workbook.addImage({ buffer: confBuf, extension: "png" });
+
+            let sheetCreated = false;
+
+            // --- SHEET 1: ACCEPTED DATA (Standard grouping) ---
+            const acceptedGroups = {};
+            acceptedRows.forEach(r => {
+                const gid = `${r.JO_Number}_${r.Machine}_${r.Process}`;
+                if (!acceptedGroups[gid]) acceptedGroups[gid] = [];
+                acceptedGroups[gid].push(r);
+            });
+
+            for (const [gid, records] of Object.entries(acceptedGroups)) {
+                if (!records.some(r => new Date(r.created_at).toLocaleDateString() === selectedDateObj.toLocaleDateString())) continue;
+                const ws = workbook.addWorksheet("ACCEPTED_BUYOFF");
+                sheetCreated = true;
+
+                const pointsMap = {};
+                records.forEach(r => {
+                    const pKey = String(r.Point_DWG_Zone);
+                    if (!pointsMap[pKey]) pointsMap[pKey] = { tech: null, qc: null };
+                    if (r.QC_Technician === 'QC') pointsMap[pKey].qc = r;
+                    else pointsMap[pKey].tech = r;
+                });
+
+                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "ACCEPTED");
+                break;
+            }
+
+            // --- SHEET 2: UNACCEPTED DATA (NG LOGS) ---
+            const logGroups = {};
+            logRows.forEach(r => {
+                if (!logGroups[r.attempt_group]) logGroups[r.attempt_group] = [];
+                logGroups[r.attempt_group].push(r);
+            });
+
+            // Find the latest attempt that contains an NG
+            let ngAttemptId = null;
+            Object.keys(logGroups).reverse().forEach(aid => {
+                if (!ngAttemptId && logGroups[aid].some(r => r.status === 'NG')) ngAttemptId = aid;
+            });
+
+            if (ngAttemptId) {
+                const records = logGroups[ngAttemptId];
+                const ws = workbook.addWorksheet("UNACCEPTED_BUYOFF");
+                sheetCreated = true;
+
+                const pointsMap = {};
+                records.forEach(r => {
+                    const pz = String(r.point_dwg_zone);
+                    if (!pointsMap[pz]) {
+                        pointsMap[pz] = {
+                            tech: {
+                                isLog: true,
+                                readings: [r.reading_value],
+                                statuses: [r.status],
+                                created_at: r.created_at,
+                                Person: r.person,
+                                JO_Number: r.jo_number,
+                                Machine: r.machine,
+                                Process: r.process
+                            },
+                            qc: null
+                        };
+                    } else {
+                        pointsMap[pz].tech.readings.push(r.reading_value);
+                        pointsMap[pz].tech.statuses.push(r.status);
+                    }
+                });
+
+                // PADDING LOGIC: Fill missing readings from Accepted Table
+                Object.keys(pointsMap).forEach(pz => {
+                    const acceptedDataForPoint = acceptedRows.find(ar => String(ar.Point_DWG_Zone) === pz && ar.QC_Technician !== 'QC');
+                    if (acceptedDataForPoint) {
+                        // Fill metadata (Instrument, LSL, USL) from the accepted table if missing
+                        pointsMap[pz].tech.Measuring_Instrument = acceptedDataForPoint.Measuring_Instrument;
+                        pointsMap[pz].tech.LSL_OK = acceptedDataForPoint.LSL_OK;
+                        pointsMap[pz].tech.USL_NG = acceptedDataForPoint.USL_NG;
+                        pointsMap[pz].tech.SC = acceptedDataForPoint.SC;
+
+                        // Pad readings to 5
+                        for (let i = pointsMap[pz].tech.readings.length + 1; i <= 5; i++) {
+                            pointsMap[pz].tech.readings.push(acceptedDataForPoint[`Reading_${i}`]);
+                            pointsMap[pz].tech.statuses.push('OK');
+                        }
+                    }
+                });
+
+                // Also look for QC's latest accepted check for this same JO to fill the QC side of the NG sheet
+                const firstLog = records[0];
+                const qcMatch = acceptedRows.filter(ar => ar.JO_Number === firstLog.jo_number && ar.QC_Technician === 'QC');
+                if (qcMatch.length > 0) {
+                    qcMatch.forEach(qcr => {
+                        const pz = String(qcr.Point_DWG_Zone);
+                        if (pointsMap[pz]) pointsMap[pz].qc = qcr;
+                    });
+                }
+
+                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "UNACCEPTED (NG)");
+            }
+
+            if (!sheetCreated) throw new Error("No activity found for selected day.");
+
+            workbook.removeWorksheet(templateSheet.id);
+            const buf = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `BuyOff_Report_${dateStr}.xlsx`;
+            a.click();
+        }
+
+        // THE UNIFIED DRAWING FUNCTION
+        function drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, titleSuffix) {
+            const sortedPointKeys = Object.keys(pointsMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            const pointsPerTable = 12;
+            const totalTablesNeeded = Math.ceil(sortedPointKeys.length / pointsPerTable);
+            const rowsPerBlock = 50;
+
+            // Determine the header records for this sheet
+            const firstRef = records[0];
+            const techRec = records.find(r => (r.QC_Technician && r.QC_Technician !== 'QC') || r.person);
+            const qcRec = Object.values(pointsMap).find(p => p.qc)?.qc || null;
+
+            const dTO = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+
+            for (let tableIdx = 0; tableIdx < totalTablesNeeded; tableIdx++) {
+                const rowOffset = tableIdx * rowsPerBlock;
+                copyTemplateWithOffset(templateSheet, ws, rowOffset);
+
+                ws.addImage(logoFamax, { tl: { col: 0, row: rowOffset }, ext: { width: 125, height: 52 } });
+                ws.addImage(logoConfidential, { tl: { col: 18, row: rowOffset }, ext: { width: 189, height: 56 } });
+
+                // Metadata Header
+                ws.getCell(4 + rowOffset, 3).value = meta.Part_Description || meta.Part_Name || "";
+                ws.getCell(5 + rowOffset, 3).value = meta.Part_Number || "";
+                ws.getCell(6 + rowOffset, 3).value = meta.Raw_Material || "";
+                ws.getCell(7 + rowOffset, 3).value = meta.Raw_Material_Grade || "";
+                ws.getCell(8 + rowOffset, 3).value = meta.Raw_Material_Size || "";
+                ws.getCell(4 + rowOffset, 19).value = meta.DRW_Number || "";
+                ws.getCell(5 + rowOffset, 19).value = meta.WI_Number || "";
+                ws.getCell(6 + rowOffset, 19).value = meta.Revision || "";
+                ws.getCell(9 + rowOffset, 3).value = firstRef.Process || firstRef.process || "";
+                ws.getCell(10 + rowOffset, 19).value = firstRef.JO_Number || firstRef.jo_number || "";
+                ws.getCell(11 + rowOffset, 19).value = firstRef.Machine || firstRef.machine || "";
+
+                // Footer Bottom
+                ws.getCell(42 + rowOffset, 2).value = firstRef.JO_Number || firstRef.jo_number || "";
+                ws.getCell(44 + rowOffset, 2).value = firstRef.Machine || firstRef.machine || "";
+                const remarks = [...new Set(records.map(r => r.Remarks || r.remarks).filter(Boolean))].join(" | ");
+                ws.getCell(42 + rowOffset, 8).value = remarks;
+
+                // Technician Sign-off (I10, L45, M46)
+                if (techRec) {
+                    const d = new Date(techRec.created_at);
+                    ws.getCell(10 + rowOffset, 9).value = d.toLocaleString('en-GB', dTO).replace(',', '');
+                    ws.getCell(45 + rowOffset, 12).value = techRec.Person || techRec.person;
+                    ws.getCell(46 + rowOffset, 13).value = d.toLocaleDateString('en-GB');
+                    ws.getCell(9 + rowOffset, 12).value = d.toLocaleDateString('en-GB'); // Header Date
+                }
+
+                // QC Sign-off (I11, Q45, R46)
+                if (qcRec) {
+                    const d = new Date(qcRec.created_at);
+                    ws.getCell(11 + rowOffset, 9).value = d.toLocaleString('en-GB', dTO).replace(',', '');
+                    ws.getCell(45 + rowOffset, 17).value = qcRec.Person;
+                    ws.getCell(46 + rowOffset, 18).value = d.toLocaleDateString('en-GB');
+                }
+
+                // Points Mapping
+                const slice = sortedPointKeys.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
+                slice.forEach((pKey, i) => {
+                    const rIdx = 15 + i + rowOffset;
+                    const pData = pointsMap[pKey];
+                    const ref = pData.qc || pData.tech;
+
+                    ws.getCell(`A${rIdx}`).value = isNaN(pKey) ? pKey : parseFloat(pKey);
+                    ws.getCell(`B${rIdx}`).value = ref.Measuring_Instrument || "DC";
+                    ws.getCell(`D${rIdx}`).value = parseFloat(ref.LSL_OK) || 0;
+                    ws.getCell(`E${rIdx}`).value = parseFloat(ref.USL_NG) || 0;
+                    ws.getCell(`F${rIdx}`).value = ref.SC || "QC";
+                    ws.getCell(29 + i + rowOffset, 2).value = isNaN(pKey) ? pKey : parseFloat(pKey);
+
+                    // Tech Readings
+                    if (pData.tech) {
+                        if (pData.tech.isLog) {
+                            pData.tech.readings.forEach((v, idx) => {
+                                if (idx >= 5) return;
+                                const cell = ws.getCell(rIdx, 11 + idx);
+                                cell.value = parseFloat(v) || v;
+                                if (pData.tech.statuses[idx] === 'NG') {
+                                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+                                    cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                                }
+                            });
+                        } else {
+                            [1, 2, 3, 4, 5].forEach((n, idx) => {
+                                const v = pData.tech[`Reading_${n}`];
+                                if (v !== null && v !== '') ws.getCell(rIdx, 11 + idx).value = parseFloat(v) || v;
+                            });
+                        }
+                    }
+
+                    // QC Readings
+                    if (pData.qc) {
+                        [1, 2, 3, 4, 5].forEach((n, idx) => {
+                            const v = pData.qc[`Reading_${n}`];
+                            if (v !== null && v !== '') ws.getCell(rIdx, 16 + idx).value = parseFloat(v) || v;
+                        });
+                    }
+                });
+            }
+        }
+
+        // REUSABLE COPY FUNCTION
+        function copyTemplateWithOffset(srcSheet, destSheet, rowOffset) {
+            srcSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                const destRow = destSheet.getRow(rowNum + rowOffset); destRow.height = row.height;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    const destCell = destRow.getCell(colNum);
+                    destCell.style = JSON.parse(JSON.stringify(cell.style));
+                    if (cell.value && cell.value.formula) {
+                        const shiftedFormula = cell.value.formula.replace(/([A-Z]+)(\d+)/g, (match, col, row) => col + (parseInt(row) + rowOffset));
+                        destCell.value = { formula: shiftedFormula, result: cell.value.result };
+                    } else { destCell.value = cell.value; }
+                });
+            });
+            if (srcSheet._merges) {
+                Object.values(srcSheet._merges).forEach(m => {
+                    destSheet.mergeCells(m.model.top + rowOffset, m.model.left, m.model.bottom + rowOffset, m.model.right);
+                });
+            }
+        }
+
+        async function getImageBuffer(url) { const res = await fetch(url); return await res.arrayBuffer(); }
+        function copySheetFormat(src, dest) {
+            src.columns.forEach((col, i) => (dest.getColumn(i + 1).width = col.width));
+            src.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                const destRow = dest.getRow(rowNum);
+                destRow.height = row.height;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    const destCell = destRow.getCell(colNum);
+                    destCell.value = cell.value;
+                    destCell.style = JSON.parse(JSON.stringify(cell.style));
+                });
+            });
+            if (src._merges) {
+                Object.values(src._merges).forEach(m => dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right));
+            }
+        }
+    </script>
+</body>
+
+</html>

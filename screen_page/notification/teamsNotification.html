@@ -10,27 +10,26 @@
     <!-- Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
 
-    <!-- Libraries -->
+    <!-- Corrected Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
     <style>
         :root {
             --primary: #0078d4;
-            --primary-light: #e7f3ff;
+            --primary-soft: rgba(0, 120, 212, 0.1);
             --primary-dark: #005a9e;
             --bg-body: #f8fafc;
-            --bg-card: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --border-color: #e2e8f0;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.6);
             --danger: #ef4444;
-            --success: #22c55e;
-            --focus-ring: rgba(0, 120, 212, 0.2);
-            --radius: 12px;
+            --success: #10b981;
+            --radius: 20px;
         }
 
         * {
@@ -41,59 +40,95 @@
 
         body {
             font-family: "Inter", sans-serif;
+            background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
             background-color: var(--bg-body);
             color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 30px 20px;
         }
 
         .nav-top {
             width: 100%;
-            max-width: 600px;
-            margin-bottom: 20px;
+            max-width: 1240px;
+            margin-bottom: 25px;
         }
 
         .back-link {
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transition: all 0.2s;
+            transition: 0.3s;
             cursor: pointer;
         }
 
         .back-link:hover {
             color: var(--primary);
+            transform: translateX(-3px);
         }
 
-        .report-card {
-            background: var(--bg-card);
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            gap: 25px;
+            width: 100%;
+            max-width: 1240px;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .report-card,
+        .tracking-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            flex: 1;
             width: 100%;
             max-width: 600px;
-            border-radius: 20px;
-            box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.04),
-                0 1px 8px rgba(0, 0, 0, 0.02);
+            height: 1100px;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
             overflow: hidden;
-            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .report-card,
+            .tracking-card {
+                max-width: 600px;
+                height: auto;
+                min-height: 800px;
+            }
         }
 
         .card-header {
-            background: var(--primary);
-            padding: 30px;
+            background: #1e293b;
+            padding: 25px 30px;
             color: white;
         }
 
         .card-header h1 {
             margin: 0;
-            font-size: 22px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -104,115 +139,49 @@
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 25px;
         }
 
         label {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-main);
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 10px;
+            margin-left: 4px;
         }
 
         .label-badge {
-            font-size: 11px;
-            background: var(--primary-light);
+            font-size: 10px;
+            background: var(--primary-soft);
             color: var(--primary);
-            padding: 2px 8px;
-            border-radius: 20px;
+            padding: 2px 10px;
+            border-radius: 6px;
         }
 
         input[type="text"],
         textarea {
             width: 100%;
             padding: 12px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 15px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
             outline: none;
-            transition: all 0.2s;
+            transition: 0.3s;
         }
 
         input:focus,
         textarea:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--focus-ring);
+            box-shadow: 0 0 0 4px var(--primary-soft);
         }
 
-        /* --- NEW PART SELECTION UI --- */
-        .part-selector-container {
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            overflow: hidden;
-            background: #fff;
-        }
-
-        .search-wrapper {
-            padding: 10px;
-            background: #fcfcfd;
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 5;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 13px;
-            background: #fff;
-        }
-
-        .part-list-scroll {
-            max-height: 250px;
-            overflow-y: auto;
-            padding: 5px;
-        }
-
-        .part-item {
-            display: flex;
-            align-items: center;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-bottom: 2px;
-        }
-
-        .part-item:hover {
-            background: #f1f5f9;
-        }
-
-        .part-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-right: 12px;
-            cursor: pointer;
-            accent-color: var(--primary);
-        }
-
-        .part-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .part-name-text {
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-main);
-        }
-
-        .part-date {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* --- RADIO OPTIONS --- */
         .radio-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -233,85 +202,202 @@
             display: block;
             padding: 12px;
             text-align: center;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
             font-size: 13px;
-            font-weight: 500;
-            transition: all 0.2s;
-            background: #fcfcfd;
+            font-weight: 700;
+            transition: 0.2s;
+            background: #fff;
         }
 
         .radio-card input:checked+.radio-content {
-            background: var(--primary-light);
+            background: var(--primary-soft);
             border-color: var(--primary);
             color: var(--primary);
         }
 
-        /* --- PREVIEW BOX --- */
+        .part-selector-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .search-wrapper {
+            padding: 10px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .part-list-scroll {
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .part-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            transition: 0.2s;
+        }
+
+        .part-item:hover {
+            background: #f1f5f9;
+        }
+
+        .part-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            accent-color: var(--primary);
+        }
+
+        .part-name-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .part-date {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
         textarea#message {
             background-color: #f8fafc;
-            font-family: "Courier New", Courier, monospace;
+            font-family: monospace;
             font-size: 13px;
             line-height: 1.5;
-            min-height: 120px;
+            min-height: 140px;
             border-style: dashed;
+            color: var(--primary);
         }
 
         .action-btn {
             width: 100%;
             height: 54px;
-            background-color: var(--primary);
+            background-color: #1e293b;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.2);
+            transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .action-btn:hover:not(:disabled) {
-            background-color: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 15px rgba(0, 120, 212, 0.3);
-        }
-
-        .action-btn:active {
-            transform: translateY(0);
+            background-color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
         }
 
         .action-btn:disabled {
             background-color: #cbd5e1;
-            box-shadow: none;
             cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .tracking-header {
+            padding: 18px 25px;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #tracking-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 20px;
+        }
+
+        .log-item {
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 9px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .status-pending-qa {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .status-pending-mgmt {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .complete-btn,
+        .qa-sign-btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .complete-btn {
+            background: var(--success);
+            color: white;
+        }
+
+        .qa-sign-btn {
+            background: var(--primary);
+            color: white;
         }
 
         .footer {
             text-align: center;
-            margin: 30px 0;
+            margin: 40px 0;
             color: var(--text-muted);
             font-size: 12px;
+            font-weight: 500;
         }
 
         .hidden {
             display: none;
         }
 
-        /* Custom Scrollbar */
-        .part-list-scroll::-webkit-scrollbar {
+        ::-webkit-scrollbar {
             width: 6px;
         }
 
-        .part-list-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .part-list-scroll::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 10px;
         }
@@ -321,8 +407,7 @@
 <body>
     <div class="nav-top">
         <a onclick="window.history.back()" class="back-link">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
@@ -330,113 +415,125 @@
         </a>
     </div>
 
-    <div class="report-card">
-        <div class="card-header">
-            <h1>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                Teams Notification
-            </h1>
-        </div>
-
-        <div class="card-body">
-            <div class="form-group">
-                <label for="sender-name">Your Name</label>
-                <input type="text" id="sender-name" placeholder="Enter your name" oninput="autoGenerateMessage()" />
+    <div class="main-container">
+        <!-- FORM CARD -->
+        <div class="report-card">
+            <div class="card-header">
+                <h1>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    Teams Notification
+                </h1>
             </div>
 
-            <div class="form-group">
-                <label>Subject / Issue</label>
-                <div class="radio-cards">
-                    <label class="radio-card">
-                        <input type="radio" name="subject-opt" value="WI APPROVAL" checked
-                            onchange="handleSubjectChange()" />
-                        <span class="radio-content">WI Approval</span>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="subject-opt" value="Machine breakdown"
-                            onchange="handleSubjectChange()" />
-                        <span class="radio-content">Breakdown</span>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="subject-opt" value="Others" onchange="handleSubjectChange()" />
-                        <span class="radio-content">Others</span>
-                    </label>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="sender-name">Your Name</label>
+                    <input type="text" id="sender-name" placeholder="Enter your name" oninput="autoGenerateMessage()" />
                 </div>
-                <div id="other-subject-container" class="hidden" style="margin-top: 12px">
-                    <input type="text" id="other-subject" placeholder="Type specific issue..."
-                        oninput="autoGenerateMessage()" />
-                </div>
-            </div>
 
-            <div class="form-group">
-                <label>
-                    Select Part Names
-                    <span class="label-badge" id="selected-count">0 selected</span>
-                </label>
-                <div class="part-selector-container">
-                    <div class="search-wrapper">
-                        <input type="text" class="search-input" id="part-search" placeholder="Search part name..."
-                            oninput="filterParts()" />
+                <div class="form-group">
+                    <label>Subject / Issue</label>
+                    <div class="radio-cards">
+                        <label class="radio-card">
+                            <input type="radio" name="subject-opt" value="WI APPROVAL" checked
+                                onchange="handleSubjectChange()" />
+                            <span class="radio-content">WI Approval</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="subject-opt" value="Machine breakdown"
+                                onchange="handleSubjectChange()" />
+                            <span class="radio-content">Breakdown</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="subject-opt" value="Others" onchange="handleSubjectChange()" />
+                            <span class="radio-content">Others</span>
+                        </label>
                     </div>
-                    <div class="part-list-scroll" id="part-list-container">
-                        <!-- Checkboxes loaded dynamically -->
-                        <div style="
-                  padding: 20px;
-                  text-align: center;
-                  color: var(--text-muted);
-                  font-size: 13px;
-                ">
-                            Loading parts...
+                    <div id="other-subject-container" class="hidden" style="margin-top: 12px">
+                        <input type="text" id="other-subject" placeholder="Type specific issue..."
+                            oninput="autoGenerateMessage()" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Part Names <span class="label-badge" id="selected-count">0 selected</span></label>
+                    <div class="part-selector-container">
+                        <div class="search-wrapper">
+                            <input type="text" class="search-input" id="part-search" placeholder="Search part name..."
+                                oninput="filterParts()" />
+                        </div>
+                        <div class="part-list-scroll" id="part-list-container">
+                            <div
+                                style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; font-weight: 500;">
+                                Loading parts...</div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label>Person Responsible</label>
-                <div class="radio-cards">
-                    <label class="radio-card">
-                        <input type="radio" name="resp-opt" value="QA" checked onchange="autoGenerateMessage()" />
-                        <span class="radio-content">QA</span>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="resp-opt" value="ENG" onchange="autoGenerateMessage()" />
-                        <span class="radio-content">ENG</span>
-                    </label>
-                    <label class="radio-card">
-                        <input type="radio" name="resp-opt" value="Management" onchange="autoGenerateMessage()" />
-                        <span class="radio-content">Management</span>
-                    </label>
+                <div class="form-group">
+                    <label>Person Responsible</label>
+                    <div class="radio-cards">
+                        <label class="radio-card">
+                            <input type="radio" name="resp-opt" value="QA" checked onchange="autoGenerateMessage()" />
+                            <span class="radio-content">QA</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="resp-opt" value="ENG" onchange="autoGenerateMessage()" />
+                            <span class="radio-content">ENG</span>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="resp-opt" value="Management" onchange="autoGenerateMessage()" />
+                            <span class="radio-content">Management</span>
+                        </label>
+                    </div>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="message">Preview Message</label>
-                <textarea id="message" readonly placeholder="Message will generate automatically..."></textarea>
-            </div>
+                <div class="form-group">
+                    <label for="message">Preview Message</label>
+                    <textarea id="message" readonly placeholder="Message will generate automatically..."></textarea>
+                </div>
 
-            <button id="send-btn" class="action-btn" onclick="sendTeamsMessage()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-                Send to Microsoft Teams
-            </button>
+                <button id="send-btn" class="action-btn" onclick="sendTeamsMessage()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send to Teams
+                </button>
+            </div>
+        </div>
+
+        <!-- TRACKING DASHBOARD -->
+        <div class="tracking-card">
+            <div class="tracking-header">
+                <span>Approval Tracking</span>
+                <button onclick="loadApprovalLogs()"
+                    style="background:none; border:none; color:var(--primary); font-weight:800; font-size:11px; cursor:pointer;">Refresh</button>
+            </div>
+            <div id="tracking-list">
+                <div style="padding: 20px; text-align: center; color: var(--text-muted); font-weight: 500;">Loading
+                    active requests...</div>
+            </div>
         </div>
     </div>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd.</div>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. • Intelligence Systems</div>
 
     <script>
+<<<<<<< HEAD
         const TEAMS_WEBHOOK_URL = "http://192.168.2.195/api/teams";
         const SUPABASE_URL = "http://192.168.2.195:8000";
         const SUPABASE_KEY =
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+=======
+        const TEAMS_WEBHOOK_URL = "http://192.168.0.5/FamaxQCSystem/api/teams";
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+>>>>>>> 72a833eef81a2bb1c3e77ad3b74afc275b7d1f8d
 
         const api = axios.create({
             baseURL: SUPABASE_URL,
@@ -448,100 +545,77 @@
         });
 
         let allParts = [];
+        let selectedParts = new Set();
 
-        // 1. Load Parts with Latest on Top
         async function loadPartsList() {
             try {
-                // Fetch part names and created_at, ordered by date descending
-                const res = await api.get(
-                    "/rest/v1/Parts?select=Part_Name,created_at&order=created_at.desc",
-                );
-
-                // Remove duplicates but keep order
+                const res = await api.get("/rest/v1/Parts?select=Part_Name,created_at&order=created_at.desc");
                 const seen = new Set();
                 allParts = res.data.filter((el) => {
                     const duplicate = seen.has(el.Part_Name);
                     seen.add(el.Part_Name);
                     return !duplicate;
                 });
-
                 renderPartsList(allParts);
             } catch (e) {
                 console.error("Parts load error", e);
-                $("#part-list-container").html(
-                    '<div style="color: red; padding: 10px;">Failed to load parts.</div>',
-                );
             }
         }
 
         function renderPartsList(parts) {
             const container = document.getElementById("part-list-container");
             container.innerHTML = "";
-
             if (parts.length === 0) {
-                container.innerHTML =
-                    '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No parts found.</div>';
+                container.innerHTML = '<div style="padding: 20px; text-align: center;">No parts found.</div>';
                 return;
             }
-
             parts.forEach((item) => {
-                const dateStr = item.created_at
-                    ? new Date(item.created_at).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                    })
-                    : "";
+                const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB") : "";
+                const isChecked = selectedParts.has(item.Part_Name) ? "checked" : "";
 
                 const div = document.createElement("div");
                 div.className = "part-item";
                 div.onclick = (e) => {
-                    // If clicking the div, toggle the checkbox inside
                     if (e.target.tagName !== "INPUT") {
                         const cb = div.querySelector("input");
                         cb.checked = !cb.checked;
-                        updateSelection();
+                        updateSelection(cb);
                     }
                 };
 
                 div.innerHTML = `
-            <input type="checkbox" value="${item.Part_Name}" onchange="updateSelection()">
+            <input type="checkbox" value="${item.Part_Name}" ${isChecked} onchange="updateSelection(this)">
             <div class="part-info">
-              <span class="part-name-text">${item.Part_Name}</span>
-              <span class="part-date">${dateStr}</span>
-            </div>
-          `;
+                <span class="part-name-text">${item.Part_Name}</span>
+                <span class="part-date">${dateStr}</span>
+            </div>`;
                 container.appendChild(div);
             });
         }
 
         function filterParts() {
             const term = document.getElementById("part-search").value.toLowerCase();
-            const filtered = allParts.filter((p) =>
-                p.Part_Name.toLowerCase().includes(term),
-            );
+            const filtered = allParts.filter((p) => p.Part_Name.toLowerCase().includes(term));
             renderPartsList(filtered);
-
-            // Ensure previously checked items remain checked if they are in the filtered list
-            // (Simplified: In a real app, you'd track selected IDs in an array)
         }
 
-        function updateSelection() {
-            const checked = Array.from(
-                document.querySelectorAll("#part-list-container input:checked"),
-            ).map((i) => i.value);
-            document.getElementById("selected-count").textContent =
-                `${checked.length} selected`;
+        function updateSelection(checkbox) {
+            if (checkbox.checked) {
+                selectedParts.add(checkbox.value);
+            } else {
+                selectedParts.delete(checkbox.value);
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById("selected-count").textContent = `${selectedParts.size} selected`;
             autoGenerateMessage();
         }
 
         function handleSubjectChange() {
-            const otherContainer = document.getElementById(
-                "other-subject-container",
-            );
-            const selectedSubject = document.querySelector(
-                'input[name="subject-opt"]:checked',
-            ).value;
+            const otherContainer = document.getElementById("other-subject-container");
+            const selectedSubject = document.querySelector('input[name="subject-opt"]:checked').value;
             otherContainer.classList.toggle("hidden", selectedSubject !== "Others");
             autoGenerateMessage();
         }
@@ -553,20 +627,13 @@
             const finalSubject = subjectOpt === "Others" ? otherSubject || "Other Issue" : subjectOpt;
             const respPerson = document.querySelector('input[name="resp-opt"]:checked').value;
 
-            // --- MENTION LOGIC BASED ON YOUR LIST ---
             let mention = "";
-            if (respPerson === "QA") {
-                mention = "@Ayyub Sofi";
-            } else if (respPerson === "ENG") {
-                mention = "@Azim Bakar @Afiff Naufal";
-            } else if (respPerson === "Management") {
-                mention = "@Vicson Lee";
-            }
+            if (respPerson === "QA") mention = "@Ayyub Sofi";
+            else if (respPerson === "ENG") mention = "@Azim Bakar @Afiff Naufal";
+            else if (respPerson === "Management") mention = "@Vicson Lee";
 
-            const selectedParts = Array.from(
-                document.querySelectorAll("#part-list-container input:checked"),
-            ).map((i) => i.value);
-            const partsListString = selectedParts.length > 0 ? selectedParts.join(", ") : "None selected";
+            const selectedPartsArray = Array.from(selectedParts);
+            const partsListString = selectedPartsArray.length > 0 ? selectedPartsArray.join(", ") : "None selected";
 
             let msgTemplate = "";
             if (subjectOpt === "WI APPROVAL") {
@@ -574,10 +641,151 @@
             } else {
                 msgTemplate = `Subject: ${finalSubject}\nParts: ${partsListString}\nAttention: ${respPerson} ${mention}\n\nSubmitted by ${sender}. Please review.`;
             }
-
             document.getElementById("message").value = msgTemplate;
         }
 
+        async function loadApprovalLogs() {
+            try {
+                const res = await api.get("/rest/v1/TeamsLog?status=neq.Completed&order=eng_initiated_at.desc");
+                const container = document.getElementById("tracking-list");
+                container.innerHTML = "";
+
+                if (res.data.length === 0) {
+                    container.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-weight:500;">No active logs found.</div>';
+                    return;
+                }
+
+                res.data.forEach(item => {
+                    const statusClass = item.status.toLowerCase().replace(/\s+/g, '-');
+                    let actionBtn = "";
+
+                    if (item.status === "Pending QA") {
+                        actionBtn = `<button class="qa-sign-btn" onclick="qaSignApproval('${item.id}', '${item.part_names}')">QA Sign</button>`;
+                    }
+                    else if (item.status === "Pending MGMT") {
+                        actionBtn = `<button class="complete-btn" onclick="completeApproval('${item.id}', '${item.part_names}')">Complete Sign</button>`;
+                    }
+
+                    container.innerHTML += `
+                <div class="log-item">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 700; font-size: 14px; color: var(--text-main);">${item.part_names}</span>
+                        <span class="status-badge status-${statusClass}">${item.status}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Initiated: ${new Date(item.eng_initiated_at).toLocaleString('en-GB')}</span>
+                        ${actionBtn}
+                    </div>
+                </div>
+            `;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function qaSignApproval(id, partNames) {
+            if (!confirm(`Confirm QA Signature for ${partNames}? This will notify Management.`)) return;
+
+            try {
+                await api.patch(`/rest/v1/TeamsLog?id=eq.${id}`, {
+                    qa_approved_at: new Date().toISOString(),
+                    status: "Pending MGMT"
+                });
+
+                const payload = {
+                    "type": "message",
+                    "attachments": [{
+                        "contentType": "application/vnd.microsoft.card.adaptive",
+                        "content": {
+                            "type": "AdaptiveCard",
+                            "body": [
+                                { "type": "TextBlock", "text": "✅ QA SIGNED - ACTION REQUIRED", "weight": "Bolder", "color": "Accent", "size": "Large" },
+                                { "type": "TextBlock", "text": `QA (Ayyub) has signed the WI for the following parts. Management approval is now required.`, "wrap": true },
+                                {
+                                    "type": "FactSet", "facts": [
+                                        { "title": "Parts:", "value": partNames },
+                                        { "title": "Attention:", "value": "<at>Vicson Lee</at>" }
+                                    ]
+                                }
+                            ],
+                            "msteams": {
+                                "entities": [{
+                                    "type": "mention",
+                                    "text": "<at>Vicson Lee</at>",
+                                    "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" }
+                                }]
+                            },
+                            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                            "version": "1.4"
+                        }
+                    }]
+                };
+
+                await axios.post(TEAMS_WEBHOOK_URL, payload);
+                alert("QA Signed Successfully! Management has been notified.");
+                loadApprovalLogs();
+            } catch (e) {
+                console.error(e);
+                alert("Failed to update status.");
+            }
+        }
+
+        async function logApprovalStep(partsArray, step, sender) {
+            for (const part of partsArray) {
+                try {
+                    const checkRes = await api.get(`/rest/v1/TeamsLog?part_names=eq.${encodeURIComponent(part)}&status=neq.Completed`);
+                    const payload = {
+                        part_names: part,
+                        initiated_by: sender,
+                        status: step === "Management" ? "Pending MGMT" : "Pending QA",
+                        eng_initiated_at: new Date().toISOString()
+                    };
+
+                    if (checkRes.data.length > 0) {
+                        const existingId = checkRes.data[0].id;
+                        await api.patch(`/rest/v1/TeamsLog?id=eq.${existingId}`, payload);
+                    } else {
+                        await api.post("/rest/v1/TeamsLog", payload);
+                    }
+                } catch (error) {
+                    console.error(`Logging Error for part ${part}:`, error);
+                }
+            }
+        }
+
+        async function completeApproval(id, partNames) {
+            if (!confirm(`Mark ${partNames} as fully signed and notify Teams?`)) return;
+            try {
+                await api.patch(`/rest/v1/TeamsLog?id=eq.${id}`, {
+                    mgmt_approved_at: new Date().toISOString(),
+                    status: "Completed"
+                });
+
+                const payload = {
+                    "type": "message",
+                    "attachments": [{
+                        "contentType": "application/vnd.microsoft.card.adaptive",
+                        "content": {
+                            "type": "AdaptiveCard",
+                            "body": [
+                                { "type": "TextBlock", "text": "✅ WI SIGN-OFF COMPLETED", "weight": "Bolder", "color": "Good", "size": "Large" },
+                                { "type": "TextBlock", "text": `Final management signature obtained. The WI for the following parts is now fully approved.`, "wrap": true },
+                                {
+                                    "type": "FactSet", "facts": [
+                                        { "title": "Parts:", "value": partNames },
+                                        { "title": "Completed At:", "value": new Date().toLocaleString() }
+                                    ]
+                                }
+                            ],
+                            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                            "version": "1.4"
+                        }
+                    }]
+                };
+                await axios.post(TEAMS_WEBHOOK_URL, payload);
+                alert("Success! Status updated to Completed.");
+                loadApprovalLogs();
+            } catch (e) { alert("Failed to update status."); }
+        }
 
         async function sendTeamsMessage() {
             const sender = document.getElementById("sender-name").value.trim();
@@ -585,58 +793,34 @@
             const otherSubject = document.getElementById("other-subject").value.trim();
             const finalSubject = subjectOpt === "Others" ? otherSubject : subjectOpt;
             const message = document.getElementById("message").value.trim();
-            const btn = document.getElementById("send-btn");
             const respPerson = document.querySelector('input[name="resp-opt"]:checked').value;
+            const btn = document.getElementById("send-btn");
 
-            if (!sender) {
-                alert("Please enter your name.");
-                return;
-            }
-
-            const selectedParts = Array.from(
-                document.querySelectorAll("#part-list-container input:checked"),
-            ).map((i) => i.value);
-
-            if (selectedParts.length === 0) {
-                alert("Please select at least one part.");
-                return;
-            }
-
-            // --- REAL MENTION LOGIC ---
-            let mentionEntities = [];
-            let mentionText = "";
-
-            // IMPORTANT: Replace these emails with their REAL Microsoft Teams emails
-            if (respPerson === "QA") {
-                mentionText = "<at>Ayyub Sofi</at>";
-                mentionEntities.push({
-                    "type": "mention",
-                    "text": "<at>Ayyub Sofi</at>",
-                    "mentioned": { "id": "ayyub.sofi@famax.com.my", "name": "Ayyub Sofi" }
-                });
-            } else if (respPerson === "ENG") {
-                mentionText = "<at>Azim Bakar</at> <at>Afiff Naufal</at>";
-                mentionEntities.push({
-                    "type": "mention",
-                    "text": "<at>Azim Bakar</at>",
-                    "mentioned": { "id": "azim.bakar@famax.com.my", "name": "Azim Bakar" }
-                }, {
-                    "type": "mention",
-                    "text": "<at>Afiff Naufal</at>",
-                    "mentioned": { "id": "afiff.naufal@famax.com.my", "name": "Afiff Naufal" }
-                });
-            } else if (respPerson === "Management") {
-                mentionText = "<at>Vicson Lee</at>";
-                mentionEntities.push({
-                    "type": "mention",
-                    "text": "<at>Vicson Lee</at>",
-                    "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" }
-                });
-            }
+            if (!sender) { alert("Please enter your name."); return; }
+            const selectedPartsArray = Array.from(selectedParts);
+            if (selectedPartsArray.length === 0) { alert("Please select parts."); return; }
 
             try {
                 btn.disabled = true;
                 btn.textContent = "Sending...";
+
+                if (subjectOpt === "WI APPROVAL") {
+                    await logApprovalStep(selectedPartsArray, respPerson, sender);
+                }
+
+                let mentionEntities = [];
+                let mentionText = "";
+
+                if (respPerson === "QA") {
+                    mentionText = "<at>Ayyub Sofi</at>";
+                    mentionEntities.push({ "type": "mention", "text": "<at>Ayyub Sofi</at>", "mentioned": { "id": "ayyub.sofi@famax.com.my", "name": "Ayyub Sofi" } });
+                } else if (respPerson === "ENG") {
+                    mentionText = "<at>Azim Bakar</at>";
+                    mentionEntities.push({ "type": "mention", "text": "<at>Azim Bakar</at>", "mentioned": { "id": "azim.bakar@famax.com.my", "name": "Azim Bakar" } });
+                } else if (respPerson === "Management") {
+                    mentionText = "<at>Vicson Lee</at>";
+                    mentionEntities.push({ "type": "mention", "text": "<at>Vicson Lee</at>", "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" } });
+                }
 
                 const payload = {
                     "type": "message",
@@ -648,20 +832,15 @@
                                 { "type": "TextBlock", "text": "🚨 IPQC SYSTEM ALERT", "weight": "Bolder", "color": "Attention" },
                                 { "type": "TextBlock", "text": finalSubject, "weight": "Bolder", "size": "Large" },
                                 {
-                                    "type": "FactSet",
-                                    "facts": [
-                                        // Use mentionText here so the name appears highlighted in Teams
-                                        { "title": "Attention Required From:", "value": `${respPerson} ${mentionText}` },
+                                    "type": "FactSet", "facts": [
+                                        { "title": "Attention:", "value": `${respPerson} ${mentionText}` },
                                         { "title": "Issued by:", "value": sender },
                                         { "title": "Date:", "value": new Date().toLocaleString() }
                                     ]
                                 },
                                 { "type": "TextBlock", "text": message, "wrap": true }
                             ],
-                            // This is the "Magic" part that makes the notification work
-                            "msteams": {
-                                "entities": mentionEntities
-                            },
+                            "msteams": { "entities": mentionEntities },
                             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                             "version": "1.4"
                         }
@@ -669,17 +848,19 @@
                 };
 
                 await axios.post(TEAMS_WEBHOOK_URL, payload);
-                alert("Success! Message sent with mentions.");
-            } catch (error) {
-                console.error(error);
-                alert("Failed to send. Check console for details.");
-            } finally {
+                alert("Success! Message sent.");
+            } catch (error) { console.error(error); alert("Failed to send."); }
+            finally {
                 btn.disabled = false;
-                btn.textContent = "Send to Microsoft Teams";
+                btn.textContent = "Send to Teams";
+                loadApprovalLogs();
             }
         }
 
-        window.onload = loadPartsList;
+        window.onload = () => {
+            loadPartsList();
+            loadApprovalLogs();
+        };
     </script>
 </body>
 

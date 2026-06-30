@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Raw Material Manager - Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <style>
+        :root {
+            --primary: #0078d4;
+            --primary-soft: rgba(0, 120, 212, 0.1);
+            --success: #10b981;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.6);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+            background-color: var(--bg);
+            margin: 0;
+            padding: 40px 20px;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Modern Glass Card */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            padding: 35px;
+            margin-bottom: 25px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h2 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            margin-left: 4px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-soft);
+        }
+
+        input[readonly] {
+            background: rgba(0, 0, 0, 0.03);
+            cursor: not-allowed;
+            color: var(--text-muted);
+        }
+
+        /* Consistent Primary Button */
+        .btn-update {
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-weight: 800;
+            width: 100%;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-update:hover {
+            background: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Clear Button (Secondary Style) */
+        .btn-clear {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 6px 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        .btn-clear:hover {
+            background: #f8fafc;
+            border-color: var(--text-dark);
+            color: var(--text-dark);
+        }
+
+        /* Calculation Box */
+        .calc-box {
+            background: rgba(0, 120, 212, 0.03);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px dashed rgba(0, 120, 212, 0.2);
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Autocomplete List */
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid var(--border);
+            background: white;
+            z-index: 99;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-top: 4px;
+        }
+
+        .autocomplete-items div {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f8fafc;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .autocomplete-items div:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
+
+        #total_weight {
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-weight: 800;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="glass-card">
+            <div class="header">
+                <h2>Stock Update & Movement</h2>
+                <button class="btn-clear" onclick="resetForm()">Clear Form</button>
+            </div>
+
+            <!-- 1. SEARCH EXISTING STOCK -->
+            <div class="form-group">
+                <label>Search Existing Stock</label>
+                <input type="text" id="search_stock" placeholder="🔍 Find by Grade, Type, or Lot Number..."
+                    autocomplete="off">
+                <div id="search_results" class="autocomplete-items" style="display:none"></div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid rgba(0,0,0,0.05); margin: 30px 0;">
+
+            <!-- 2. MAIN FORM -->
+            <div class="grid">
+                <div class="form-group">
+                    <label>Area / Rack</label>
+                    <input type="text" id="area" placeholder="e.g., RACK F-7">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="category_id">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Material Type</label>
+                <input type="text" id="material_type" placeholder="e.g., COLD DRAWN 10MMX10MM" autocomplete="off">
+                <div id="type_suggestions" class="autocomplete-items" style="display:none"></div>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label>Grade</label>
+                    <input type="text" id="grade" placeholder="e.g., C3604BD">
+                </div>
+                <div class="form-group">
+                    <label>Size / Dimensions</label>
+                    <input type="text" id="size" placeholder="e.g., Ø 10.00MM X 2500MM">
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="form-group">
+                    <label>UOM</label>
+                    <input type="text" id="uom" value="PCS">
+                </div>
+                <div class="form-group">
+                    <label>Unit Weight (KG/PC)</label>
+                    <input type="number" id="kg_per_pc" step="0.0001" placeholder="0.0000" oninput="calculateTotal()">
+                </div>
+            </div>
+
+            <!-- 3. QUANTITY & MOVEMENT SECTION -->
+            <div class="calc-box">
+                <label style="color:var(--primary); font-size: 11px; margin-bottom: 12px;">Traceability &
+                    Balance</label>
+
+                <div class="grid" style="margin-top:10px;">
+                    <div class="form-group">
+                        <label>System Balance (PCS)</label>
+                        <input type="number" id="current_qty" readonly value="0">
+                    </div>
+                    <div class="form-group">
+                        <label id="ref_label">Reference Number (PO/JO/SO)</label>
+                        <input type="text" id="ref_number" placeholder="Enter Reference No.">
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Stock Movement (PCS)</label>
+                        <input type="number" id="qty_movement" placeholder="+/- PCS" oninput="convertPcsToKg()">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock Movement (KG)</label>
+                        <input type="number" id="weight_movement" step="0.001" placeholder="+/- KG"
+                            oninput="convertKgToPcs()">
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Calculated Final Weight</label>
+                        <input type="text" id="total_weight" readonly value="0.000 KG">
+                    </div>
+                    <div class="form-group">
+                        <label>Lot Number / Heat No.</label>
+                        <input type="text" id="lot_no" placeholder="e.g., LOT-2024-05-001">
+                    </div>
+                </div>
+                <div id="millcert_section"
+                    style="display:none; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 15px;">
+                    <label style="color:var(--success)">📜 Upload Mill Certificates (Inbound Only)</label>
+                    <input type="file" id="mill_cert_files" multiple accept="image/*,application/pdf"
+                        style="margin-top:5px;">
+                    <small style="display:block; color:var(--text-muted); margin-top:5px;">You can select multiple
+                        images or PDFs.</small>
+                    <div id="file_preview" style="font-size: 11px; color: var(--primary); margin-top: 5px;"></div>
+                </div>
+            </div>
+
+            <button class="btn-update" id="btn-submit" onclick="submitStockUpdate()">Save Transaction</button>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = "http://192.168.0.5:8000";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+        let selectedStockId = null;
+        let originalMaterial = null; // To store specs of the searched item
+        let searchedSnapshot = null; // Stores the "original" data from the search
+
+        $(document).ready(function () {
+            loadCategories();
+            setupStockSearch();
+            setupTypeSuggestions();
+
+            // Watch identifying fields for any manual changes
+            $('#grade, #material_type, #size, #kg_per_pc').on('input change', function () {
+                checkMaterialConsistency();
+            });
+        });
+
+        async function loadCategories() {
+            const { data, error } = await _supabase.from('RawMaterialCategory').select('*').order('category_name');
+            if (error) return console.error(error);
+
+            $('#category_id').html('<option value="">-- Select Category --</option>');
+            data.forEach(c => {
+                $('#category_id').append(`<option value="${c.id}">${c.category_name}</option>`);
+            });
+        }
+
+        function setupStockSearch() {
+            $('#search_stock').on('focus input', async function () {
+                const val = $(this).val();
+
+                let query = _supabase.from('RawMaterialStock').select('*');
+                if (val.length > 0) {
+                    query = query.or(`material_type.ilike.%${val}%,grade.ilike.%${val}%,last_lot_no.ilike.%${val}%`);
+                }
+
+                const { data, error } = await query.order('id', { ascending: false }).limit(8);
+                if (error || !data) return;
+
+                let html = '';
+                data.forEach(item => {
+                    const lotInfo = item.last_lot_no ? ` [Lot: ${item.last_lot_no}]` : "";
+                    html += `<div class="search-item" data-id="${item.id}">
+                    <strong>${item.grade || 'N/A'}</strong> - <small>${item.material_type || ''}${lotInfo}</small>
+                </div>`;
+                });
+
+                $('#search_results').html(html).show();
+
+                $('.search-item').on('mousedown', function () {
+                    const id = $(this).data('id');
+                    const targetItem = data.find(i => i.id == id);
+                    fillForm(targetItem);
+                });
+            });
+
+            $(document).on('mousedown', function (e) {
+                if (!$(e.target).closest('.form-group').length) {
+                    $('#search_results').hide();
+                }
+            });
+        }
+
+        window.fillForm = function (item) {
+            selectedStockId = item.id;
+
+            // TAKE SNAPSHOT: Store the identifying specs
+            searchedSnapshot = {
+                grade: (item.grade || "").toUpperCase(),
+                type: (item.material_type || "").toUpperCase(),
+                size: (item.size_dimensions || "").toUpperCase(),
+                unitWeight: parseFloat(item.kg_per_pc) || 0
+            };
+
+            $('#area').val(item.area || "");
+            $('#material_type').val(item.material_type || "");
+            $('#grade').val(item.grade || "");
+            $('#size').val(item.size_dimensions || "");
+            $('#uom').val(item.uom || "PCS");
+            $('#kg_per_pc').val(item.kg_per_pc || 0);
+            $('#current_qty').val(item.qty_pcs || 0);
+            $('#lot_no').val(item.last_lot_no || '');
+
+            if (item.product_category) {
+                $('#category_id').val(item.product_category);
+            }
+
+            $('#category_id').prop('disabled', true);
+            $('#search_results').hide();
+            $('#search_stock').val(item.grade);
+
+            calculateTotal();
+        };
+
+        function setupTypeSuggestions() {
+            $('#material_type').on('input', async function () {
+                const val = $(this).val();
+                if (val.length < 2) return $('#type_suggestions').hide();
+
+                const { data } = await _supabase.from('RawMaterialStock')
+                    .select('material_type')
+                    .ilike('material_type', `%${val}%`)
+                    .limit(5);
+
+                if (data && data.length > 0) {
+                    let html = '';
+                    const uniqueTypes = [...new Set(data.map(i => i.material_type))];
+                    uniqueTypes.forEach(t => {
+                        html += `<div onclick="$('#material_type').val('${t}'); $('#type_suggestions').hide();">${t}</div>`;
+                    });
+                    $('#type_suggestions').html(html).show();
+                }
+            });
+        }
+        // Bi-directional Calculation Logic
+        function convertPcsToKg() {
+            const pcs = parseFloat($('#qty_movement').val()) || 0;
+            const kgPerPc = parseFloat($('#kg_per_pc').val()) || 0;
+
+            if (kgPerPc > 0) {
+                const kg = (pcs * kgPerPc).toFixed(3);
+                $('#weight_movement').val(kg);
+            }
+            updateRefLabel(pcs);
+            calculateTotal();
+        }
+
+        function convertKgToPcs() {
+            const kg = parseFloat($('#weight_movement').val()) || 0;
+            const kgPerPc = parseFloat($('#kg_per_pc').val()) || 0;
+
+            if (kgPerPc > 0) {
+                const pcs = Math.round(kg / kgPerPc);
+                $('#qty_movement').val(pcs);
+            }
+            updateRefLabel(kg);
+            calculateTotal();
+        }
+
+        function updateRefLabel(value) {
+            const label = $('#ref_label');
+            const input = $('#ref_number');
+            const millCertSection = $('#millcert_section');
+
+            if (value > 0) {
+                label.text("PO Number (Inbound)");
+                input.attr("placeholder", "Enter Purchase Order No.");
+                millCertSection.fadeIn(); // Show upload for + movement
+            } else if (value < 0) {
+                label.text("JO / SO Number (Outbound)");
+                input.attr("placeholder", "Enter Job Order or Sales Order No.");
+                millCertSection.fadeOut(); // Hide for - movement
+                $('#mill_cert_files').val(''); // Clear files
+            } else {
+                label.text("Reference Number");
+                input.attr("placeholder", "Enter Ref No.");
+                millCertSection.fadeOut();
+            }
+        }
+
+        function calculateTotal() {
+            // This value is forced to 0 by the checker if specs change
+            const currentQtyPcs = parseFloat($('#current_qty').val()) || 0;
+            const moveQtyPcs = parseFloat($('#qty_movement').val()) || 0;
+            const kgPerPc = parseFloat($('#kg_per_pc').val()) || 0;
+
+            const finalQtyPcs = currentQtyPcs + moveQtyPcs;
+            const finalWeightKg = (finalQtyPcs * kgPerPc).toFixed(3);
+
+            $('#total_weight').val(finalWeightKg + " KG");
+        }
+
+        function checkMaterialConsistency() {
+            // 1. Get current values
+            const currentGrade = $('#grade').val().trim().toUpperCase();
+            const currentType = $('#material_type').val().trim().toUpperCase();
+            const currentSize = $('#size').val().trim().toUpperCase();
+            const currentUnitWeight = parseFloat($('#kg_per_pc').val()) || 0;
+
+            // 2. Only check if we previously selected an item from search
+            if (searchedSnapshot) {
+                // Compare against the snapshot
+                const isDifferent = (
+                    currentGrade !== searchedSnapshot.grade ||
+                    currentType !== searchedSnapshot.type ||
+                    currentSize !== searchedSnapshot.size ||
+                    currentUnitWeight !== searchedSnapshot.unitWeight
+                );
+
+                if (isDifferent) {
+                    console.log("Specs changed: Resetting System Balance to 0");
+
+                    // RESET logic
+                    selectedStockId = null;     // No longer linked to the database ID
+                    $('#current_qty').val(0);   // System Balance becomes 0
+                    $('#category_id').prop('disabled', false); // Allow category change
+
+                    // Force recalculation of final weight based on 0 balance
+                    calculateTotal();
+                }
+            } else {
+                // If no item was searched, ensure balance stays 0
+                $('#current_qty').val(0);
+                calculateTotal();
+            }
+        }
+
+        // Updated Submission with Validation
+        // --- 1. MAIN SUBMISSION FUNCTION ---
+        async function submitStockUpdate() {
+            // 1. Collect Input Data
+            const kgPerPc = parseFloat($('#kg_per_pc').val()) || 0;
+            const moveQty = parseFloat($('#qty_movement').val()) || 0;
+            const refNo = $('#ref_number').val().trim();
+            const lotNo = $('#lot_no').val().toUpperCase();
+            const grade = $('#grade').val().toUpperCase();
+            const matType = $('#material_type').val().toUpperCase();
+            const size = $('#size').val().toUpperCase();
+            const area = $('#area').val().toUpperCase();
+            const category = $('#category_id').val();
+            const uom = $('#uom').val().toUpperCase();
+
+            // --- Validation ---
+            if (!grade || !matType || !size) {
+                alert("Required: Grade, Material Type, and Size/Dimensions cannot be empty.");
+                return;
+            }
+            if (moveQty !== 0 && !refNo) {
+                alert(`Required: Please enter a Reference Number.`);
+                return;
+            }
+            if (kgPerPc <= 0) {
+                alert("Invalid Unit Weight. Please enter KG/PC.");
+                return;
+            }
+
+            const $btn = $('#btn-submit');
+            $btn.prop('disabled', true).text('Checking database...');
+
+            try {
+                // --- Step 1: SMART LOGIC (Updated to include Weight) ---
+                // We now check Grade + Type + Size + KG_PER_PC
+                const { data: match, error: matchErr } = await _supabase
+                    .from('RawMaterialStock')
+                    .select('id, qty_pcs')
+                    .eq('grade', grade)
+                    .eq('material_type', matType)
+                    .eq('size_dimensions', size)
+                    .eq('kg_per_pc', kgPerPc) // <--- ADDED THIS LINE
+                    .maybeSingle();
+
+                if (matchErr) throw matchErr;
+
+                // Calculate Final Quantity
+                const baseQty = match ? match.qty_pcs : 0;
+                const finalQty = baseQty + moveQty;
+
+                if (finalQty < 0) {
+                    alert(`Error: Insufficient stock. This specific material (with weight ${kgPerPc} KG/PC) only has ${baseQty} PCS in balance.`);
+                    $btn.prop('disabled', false).text('Save Transaction');
+                    return;
+                }
+
+                // --- Step 2: Handle File Uploads ---
+                let certPaths = [];
+                if (moveQty > 0) {
+                    $btn.text('Uploading Mill Certificates...');
+                    certPaths = await uploadMillCerts(grade, matType);
+                }
+
+                // --- Step 3: Prepare Stock Data ---
+                $btn.text('Updating Inventory...');
+                const stockData = {
+                    area: area,
+                    product_category: category,
+                    material_type: matType,
+                    grade: grade,
+                    size_dimensions: size,
+                    uom: uom,
+                    kg_per_pc: kgPerPc,
+                    qty_pcs: finalQty,
+                    total_weight_kg: finalQty * kgPerPc,
+                    last_lot_no: lotNo,
+                };
+
+                let finalId;
+                if (match) {
+                    // Update existing record because all 4 specs match
+                    const { data: updateRes, error: updateErr } = await _supabase
+                        .from('RawMaterialStock')
+                        .update(stockData)
+                        .eq('id', match.id)
+                        .select();
+                    if (updateErr) throw updateErr;
+                    finalId = match.id;
+                } else {
+                    // Create NEW record because no match was found for this specific Weight/Size combo
+                    const { data: insertRes, error: insertErr } = await _supabase
+                        .from('RawMaterialStock')
+                        .insert([stockData])
+                        .select();
+                    if (insertErr) throw insertErr;
+                    finalId = insertRes[0].id;
+                }
+
+                // --- Step 4: Record Movement ---
+                if (moveQty !== 0) {
+                    $btn.text('Logging Movement...');
+                    await _supabase.from('RawMaterialMovement').insert([{
+                        material_id: finalId,
+                        move_type: moveQty > 0 ? 'IN' : 'OUT',
+                        qty_change: Math.abs(moveQty),
+                        weight_change: Math.abs(parseFloat($('#weight_movement').val()) || 0),
+                        lot_no: lotNo,
+                        ref_no: refNo,
+                        reason: (moveQty > 0 ? "PO: " : "Ref: ") + refNo,
+                        mill_cert_urls: certPaths
+                    }]);
+                }
+
+                Toastify({ text: "TRANSACTION SAVED SUCCESSFULLY", background: "var(--success)" }).showToast();
+                setTimeout(() => location.reload(), 1500);
+
+            } catch (err) {
+                console.error("Critical Error:", err);
+                alert("System Error: " + (err.message || "Unknown error occurred"));
+                $btn.prop('disabled', false).text('Save Transaction');
+            }
+        }
+
+        // --- 2. STORAGE UPLOAD HELPER FUNCTION ---
+        async function uploadMillCerts(grade, materialType) {
+            const fileInput = $('#mill_cert_files')[0];
+            const files = fileInput.files;
+
+            // If no files selected, return empty array
+            if (files.length === 0) return [];
+
+            const uploadedPaths = [];
+            const dateFolder = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
+            // Clean folder names (remove spaces and special characters for URL safety)
+            const cleanGrade = grade.replace(/[^a-z0-9]/gi, '_');
+            const cleanType = materialType.replace(/[^a-z0-9]/gi, '_');
+
+            for (const file of files) {
+                // Create unique filename: Timestamp_RandomID.extension
+                const fileExt = file.name.split('.').pop();
+                const uniqueID = Math.random().toString(36).substring(7);
+                const fileName = `${Date.now()}_${uniqueID}.${fileExt}`;
+
+                // Final Path: Grade/MaterialType/Date/Filename
+                const filePath = `${cleanGrade}/${cleanType}/${dateFolder}/${fileName}`;
+
+                const { data, error } = await _supabase.storage
+                    .from('rawmaterialmillcert')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) {
+                    console.error(`Upload failed for ${file.name}:`, error.message);
+                    // Optionally: alert the user but continue with other files
+                } else {
+                    // Store the path returned by Supabase
+                    uploadedPaths.push(data.path);
+                }
+            }
+
+            return uploadedPaths; // Array of strings
+        }
+
+        function resetForm() {
+            selectedStockId = null;
+            searchedSnapshot = null; // Clear the snapshot
+            $('input, textarea').val('');
+            $('#qty_movement').val(0);
+            $('#weight_movement').val(0);
+            $('#current_qty').val(0);
+            $('#uom').val('PCS');
+            $('#category_id').prop('disabled', false).val('');
+            $('#total_weight').val("0.000 KG");
+        }
+    </script>
+</body>
+
+</html>

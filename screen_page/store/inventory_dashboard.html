@@ -7,38 +7,79 @@
     <title>Inventory Status - Famax Finished Goods</title>
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap"
         rel="stylesheet" />
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
+        /* --- THEME SYSTEM --- */
         :root {
             --primary: #0078d4;
+            --primary-soft: rgba(0, 120, 212, 0.1);
+            --secondary: #64748b;
+            --tertiary: #1e293b;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
             --bg: #f8fafc;
-            --text-dark: #1e293b;
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --text-main: #1e293b;
             --text-muted: #64748b;
-            --border: #e2e8f0;
+            --border: rgba(255, 255, 255, 0.6);
+            --font-body: "Inter", sans-serif;
+            --font-head: "Inter", sans-serif;
+            --radius: 20px;
+            --clip: none;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            --bg-img: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+        }
+
+        body.cyber-theme {
+            --primary: #00ffff;
+            --primary-soft: rgba(0, 255, 255, 0.1);
+            --secondary: #ff00ff;
+            --tertiary: #ffff00;
+            --success: #39ff14;
+            --danger: #ff3131;
+            --bg: #050505;
+            --card-bg: rgba(15, 15, 15, 0.9);
+            --text-main: #fff;
+            --text-muted: #00ffff;
+            --border: #00ffff;
+            --font-body: "Rajdhani", sans-serif;
+            --font-head: "Orbitron", sans-serif;
+            --radius: 0px;
+            --clip: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            --shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            --bg-img: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
         }
 
         body {
-            font-family: "Inter", sans-serif;
-            background: var(--bg);
-            color: var(--text-dark);
+            font-family: var(--font-body);
+            background-color: var(--bg);
+            background-image: var(--bg-img);
+            /* background-size: 30px 30px; */
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 30px;
+            min-height: 100vh;
+            transition: background 0.2s ease;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            width: 100%;
         }
 
-        /* Header & Stats */
+        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -46,81 +87,230 @@
             margin-bottom: 30px;
         }
 
+        body.cyber-theme .header {
+            border-left: 5px solid var(--secondary);
+            padding-left: 20px;
+        }
+
         .header h1 {
+            font-family: var(--font-head);
             font-weight: 800;
             margin: 0;
-            font-size: 24px;
+            font-size: 28px;
+            letter-spacing: -0.5px;
+        }
+
+        body.cyber-theme .header h1 {
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--primary);
+            text-shadow: 0 0 15px var(--primary);
+        }
+
+        .theme-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: var(--font-head);
+            font-weight: 700;
+            font-size: 11px;
+            clip-path: var(--clip);
+            transition: 0.3s;
+        }
+
+        /* Cards */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            clip-path: var(--clip);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
-        /* .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        } */
+        .stat-card {
+            padding: 25px;
+        }
 
         .stat-card label {
             display: block;
             color: var(--text-muted);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .stat-card .value {
-            font-size: 24px;
+            font-family: var(--font-head);
+            font-size: 28px;
             font-weight: 800;
             color: var(--primary);
         }
 
-        /* Search Bar */
+        body.cyber-theme .stat-card {
+            border-bottom: 3px solid var(--primary);
+        }
+
+        body.cyber-theme .stat-card:nth-child(2) {
+            border-color: var(--secondary);
+        }
+
+        body.cyber-theme .stat-card:nth-child(3) {
+            border-color: var(--tertiary);
+        }
+
+        .stats-grid-bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .insight-card {
+            padding: 20px 25px;
+        }
+
+        .insight-card label {
+            font-size: 11px;
+            color: var(--primary);
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.cyber-theme .insight-card label {
+            color: var(--tertiary);
+        }
+
+        .insight-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+        }
+
+        .insight-qty {
+            font-weight: 800;
+            background: var(--primary-soft);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        /* Toolbar */
         .toolbar {
             display: flex;
             justify-content: space-between;
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: var(--radius);
             border: 1px solid var(--border);
             margin-bottom: 20px;
             gap: 15px;
+            clip-path: var(--clip);
         }
 
         .search-input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 10px 18px;
+            background: rgba(0, 0, 0, 0.05);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 14px;
+            color: var(--text-main);
             outline: none;
+        }
+
+        body.cyber-theme .search-input {
+            border-radius: 0;
+            background: #111;
+        }
+
+        .btn-add,
+        .btn-export,
+        .btn-save {
+            padding: 10px 22px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            font-family: var(--font-head);
+        }
+
+        body.cyber-theme .btn-add,
+        body.cyber-theme .btn-export,
+        body.cyber-theme .btn-save {
+            border-radius: 0;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .btn-add {
+            background: var(--tertiary);
+            color: #fff;
+        }
+
+        body.cyber-theme .btn-add {
+            background: var(--secondary);
         }
 
         .btn-export {
             background: var(--success);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 700;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
+            color: #fff;
         }
 
-        /* Table Styling */
-        .table-card {
-            background: white;
+        body.cyber-theme .btn-export {
+            color: #000;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        body.cyber-theme .btn-save {
+            color: #000;
+        }
+
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 10px 22px;
             border-radius: 12px;
-            border: 1px solid var(--border);
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-head);
+        }
+
+        body.cyber-theme .btn-cancel {
+            background: #333;
+            color: #fff;
+            border-radius: 0;
+        }
+
+        /* Table */
+        .table-card {
+            border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         table {
@@ -130,305 +320,257 @@
         }
 
         thead th {
-            background: #f1f5f9;
-            padding: 15px;
-            font-size: 11px;
+            background: rgba(128, 128, 128, 0.05);
+            padding: 18px;
+            font-size: 10px;
             text-transform: uppercase;
-            font-weight: 700;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border);
         }
 
         tbody td {
-            padding: 15px;
-            border-bottom: 1px solid var(--border);
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
             font-size: 14px;
         }
 
         tbody tr:hover {
-            background: #f8fafc;
+            background: rgba(128, 128, 128, 0.05);
+            cursor: pointer;
         }
 
         .badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 10px;
             font-weight: 800;
+            text-transform: uppercase;
+            border: 1px solid currentColor;
         }
 
         .badge-success {
-            background: #d1fae5;
-            color: #065f46;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
         }
 
         .badge-warning {
-            background: #ffedd5;
-            color: #92400e;
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
         }
 
         .badge-danger {
-            background: #fee2e2;
-            color: #991b1b;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
         }
 
-        .barcode-text {
-            font-family: monospace;
-            font-weight: 700;
-            color: var(--primary);
+        /* --- 1. THE OVERLAY (Dark Background & Centering) --- */
+        #modal-overlay,
+        #edit-modal-overlay {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            /* Darken the rest of the screen */
+            backdrop-filter: blur(5px);
+            /* Blur the background */
+            z-index: 10000;
+            /* Always on top */
+
+            /* Centering Logic */
+            justify-content: center;
+            align-items: center;
         }
 
+        /* --- 2. THE MODAL CARD (The White Box) --- */
+        .modal-card {
+            background: #ffffff !important;
+            width: 95%;
+            max-width: 500px;
+            /* Default for New Item */
+            padding: 35px;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* --- 3. BOSS HIGH-VISIBILITY FOR UPDATE MODAL --- */
+        #edit-modal-overlay .modal-card {
+            max-width: 750px !important;
+            /* Make update modal wider */
+            border: 4px solid #1e293b !important;
+        }
+
+        #edit-modal-overlay h3 {
+            font-size: 28px !important;
+            color: #000000 !important;
+            font-weight: 900;
+        }
+
+        #edit-modal-overlay label {
+            font-size: 14px !important;
+            font-weight: 900 !important;
+            color: #1e293b !important;
+            margin-top: 10px;
+        }
+
+        #edit-modal-overlay input {
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            background: #f8fafc !important;
+            border: 2px solid #cbd5e1 !important;
+            color: #000 !important;
+            height: 50px !important;
+        }
+
+        /* Total Stock Box Highlight */
+        #edit-total {
+            background: #fff7ed !important;
+            border: 3px solid #ea580c !important;
+            color: #ea580c !important;
+            font-size: 26px !important;
+            height: 60px !important;
+        }
+
+        /* Table Visibility */
+        #item-history-container table thead th {
+            background: #1e293b !important;
+            /* Black header */
+            color: #ffffff !important;
+            /* White text */
+            font-size: 13px !important;
+            text-transform: uppercase;
+        }
+
+        #item-history-body td {
+            font-size: 15px !important;
+            /* Larger table text */
+            color: #000000 !important;
+            padding: 12px 10px !important;
+            font-weight: 600;
+        }
+
+        /* Make badges much brighter */
+        .badge-success {
+            background: #16a34a !important;
+            color: white !important;
+            font-size: 12px !important;
+            padding: 5px 12px !important;
+        }
+
+        .badge-danger {
+            background: #dc2626 !important;
+            color: white !important;
+            font-size: 12px !important;
+            padding: 5px 12px !important;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-family: var(--font-head);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        body.cyber-theme .form-group input {
+            border-radius: 0;
+            background: #111;
+        }
+
+        .form-row-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        /* Loader */
         #overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
+            background: var(--bg);
+            opacity: 0.8;
+            display: none;
             justify-content: center;
             align-items: center;
-            z-index: 100;
+            z-index: 10000;
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
+            border: 3px solid #333;
+            border-top: 3px solid var(--primary);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             animation: spin 1s linear infinite;
         }
 
-        .status-col {
-            white-space: nowrap;
-            width: 1%;
-            /* Forces the column to be as narrow as possible without wrapping */
-        }
-
-        /* Ensure the badges themselves don't wrap internally */
-        .badge {
-            display: inline-block;
-            white-space: nowrap;
-        }
-
-        .stat-card {
-            height: fit-content;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
+        /* Container height for exactly 5 rows (~40px per row + header) */
+        #item-history-container {
+            max-height: 235px;
+            /* Fits roughly 5.5 rows so users see it is scrollable */
+            overflow-y: auto;
             border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.02);
+            position: relative;
         }
 
-        /* Bottom Row Layout: 2 columns */
-        /* Bottom Row Layout: Force 2 equal columns spanning 100% width */
-        .stats-grid-bottom {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            /* This splits the row exactly in half */
-            gap: 20px;
-            /* Space between the two cards */
-            margin-bottom: 30px;
-            width: 100%;
-            /* Ensures it fills the container width */
+        /* Fix the header to the top of the container */
+        #item-history-container thead th {
+            position: sticky;
+            top: 0;
+            background: var(--card-bg);
+            /* Adapts to light/cyber theme */
+            z-index: 10;
+            border-bottom: 2px solid var(--border);
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* Updated Insight Card styling for a clean, balanced look */
-        .insight-card {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
+        /* Custom scrollbar for a cleaner look */
+        #item-history-container::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .insight-card label {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Ensure the list fills the card width */
-        .insight-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            width: 100%;
-        }
-
-        .insight-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .insight-list li:last-child {
-            border-bottom: none;
-        }
-
-        /* This container holds the Barcode and Description */
-        .insight-item-info {
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            /* Important to keep the 50/50 split if text is long */
-            padding-right: 10px;
-        }
-
-        .insight-name {
-            font-size: 13px;
-            color: var(--text-dark);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            /* Adds ... if the product name is too long */
-        }
-
-        .insight-qty {
-            font-weight: 800;
-            background: #f1f5f9;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            color: var(--primary);
-            min-width: fit-content;
-        }
-
-        /* Responsive: stack them only on mobile phones */
-        @media (max-width: 768px) {
-            .stats-grid-bottom {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .sync-wrapper {
-            font-size: 12px;
-        }
-
-        #sync-link {
-            color: var(--primary);
-            /* Uses your existing blue */
-            text-decoration: underline;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        #sync-link:hover {
-            opacity: 0.8;
-        }
-
-        .sync-icon {
-            transition: transform 0.5s ease;
-        }
-
-        /* Optional: Animation when loading */
-        .is-loading .sync-icon {
-            animation: spin 1s linear infinite;
+        #item-history-container::-webkit-scrollbar-thumb {
+            background: var(--secondary);
+            border-radius: 10px;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
             100% {
                 transform: rotate(360deg);
-            }
-        }
-
-        /* Main Container: Adjust padding for small screens */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .header h1 {
-                font-size: 20px;
-            }
-
-            /* Stats Grid: 3 columns -> 1 column on mobile */
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-
-            /* Insight Cards: 2 columns -> 1 column */
-            .stats-grid-bottom {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            /* Toolbar: Search and Export stack vertically */
-            .toolbar {
-                flex-direction: column;
-                padding: 10px;
-            }
-
-            .search-input {
-                width: 100%;
-            }
-
-            .btn-export {
-                width: 100%;
-                text-align: center;
-            }
-        }
-
-        /* Tablet view: 2 columns for top stats */
-        @media (min-width: 481px) and (max-width: 1024px) {
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        /* --- TABLE RESPONSIVENESS --- */
-        .table-card {
-            width: 100%;
-            overflow-x: auto;
-            /* Enables horizontal scroll */
-            -webkit-overflow-scrolling: touch;
-            /* Smooth scroll for iOS */
-        }
-
-        table {
-            min-width: 900px;
-            /* Ensures table doesn't squish too much */
-        }
-
-        /* Ensure the container stays within screen bounds */
-        .container {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        /* Compact specific columns on small screens */
-        @media (max-width: 600px) {
-            .barcode-text {
-                font-size: 12px;
-            }
-
-            tbody td {
-                padding: 10px 8px;
-                font-size: 13px;
             }
         }
     </style>
@@ -439,91 +581,205 @@
         <div class="spinner"></div>
     </div>
 
+    <!-- NEW INVENTORY MODAL -->
+    <div id="modal-overlay">
+        <div class="modal-card">
+            <h3 id="modal-title" style="font-weight: 800; font-size: 20px; font-family: var(--font-head);">✨ New
+                Inventory Item</h3>
+            <div class="form-group">
+                <label id="lbl-new-customer">Customer Name</label>
+                <input type="text" id="inv_customer" placeholder="e.g. Dyson / Sony">
+            </div>
+            <div class="form-group">
+                <label id="lbl-new-barcode">Barcode / Part ID</label>
+                <input type="text" id="inv_barcode" placeholder="e.g. FG-100234">
+            </div>
+            <div class="form-group">
+                <label id="lbl-new-product">Product Description</label>
+                <input type="text" id="inv_product" placeholder="Full product name...">
+            </div>
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>UOM</label>
+                    <input type="text" id="inv_uom" value="PCS">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-new-ctnqty">Qty per Ctn</label>
+                    <input type="number" id="inv_units" placeholder="0">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-new-cancel" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button id="btn-save-new" class="btn-save" onclick="saveNewInventory()">Create Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT INVENTORY MODAL -->
+    <div id="edit-modal-overlay">
+        <div class="modal-card">
+            <h3>📝 Update Stock Level</h3>
+
+            <div id="edit-display-name"
+                style="font-size: 18px; color: #475569; margin-bottom: 25px; font-weight: 800; background: #f1f5f9; padding: 15px; border-radius: 8px; border-left: 5px solid #0078d4;">
+                <!-- Barcode - Product Name -->
+            </div>
+
+            <input type="hidden" id="edit-id">
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>Standard Qty per Carton</label>
+                    <input type="number" id="edit-units-per" class="calc-trigger">
+                </div>
+                <div class="form-group">
+                    <label>Number of Cartons in Store</label>
+                    <input type="number" id="edit-ctns" class="calc-trigger">
+                </div>
+            </div>
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>Loose Pieces (Balance)</label>
+                    <input type="number" id="edit-loose" class="calc-trigger">
+                </div>
+                <div class="form-group">
+                    <label>TOTAL PHYSICAL STOCK (PCS)</label>
+                    <input type="number" id="edit-total" readonly>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; border-top: 3px solid #f1f5f9; padding-top: 20px;">
+                <label
+                    style="font-size: 16px !important; color: #0078d4 !important; display: block; margin-bottom: 15px;">
+                    📊 Detailed Transaction History
+                </label>
+                <div id="item-history-container" style="max-height: 300px; border: 2px solid #e2e8f0;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 12px;">Date</th>
+                                <th style="padding: 12px;">Action</th>
+                                <th style="padding: 12px;">Job Number</th>
+                                <th style="padding: 12px;">Quantity</th>
+                                <th style="padding: 12px;">Staff Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="item-history-body">
+                            <!-- History rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="margin-top: 30px; gap: 20px;">
+                <button class="btn-cancel" onclick="closeEditModal()"
+                    style="height: 55px; width: 150px; font-size: 18px; background: #e2e8f0; color: #475569; font-weight: bold; border-radius: 12px;">Cancel</button>
+                <button class="btn-save" onclick="updateStock()"
+                    style="height: 55px; width: 250px; font-size: 18px; background: #0078d4; color: white; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,120,212,0.3);">CONFIRM
+                    & SAVE</button>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <div>
-                <h1>Finished Goods Inventory Balance</h1>
-                <p style="color: var(--text-muted); margin: 5px 0 0 0;">Real-time stock availability for FG</p>
+                <h1 id="main-title">Inventory Balance</h1>
+                <p id="main-subtitle" style="color: var(--text-muted); font-size: 14px; font-weight: 500;">Real-time
+                    stock tracking for Finished Goods</p>
             </div>
-            <div class="sync-wrapper">
-                <a href="javascript:void(0)" onclick="fetchStock()" id="sync-link">
-                    <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M23 4v6h-6"></path>
-                        <path d="M1 20v-6h6"></path>
-                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                    </svg>
-                    <span id="last-updated">Syncing...</span>
-                </a>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <button class="theme-toggle" onclick="toggleTheme()">Change Theme</button>
+                <div class="sync-wrapper">
+                    <a href="javascript:void(0)" onclick="fetchStock()" id="sync-link" style="text-decoration:none;">
+                        <span id="last-updated" style="color: var(--text-muted); font-weight: 700;">Syncing...</span>
+                    </a>
+                </div>
             </div>
-
         </div>
 
-        <!-- Top Row: 3 Cards -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <label>Total Item Types</label>
+            <div class="glass-card stat-card">
+                <label id="lbl-stat-items">Total Item Types</label>
                 <div class="value" id="stat-count">-</div>
             </div>
-            <div class="stat-card">
-                <label>Total Pieces (Available)</label>
+            <div class="glass-card stat-card">
+                <label id="lbl-stat-pcs">Total Pieces</label>
                 <div class="value" id="stat-pcs">-</div>
             </div>
-            <div class="stat-card">
-                <label>Total Cartons</label>
+            <div class="glass-card stat-card">
+                <label id="lbl-stat-ctns">Total Cartons</label>
                 <div class="value" id="stat-cartons">-</div>
             </div>
         </div>
+
         <div class="stats-grid-bottom">
-            <div class="insight-card">
-                <label>🔥 Top 5 Highest Stock</label>
-                <ul id="top-highest-list" class="insight-list"></ul>
+            <div class="glass-card insight-card">
+                <label id="lbl-insight-high">🔥 Top 5 Highest Stock</label>
+                <ul id="top-highest-list" class="insight-list" style="list-style:none; padding:0; margin:0;"></ul>
             </div>
-            <div class="insight-card">
-                <label>⚠️ Top 5 Lowest Stock (>0)</label>
-                <ul id="top-lowest-list" class="insight-list"></ul>
+            <div class="glass-card insight-card">
+                <label id="lbl-insight-low">⚠️ Top 5 Lowest Stock (>0)</label>
+                <ul id="top-lowest-list" class="insight-list" style="list-style:none; padding:0; margin:0;"></ul>
             </div>
+        </div>
+
+        <div class="toolbar">
+            <input type="text" id="search" class="search-input" autocomplete="off" spellcheck="false"
+                placeholder="Search by Barcode, Product, or Customer...">
+            <div style="display:flex; gap:10px;">
+                <button id="btn-nav-add" class="btn-add" onclick="openModal()">+ New Item</button>
+                <button id="btn-nav-export" class="btn-export" onclick="exportStock()">Export Excel</button>
+            </div>
+        </div>
+
+        <div class="glass-card table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th id="th-customer">Customer</th>
+                        <th id="th-barcode">Barcode</th>
+                        <th id="th-desc">Product Description</th>
+                        <th id="th-loc">Location</th>
+                        <th>Status</th>
+                        <th>UOM</th>
+                        <th id="th-ctnsz">Ctn Size</th>
+                        <th id="th-ctns">Cartons</th>
+                        <th id="th-loose">Loose</th>
+                        <th id="th-total" style="background: var(--primary-soft); color: var(--primary);">Total
+                            Available</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-table"></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="toolbar">
-        <input type="text" id="search" class="search-input" placeholder="Search by Barcode, Product, or Customer...">
-        <button class="btn-export" onclick="exportStock()">Export to Excel</button>
-    </div>
-
-    <div class="table-card">
-        <table>
-            <thead>
-                <tr>
-                    <th>Customer</th>
-                    <th>Barcode</th>
-                    <th>Product Description</th>
-                    <th>Status</th>
-                    <th>UOM</th>
-                    <th>Qty Per Ctn</th>
-                    <th>Available Cartons</th>
-                    <th>Loose Pcs</th>
-                    <th style="background: #e0f2fe; color: #0369a1;">Total Available (PCS)</th>
-                </tr>
-            </thead>
-            <tbody id="inventory-table">
-                <!-- Data loaded here -->
-            </tbody>
-        </table>
-    </div>
-    </div>
-
     <script>
+<<<<<<< HEAD
         const SB_URL = "http://192.168.2.195:8000";
+=======
+        // --- LOGIC: AS PROVIDED BY USER ---
+        const SB_URL = "http://192.168.0.5:8000";
+>>>>>>> 72a833eef81a2bb1c3e77ad3b74afc275b7d1f8d
         const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
         let fullData = [];
 
         $(document).ready(function () {
+            // 1. Check for saved theme preference in localStorage
+            const savedTheme = localStorage.getItem('app_theme');
+            if (savedTheme === 'cyber') {
+                $('body').addClass('cyber-theme');
+                updateUIForTheme(true); // Apply dark labels
+            } else {
+                updateUIForTheme(false); // Apply light labels
+            }
+
             fetchStock();
 
-            // Search filter logic
             $("#search").on("keyup", function () {
                 const value = $(this).val().toLowerCase();
                 renderTable(fullData.filter(item =>
@@ -532,111 +788,301 @@
                     String(item.customer).toLowerCase().includes(value)
                 ));
             });
+
+            $('.calc-trigger').on('input', function () {
+                const unitsPer = parseInt($('#edit-units-per').val()) || 0;
+                const ctns = parseInt($('#edit-ctns').val()) || 0;
+                const loose = parseInt($('#edit-loose').val()) || 0;
+                const total = (unitsPer * ctns) + loose;
+                $('#edit-total').val(total);
+            });
+
+            $('#inventory-table').on('click', 'tr', function () {
+                const rowId = $(this).data('id');
+                const selectedItem = fullData.find(item => item.id == rowId);
+                if (selectedItem) openEditModal(selectedItem);
+            });
+
+            let searchTimer;
+
+            $("#search").on("input", function () {
+                const value = ($(this).val() || "").toLowerCase().trim();
+                clearTimeout(searchTimer);
+
+                searchTimer = setTimeout(function () {
+                    // Safety check: if data isn't loaded yet, do nothing
+                    if (!fullData || !Array.isArray(fullData)) return;
+
+                    try {
+                        const filteredData = fullData.filter(item => {
+                            // Ensure values are strings and not null to prevent crashes
+                            const b = String(item.barcode || "").toLowerCase();
+                            const p = String(item.product_name || "").toLowerCase();
+                            const c = String(item.customer || "").toLowerCase();
+                            return b.includes(value) || p.includes(value) || c.includes(value);
+                        });
+
+                        renderTable(filteredData);
+                    } catch (err) {
+                        console.error("Search Error: ", err);
+                    }
+                }, 200);
+            });
         });
+
+        // --- THEME TOGGLE LOGIC ---
+        function toggleTheme() {
+            $('body').toggleClass('cyber-theme');
+            const isCyber = $('body').hasClass('cyber-theme');
+
+            // 2. Save choice to localStorage permanently
+            localStorage.setItem('app_theme', isCyber ? 'cyber' : 'light');
+
+            updateUIForTheme(isCyber);
+            renderTable(fullData);
+        }
+
+        // Helper function to swap labels based on theme
+        function updateUIForTheme(isCyber) {
+            $('#main-title').text(isCyber ? 'Inventory_Balance' : 'Inventory Balance');
+            $('#main-subtitle').text(isCyber ? 'Finished Goods System Monitor // Real-time Tracking' : 'Real-time stock tracking for Finished Goods');
+            $('#modal-title').text(isCyber ? '[ NEW_ENTRY ]' : '✨ New Inventory Item');
+            $('#edit-modal-title').text(isCyber ? '[ UPDATE_SEQUENCE ]' : '📝 Update Stock Level');
+
+            $('#inv_customer').attr('placeholder', isCyber ? 'DATA_SOURCE' : 'e.g. Dyson / Sony');
+            $('#inv_barcode').attr('placeholder', isCyber ? 'PART_ID_NULL' : 'e.g. FG-100234');
+            $('#inv_product').attr('placeholder', isCyber ? 'DESC_UNRESOLVED' : 'Full product name...');
+
+            $('#btn-new-cancel').text(isCyber ? 'ABORT' : 'Cancel');
+            $('#btn-save-new').text(isCyber ? 'INITIALIZE' : 'Create Item');
+            $('#btn-edit-cancel').text(isCyber ? 'DISCARD' : 'Cancel');
+            $('#btn-save-edit').text(isCyber ? 'EXECUTE_UPDATE' : 'Save Changes');
+
+            $('#lbl-stat-items').text(isCyber ? 'Database Entities' : 'Total Item Types');
+            $('#lbl-stat-ctns').text(isCyber ? 'Bulk Containers' : 'Total Cartons');
+            $('#lbl-insight-high').text(isCyber ? '⚡ HIGH_LEVEL_NODES' : '🔥 Top 5 Highest Stock');
+            $('#lbl-insight-low').text(isCyber ? '☢️ DEPLETED_NODES' : '⚠️ Top 5 Lowest Stock (>0)');
+
+            $('#btn-nav-add').text(isCyber ? '+ NEW_ITEM' : '+ New Item');
+            $('#btn-nav-export').text(isCyber ? 'EXPORT_XLS' : 'Export Excel');
+            $('#search').attr('placeholder', isCyber ? 'SCAN_DATABASE: BARCODE / PRODUCT / CLIENT...' : 'Search by Barcode, Product, or Customer...');
+
+            $('#th-customer').text(isCyber ? 'Client' : 'Customer');
+            $('#th-barcode').text(isCyber ? 'Barcode_ID' : 'Barcode');
+            $('#th-desc').text(isCyber ? 'Description' : 'Product Description');
+            $('#th-loc').text(isCyber ? 'Sector' : 'Location');
+            $('#th-ctnsz').text(isCyber ? 'Ctn_Sz' : 'Ctn Size');
+            $('#th-ctns').text(isCyber ? 'Ctns' : 'Cartons');
+            $('#th-loose').text(isCyber ? 'Lse' : 'Loose');
+            $('#th-total').text(isCyber ? 'Net_Total' : 'Total Available');
+        }
+
+        // Modal Controls
+        function openModal() {
+            $('#modal-overlay').css('display', 'flex').hide().fadeIn(200);
+        }
+
+        function closeModal() {
+            $('#modal-overlay').fadeOut(200);
+        }
+
+        // function openEditModal(item) {
+        //     $('#edit-id').val(item.id);
+        //     $('#edit-display-name').text(`${item.barcode} - ${item.product_name}`);
+        //     $('#edit-units-per').val(item.units_per_carton || 0);
+        //     $('#edit-ctns').val(item.available_cartons || 0);
+        //     $('#edit-loose').val(item.loose_remainder || 0);
+        //     $('#edit-total').val(item.available_pcs || 0);
+        //     $('#edit-modal-overlay').css('display', 'flex').hide().fadeIn(200);
+        // }
+
+        // 1. Updated Click Event (to handle async)
+        $('#inventory-table').on('click', 'tr', function () {
+            const rowId = $(this).data('id');
+            const selectedItem = fullData.find(item => item.id == rowId);
+            if (selectedItem) openEditModal(selectedItem);
+        });
+
+        // 2. Updated Modal Opening Function
+        async function openEditModal(item) {
+            $('#edit-id').val(item.id);
+            $('#edit-display-name').text(`${item.barcode} - ${item.product_name}`);
+            $('#edit-units-per').val(item.units_per_carton || 0);
+            $('#edit-ctns').val(item.available_cartons || 0);
+            $('#edit-loose').val(item.loose_remainder || 0);
+            $('#edit-total').val(item.available_pcs || 0);
+
+            $('#edit-modal-overlay').css('display', 'flex').hide().fadeIn(200);
+
+            // Initial loading state
+            $('#item-history-body').html('<tr><td colspan="5" align="center" style="padding:20px;">Fetching records...</td></tr>');
+
+            try {
+                const { data, error } = await _supabase
+                    .from('storeRecords')
+                    .select('manu_date, out_date, entry_type, quantity, pic_name, jo_number')
+                    .eq('part_name', item.barcode)
+                    .order('created_at', { ascending: false }); // Latest transactions at the top
+
+                if (error) throw error;
+
+                let historyHtml = "";
+                if (data && data.length > 0) {
+                    data.forEach(rec => {
+                        const date = rec.manu_date || rec.out_date || '-';
+                        const typeClass = rec.entry_type === 'IN' ? 'badge-success' : 'badge-danger';
+                        const jobNo = rec.jo_number || '-';
+
+                        historyHtml += `
+                    <tr style="border-bottom: 1px solid rgba(128,128,128,0.08);">
+                        <td style="padding: 10px; white-space: nowrap;">${date}</td>
+                        <td style="padding: 10px;"><span class="badge ${typeClass}" style="font-size:8px;">${rec.entry_type}</span></td>
+                        <td style="padding: 10px; font-weight:600; color:var(--primary);">${jobNo}</td>
+                        <td style="padding: 10px; font-weight:800;">${Number(rec.quantity).toLocaleString()}</td>
+                        <td style="padding: 10px;">${rec.pic_name}</td>
+                    </tr>
+                `;
+                    });
+                } else {
+                    historyHtml = '<tr><td colspan="5" align="center" style="padding:20px; color:var(--text-muted);">No records found.</td></tr>';
+                }
+                $('#item-history-body').html(historyHtml);
+
+            } catch (err) {
+                console.error("History Fetch Error:", err);
+                $('#item-history-body').html('<tr><td colspan="5" align="center" style="color:var(--danger); padding:20px;">Error loading history.</td></tr>');
+            }
+        }
+
+        function closeEditModal() {
+            $('#edit-modal-overlay').fadeOut(200);
+        }
+
+        async function updateStock() {
+            const id = $('#edit-id').val();
+            const unitsPer = parseInt($('#edit-units-per').val()) || 0;
+            const ctns = parseInt($('#edit-ctns').val()) || 0;
+            const loose = parseInt($('#edit-loose').val()) || 0;
+            const total = parseInt($('#edit-total').val()) || 0;
+            const isCyber = $('body').hasClass('cyber-theme');
+            $('#btn-save-edit').prop('disabled', true).text(isCyber ? 'UPLOADING...' : 'Updating...');
+            const { error } = await _supabase.from('inventory').update({
+                units_per_carton: unitsPer, available_cartons: ctns, loose_remainder: loose, available_pcs: total
+            }).eq('id', id);
+            if (error) { alert("Error: " + error.message); $('#btn-save-edit').prop('disabled', false).text(isCyber ? 'RETRY_UPDATE' : 'Save Changes'); }
+            else { closeEditModal(); fetchStock(); $('#btn-save-edit').prop('disabled', false).text(isCyber ? 'EXECUTE_UPDATE' : 'Save Changes'); }
+        }
+
+        async function saveNewInventory() {
+            const customer = $('#inv_customer').val();
+            const barcode = $('#inv_barcode').val();
+            const product = $('#inv_product').val();
+            const uom = $('#inv_uom').val();
+            const unitsPerCtn = parseInt($('#inv_units').val()) || 0;
+            const isCyber = $('body').hasClass('cyber-theme');
+            if (!barcode || !product) { alert(isCyber ? "BARCODE/DESC REQ." : "Barcode/Product required."); return; }
+            $('#btn-save-new').prop('disabled', true).text(isCyber ? 'WRITING...' : 'Saving...');
+            const { error } = await _supabase.from('inventory').insert([{
+                customer, barcode, product_name: product, uom, units_per_carton: unitsPerCtn,
+                available_pcs: 0, available_cartons: 0, loose_remainder: 0
+            }]);
+            if (error) { alert("Error: " + error.message); $('#btn-save-new').prop('disabled', false).text(isCyber ? 'RETRY_INIT' : 'Create Item'); }
+            else { closeModal(); fetchStock(); $('#btn-save-new').prop('disabled', false).text(isCyber ? 'INITIALIZE' : 'Create Item'); }
+        }
+
         async function fetchStock() {
-            // Start animation and overlay
-            $('#sync-link').addClass('is-loading');
+
             $('#overlay').show();
-
-            const { data, error } = await _supabase
-                .from('inventory')
-                .select('*')
-                .order('customer', { ascending: true });
-
-            // Stop animation and overlay
+            const { data, error } = await _supabase.from('inventory').select('*').order('customer', { ascending: true });
             $('#overlay').hide();
-            $('#sync-link').removeClass('is-loading');
 
             if (error) {
-                alert("Error fetching data: " + error.message);
+                console.error("Fetch Error:", error.message);
+                fullData = []; // Ensure it's an array even on error
                 return;
             }
 
-            fullData = data;
-            renderTable(data);
-            updateStats(data);
-
-            // Update the timestamp
+            fullData = data || []; // Default to empty array if data is null
+            renderTable(fullData);
+            updateStats(fullData);
             const now = new Date();
-            const timeString = now.toLocaleDateString() + ", " + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            $('#last-updated').text("Last Sync: " + timeString);
+            const isCyber = $('body').hasClass('cyber-theme');
+            $('#last-updated').text((isCyber ? "ONLINE: " : "Synced: ") + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
         }
 
         function renderTable(data) {
             let html = "";
-            data.forEach(row => {
+            const isCyber = $('body').hasClass('cyber-theme');
+            if (!data || data.length === 0) {
+                $("#inventory-table").html(`<tr><td colspan="10" align="center" style="padding: 40px; color: var(--text-muted);">${isCyber ? 'NO_DATA_STREAM_MATCH' : 'No matching items found.'}</td></tr>`);
+                return;
+            }
+            data.forEach((row) => {
                 const avail = parseInt(row.available_pcs) || 0;
                 let statusBadge = "";
+                if (avail > 500) statusBadge = `<span class="badge badge-success">${isCyber ? 'STABLE' : 'In Stock'}</span>`;
+                else if (avail > 0) statusBadge = `<span class="badge badge-warning">${isCyber ? 'LIMIT_HIT' : 'Low Stock'}</span>`;
+                else statusBadge = `<span class="badge badge-danger">${isCyber ? 'OFFLINE' : 'Out of Stock'}</span>`;
 
-                if (avail > 500) statusBadge = '<span class="badge badge-success">IN STOCK</span>';
-                else if (avail > 0) statusBadge = '<span class="badge badge-warning">LOW STOCK</span>';
-                else statusBadge = '<span class="badge badge-danger">OUT OF STOCK</span>';
-
-                html += `
-                    <tr>
-                        <td style="font-weight:600">${row.customer || '-'}</td>
-                        <td class="barcode-text">${row.barcode}</td>
-                        <td>${row.product_name || '-'}</td>
-                        <td class="status-col">${statusBadge}</td> <!-- ADDED CLASS HERE -->
-                        <td>${row.uom || 'PCS'}</td>
-                        <td>${row.units_per_carton || 0}</td>
-                        <td>${row.available_cartons || 0}</td>
-                        <td>${row.loose_remainder || 0}</td>
-                        <td style="font-weight:800; color:var(--primary); background: #f0f9ff;">${avail.toLocaleString()}</td>
-                    </tr>
-                `;
+                html += `<tr data-id="${row.id}">
+                    <td style="font-weight:700; ${isCyber ? 'color:var(--secondary)' : ''}">${row.customer || '-'}</td>
+                    <td style="color:var(--primary); font-weight:700; font-family:monospace;">${row.barcode}</td>
+                    <td style="font-weight:600">${row.product_name || '-'}</td>
+                    <td style="color:var(--text-muted); font-weight:700;">${row.item_location || '-'}</td>
+                    <td>${statusBadge}</td>
+                    <td>${row.uom || 'PCS'}</td>
+                    <td>${row.units_per_carton || 0}</td>
+                    <td>${row.available_cartons || 0}</td>
+                    <td>${row.loose_remainder || 0}</td>
+                    <td style="font-weight:800; color:${isCyber ? '#fff' : 'var(--primary)'}; background: var(--primary-soft);">${avail.toLocaleString()}</td>
+                </tr>`;
             });
-            $("#inventory-table").html(html || '<tr><td colspan="9" align="center">No inventory found.</td></tr>');
+            $("#inventory-table").html(html || `<tr><td colspan="10" align="center">${isCyber ? 'NO_DATA_STREAM' : 'No data.'}</td></tr>`);
         }
 
         function updateStats(data) {
-            let totalPcs = 0;
-            let totalCtns = 0;
-
-            // Calculate basic totals
+            let totalPcs = 0, totalCtns = 0;
             data.forEach(item => {
                 totalPcs += (parseInt(item.available_pcs) || 0);
                 totalCtns += (parseInt(item.available_cartons) || 0);
             });
-
             $("#stat-count").text(data.length);
             $("#stat-pcs").text(totalPcs.toLocaleString());
             $("#stat-cartons").text(totalCtns.toLocaleString());
 
-            // --- Logic for Top 5 Highest ---
-            const highest = [...data]
-                .sort((a, b) => (parseInt(b.available_pcs) || 0) - (parseInt(a.available_pcs) || 0))
-                .slice(0, 5);
+            const highest = [...data].sort((a, b) => (parseInt(b.available_pcs) || 0) - (parseInt(a.available_pcs) || 0)).slice(0, 5);
+            const lowest = [...data].filter(item => (parseInt(item.available_pcs) || 0) > 0).sort((a, b) => (parseInt(a.available_pcs) || 0) - (parseInt(b.available_pcs) || 0)).slice(0, 5);
 
-            // --- Logic for Top 5 Lowest (where Qty > 0) ---
-            const lowest = [...data]
-                .filter(item => (parseInt(item.available_pcs) || 0) > 0)
-                .sort((a, b) => (parseInt(a.available_pcs) || 0) - (parseInt(b.available_pcs) || 0))
-                .slice(0, 5);
-
-            // Helper to render lists
+            const isCyber = $('body').hasClass('cyber-theme');
             const renderInsightList = (list, elementId) => {
                 let html = list.map(item => `
-            <li>
-                <div class="insight-item-info">
-                    <span class="insight-barcode">${item.barcode}</span>
-                    <span class="insight-name">${item.product_name || 'No Description'}</span>
-                </div>
-                <span class="insight-qty">${(parseInt(item.available_pcs) || 0).toLocaleString()}</span>
-            </li>
-        `).join('');
-                $(`#${elementId}`).html(html || '<li>No data available</li>');
+                    <li>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:12px; font-weight:700; color:${isCyber ? 'var(--primary)' : 'var(--text-dark)'};">${item.barcode}</span>
+                            <span style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">${item.product_name || '-'}</span>
+                        </div>
+                        <span class="insight-qty">${(parseInt(item.available_pcs) || 0).toLocaleString()}</span>
+                    </li>
+                `).join('');
+                $(`#${elementId}`).html(html || `<li>${isCyber ? 'DATA_NULL' : 'No data'}</li>`);
             };
-
             renderInsightList(highest, 'top-highest-list');
             renderInsightList(lowest, 'top-lowest-list');
         }
+
         function exportStock() {
+            const isCyber = $('body').hasClass('cyber-theme');
             const ws = XLSX.utils.json_to_sheet(fullData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Inventory_Status");
-            XLSX.writeFile(wb, `Stock_Availability_${new Date().toISOString().split('T')[0]}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+            const fileName = isCyber ? `FMX_NODE_DUMP_${new Date().toISOString().split('T')[0]}.xlsx` : `Stock_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
         }
+
+        $(window).on('click', function (event) {
+            if (event.target.id === 'modal-overlay') closeModal();
+            if (event.target.id === 'edit-modal-overlay') closeEditModal();
+        });
     </script>
 </body>
 

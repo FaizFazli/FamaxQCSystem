@@ -68,6 +68,51 @@
             vertical-align: middle;
             margin-right: 5px;
         }
+
+        /* Ensure the table cell allows its children to fill 100% height */
+        .report-table td.p-0 {
+            padding: 0 !important;
+            vertical-align: stretch;
+            /* Crucial for height matching */
+            height: 1px;
+            /* Hack to make h-full work in table cells */
+        }
+
+        /* The container for the sub-rows */
+        .sub-row-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Each individual line item */
+        .sub-row-item {
+            flex: 1;
+            /* This forces all boxes to share the available height equally */
+            display: flex;
+            align-items: center;
+            /* Vertically center the text */
+            justify-content: center;
+            /* Horizontally center */
+            border-bottom: 1px solid #000;
+            padding: 4px 2px;
+            box-sizing: border-box;
+            min-height: 25px;
+            /* Minimum height for empty lines */
+            line-height: 1.2;
+            word-break: break-word;
+            /* Prevents long text from overlapping */
+        }
+
+        .sub-row-item:last-child {
+            border-bottom: none;
+        }
+
+        .text-left-item {
+            justify-content: flex-start;
+            padding-left: 5px;
+        }
     </style>
 </head>
 
@@ -136,7 +181,8 @@
                         class="w-12 h-12 bg-blue-900 flex items-center justify-center text-white font-bold italic rounded">
                         famax</div> -->
 
-                    <img src="/FamaxQCSystem/assets/Famax Logo R V2 Square.png" alt="famax logo" class="w-12 h-12 object-contain rounded">
+                    <img src="/FamaxQCSystem/assets/Famax Logo R V2 Square.png" alt="famax logo"
+                        class="w-12 h-12 object-contain rounded">
                     <div>
                         <h2 class="text-lg font-bold leading-none">FAMAX TECHNOLOGY (M) SDN. BHD.</h2>
                         <p class="text-[10px]">200601028954 (748710-K)</p>
@@ -209,19 +255,58 @@
                         <td>{{ row.Part_Name }}</td>
                         <td>{{ row.Machine_No || '-' }}</td>
                         <td>{{ row.Parameter }}</td>
-                        <td>{{ row.Remark }}</td>
+
+                        <!-- 1. DEFECT DESCRIPTION -->
+                        <td class="p-0">
+                            <div class="sub-row-container">
+                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item text-left-item">
+                                    {{ item.description || '-' }}
+                                </div>
+                            </div>
+                        </td>
+
                         <td>{{ row.InspectBy }}</td>
                         <td>{{ row.ProductionBy || '-' }}</td>
-                        <td>{{ row.RejectQty }}</td>
+
+                        <!-- 2. AFFECTED QTY (Now syncs height with Description) -->
+                        <td class="p-0">
+                            <div class="sub-row-container">
+                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">
+                                    {{ item.quantity }}
+                                </div>
+                            </div>
+                        </td>
+
                         <td>{{ row.AcceptQty }}</td>
                         <td>{{ row.ReturnVendor || '-' }}</td>
                         <td>{{ row.ScrapQty }}</td>
                         <td>{{ row.ReworkQty || 0 }}</td>
                         <td>{{ row.FinalizeBy }}</td>
-                        <!-- Re-inspection columns populated from mapped data -->
-                        <td class="bg-yellow-50/30">{{ row.reInDate || '-' }}</td>
-                        <td class="bg-yellow-50/30">{{ row.reInBy || '-' }}</td>
-                        <td class="bg-yellow-50/30 font-bold">{{ row.reInQty || '-' }}</td>
+
+                        <!-- 3. RE-INSPECTION DATE -->
+                        <td class="bg-yellow-50/30">
+                            {{ row.reInDate || '-' }}
+                        </td>
+
+                        <!-- 4. RE-INSPECTION BY -->
+                        <td class="p-0 bg-yellow-50/30">
+                            <div class="sub-row-container">
+                                <!-- We repeat the name for every defect line -->
+                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">
+                                    {{ row.reInBy }}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- 5. RE-INSPECTION QTY -->
+                        <td class="p-0 bg-yellow-50/30 font-bold">
+                            <div class="sub-row-container">
+                                <!-- Use reInBreakdown to show the matched or fallback quantity -->
+                                <div v-for="(item, i) in row.reInBreakdown" :key="i" class="sub-row-item">
+                                    {{ item.quantity }}
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                     <!-- Fill empty rows -->
                     <tr v-for="i in Math.max(0, 15 - reportRows.length)" :key="'empty-'+i">
@@ -270,38 +355,98 @@
                 };
 
                 const reportRows = computed(() => {
-                    // Get the database value based on user selection
                     const dbCategoryValue = categoryMapping[selectedCategory.value];
 
+                    // 1. Get Primary (Initial) Inspections
                     const primaryInspections = allRecords.value.filter(r => {
-                        const dateMatch = r.created_at.startsWith(filterMonth.value);
-
-                        // 3. Updated filtering logic to use the mapping
-                        const catMatch = !selectedCategory.value || r.Category === dbCategoryValue;
-
-                        const typeMatch = r.Inspection_Type !== 'Re-Inspection';
-                        return dateMatch && catMatch && typeMatch;
+                        const dateMatch = (r.created_at || "").startsWith(filterMonth.value);
+                        const catMatch = !selectedCategory.value || (r.Category || "").toUpperCase() === (dbCategoryValue || "").toUpperCase();
+                        const typeMatch = (r.Inspection_Type || "").toUpperCase() !== 'RE-INSPECTION';
+                        return dateMatch && catMatch && typeMatch && Number(r.RejectQty) !== 0;
                     });
 
-                    const reInspections = allRecords.value.filter(r => r.Inspection_Type === 'Re-Inspection');
+                    primaryInspections.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-                    return primaryInspections.map(primary => {
-                        const primaryDate = new Date(primary.created_at);
-                        const match = reInspections.find(ri => {
-                            const reInspectionDate = new Date(ri.created_at);
-                            return ri.JO_Number === primary.JO_Number &&
-                                ri.Parameter === primary.Parameter &&
-                                reInspectionDate > primaryDate;
+                    // 2. Prepare Re-Inspections list with a "remaining" tracker
+                    let reInspections = allRecords.value
+                        .filter(r => (r.Inspection_Type || "").toUpperCase() === 'RE-INSPECTION')
+                        .map(r => ({ ...r, remaining: Number(r.AcceptQty || 0) }));
+
+                    // Initialize tracking objects for our primary rows
+                    const rowResults = primaryInspections.map(p => ({
+                        id: p.id,
+                        target: Number(p.ReworkQty || 0), // Use Rework Qty as the cap
+                        reject: Number(p.RejectQty || 0),
+                        key: `${p.JO_Number}|${p.Part_Name}|${p.Parameter}`.toUpperCase(),
+                        finalQty: 0,
+                        latestDate: null,
+                        latestBy: null
+                    }));
+
+                    // STEP A: PRIORITY MATCHING (Exact Qty matches)
+                    // If a Re-Inspection Qty matches an Initial Reject Qty exactly, they likely belong together.
+                    rowResults.forEach(row => {
+                        const riMatch = reInspections.find(ri => {
+                            const riKey = `${ri.JO_Number}|${ri.Part_Name}|${ri.Parameter}`.toUpperCase();
+                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
+                            return riKey === row.key && isAfter && (ri.remaining === row.reject || ri.remaining === row.target) && ri.remaining > 0;
                         });
+
+                        if (riMatch) {
+                            const take = Math.min(row.target, riMatch.remaining);
+                            row.finalQty = take;
+                            row.latestDate = riMatch.created_at;
+                            row.latestBy = riMatch.InspectBy;
+                            riMatch.remaining -= riMatch.remaining; // Mark this specific RI record as fully consumed for matching
+                        }
+                    });
+
+                    // STEP B: FILL REMAINING (Chronological Pool consumption)
+                    // For rows not matched exactly, take what's left in the pool for that JO/Part/Process
+                    rowResults.forEach(row => {
+                        if (row.finalQty > 0 || row.target === 0) return;
+
+                        reInspections.forEach(ri => {
+                            if (row.finalQty >= row.target) return;
+                            const riKey = `${ri.JO_Number}|${ri.Part_Name}|${ri.Parameter}`.toUpperCase();
+                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
+
+                            if (riKey === row.key && isAfter && ri.remaining > 0) {
+                                const needed = row.target - row.finalQty;
+                                const take = Math.min(needed, ri.remaining);
+                                row.finalQty += take;
+                                ri.remaining -= take;
+
+                                if (!row.latestDate || new Date(ri.created_at) > new Date(row.latestDate)) {
+                                    row.latestDate = ri.created_at;
+                                    row.latestBy = ri.InspectBy;
+                                }
+                            }
+                        });
+                    });
+
+                    // 3. Final mapping to visual rows
+                    return primaryInspections.map(primary => {
+                        const result = rowResults.find(res => res.id === primary.id);
+                        let remarks = [];
+                        try {
+                            remarks = Array.isArray(primary.Remark) ? primary.Remark : JSON.parse(primary.Remark || "[]");
+                        } catch (e) { remarks = []; }
 
                         return {
                             ...primary,
-                            reInDate: match ? formatDate(match.created_at) : null,
-                            reInBy: match ? match.InspectBy : null,
-                            reInQty: match ? (Number(match.AcceptQty)) : null
+                            Remark: remarks,
+                            reInDate: result.latestDate ? formatDate(result.latestDate) : '-',
+                            reInBy: result.latestBy || '-',
+                            reInBreakdown: remarks.map((defect, i) => ({
+                                description: defect.description,
+                                // Assign the total found quantity to the first defect description line
+                                quantity: i === 0 && result.finalQty > 0 ? result.finalQty : '-'
+                            }))
                         };
                     });
                 });
+
 
                 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB') : '';
                 const formatMonthDisplay = (val) => {

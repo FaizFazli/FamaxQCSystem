@@ -192,54 +192,40 @@
             margin-left: 0;
         }
 
-        /* --- TOP NAV --- */
         .top-nav {
             position: sticky;
             top: 0;
             background: white;
-            padding: 10px 25px;
+            padding: 0 15px;
+            /* Reduced padding for mobile */
             z-index: 1000;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             display: flex;
             align-items: center;
             justify-content: space-between;
             height: 60px;
+            /* Fixed height for consistency */
             box-sizing: border-box;
         }
 
-        .top-nav img {
-            height: 35px !important;
+        .nav-logo-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* Space between button and logo */
+            flex-shrink: 0;
+            /* Prevents the logo/button from squishing */
+        }
+
+        /* Ensure the logo image doesn't jump around */
+        .nav-logo-group img {
+            height: 30px !important;
+            /* Smaller logo for mobile header */
             width: auto !important;
-            max-width: 150px;
+            display: block;
         }
 
-        @media (min-width: 1101px) {
-            #sidebar:not(.collapsed)+#contentWrapper .top-nav {
-                display: none;
-            }
 
-            #sidebar.collapsed+#contentWrapper .top-nav {
-                display: flex;
-            }
-        }
-
-        @media (max-width: 1100px) {
-            .top-nav {
-                display: flex !important;
-            }
-
-            .sidebar {
-                left: calc(var(--sidebar-width) * -1);
-            }
-
-            .sidebar.is-mobile-open {
-                left: 0;
-            }
-
-            .content-wrapper {
-                margin-left: 0 !important;
-            }
-        }
 
         /* --- RESTORED MODAL CSS --- */
         .modal {
@@ -565,6 +551,75 @@
             animation: spin 1s linear infinite;
         }
 
+        /* --- MODERN SIDEBAR TOGGLE BUTTON --- */
+        /* Updated Menu Button Design */
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 0;
+            flex-shrink: 0;
+        }
+
+        .menu-btn:hover {
+            background: #e2e8f0;
+            color: #0078d4;
+        }
+
+        /* Responsive Dashboard Title */
+        .header-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            /* Keeps title on one line */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-left: 10px;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.92);
+            /* Subtle click animation */
+        }
+
+        /* Style for the 'X' button inside the sidebar */
+        .close-sidebar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .close-sidebar-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        /* Align the logo and button perfectly */
+        .nav-logo-group img {
+            height: 32px;
+            /* Adjust to match the 40px button height visually */
+            width: auto;
+        }
+
         @keyframes spin {
             100% {
                 transform: rotate(360deg);
@@ -581,6 +636,126 @@
 
         .sidebar-overlay.active {
             display: block;
+        }
+
+        @media (min-width: 1101px) {
+            #sidebar:not(.collapsed)+#contentWrapper .top-nav {
+                display: none;
+            }
+
+            #sidebar.collapsed+#contentWrapper .top-nav {
+                display: flex;
+            }
+
+            /* 1. Fix KPI Cards: Change from 4 columns to 2 columns */
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .kpi-val {
+                font-size: 22px;
+                /* Slightly smaller text for mobile */
+            }
+
+            /* 2. Fix Toolbar/Filters: Allow inputs to wrap and take full width */
+            .toolbar {
+                gap: 10px;
+            }
+
+            .filter-group {
+                width: 100%;
+                /* Each filter takes its own line on very small screens */
+                flex: 1 1 100%;
+            }
+
+            /* Remove fixed min-width that causes the Part Name overflow */
+            select,
+            input[type="date"] {
+                min-width: 0 !important;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* 3. Adjust Tab Container padding for more space */
+            .tab-container {
+                padding: 15px;
+            }
+
+            /* 4. Refresh Button: Make it full width on mobile */
+            .toolbar button.admin-btn {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .nav-card {
+                min-width: 100px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .top-nav {
+                display: flex !important;
+            }
+
+            .sidebar {
+                left: calc(var(--sidebar-width) * -1);
+            }
+
+            .sidebar.is-mobile-open {
+                left: 0;
+            }
+
+            .content-wrapper {
+                margin-left: 0 !important;
+            }
+
+            /* 1. Fix KPI Cards: Change from 4 columns to 2 columns */
+            .kpi-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .kpi-val {
+                font-size: 22px;
+                /* Slightly smaller text for mobile */
+            }
+
+            /* 2. Fix Toolbar/Filters: Allow inputs to wrap and take full width */
+            .toolbar {
+                gap: 10px;
+            }
+
+            .filter-group {
+                width: 100%;
+                /* Each filter takes its own line on very small screens */
+                flex: 1 1 100%;
+            }
+
+            /* Remove fixed min-width that causes the Part Name overflow */
+            select,
+            input[type="date"] {
+                min-width: 0 !important;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* 3. Adjust Tab Container padding for more space */
+            .tab-container {
+                padding: 15px;
+            }
+
+            /* 4. Refresh Button: Make it full width on mobile */
+            .toolbar button.admin-btn {
+                width: 100%;
+                margin-left: 0;
+            }
+
+            .nav-card {
+                min-width: 100px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -613,12 +788,33 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="assets/Famax Logo.png" alt="logo">
-            <button class="toggle-btn" id="closeSidebar"
-                style="border:none; font-size: 24px; cursor:pointer;">×</button>
+            <!-- New Styled Close Button -->
+            <button class="close-sidebar-btn" id="closeSidebar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
         </div>
         <nav class="nav-menu">
             <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link"><span class="icon-wrap">✔️</span>
                 Famax Quality Hub</a>
+            <!-- <a href="screen_page/production_planning/sales_order_entry.html"
+                style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
+                <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <rect x="4" y="3" width="16" height="18" rx="2" fill="#F5F3FF" stroke="#6366F1"
+                            stroke-width="1.5" />
+                        <path d="M9 3H15" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+                        <path d="M12 8H17M12 11H15" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round" />
+                        <path d="M7 7.5L8.5 9L11 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M10 18.5L7 20L4 18.5V15.5L7 14L10 15.5V18.5Z" fill="#FBBF24" stroke="#B45309"
+                            stroke-width="1" />
+                        <path d="M4 15.5L7 14L10 15.5L7 17L4 15.5Z" fill="#FDE68A" stroke="#B45309" stroke-width="1" />
+                        <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                    </svg></span> Sales Order Entry
+            </a> -->
 
             <div class="dropdown">
                 <button class="dropbtn">
@@ -701,7 +897,7 @@
                     Packing & Shipment <span class="arrow">▼</span>
                 </button>
                 <div class="dropdown-content">
-                    <a href="screen_page/packaging_checklist/packingList.html"
+                    <!-- <a href="screen_page/packaging_checklist/packingList.html"
                         style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
                         <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                                 <path d="M21 8L12 13L3 8L12 3L21 8Z" fill="#FDE68A" stroke="#B45309"
@@ -724,7 +920,7 @@
                                 <path d="M7 11L9 13L13 9" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"
                                     stroke-linejoin="round" />
                             </svg></span> Shipment Checklist Form
-                    </a>
+                    </a> -->
                     <a href="screen_page/store/store_record.html"
                         style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
                         <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -757,6 +953,7 @@
                                 <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
                             </svg></span> Packaging Checklist Form
                     </a>
+
                 </div>
             </div>
 
@@ -793,10 +990,18 @@
     <div class="content-wrapper" id="contentWrapper">
         <header class="top-nav">
             <div class="nav-logo-group">
-                <button class="toggle-btn" id="menuToggle">☰</button>
+                <!-- Button and Image are side-by-side inside this div -->
+                <button class="menu-btn" id="menuToggle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <img src="assets/Famax Logo.png" alt="logo">
             </div>
-            <div style="font-size: 14px; font-weight: 700; color: #64748b;">IPQC DASHBOARD</div>
+            <div class="header-title">IPQC DASHBOARD</div>
         </header>
 
         <main class="main">
@@ -835,17 +1040,25 @@
                             <option value="90">Last 90 Days</option>
                         </select>
                     </div>
-                    <div class="filter-group"><label>From</label><input type="date" id="startDateInput"
-                            onchange="renderCurrentView()" /></div>
-                    <div class="filter-group"><label>To</label><input type="date" id="endDateInput"
-                            onchange="renderCurrentView()" /></div>
+                    <!-- From -->
+                    <div class="filter-group">
+                        <label>From</label>
+                        <input type="date" id="startDateInput" onchange="triggerNewFetch()" />
+                    </div>
+
+                    <!-- To -->
+                    <div class="filter-group">
+                        <label>To</label>
+                        <input type="date" id="endDateInput" onchange="triggerNewFetch()" />
+                    </div>
+
                     <div class="filter-group"><label>Part Name</label><select id="partFilter"
                             onchange="renderCurrentView()">
                             <option value="all">All Parts</option>
                         </select></div>
                     <button class="admin-btn"
                         style="margin-left: auto; background: var(--primary); color: white; border: none; width: auto; height: 42px; align-self: flex-end;"
-                        onclick="fetchAllData()">Refresh</button>
+                        onclick="triggerNewFetch()">Refresh</button>
                 </div>
 
                 <div class="kpi-row">
@@ -914,6 +1127,12 @@
                     error: error
                 };
             }
+        }
+
+        function triggerNewFetch() {
+            const start = $("#startDateInput").val();
+            const end = $("#endDateInput").val();
+            fetchFilteredData(start, end);
         }
 
         function showNotification(message, type) {
@@ -1063,56 +1282,107 @@
             $('.dropbtn').on('click', function () {
                 $(this).parent().toggleClass('is-active');
             });
-            const today = new Date().toISOString().split("T")[0];
-            $("#startDateInput").val(today); $("#endDateInput").val(today);
-            fetchAllData();
+            // Set default dates for the UI inputs
+            const today = new Date();
+            const twoMonthsAgo = new Date();
+            twoMonthsAgo.setMonth(today.getMonth() - 2);
+
+            const todayStr = today.toISOString().split("T")[0];
+            const twoMonthsAgoStr = twoMonthsAgo.toISOString().split("T")[0];
+
+            $("#startDateInput").val(todayStr);
+            $("#endDateInput").val(todayStr);
+
+            // Initial Fetch: Only get 2 months of data
+            fetchFilteredData(todayStr, todayStr);
+
+            $("#loginButton").click(() => $("#login-modal").modal());
+            // $("#startDateInput").val(today); $("#endDateInput").val(today);
+            // fetchAllData();
             $("#loginButton").click(() => $("#login-modal").modal());
 
-            
+
 
             $(document).on('mousemove', function (e) {
                 currentMousePos.x = e.pageX;
                 currentMousePos.y = e.pageY;
             });
 
-            // --- RESTORED ORIGINAL LOGIN HANDLER ---
+            // --- UPDATED LOGIN HANDLER ---
             document.getElementById("submitLogin").addEventListener("click", async function () {
                 const userId = document.getElementById("userId").value.trim();
                 const password = document.getElementById("password").value.trim();
-                if (!userId || !password) { showNotification("Please enter both user ID and password", "error"); return; }
+
+                if (!userId || !password) {
+                    showNotification("Please enter both user ID and password", "error");
+                    return;
+                }
+
                 try {
                     const { data, error } = await fetchFromSupabase(userId);
                     if (error) throw error;
+
                     if (data && data.length > 0) {
                         const userRecord = data[0];
                         if (userRecord.Password === password) {
                             showNotification("Login successful!", "success");
+
+                            // 1. SAVE TO SESSION STORAGE FIRST
+                            // This makes the data available to the next page without needing it in the URL
                             sessionStorage.setItem("isLoggedIn", "true");
                             sessionStorage.setItem("userId", userId);
                             sessionStorage.setItem("userPassword", password);
+
                             $.modal.close();
+
                             setTimeout(() => {
-                                window.location.href = "AdminLogin.html?UserId=" + encodeURIComponent(userId) + "&Password=" + encodeURIComponent(password);
+                                // 2. REDIRECT TO A CLEAN URL (No ?UserId= or &Password=)
+                                window.location.href = "AdminLogin.html";
                             }, 1000);
-                        } else { showNotification("Invalid password.", "error"); }
-                    } else { showNotification("User not found.", "error"); }
-                } catch (error) { showNotification("Login failed.", "error"); }
+
+                        } else {
+                            showNotification("Invalid password.", "error");
+                        }
+                    } else {
+                        showNotification("User not found.", "error");
+                    }
+                } catch (error) {
+                    showNotification("Login failed.", "error");
+                }
             });
         });
 
-        async function fetchAllData() {
+        // Function to fetch data based on specific date range
+        async function fetchFilteredData(startDate, endDate) {
             $("#loader").show();
+
+            // Ensure we are working with strings. 
+            // If objects were passed by mistake, this converts them.
+            const s = typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0];
+            const e = typeof endDate === 'string' ? endDate : endDate.toISOString().split('T')[0];
+
+            const startISO = `${s}T00:00:00`;
+            const endISO = `${e}T23:59:59`;
+
             try {
                 const [resIPQC, resIQC, resOQC] = await Promise.all([
-                    supabaseClient.get("/rest/v1/Data_IPQC?select=*&order=created_at.asc"),
-                    supabaseClient.get("/rest/v1/Data_IQC?select=*&order=created_at.asc"),
-                    supabaseClient.get("/rest/v1/Data_OQC?select=*&order=created_at.asc"),
+                    supabaseClient.get(`/rest/v1/Data_IPQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
+                    supabaseClient.get(`/rest/v1/Data_IQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
+                    supabaseClient.get(`/rest/v1/Data_OQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
                 ]);
+
                 allData.ipqc = processReadings(resIPQC.data, "IPQC");
                 allData.iqc = processReadings(resIQC.data, "IQC");
                 allData.oqc = processReadings(resOQC.data, "OQC");
-                updatePartDropdown(); renderCurrentView();
-            } finally { $("#loader").hide(); }
+
+                updatePartDropdown();
+                renderCurrentView(); // This will now update the charts
+            } catch (error) {
+                console.error("Fetch error:", error);
+                showNotification("Error: Check your date format", "error");
+            } finally {
+                $("#loader").hide();
+            }
         }
 
         function processReadings(data, type) {
@@ -1141,13 +1411,28 @@
 
         function switchTab(tab, btn) { currentTab = tab; $(".tab-btn").removeClass("active"); $(btn).addClass("active"); updatePartDropdown(); renderCurrentView(); }
 
-        function renderCurrentView() {
-            const start = $("#startDateInput").val(), end = $("#endDateInput").val(), part = $("#partFilter").val();
-            const filtered = allData[currentTab].filter(d => d.date >= start && d.date <= end && (part === "all" || d.part === part));
-            const ok = filtered.filter(d => !d.isNG).length, ng = filtered.filter(d => d.isNG).length, total = filtered.length;
-            $("#kpi-total").text(total); $("#kpi-ok").text(ok); $("#kpi-ng").text(ng);
+        function renderCurrentView(shouldFetch = false) {
+            if (shouldFetch) {
+                triggerNewFetch();
+                return;
+            }
+
+            const part = $("#partFilter").val();
+
+            // We only filter by Part Name here because Date is already filtered by the API
+            const filtered = allData[currentTab].filter(d => (part === "all" || d.part === part));
+
+            const ok = filtered.filter(d => !d.isNG).length;
+            const ng = filtered.filter(d => d.isNG).length;
+            const total = filtered.length;
+
+            $("#kpi-total").text(total);
+            $("#kpi-ok").text(ok);
+            $("#kpi-ng").text(ng);
             $("#kpi-rate").text(total > 0 ? ((ok / total) * 100).toFixed(1) + "%" : "0%");
-            updateMainChart(filtered); updateSubChart(filtered);
+
+            updateMainChart(filtered);
+            updateSubChart(filtered);
         }
 
         function updateMainChart(data) {
@@ -1242,10 +1527,23 @@
         }
 
         function handleTimeFilterChange() {
-            const val = $("#timeFilter").val(); if (val === "custom") return;
-            const end = new Date(), start = new Date(); start.setDate(end.getDate() - parseInt(val));
-            $("#startDateInput").val(start.toISOString().split("T")[0]); $("#endDateInput").val(end.toISOString().split("T")[0]);
-            renderCurrentView();
+            const val = $("#timeFilter").val();
+            if (val === "custom") return;
+
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - parseInt(val));
+
+            // Convert both to clean YYYY-MM-DD strings
+            const startStr = start.toISOString().split("T")[0];
+            const endStr = end.toISOString().split("T")[0];
+
+            // Update the UI boxes
+            $("#startDateInput").val(startStr);
+            $("#endDateInput").val(endStr);
+
+            // Fetch the data
+            fetchFilteredData(startStr, endStr);
         }
     </script>
 </body>

@@ -27,7 +27,9 @@
             font-family: "Inter", sans-serif;
             background: var(--bg-body);
             color: var(--text-main);
-            padding: 20px;
+            padding: 10px;
+            /* Reduced padding for mobile */
+            margin: 0;
         }
 
         .nav-top {
@@ -46,6 +48,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            width: 100%;
+            /* Full width on mobile */
+            max-width: 300px;
         }
 
         .btn-report-trigger:hover {
@@ -71,26 +76,28 @@
         }
 
         .card-body {
-            padding: 30px;
+            padding: 20px;
+            /* Reduced from 30px */
         }
 
         .header-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            gap: 20px;
             margin-bottom: 20px;
         }
 
         .form-group {
             display: flex;
+            flex-direction: row;
             align-items: center;
             margin-bottom: 12px;
         }
 
         .form-group label {
-            width: 160px;
+            width: 130px;
             font-weight: 700;
-            font-size: 12px;
+            font-size: 11px;
             color: #444;
             text-transform: uppercase;
         }
@@ -109,12 +116,22 @@
             border-radius: 6px;
             font-size: 13px;
             text-transform: uppercase;
+            width: 100%;
+        }
+
+        /* Responsive Table Wrapper */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+            min-width: 500px;
+            /* Ensures table doesn't squish too much */
         }
 
         th {
@@ -133,12 +150,13 @@
 
         .status-select {
             width: 100%;
-            padding: 5px;
-            border: none;
+            padding: 8px;
+            border: 1px solid #ddd;
             background: #fff9c4;
             font-weight: bold;
             text-align: center;
             cursor: pointer;
+            border-radius: 4px;
         }
 
         .btn-submit {
@@ -155,8 +173,84 @@
             transition: 0.2s;
         }
 
-        .btn-submit:hover {
-            background: var(--primary-dark);
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 15px;
+            width: 95%;
+            max-width: 900px;
+            border-radius: 12px;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 10px;
+        }
+
+        /* MOBILE OVERRIDES */
+        @media (max-width: 768px) {
+            .header-grid {
+                grid-template-columns: 1fr;
+                /* Stack header sections */
+                gap: 0;
+            }
+
+            .form-group {
+                flex-direction: column;
+                /* Label above input */
+                align-items: flex-start;
+            }
+
+            .form-group label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .form-group .sep {
+                display: none;
+                /* Hide colons on mobile */
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+                /* Stack report filters */
+            }
+
+            .card-body {
+                padding: 15px;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+            }
+
+            h3 {
+                font-size: 1rem;
+            }
+
+            .nav-top {
+                justify-content: center;
+            }
         }
 
         #loading-overlay {
@@ -182,6 +276,18 @@
             animation: spin 1s linear infinite;
         }
 
+        /* Change from 1fr 1fr 1fr to 1fr 1fr 1fr 1fr */
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            /* Updated */
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -190,67 +296,6 @@
             100% {
                 transform: rotate(360deg);
             }
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-        }
-
-        .modal-content {
-            background: white;
-            margin: 5% auto;
-            padding: 25px;
-            width: 90%;
-            max-width: 900px;
-            border-radius: 15px;
-            max-height: 85vh;
-            overflow-y: auto;
-            position: relative;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 10px;
-        }
-
-        .record-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .record-table th {
-            text-align: left;
-            padding: 12px;
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .record-table td {
-            padding: 12px;
-            border-bottom: 1px solid #f1f5f9;
         }
     </style>
 </head>
@@ -265,22 +310,23 @@
     <!-- Modal for Reports -->
     <div id="reportModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin:0">Download Monthly Maintenance Reports</h3>
+            <div class="modal-header"
+                style="display:flex; justify-content: space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h3 style="margin:0">Monthly Reports</h3>
                 <button onclick="$('#reportModal').hide()"
-                    style="border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+                    style="border:none; background:none; font-size:28px; cursor:pointer;">&times;</button>
             </div>
 
             <div class="filter-row">
                 <div>
                     <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">YEAR</label>
                     <select id="rpt_year" onchange="fetchReportList()"
-                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;"></select>
+                        style="width:100%; padding:10px; border-radius:4px; border:1px solid #ccc;"></select>
                 </div>
                 <div>
                     <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">MONTH</label>
                     <select id="rpt_month" onchange="fetchReportList()"
-                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                        style="width:100%; padding:10px; border-radius:4px; border:1px solid #ccc;">
                         <option value="1">JANUARY</option>
                         <option value="2">FEBRUARY</option>
                         <option value="3">MARCH</option>
@@ -296,26 +342,35 @@
                     </select>
                 </div>
                 <div>
+                    <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">FREQUENCY</label>
+                    <select id="rpt_freq" onchange="fetchReportList()"
+                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                        <option value="DAILY">DAILY</option>
+                        <option value="WEEKLY">WEEKLY</option>
+                        <option value="EVERY 3 MONTH">EVERY 3 MONTH</option>
+                        <option value="EVERY 6 MONTH">EVERY 6 MONTH</option>
+                    </select>
+                </div>
+                <div>
                     <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:5px;">CATEGORY</label>
                     <select id="rpt_cat" onchange="fetchReportList()"
-                        style="width:100%; padding:8px; border-radius:4px; border:1px solid #ccc;">
+                        style="width:100%; padding:10px; border-radius:4px; border:1px solid #ccc;">
                         <option value="">-- SELECT --</option>
                     </select>
                 </div>
             </div>
 
-            <div id="report_list_container">
-                <table class="record-table">
+            <div id="report_list_container" class="table-responsive">
+                <table class="record-table" style="min-width:100%">
                     <thead>
                         <tr>
-                            <th>MACHINE ID</th>
-                            <th>CATEGORY</th>
+                            <th style="text-align:left">MACHINE ID</th>
                             <th style="text-align:right">ACTION</th>
                         </tr>
                     </thead>
                     <tbody id="report_list_body">
                         <tr>
-                            <td colspan="3" align="center" style="padding:40px; color:#94a3b8;">Select a category to
+                            <td colspan="2" align="center" style="padding:40px; color:#94a3b8;">Select a category to
                                 load machines.</td>
                         </tr>
                     </tbody>
@@ -325,12 +380,12 @@
     </div>
 
     <div class="nav-top">
-        <button class="btn-report-trigger" onclick="openReportModal()">📊 DOWNLOAD MONTHLY REPORTS</button>
+        <button class="btn-report-trigger" onclick="openReportModal()">📊 DOWNLOAD REPORTS</button>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <h2 style="margin:0">Machine Preventive Maintenance (Daily)</h2>
+            <h2 style="margin:0">Machine Maintenance</h2>
         </div>
         <div class="card-body">
             <div class="header-grid">
@@ -370,23 +425,26 @@
             </div>
 
             <h3>Checklist Items</h3>
-            <p style="font-size: 12px; color: #666;">(O) Condition Normal | (X) Abnormal | (N) Not Running</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th width="50">No</th>
-                        <th>Checking Tasks</th>
-                        <th width="150">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="checklist_body">
-                    <tr>
-                        <td colspan="3" align="center">Please select a category first</td>
-                    </tr>
-                </tbody>
-            </table>
+            <p style="font-size: 11px; color: #666; margin-bottom:10px;">(O) Normal | (X) Abnormal | (N) Not Running</p>
 
-            <h3 style="margin-top:30px">Minor Maintenance History / Remarks</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="40">No</th>
+                            <th>Checking Tasks</th>
+                            <th width="100">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checklist_body">
+                        <tr>
+                            <td colspan="3" align="center">Please select a category first</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin-top:30px">Remarks</h3>
             <textarea id="remarks" rows="4"
                 style="width:100%; box-sizing:border-box; padding:10px; text-transform:uppercase;"
                 placeholder="ENTER ANY REPAIRS OR MINOR MAINTENANCE DONE TODAY..."></textarea>
@@ -558,6 +616,13 @@
             const monthName = $('#rpt_month option:selected').text();
             const catCode = $('#rpt_cat').val();
             const catName = $('#rpt_cat option:selected').text();
+            const freq = $('#rpt_freq').val(); // <--- Get Frequency from Modal
+
+
+            // Get the last day of the month (e.g., 28, 30, or 31)
+            const lastDay = new Date(year, month, 0).getDate();
+            const startDate = `${year}-${month.padStart(2, '0')}-01`;
+            const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
 
             try {
                 const famaxLogo = await getImageBuffer("http://192.168.2.195:8000/storage/v1/object/public/assets/Famax.png");
@@ -594,8 +659,7 @@
                 doc.setFontSize(10);
                 doc.text("200601028954 (748710-K)", marginX + 132.5, startY + 12, { align: 'center' });
                 doc.setFontSize(14);
-                doc.text("Machineries Preventive Maintenance Report (Daily)", marginX + 132.5, startY + 22, { align: 'center' });
-
+                doc.text(`Machineries Preventive Maintenance Report (${freq})`, 10 + 132.5, 10 + 22, { align: 'center' });
                 // Content - Internal Use Only Box
                 doc.setLineWidth(0.6);
                 doc.roundedRect(marginX + 230, startY + 3.5, 42, 8, 2, 2);
@@ -615,16 +679,35 @@
                 // --- SUB-HEADER: FREQUENCY & YEAR (Centered between Header and Grid) ---
                 // Header ends at 35, Table starts at 45. We place this at 41.
                 doc.setFontSize(11);
-                doc.text(`FREQUENCY: DAILY`, marginX + 115, startY + 32, { align: 'center' });
+                doc.text(`FREQUENCY: ${freq}`, marginX + 115, startY + 32, { align: 'center' });
                 doc.text(`YEAR: ${year}`, marginX + 155, startY + 32, { align: 'center' });
 
                 // --- 2. CHECKLIST GRID ---
-                const { data: allTasks } = await _supabase.from('ChecklistItems').select('*').eq('category_code', catCode).order('priority_order');
-                const { data: logs } = await _supabase.from('MaintenanceLogs').select('*')
-                    .eq('machine_id', machineId)
-                    .gte('created_at', `${year}-${month.padStart(2, '0')}-01`)
-                    .lte('created_at', `${year}-${month.padStart(2, '0')}-31`);
 
+
+                const { data: allTasks } = await _supabase.from('ChecklistItems')
+                    .select('*')
+                    .eq('category_code', catCode)
+                    .eq('frequency', freq)
+                    .order('priority_order');
+
+                const { data: logsData, error: logsError } = await _supabase.from('MaintenanceLogs')
+                    .select('*')
+                    .eq('machine_id', machineId)
+                    .eq('frequency', freq)
+                    .gte('created_at', startDate)
+                    .lte('created_at', endDate);
+
+                if (logsError) {
+                    console.error("Logs Fetch Error:", logsError);
+                }
+
+                const logs = logsData || [];
+
+                if (logsError) {
+                    console.error("Logs Fetch Error:", logsError);
+                    // We can continue with logs = [], but alert helps debugging
+                }
                 const predictiveNames = ["INSPECT NOISE CONDITION", "INSPECT VIBRATION CONDITION", "INSPECT SMELL CONDITION"];
                 const predictiveTasks = allTasks.filter(t => predictiveNames.includes(t.task_description.toUpperCase()));
                 const preventiveTasks = allTasks.filter(t => !predictiveNames.includes(t.task_description.toUpperCase()));
@@ -657,7 +740,8 @@
                     const row = ['', { content: label, styles: { fontStyle: 'bold' } }];
                     for (let d = 1; d <= 31; d++) {
                         const l = logs.find(log => new Date(log.created_at).getDate() === d);
-                        row.push(l ? l.operator_name.substring(0, 3) : '');
+                        // Added safety: check if l exists AND has operator_name
+                        row.push((l && l.operator_name) ? l.operator_name.substring(0, 3) : '');
                     }
                     body.push(row);
                 };

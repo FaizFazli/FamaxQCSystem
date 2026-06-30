@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sales Order Entry</title>
+    <!-- Same CSS/Libraries from your reference -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <style>
+        /* Inheriting your Reference Styles */
+        :root {
+            --primary: #0078d4;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            background: var(--primary);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 700;
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        /* Table Styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .qty-produce {
+            font-weight: 800;
+            color: var(--danger);
+            background: #fef2f2;
+            padding: 5px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .btn-add {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-submit {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="grid-layout">
+        <!-- LEFT: PO HEADER -->
+        <div class="card">
+            <div class="card-header">
+                <h3>PO Information</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <select id="customer_select" onchange="autoFillCustomer()">
+                        <option value="">-- Select Customer --</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>PO Number</label><input type="text" id="po_number"
+                        placeholder="PO/2024/0001"></div>
+                <div class="form-group"><label>Shipping Address</label><textarea id="address" rows="3"></textarea></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group"><label>ETA</label><input type="date" id="eta"></div>
+                    <div class="form-group"><label>ETD</label><input type="date" id="etd"></div>
+                </div>
+                <div class="form-group"><label>Payment Term</label><input type="text" id="payment_term"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: PART SELECTION & SHORTAGE LOGIC -->
+        <div class="card">
+            <div class="card-header"
+                style="background: #334155; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin:0">Order Items & Inventory Check</h3>
+                <button class="btn-add" onclick="addRow()">+ Add Part</button>
+            </div>
+            <div class="card-body">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Part Number / Name</th>
+                            <th width="120">Order Qty</th>
+                            <th width="120">Stock (FG)</th>
+                            <th width="120">To Produce</th>
+                            <th width="120">Unit Price</th>
+                            <th width="50"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="item-rows">
+                        <!-- Dynamic Rows Go Here -->
+                    </tbody>
+                </table>
+                <button class="btn-submit" onclick="submitFullOrder()">SUBMIT TO PRODUCTION PLANNING</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase (Using your credentials)
+        const SB_URL = "http://192.168.0.5:8000";
+        const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+        const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+        let partsData = [];
+        let customersData = [];
+
+        $(document).ready(async function () {
+            // Load Initial Data
+            const { data: cust } = await _supabase.from('customerdetails').select('*');
+            const { data: parts } = await _supabase.from('Parts').select('*');
+            customersData = cust;
+            partsData = parts;
+
+            // Populate Customer Dropdown
+            cust.forEach(c => $('#customer_select').append(`<option value="${c.id}">${c.customer_name}</option>`));
+
+            addRow(); // Start with one empty row
+        });
+
+        function autoFillCustomer() {
+            const id = $('#customer_select').val();
+            const customer = customersData.find(c => c.id == id);
+            if (customer) {
+                $('#address').val(customer.address);
+                // In a real scenario, you'd fetch the last PO for terms
+                $('#payment_term').val('NET 30 DAYS');
+            }
+        }
+
+        async function addRow() {
+            const rowId = Date.now();
+            const html = `
+            <tr id="row_${rowId}">
+                <td>
+                    <select class="p-select" onchange="checkStock(${rowId}, this.value)">
+                        <option value="">-- Select Part --</option>
+                        ${partsData.map(p => `<option value="${p.Part_Number}">${p.Part_Number} - ${p.Part_Name}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="o-qty" oninput="calculateRow(${rowId})" value="0"></td>
+                <td><input type="number" class="s-qty" readonly value="0" style="background:#f1f5f9"></td>
+                <td><div class="qty-produce" id="produce_${rowId}">0</div></td>
+                <td><input type="number" class="u-price" value="0.00"></td>
+                <td><button onclick="$('#row_${rowId}').remove()" style="color:var(--danger); border:none; background:none; cursor:pointer;">✕</button></td>
+            </tr>
+        `;
+            $('#item-rows').append(html);
+        }
+
+        async function checkStock(rowId, partNumber) {
+            const customerName = $('#customer_select option:selected').text();
+
+            // Logic: Query inventory based on part number and customer
+            const { data: inv } = await _supabase.from('inventory')
+                .select('available_pcs')
+                .eq('barcode', partNumber)
+                .ilike('customer', `%${customerName.split(' ')[0]}%`)
+                .single();
+
+            const stock = inv ? inv.available_pcs : 0;
+            $(`#row_${rowId} .s-qty`).val(stock);
+            calculateRow(rowId);
+        }
+
+        function calculateRow(rowId) {
+            const orderQty = parseInt($(`#row_${rowId} .o-qty`).val()) || 0;
+            const stockQty = parseInt($(`#row_${rowId} .s-qty`).val()) || 0;
+            const produce = orderQty - stockQty;
+
+            $(`#produce_${rowId}`).text(produce > 0 ? produce : 0);
+            // Visual cue: if produce > 0, make it red, else green
+            $(`#produce_${rowId}`).css('background', produce > 0 ? '#fef2f2' : '#f0fdf4');
+            $(`#produce_${rowId}`).css('color', produce > 0 ? 'var(--danger)' : 'var(--success)');
+        }
+
+        async function submitFullOrder() {
+            // 1. Create Header
+            const header = {
+                po_number: $('#po_number').val(),
+                customer_id: $('#customer_select').val(),
+                customer_name: $('#customer_select option:selected').text(),
+                eta: $('#eta').val(),
+                etd: $('#etd').val(),
+                payment_term: $('#payment_term').val(),
+                shipping_address: $('#address').val()
+            };
+
+            const { data: so, error: soErr } = await _supabase.from('SalesOrders').insert([header]).select().single();
+
+            if (soErr) return alert(soErr.message);
+
+            // 2. Create Items
+            const itemRecords = [];
+            $('#item-rows tr').each(function () {
+                const row = $(this);
+                itemRecords.push({
+                    so_id: so.id,
+                    part_number: row.find('.p-select').val(),
+                    order_qty: parseInt(row.find('.o-qty').val()),
+                    stock_available: parseInt(row.find('.s-qty').val()),
+                    produce_qty: parseInt(row.find('.qty-produce').text()),
+                    unit_price: parseFloat(row.find('.u-price').val())
+                });
+            });
+
+            const { error: itemErr } = await _supabase.from('SalesOrder_Items').insert(itemRecords);
+
+            if (!itemErr) {
+                Toastify({ text: "SALES ORDER CREATED & SENT TO PLANNING", background: "var(--success)" }).showToast();
+                setTimeout(() => location.reload(), 2000);
+            }
+        }
+    </script>
+</body>
+
+</html>
