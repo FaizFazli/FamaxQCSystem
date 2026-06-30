@@ -1,19 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Add Part - Image Upload</title>
-    <!-- Add /FamaxQCSystem to the beginning of the path -->
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Part - Image Upload</title>
+  <!-- Add /FamaxQCSystem to the beginning of the path -->
+  <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
     <!-- Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -24,653 +17,658 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    <style>
-      :root {
-        --primary: #0078d4;
-        --primary-dark: #005a9e;
-        --bg-body: #f3f4f6;
-        --bg-card: #ffffff;
-        --text-main: #1f2937;
-        --text-muted: #6b7280;
-        --border-color: #e5e7eb;
-        --danger: #ef4444;
-        --success: #10b981;
-        --focus-ring: rgba(0, 120, 212, 0.25);
-        --radius: 8px;
-        --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-          0 8px 10px -6px rgba(0, 0, 0, 0.1);
-      }
+  <style>
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #005a9e;
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border-color: #e5e7eb;
+      --danger: #ef4444;
+      --success: #10b981;
+      --focus-ring: rgba(0, 120, 212, 0.25);
+      --radius: 8px;
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    * {
+      box-sizing: border-box;
+    }
 
-      body {
-        font-family: "Inter", sans-serif;
-        background-color: var(--bg-body);
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-        margin: 0;
-        padding: 20px;
-      }
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
 
-      /* --- Navigation --- */
-      .nav-top {
-        width: 100%;
-        max-width: 800px;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: flex-start;
-      }
+    /* --- Navigation --- */
+    .nav-top {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: flex-start;
+    }
 
-      .back-link {
-        color: var(--text-muted);
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        transition: color 0.2s;
-      }
-      .back-link:hover {
-        color: var(--primary);
-      }
+    .back-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
 
-      /* --- Main Card --- */
-      .card {
-        background: var(--bg-card);
-        width: 100%;
-        max-width: 800px;
-        border-radius: 16px;
-        box-shadow: var(--shadow-card);
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-        margin-bottom: 20px;
-      }
+    .back-link:hover {
+      color: var(--primary);
+    }
 
-      .card-header {
-        background: var(--primary);
-        padding: 24px 30px;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+    /* --- Main Card --- */
+    .card {
+      background: var(--bg-card);
+      width: 100%;
+      max-width: 800px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
 
-      .card-header h1 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+    .card-header {
+      background: var(--primary);
+      padding: 24px 30px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-      .card-body {
-        padding: 30px;
-      }
+    .card-header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-      /* --- Info Grid --- */
-      .info-grid {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 15px;
-        background-color: #f8fafc;
-        padding: 15px 20px;
-        border-radius: var(--radius);
-        border: 1px solid var(--border-color);
-        margin-bottom: 25px;
-        align-items: center;
-      }
+    .card-body {
+      padding: 30px;
+    }
 
-      .info-item {
-        display: flex;
-        flex-direction: column;
-      }
-      .info-label {
-        font-size: 11px;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        font-weight: 600;
-      }
-      .info-value {
-        font-size: 16px;
-        color: var(--text-main);
-        font-weight: 600;
-      }
+    /* --- Info Grid --- */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 15px;
+      background-color: #f8fafc;
+      padding: 15px 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+      margin-bottom: 25px;
+      align-items: center;
+    }
 
-      /* --- Drop Zone --- */
-      .drop-zone {
-        position: relative;
-        border: 2px dashed var(--border-color);
-        border-radius: var(--radius);
-        padding: 30px;
-        text-align: center;
-        background-color: #fff;
-        transition: all 0.2s;
-        cursor: pointer;
-        margin-bottom: 20px;
-      }
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
 
-      .drop-zone:hover {
-        border-color: var(--primary);
-        background-color: #eff6ff;
-      }
+    .info-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
 
-      .drop-text {
-        font-size: 14px;
-        color: var(--text-muted);
-        pointer-events: none;
-      }
-      .drop-icon {
-        font-size: 32px;
-        color: var(--primary);
-        margin-bottom: 10px;
-        display: block;
-        pointer-events: none;
-      }
+    .info-value {
+      font-size: 16px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
 
-      input[type="file"] {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        opacity: 0;
-        cursor: pointer;
-      }
+    /* --- Drop Zone --- */
+    .drop-zone {
+      position: relative;
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius);
+      padding: 30px;
+      text-align: center;
+      background-color: #fff;
+      transition: all 0.2s;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
 
-      /* --- Image List --- */
-      .image-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
+    .drop-zone:hover {
+      border-color: var(--primary);
+      background-color: #eff6ff;
+    }
 
-      .image-item {
-        display: flex;
-        align-items: center;
-        padding: 12px;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        background: #fff;
-        gap: 15px;
-        transition: 0.2s;
-      }
+    .drop-text {
+      font-size: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
 
-      .image-item:hover {
-        border-color: var(--primary);
-      }
+    .drop-icon {
+      font-size: 32px;
+      color: var(--primary);
+      margin-bottom: 10px;
+      display: block;
+      pointer-events: none;
+    }
 
-      .img-preview {
-        width: 70px;
-        height: 70px;
-        object-fit: cover;
-        border-radius: 6px;
-        border: 1px solid #eee;
-        flex-shrink: 0;
-      }
+    input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
 
-      .item-details {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-width: 0; /* Text truncation fix */
-      }
+    /* --- Image List --- */
+    .image-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-      .file-name {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-main);
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-      }
+    .image-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: #fff;
+      gap: 15px;
+      transition: 0.2s;
+    }
 
-      .controls-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
+    .image-item:hover {
+      border-color: var(--primary);
+    }
 
-      /* Styled Select */
-      .process-select {
-        padding: 6px 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 13px;
-        background-color: #f9fafb;
-        color: var(--text-main);
-        outline: none;
-        min-width: 150px;
-      }
-      .process-select:focus {
-        border-color: var(--primary);
-      }
+    .img-preview {
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #eee;
+      flex-shrink: 0;
+    }
 
-      .badge {
-        font-size: 11px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        background: #e2e8f0;
-        color: #475569;
-        font-weight: 600;
-      }
+    .item-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      /* Text truncation fix */
+    }
 
-      /* PDF Upload Mini */
-      .pdf-wrapper {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 12px;
-      }
-      .pdf-status {
-        font-weight: 600;
-      }
-      .pdf-status.missing {
-        color: var(--danger);
-      }
-      .pdf-status.ok {
-        color: var(--success);
-      }
+    .file-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
 
-      .btn-mini {
-        padding: 4px 10px;
-        font-size: 12px;
-        border-radius: 4px;
-        border: 1px solid var(--border-color);
-        background: white;
-        cursor: pointer;
-      }
-      .btn-mini:hover {
-        background: #f3f4f6;
-      }
-      .btn-remove {
-        color: var(--danger);
-        border-color: #fecaca;
-        background: #fef2f2;
-        margin-left: auto;
-      }
-      .btn-remove:hover {
-        background: #fee2e2;
-      }
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-      /* --- Progress & Actions --- */
-      .progress-container {
-        margin-top: 25px;
-        display: none;
-      }
-      .progress-track {
-        width: 100%;
-        height: 8px;
-        background: #e2e8f0;
-        border-radius: 10px;
-        overflow: hidden;
-      }
-      .progress-bar {
-        width: 0%;
-        height: 100%;
-        background: var(--primary);
-        transition: width 0.3s;
-      }
-      .progress-text {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 5px;
-        text-align: right;
-      }
+    /* Styled Select */
+    .process-select {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 13px;
+      background-color: #f9fafb;
+      color: var(--text-main);
+      outline: none;
+      min-width: 150px;
+    }
 
-      .actions {
-        margin-top: 25px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+    .process-select:focus {
+      border-color: var(--primary);
+    }
 
-      .btn-main {
-        width: 100%;
-        height: 46px;
-        border: none;
-        border-radius: var(--radius);
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: 0.2s;
-      }
+    .badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+      font-weight: 600;
+    }
 
-      .submit-button {
-        background: var(--primary);
-        color: white;
-      }
-      .submit-button:hover:not(:disabled) {
-        background: var(--primary-dark);
-      }
-      .submit-button:disabled {
-        background: #cbd5e1;
-        cursor: not-allowed;
-      }
+    /* PDF Upload Mini */
+    .pdf-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+    }
 
-      .reset-button {
-        background: white;
-        border: 1px solid var(--border-color);
-        color: var(--text-muted);
-      }
-      .reset-button:hover {
-        background: #f9fafb;
-        color: var(--text-main);
-      }
+    .pdf-status {
+      font-weight: 600;
+    }
 
-      /* --- Logs --- */
-      .log-wrapper {
-        margin-top: 15px;
-        border-top: 1px solid var(--border-color);
-        padding-top: 15px;
-      }
-      .toggle-log {
-        background: none;
-        border: none;
-        font-size: 12px;
-        color: var(--text-muted);
-        text-decoration: underline;
-        cursor: pointer;
-        width: 100%;
-        text-align: left;
-      }
-      .log-container {
-        margin-top: 10px;
-        background: #1e293b;
-        color: #e2e8f0;
-        padding: 15px;
-        border-radius: 6px;
-        font-family: "Courier New", monospace;
-        font-size: 11px;
-        height: 150px;
-        overflow-y: auto;
-        display: none;
-      }
-      .log-container.visible {
-        display: block;
-      }
-      .log-entry {
-        margin-bottom: 4px;
-        border-bottom: 1px solid #334155;
-        padding-bottom: 2px;
-      }
-      .log-entry.error {
-        color: #f87171;
-      }
-      .log-entry.success {
-        color: #4ade80;
-      }
+    .pdf-status.missing {
+      color: var(--danger);
+    }
 
-      .footer {
-        margin-top: auto;
-        padding: 20px;
-        color: var(--text-muted);
-        font-size: 12px;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Navigation -->
-    <div class="nav-top">
-      <a onclick="window.location.href='addPart.html'" class="back-link">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <line x1="19" y1="12" x2="5" y2="12"></line>
-          <polyline points="12 19 5 12 12 5"></polyline>
+    .pdf-status.ok {
+      color: var(--success);
+    }
+
+    .btn-mini {
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: white;
+      cursor: pointer;
+    }
+
+    .btn-mini:hover {
+      background: #f3f4f6;
+    }
+
+    .btn-remove {
+      color: var(--danger);
+      border-color: #fecaca;
+      background: #fef2f2;
+      margin-left: auto;
+    }
+
+    .btn-remove:hover {
+      background: #fee2e2;
+    }
+
+    /* --- Progress & Actions --- */
+    .progress-container {
+      margin-top: 25px;
+      display: none;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.3s;
+    }
+
+    .progress-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      text-align: right;
+    }
+
+    .actions {
+      margin-top: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-main {
+      width: 100%;
+      height: 46px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .submit-button {
+      background: var(--primary);
+      color: white;
+    }
+
+    .submit-button:hover:not(:disabled) {
+      background: var(--primary-dark);
+    }
+
+    .submit-button:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .reset-button {
+      background: white;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .reset-button:hover {
+      background: #f9fafb;
+      color: var(--text-main);
+    }
+
+    /* --- Logs --- */
+    .log-wrapper {
+      margin-top: 15px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+    }
+
+    .toggle-log {
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: underline;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+    }
+
+    .log-container {
+      margin-top: 10px;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: "Courier New", monospace;
+      font-size: 11px;
+      height: 150px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .log-container.visible {
+      display: block;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 2px;
+    }
+
+    .log-entry.error {
+      color: #f87171;
+    }
+
+    .log-entry.success {
+      color: #4ade80;
+    }
+
+    .footer {
+      margin-top: auto;
+      padding: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Navigation -->
+  <div class="nav-top">
+    <a onclick="window.location.href='addPart.html'" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Excel Upload
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h1>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
         </svg>
-        Back to Excel Upload
-      </a>
+        Part Image Upload
+      </h1>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h1>
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-          Part Image Upload
-        </h1>
+    <div class="card-body">
+      <!-- Part Info -->
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Target Part</span>
+          <span class="info-value" id="partNameDisplay">Loading...</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Expected Processes</span>
+          <span class="info-value" id="processCountDisplay">0</span>
+        </div>
       </div>
 
-      <div class="card-body">
-        <!-- Part Info -->
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">Target Part</span>
-            <span class="info-value" id="partNameDisplay">Loading...</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Expected Processes</span>
-            <span class="info-value" id="processCountDisplay">0</span>
-          </div>
-        </div>
+      <!-- Upload Area -->
+      <div class="drop-zone">
+        <span class="drop-icon">📁</span>
+        <span class="drop-text">Click to Select <strong>Image Folder</strong></span>
+        <input type="file" id="folderInput" webkitdirectory mozdirectory directory />
+      </div>
 
-        <!-- Upload Area -->
-        <div class="drop-zone">
-          <span class="drop-icon">📁</span>
-          <span class="drop-text"
-            >Click to Select <strong>Image Folder</strong></span
-          >
-          <input
-            type="file"
-            id="folderInput"
-            webkitdirectory
-            mozdirectory
-            directory
-          />
-        </div>
+      <!-- Image List -->
+      <ul class="image-list" id="imageList">
+        <!-- Dynamic Items -->
+      </ul>
 
-        <!-- Image List -->
-        <ul class="image-list" id="imageList">
-          <!-- Dynamic Items -->
-        </ul>
-
-        <!-- Progress -->
-        <div class="progress-container" id="progressContainer">
-          <div class="progress-track">
-            <div class="progress-bar" id="progressBar"></div>
-          </div>
-          <div class="progress-text" id="progressText">0%</div>
+      <!-- Progress -->
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-track">
+          <div class="progress-bar" id="progressBar"></div>
         </div>
+        <div class="progress-text" id="progressText">0%</div>
+      </div>
 
-        <!-- Actions -->
-        <div class="actions">
-          <button class="btn-main submit-button" id="submitButton" disabled>
-            Start Upload
-          </button>
-          <button class="btn-main reset-button" id="resetButton">
-            Reset Form
-          </button>
-        </div>
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn-main submit-button" id="submitButton" disabled>
+          Start Upload
+        </button>
+        <button class="btn-main reset-button" id="resetButton">
+          Reset Form
+        </button>
+      </div>
 
-        <!-- Logs -->
-        <div class="log-wrapper">
-          <button class="toggle-log" id="toggleLogButton">
-            Show Technical Logs
-          </button>
-          <div class="log-container" id="logContainer"></div>
-        </div>
+      <!-- Logs -->
+      <div class="log-wrapper">
+        <button class="toggle-log" id="toggleLogButton">
+          Show Technical Logs
+        </button>
+        <div class="log-container" id="logContainer"></div>
       </div>
     </div>
+  </div>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. Technology (M) System. All rights reserved.</div>
+  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. Technology (M) System. All rights reserved.</div>
 
     <script>
-      // --- Config ---
+      // --- Config (centralized in /assets/app-config.js) ---
       const SUPABASE_URL = window.APP_CONFIG.url;
       const SUPABASE_KEY = window.APP_CONFIG.key;
 
-      const supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_KEY,
-        {
-          auth: { persistSession: false },
-        }
-      );
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY,
+      {
+        auth: { persistSession: false },
+      }
+    );
 
-      // --- State ---
-      let imageArray = [];
-      let processData = [];
-      let partName = "";
-      let usedProcesses = new Set();
-      const categoriesRequiringPdf = ["IQC", "OQC"];
+    // --- State ---
+    let imageArray = [];
+    let processData = [];
+    let partName = "";
+    let usedProcesses = new Set();
+    const categoriesRequiringPdf = ["IQC", "OQC"];
 
-      // --- Logging ---
-      function logMessage(msg, type = "info") {
-        console.log(`[${type}] ${msg}`);
-        const el = document.createElement("div");
-        el.className = `log-entry ${type}`;
-        el.textContent = `> ${msg}`;
-        document.getElementById("logContainer").appendChild(el);
+    // --- Logging ---
+    function logMessage(msg, type = "info") {
+      console.log(`[${type}] ${msg}`);
+      const el = document.createElement("div");
+      el.className = `log-entry ${type}`;
+      el.textContent = `> ${msg}`;
+      document.getElementById("logContainer").appendChild(el);
+    }
+
+    // --- Initialization ---
+    $(document).ready(function () {
+      // Load Data
+      partName = localStorage.getItem("selectedPartName");
+      if (partName) $("#partNameDisplay").text(partName);
+      else {
+        alert("No Part selected. Redirecting.");
+        window.location.href = "addPart.html";
       }
 
-      // --- Initialization ---
-      $(document).ready(function () {
-        // Load Data
-        partName = localStorage.getItem("selectedPartName");
-        if (partName) $("#partNameDisplay").text(partName);
-        else {
-          alert("No Part selected. Redirecting.");
-          window.location.href = "addPart.html";
-        }
+      loadProcessData();
 
-        loadProcessData();
-
-        // Toggle Logs
-        $("#toggleLogButton").click(function () {
-          $("#logContainer").toggle();
-        });
-
-        // Input Listener
-        $("#folderInput").on("change", handleFolderUpload);
-        $("#resetButton").click(resetAll);
-        $("#submitButton").click(submitAll);
+      // Toggle Logs
+      $("#toggleLogButton").click(function () {
+        $("#logContainer").toggle();
       });
 
-      function loadProcessData() {
-        try {
-          const names = JSON.parse(
-            localStorage.getItem("processNames") || "[]"
-          );
-          const cats = JSON.parse(
-            localStorage.getItem("fileCategories") || "[]"
-          );
+      // Input Listener
+      $("#folderInput").on("change", handleFolderUpload);
+      $("#resetButton").click(resetAll);
+      $("#submitButton").click(submitAll);
+    });
 
-          processData = names.map((name, i) => ({
-            process: name,
-            category: cats[i] || "Unknown",
-          }));
-
-          $("#processCountDisplay").text(processData.length);
-          logMessage(`Loaded ${processData.length} processes`);
-        } catch (e) {
-          logMessage("Error loading process data", "error");
-        }
-      }
-
-      // --- Folder Handler ---
-      function handleFolderUpload(e) {
-        const files = Array.from(e.target.files);
-
-        files.forEach((file) => {
-          if (file.type.startsWith("image/")) {
-            addImageItem(file);
-          }
-        });
-        updateUI();
-      }
-
-      function addImageItem(file) {
-        // Match Process
-        const nameNoExt = file.name.replace(/\.[^/.]+$/, "");
-        const match = processData.find((p) =>
-          nameNoExt.toLowerCase().includes(p.process.toLowerCase())
+    function loadProcessData() {
+      try {
+        const names = JSON.parse(
+          localStorage.getItem("processNames") || "[]"
+        );
+        const cats = JSON.parse(
+          localStorage.getItem("fileCategories") || "[]"
         );
 
-        const item = {
-          file: file,
-          process: match ? match.process : "",
-          category: match ? match.category : "",
-          pdfFile: null,
-          needsPdf: match
-            ? categoriesRequiringPdf.includes(match.category)
-            : false,
-        };
+        processData = names.map((name, i) => ({
+          process: name,
+          category: cats[i] || "Unknown",
+        }));
 
-        imageArray.push(item);
-        if (match) usedProcesses.add(match.process);
-        renderList();
+        $("#processCountDisplay").text(processData.length);
+        logMessage(`Loaded ${processData.length} processes`);
+      } catch (e) {
+        logMessage("Error loading process data", "error");
       }
+    }
 
-      function renderList() {
-        const list = $("#imageList");
-        list.empty();
+    // --- Folder Handler ---
+    function handleFolderUpload(e) {
+      const files = Array.from(e.target.files);
 
-        imageArray.forEach((item, index) => {
-          const url = URL.createObjectURL(item.file);
+      files.forEach((file) => {
+        if (file.type.startsWith("image/")) {
+          addImageItem(file);
+        }
+      });
+      updateUI();
+    }
 
-          // Process Options
-          let optionsHtml = `<option value="">-- Select Process --</option>`;
-          processData.forEach((p) => {
-            // Enable if selected OR not used elsewhere
-            const disabled =
-              usedProcesses.has(p.process) && item.process !== p.process;
-            const selected = item.process === p.process;
-            optionsHtml += `<option value="${p.process}" ${
-              selected ? "selected" : ""
+    function addImageItem(file) {
+      // Match Process
+      const nameNoExt = file.name.replace(/\.[^/.]+$/, "");
+      const match = processData.find((p) =>
+        nameNoExt.toLowerCase().includes(p.process.toLowerCase())
+      );
+
+      const item = {
+        file: file,
+        process: match ? match.process : "",
+        category: match ? match.category : "",
+        pdfFile: null,
+        needsPdf: match
+          ? categoriesRequiringPdf.includes(match.category)
+          : false,
+      };
+
+      imageArray.push(item);
+      if (match) usedProcesses.add(match.process);
+      renderList();
+    }
+
+    function renderList() {
+      const list = $("#imageList");
+      list.empty();
+
+      imageArray.forEach((item, index) => {
+        const url = URL.createObjectURL(item.file);
+
+        // Process Options
+        let optionsHtml = `<option value="">-- Select Process --</option>`;
+        processData.forEach((p) => {
+          // Enable if selected OR not used elsewhere
+          const disabled =
+            usedProcesses.has(p.process) && item.process !== p.process;
+          const selected = item.process === p.process;
+          optionsHtml += `<option value="${p.process}" ${selected ? "selected" : ""
             } ${disabled ? "disabled" : ""}>${p.process}</option>`;
-          });
+        });
 
-          // PDF Logic
-          let pdfHtml = "";
-          if (item.needsPdf) {
-            const statusClass = item.pdfFile ? "ok" : "missing";
-            const statusText = item.pdfFile ? "Ready" : "Required";
-            pdfHtml = `
+        // PDF Logic
+        let pdfHtml = "";
+        if (item.needsPdf) {
+          const statusClass = item.pdfFile ? "ok" : "missing";
+          const statusText = item.pdfFile ? "Ready" : "Required";
+          pdfHtml = `
                         <div class="pdf-wrapper">
                             <span class="pdf-status ${statusClass}">PDF: ${statusText}</span>
                             <label class="btn-mini">
                                 Upload
                                 <input type="file" accept=".pdf" style="display:none" onchange="handlePdf(${index}, this)">
                             </label>
-                            ${
-                              item.pdfFile
-                                ? `<span style="font-size:10px">${item.pdfFile.name}</span>`
-                                : ""
-                            }
+                            ${item.pdfFile
+              ? `<span style="font-size:10px">${item.pdfFile.name}</span>`
+              : ""
+            }
                         </div>
                     `;
-          }
+        }
 
-          const li = `
+        const li = `
                     <li class="image-item">
                         <img src="${url}" class="img-preview" onclick="window.open('${url}')">
                         <div class="item-details">
@@ -679,161 +677,183 @@
                                 <select class="process-select" onchange="updateProcess(${index}, this.value)">
                                     ${optionsHtml}
                                 </select>
-                                <span class="badge">${
-                                  item.category || "-"
-                                }</span>
+                                <span class="badge">${item.category || "-"
+          }</span>
                             </div>
                             ${pdfHtml}
                         </div>
                         <button class="btn-mini btn-remove" onclick="removeImage(${index})">Remove</button>
                     </li>
                 `;
-          list.append(li);
+        list.append(li);
+      });
+    }
+
+    // --- Item Actions ---
+    window.updateProcess = function (index, newProcess) {
+      const item = imageArray[index];
+      if (item.process) usedProcesses.delete(item.process);
+
+      if (newProcess) {
+        usedProcesses.add(newProcess);
+        const match = processData.find((p) => p.process === newProcess);
+        item.process = newProcess;
+        item.category = match ? match.category : "";
+        item.needsPdf = categoriesRequiringPdf.includes(item.category);
+      } else {
+        item.process = "";
+        item.category = "";
+        item.needsPdf = false;
+      }
+      item.pdfFile = null; // Reset PDF on change
+      renderList();
+      updateUI();
+    };
+
+    window.handlePdf = function (index, input) {
+      if (input.files[0]) {
+        imageArray[index].pdfFile = input.files[0];
+        renderList();
+        updateUI();
+      }
+    };
+
+    window.removeImage = function (index) {
+      const item = imageArray[index];
+      if (item.process) usedProcesses.delete(item.process);
+      imageArray.splice(index, 1);
+      renderList();
+      updateUI();
+    };
+
+    function updateUI() {
+      const isValid =
+        imageArray.length > 0 &&
+        imageArray.every((img) => {
+          const procValid = !!img.process;
+          const pdfValid = !img.needsPdf || !!img.pdfFile;
+          return procValid && pdfValid;
         });
+      $("#submitButton").prop("disabled", !isValid);
+    }
+
+    function resetAll() {
+      imageArray = [];
+      usedProcesses.clear();
+      $("#imageList").empty();
+      $("#folderInput").val("");
+      $("#progressContainer").hide();
+      updateUI();
+    }
+
+    // --- Submission Logic ---
+    async function submitAll() {
+      const currentRev = localStorage.getItem("currentRev");
+      if (!currentRev) {
+        showToast("Missing Revision Number. Please restart from first page.", "error");
+        return;
       }
 
-      // --- Item Actions ---
-      window.updateProcess = function (index, newProcess) {
-        const item = imageArray[index];
-        if (item.process) usedProcesses.delete(item.process);
+      $("#submitButton").prop("disabled", true);
+      $("#resetButton").prop("disabled", true);
+      $("#progressContainer").show();
 
-        if (newProcess) {
-          usedProcesses.add(newProcess);
-          const match = processData.find((p) => p.process === newProcess);
-          item.process = newProcess;
-          item.category = match ? match.category : "";
-          item.needsPdf = categoriesRequiringPdf.includes(item.category);
-        } else {
-          item.process = "";
-          item.category = "";
-          item.needsPdf = false;
-        }
-        item.pdfFile = null; // Reset PDF on change
-        renderList();
-        updateUI();
-      };
+      let count = 0;
+      const total = imageArray.length;
 
-      window.handlePdf = function (index, input) {
-        if (input.files[0]) {
-          imageArray[index].pdfFile = input.files[0];
-          renderList();
-          updateUI();
-        }
-      };
+      for (const item of imageArray) {
+        try {
+          logMessage(`Processing ${item.process}...`);
 
-      window.removeImage = function (index) {
-        const item = imageArray[index];
-        if (item.process) usedProcesses.delete(item.process);
-        imageArray.splice(index, 1);
-        renderList();
-        updateUI();
-      };
+          // --- STEP 1: UPLOAD TO DMS (Local Network Drive) ---
+          const dmsFormData = new FormData();
+          dmsFormData.append("productName", partName);
+          dmsFormData.append("revision", currentRev);
+          dmsFormData.append("subFolder", "Process Image");
+          dmsFormData.append("files", item.file); // Add the image
+          if (item.pdfFile) {
+            dmsFormData.append("files", item.pdfFile); // Add the PDF if it exists
+          }
 
-      function updateUI() {
-        const isValid =
-          imageArray.length > 0 &&
-          imageArray.every((img) => {
-            const procValid = !!img.process;
-            const pdfValid = !img.needsPdf || !!img.pdfFile;
-            return procValid && pdfValid;
+          const dmsRes = await fetch(`${window.APP_CONFIG.host}/FamaxDMS/upload-multi`, {
+            method: 'POST',
+            body: dmsFormData
           });
-        $("#submitButton").prop("disabled", !isValid);
-      }
+          const dmsResult = await dmsRes.json();
+          if (!dmsResult.success) throw new Error("Local DMS Upload Failed");
 
-      function resetAll() {
-        imageArray = [];
-        usedProcesses.clear();
-        $("#imageList").empty();
-        $("#folderInput").val("");
-        $("#progressContainer").hide();
-        updateUI();
-      }
+          // --- STEP 2: UPLOAD TO SUPABASE STORAGE (Cloud) ---
+          const bucketMap = { IPQC: "ipqc", IQC: "iqc", OQC: "oqc" };
+          const bucket = bucketMap[item.category] || "general-images";
 
-      // --- Submission Logic ---
-      async function submitAll() {
-        $("#submitButton").prop("disabled", true);
-        $("#resetButton").prop("disabled", true);
-        $("#progressContainer").show();
+          // Upload Image
+          const imgPath = `${partName}/${item.process}/${item.file.name}`;
+          await supabaseClient.storage
+            .from(bucket)
+            .upload(imgPath, item.file, { upsert: true });
 
-        let count = 0;
-        const total = imageArray.length;
+          const { data: imgData } = supabaseClient.storage
+            .from(bucket)
+            .getPublicUrl(imgPath);
+          const imgUrl = `${imgData.publicUrl}?t=${Date.now()}`;
 
-        for (const item of imageArray) {
-          try {
-            logMessage(`Processing ${item.process}...`);
-
-            // 1. Bucket Selection
-            const bucketMap = { IPQC: "ipqc", IQC: "iqc", OQC: "oqc" };
-            const bucket = bucketMap[item.category] || "general-images";
-
-            // 2. Upload Image
-            const imgPath = `${partName}/${item.process}/${item.file.name}`;
+          // Upload PDF (if needed)
+          let pdfUrl = null;
+          if (item.pdfFile) {
+            const pdfPath = `${partName}/${item.process}/guide_${item.pdfFile.name}`;
             await supabaseClient.storage
               .from(bucket)
-              .upload(imgPath, item.file, { upsert: true });
-            const { data: imgData } = supabaseClient.storage
+              .upload(pdfPath, item.pdfFile, { upsert: true });
+
+            const { data: pdfData } = supabaseClient.storage
               .from(bucket)
-              .getPublicUrl(imgPath);
-            const imgUrl = `${imgData.publicUrl}?t=${Date.now()}`; // Cache bust logic
-
-            // 3. Upload PDF (if needed)
-            let pdfUrl = null;
-            if (item.pdfFile) {
-              const pdfPath = `${partName}/${item.process}/guide_${item.pdfFile.name}`;
-              await supabaseClient.storage
-                .from(bucket)
-                .upload(pdfPath, item.pdfFile, { upsert: true });
-              const { data: pdfData } = supabaseClient.storage
-                .from(bucket)
-                .getPublicUrl(pdfPath);
-              pdfUrl = `${pdfData.publicUrl}?t=${Date.now()}`;
-            }
-
-            // 4. Update Database
-            // We need to use 'localhost' logic if required by your specific network setup as per previous prompts,
-            // but usually publicURL is best. I will stick to standard Public URL here.
-            const updates = { Path: imgUrl };
-            if (pdfUrl) updates.Pdf_Path = pdfUrl;
-
-            const { error } = await supabaseClient
-              .from(item.category)
-              .update(updates)
-              .eq("Part_Name", partName)
-              .eq("Process", item.process);
-
-            if (error) throw error;
-
-            count++;
-            const pct = Math.round((count / total) * 100);
-            $("#progressBar").css("width", pct + "%");
-            $("#progressText").text(`${count}/${total}`);
-            logMessage(`${item.process} completed.`, "success");
-          } catch (e) {
-            logMessage(`Failed ${item.process}: ${e.message}`, "error");
+              .getPublicUrl(pdfPath);
+            pdfUrl = `${pdfData.publicUrl}?t=${Date.now()}`;
           }
-        }
 
-        if (count === total) {
-          showToast("All uploads complete!", "success");
-          setTimeout(() => (window.location.href = "../../AdminLogin.html"), 2000);
-        } else {
-          showToast(
-            `Finished with ${total - count} errors. Check logs.`,
-            "error"
-          );
-          $("#resetButton").prop("disabled", false);
+          // --- STEP 3: UPDATE SUPABASE DATABASE TABLE ---
+          const updates = { Path: imgUrl };
+          if (pdfUrl) updates.Pdf_Path = pdfUrl;
+
+          const { error: dbError } = await supabaseClient
+            .from(item.category)
+            .update(updates)
+            .eq("Part_Name", partName)
+            .eq("Process", item.process);
+
+          if (dbError) throw dbError;
+
+          // Success feedback
+          count++;
+          const pct = Math.round((count / total) * 100);
+          $("#progressBar").css("width", pct + "%");
+          $("#progressText").text(`${count}/${total}`);
+          logMessage(`${item.process} completed in both DMS & DB.`, "success");
+
+        } catch (e) {
+          logMessage(`Failed ${item.process}: ${e.message}`, "error");
         }
       }
 
-      function showToast(msg, type) {
-        Toastify({
-          text: msg,
-          duration: 3000,
-          gravity: "top",
-          position: "right",
-          style: { background: type === "error" ? "#ef4444" : "#10b981" },
-        }).showToast();
+      if (count === total) {
+        showToast("All uploads complete (DMS & Cloud)!", "success");
+        setTimeout(() => (window.location.href = "../../AdminLogin.html"), 2000);
+      } else {
+        showToast(`Finished with ${total - count} errors. Check technical logs.`, "error");
+        $("#resetButton").prop("disabled", false);
       }
-    </script>
-  </body>
+    }
+
+    function showToast(msg, type) {
+      Toastify({
+        text: msg,
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: { background: type === "error" ? "#ef4444" : "#10b981" },
+      }).showToast();
+    }
+  </script>
+</body>
+
 </html>

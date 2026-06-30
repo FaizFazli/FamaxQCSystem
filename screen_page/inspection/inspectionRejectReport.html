@@ -357,7 +357,6 @@
 
                 const reportRows = computed(() => {
                     const dbCategoryValue = categoryMapping[selectedCategory.value];
-
                     // 1. Get Primary (Initial) Inspections
                     const primaryInspections = allRecords.value.filter(r => {
                         const dateMatch = (r.created_at || "").startsWith(filterMonth.value);
@@ -373,12 +372,14 @@
                         .filter(r => (r.Inspection_Type || "").toUpperCase() === 'RE-INSPECTION')
                         .map(r => ({ ...r, remaining: Number(r.AcceptQty || 0) }));
 
+                    const normalize = (str) => (str || "").trim().replace(/\s+/g, ' ').toUpperCase();
+
                     // Initialize tracking objects for our primary rows
                     const rowResults = primaryInspections.map(p => ({
                         id: p.id,
                         target: Number(p.ReworkQty || 0), // Use Rework Qty as the cap
                         reject: Number(p.RejectQty || 0),
-                        key: `${p.JO_Number}|${p.Part_Name}|${p.Parameter}`.toUpperCase(),
+                        key: `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`,
                         finalQty: 0,
                         latestDate: null,
                         latestBy: null
@@ -388,7 +389,7 @@
                     // If a Re-Inspection Qty matches an Initial Reject Qty exactly, they likely belong together.
                     rowResults.forEach(row => {
                         const riMatch = reInspections.find(ri => {
-                            const riKey = `${ri.JO_Number}|${ri.Part_Name}|${ri.Parameter}`.toUpperCase();
+                            const riKey = `${normalize(ri.JO_Number)}|${normalize(ri.Part_Name)}|${normalize(ri.Parameter)}`;
                             const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
                             return riKey === row.key && isAfter && (ri.remaining === row.reject || ri.remaining === row.target) && ri.remaining > 0;
                         });

@@ -634,12 +634,11 @@
         // 4. Send to Server
         const pdfBlob = doc.output("blob");
         const formData = new FormData();
-        const partDescRaw = localStorage.getItem("partDescription") || "Report";
+        // const partDescRaw = localStorage.getItem("partDescription") || "Report";
 
-        const safeFolderName = partDescRaw
-          .trim()
-          .replace(/[\\/:\*\?"<>\|]/g, "_")
-          .replace(/\.+$/, "");
+        const partNo = localStorage.getItem("partNo") || "NA";
+        const partDescRaw = localStorage.getItem("partDescription") || "Report";
+        const safeFolderName = partDescRaw.trim().replace(/[\\/:\*\?"<>\|]/g, "_");
 
         const filename = `Process_Flow_${safeFolderName}.pdf`;
 

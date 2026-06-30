@@ -170,6 +170,19 @@
             align-items: center;
         }
 
+
+        input[type="datetime-local"].form-input {
+            padding-right: 1.25rem !important;
+        }
+
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 0;
+            padding: 2px;
+            filter: invert(0.4);
+        }
+
         .clear-btn {
             position: absolute;
             right: 1.25rem;
@@ -561,22 +574,33 @@
                             </div>
                         </div>
                     </div>
-                    <!-- UNIFORM ROW 1: DO NUMBER (Full Width) -->
-                    <div class="mb-10">
-                        <div class="relative">
-                            <label class="section-label">DO Number</label>
-                            <div class="input-wrapper">
-                                <input type="text" v-model="form.do_number" :disabled="form.isLocked"
-                                    placeholder="ENTER DO NUMBER (OPTIONAL)" class="form-input uppercase">
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- UNIFORM ROW 2: TIMING & PERSONNEL (Two Columns) -->
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-10 items-start">
 
                         <!-- LEFT COLUMN -->
                         <div class="flex flex-col gap-10">
+                            <!-- Process Field -->
+                            <div class="relative">
+                                <label class="section-label">Process</label>
+                                <div class="input-wrapper">
+                                    <input type="text" v-model="form.process" @focus="form.showProcessDropdown = true"
+                                        @blur="closeDropdown(index, 'process')" :disabled="form.isLocked"
+                                        placeholder="Select or Enter Process..." class="form-input uppercase">
+                                    <button v-if="form.process && !form.isLocked" @click="form.process = ''"
+                                        class="clear-btn">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
+                                </div>
+                                <!-- Dropdown List -->
+                                <div v-if="form.showProcessDropdown" class="dropdown-list">
+                                    <div v-for="proc in filterList(form.availableProcesses, form.process)" :key="proc"
+                                        @mousedown="form.process = proc; form.showProcessDropdown = false"
+                                        class="dropdown-item">
+                                        {{ proc }}
+                                    </div>
+                                </div>
+                            </div>
                             <!-- Completion Date -->
                             <div class="relative">
                                 <label class="section-label">Completion Date & Time</label>
@@ -612,6 +636,11 @@
                                     <input type="text" v-model="form.inspect_by"
                                         @focus="form.showInspectDropdown = true" @blur="closeDropdown(index, 'inspect')"
                                         :disabled="form.isLocked" placeholder="CHECKER" class="form-input">
+                                    <!-- Clear Button Added Here -->
+                                    <button v-if="form.inspect_by && !form.isLocked" @click="form.inspect_by = ''"
+                                        class="clear-btn">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
                                 </div>
                                 <div v-if="form.showInspectDropdown" class="dropdown-list">
                                     <div v-for="opt in filterList(operators, form.inspect_by)" :key="opt"
@@ -628,6 +657,11 @@
                                         @focus="form.showFinalizeDropdown = true"
                                         @blur="closeDropdown(index, 'finalize')" :disabled="form.isLocked"
                                         placeholder="SUPERVISOR" class="form-input">
+                                    <!-- Clear Button Added Here -->
+                                    <button v-if="form.finalize_by && !form.isLocked" @click="form.finalize_by = ''"
+                                        class="clear-btn">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
                                 </div>
                                 <div v-if="form.showFinalizeDropdown" class="dropdown-list">
                                     <div v-for="opt in filterList(supervisors, form.finalize_by)" :key="opt"
@@ -637,6 +671,18 @@
                             </div>
                         </div>
                     </div>
+                    <!-- UNIFORM ROW 1: DO NUMBER (Full Width) -->
+                    <div class="mb-10">
+                        <div class="relative">
+                            <label class="section-label">DO Number</label>
+                            <div class="input-wrapper">
+                                <input type="text" v-model="form.do_number" :disabled="form.isLocked"
+                                    placeholder="ENTER DO NUMBER (OPTIONAL)" class="form-input uppercase">
+                            </div>
+                        </div>
+                    </div>
+
+
 
                     <!-- 3. BREAKDOWN ROW (Quantities and Defects in line) -->
                     <div class="grid grid-cols-1 xl:grid-cols-12 gap-10 items-stretch">
@@ -833,6 +879,8 @@
                 const newProcess = ref('');
                 const newCycleTime = ref('0');
 
+
+
                 const addNewForm = () => {
                     forms.value.push({
                         inspection_type: 'Initial',
@@ -850,7 +898,7 @@
                         scrap_qty: 0,
                         accept_qty: 0,
                         inspect_by: '',
-                        finalize_by: '',
+                        finalize_by: 'ROSLINDA BINTI MAT KASA',
                         remark: '',
                         remark_finished: '',
                         target_finished: '',
@@ -863,6 +911,9 @@
                         showCategoryDropdown: false,
                         showInspectDropdown: false,
                         showFinalizeDropdown: false,
+                        process: '',
+                        showProcessDropdown: false,
+                        availableProcesses: [],
                     });
                 };
 
@@ -1065,39 +1116,35 @@
                     f.part_name = name;
                     f.showPartDropdown = false;
 
-                    // 1. Extract the short Part Number from brackets (e.g., "778-078")
                     const match = name.match(/\(([^)]+)\)/);
                     const extractedPartNo = match ? match[1].trim() : name.trim();
 
                     try {
-                        // 2. Fetch Job Orders as usual
-                        const res = await api.get(`/JobOrder?Part_Name=eq.${encodeURIComponent(name)}&select=JO_Number,Process`);
+                        const res = await api.get(`/JobOrder?Part_Name=eq.${encodeURIComponent(name)}&select=JO_Number`);
                         f.availableJOs = [...new Set(res.data.map(i => i.JO_Number || i.jo_number))].filter(Boolean).sort();
 
-                        // 3. NEW: Fetch Master Guide Parameters based on the Part Number
-                        const guideRes = await api.get(`/InspectionGuideDetails?part_no=eq.${encodeURIComponent(extractedPartNo)}&select=inspection_ids`);
+                        // FIX: Use extractedPartNo consistently and fetch both ids and processes
+                        const guideRes = await api.get(`/InspectionGuideDetails?part_no=eq.${encodeURIComponent(extractedPartNo)}&select=process,inspection_ids`);
+
+                        // Populates the Process dropdown
+                        f.availableProcesses = [...new Set(guideRes.data.map(i => i.process.toUpperCase()))].sort();
 
                         if (guideRes.data.length > 0) {
-                            // Collect all unique IDs from the guide (handles multiple processes if they exist)
                             let allIds = [];
                             guideRes.data.forEach(row => {
-                                const ids = JSON.parse(row.inspection_ids || "[]");
+                                const ids = Array.isArray(row.inspection_ids) ? row.inspection_ids : JSON.parse(row.inspection_ids || "[]");
                                 allIds = allIds.concat(ids);
                             });
                             const uniqueIds = [...new Set(allIds)];
 
-                            // 4. Map IDs to Parameter Names using our lookup list
                             f.relevantParams = uniqueIds.map(id => {
                                 const match = allGuideRecords.value.find(g => String(g.id) === String(id));
                                 return match ? match.Parameter : null;
                             }).filter(Boolean).sort();
 
-                            // Auto-select if there's only one parameter in the master guide
-                            if (f.relevantParams.length === 1) {
-                                f.parameter = f.relevantParams[0];
-                            }
+                            if (f.relevantParams.length === 1) f.parameter = f.relevantParams[0];
                         } else {
-                            f.relevantParams = []; // No guide found for this part
+                            f.relevantParams = [];
                         }
                     } catch (err) {
                         console.error("Error fetching Part Details:", err);
@@ -1143,36 +1190,35 @@
                         console.error("Error fetching scheduled parameters:", err);
                     }
                 };
+
                 const selectParam = async (p, index) => {
                     const f = forms.value[index];
                     f.parameter = p;
                     f.showParamDropdown = false;
 
-                    // FIND THE PROCESS for this parameter
                     try {
-                        // Get the ID of the selected parameter from allGuideRecords
                         const paramRecord = allGuideRecords.value.find(g => g.Parameter === p);
                         if (!paramRecord) return;
-
                         const paramId = String(paramRecord.id);
 
-                        // Search in InspectionGuideDetails for this part_no and inspection_id
                         const match = f.part_name.match(/\(([^)]+)\)/);
                         const partNo = match ? match[1].trim() : f.part_name.trim();
 
-                        const { data: guideDetails } = await api.get(
-                            `/InspectionGuideDetails?part_no=eq.${encodeURIComponent(partNo)}`
-                        );
+                        const { data: guideDetails } = await api.get(`/InspectionGuideDetails?part_no=eq.${encodeURIComponent(partNo)}`);
 
-                        // Loop through the details to find which process contains this ID
+                        // Search for the specific row that contains this parameter ID
                         const matchingDetail = guideDetails.find(detail => {
                             const ids = Array.isArray(detail.inspection_ids) ? detail.inspection_ids : JSON.parse(detail.inspection_ids || "[]");
                             return ids.includes(paramId);
                         });
 
                         if (matchingDetail) {
+                            // FIX: Use matchingDetail (not matchedMapping)
                             f.process = matchingDetail.process.toUpperCase();
-                            console.log("Auto-assigned process:", f.process);
+                            // Ensure the process dropdown has at least this process in it
+                            if (!f.availableProcesses.includes(f.process)) {
+                                f.availableProcesses.push(f.process);
+                            }
                         }
                     } catch (err) {
                         console.error("Error finding process for parameter:", err);
@@ -1194,12 +1240,11 @@
                     setTimeout(() => {
                         if (type === 'part') forms.value[idx].showPartDropdown = false;
                         else if (type === 'jo') forms.value[idx].showJODropdown = false;
-                        // else if (type === 'process') forms.value[idx].showProcessDropdown = false; // <-- Add this
+                        else if (type === 'process') forms.value[idx].showProcessDropdown = false; // Add this
                         else if (type === 'param') forms.value[idx].showParamDropdown = false;
                         else if (type === 'category') forms.value[idx].showCategoryDropdown = false;
                         else if (type === 'inspect') forms.value[idx].showInspectDropdown = false;
-                        // else if (type === 'machine') forms.value[idx].showMachineDropdown = false; // Add this
-                        else forms.value[idx].showFinalizeDropdown = false;
+                        else if (type === 'finalize') forms.value[idx].showFinalizeDropdown = false;
                     }, 250);
                 };
 
@@ -1214,7 +1259,7 @@
                     const defectTotal = calculateDefectTotal(idx);
 
                     // Basic required fields check
-                    if (!f.part_name || !f.job_order_no || !f.inspect_by || !f.finalize_by) {
+                    if (!f.part_name || !f.job_order_no || !f.process || !f.inspect_by || !f.finalize_by) {
                         Toastify({ text: "Please complete all main fields", style: { background: "#ef4444" } }).showToast();
                         return;
                     }
@@ -1281,10 +1326,61 @@
                         await api.post('/InspectionRecord', payload);
 
                         // 2. Update the Schedule Table
+                        // for (const f of forms.value) {
+                        //     let targetId = f.sched_id;
+
+                        //     // Fallback search if ID is missing
+                        //     if (!targetId || targetId === 'null') {
+                        //         const searchRes = await api.get(`/InspectionSchedule?Part_Name=eq.${encodeURIComponent(f.part_name)}&JO_Number=eq.${encodeURIComponent(f.job_order_no)}&select=id`);
+                        //         if (searchRes.data && searchRes.data.length > 0) {
+                        //             targetId = searchRes.data[0].id;
+                        //         }
+                        //     }
+
+                        //     if (targetId) {
+                        //         // Fetch current values from DB
+                        //         const { data: schedData } = await api.get(`/InspectionSchedule?id=eq.${targetId}`);
+
+                        //         if (schedData && schedData.length > 0) {
+                        //             const sched = schedData[0];
+
+                        //             // Determine column names (handles case sensitivity)
+                        //             const qtyCol = sched.hasOwnProperty('remaining_qty') ? 'remaining_qty' : 'remaining_quantity';
+                        //             const finishCol = sched.hasOwnProperty('actual_finished_time') ? 'actual_finished_time' : 'Actual_Finished';
+                        //             const statusCol = sched.hasOwnProperty('Status') ? 'Status' : 'status';
+
+                        //             // --- CALCULATION LOGIC ---
+                        //             // Use the existing remaining value or the original quantity as a fallback
+                        //             const currentRem = (sched[qtyCol] !== null && sched[qtyCol] !== undefined)
+                        //                 ? Number(sched[qtyCol])
+                        //                 : Number(sched.quantity || 0);
+
+                        //             // Subtract ONLY AcceptQty
+                        //             // --- NEW CODE (Corrected) ---
+                        //             // Subtract THE TOTAL AMOUNT CHECKED (Accept + Reject + Scrap)
+                        //             // This ensures that even if Accepted is 0, the balance decreases.
+                        //             const processedNow = Number(f.total_checking || 0);
+                        //             const newRem = Math.max(0, currentRem - processedNow);
+
+                        //             const updateObj = {};
+                        //             updateObj[qtyCol] = newRem;
+
+                        //             // --- COMPLETION LOGIC ---
+                        //             if (newRem <= 0) {
+                        //                 updateObj[finishCol] = new Date().toISOString();
+                        //                 updateObj[statusCol] = 'Completed'; // Marks as complete in Schedule
+                        //             }
+
+                        //             console.log(`Updating Schedule ID ${targetId}. New Remaining: ${newRem}`);
+                        //             await api.patch(`/InspectionSchedule?id=eq.${targetId}`, updateObj);
+                        //         }
+                        //     }
+                        // }
+
+                        // 2. Update the Schedule Table
                         for (const f of forms.value) {
                             let targetId = f.sched_id;
 
-                            // Fallback search if ID is missing
                             if (!targetId || targetId === 'null') {
                                 const searchRes = await api.get(`/InspectionSchedule?Part_Name=eq.${encodeURIComponent(f.part_name)}&JO_Number=eq.${encodeURIComponent(f.job_order_no)}&select=id`);
                                 if (searchRes.data && searchRes.data.length > 0) {
@@ -1293,37 +1389,35 @@
                             }
 
                             if (targetId) {
-                                // Fetch current values from DB
                                 const { data: schedData } = await api.get(`/InspectionSchedule?id=eq.${targetId}`);
 
                                 if (schedData && schedData.length > 0) {
                                     const sched = schedData[0];
 
-                                    // Determine column names (handles case sensitivity)
+                                    // Handle column naming variations
                                     const qtyCol = sched.hasOwnProperty('remaining_qty') ? 'remaining_qty' : 'remaining_quantity';
                                     const finishCol = sched.hasOwnProperty('actual_finished_time') ? 'actual_finished_time' : 'Actual_Finished';
                                     const statusCol = sched.hasOwnProperty('Status') ? 'Status' : 'status';
 
-                                    // --- CALCULATION LOGIC ---
-                                    // Use the existing remaining value or the original quantity as a fallback
                                     const currentRem = (sched[qtyCol] !== null && sched[qtyCol] !== undefined)
                                         ? Number(sched[qtyCol])
                                         : Number(sched.quantity || 0);
 
-                                    // Subtract ONLY AcceptQty
-                                    const acceptedNow = Number(f.accept_qty || 0);
-                                    const newRem = Math.max(0, currentRem - acceptedNow);
+                                    // --- THE FIX ---
+                                    // Subtract everything that was processed (Accept + Rework + Scrap)
+                                    const processedNow = Number(f.total_checking || 0);
+                                    const newRem = Math.max(0, currentRem - processedNow);
 
                                     const updateObj = {};
                                     updateObj[qtyCol] = newRem;
 
-                                    // --- COMPLETION LOGIC ---
+                                    // If no quantity is left, mark as Completed
                                     if (newRem <= 0) {
                                         updateObj[finishCol] = new Date().toISOString();
-                                        updateObj[statusCol] = 'Completed'; // Marks as complete in Schedule
+                                        updateObj[statusCol] = 'Completed';
                                     }
 
-                                    console.log(`Updating Schedule ID ${targetId}. New Remaining: ${newRem}`);
+                                    console.log(`Updating Schedule ID ${targetId}. Balance reduced by ${processedNow}. New Balance: ${newRem}`);
                                     await api.patch(`/InspectionSchedule?id=eq.${targetId}`, updateObj);
                                 }
                             }
@@ -1394,7 +1488,7 @@
                                     scrap_qty: 0,
                                     accept_qty: 0,
                                     inspect_by: finalInspector,
-                                    finalize_by: '',
+                                    finalize_by: 'ROSLINDA BINTI MAT KASA',
                                     remark_finished: '',
                                     defects: [{ description: '', quantity: 0 }],
                                     isLocked: false,

@@ -113,6 +113,17 @@
                         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                     </select>
                 </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Available Items (for this
+                        date)</label>
+                    <select v-model="selectedPart"
+                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">All Items</option>
+                        <option v-for="part in availableParts" :key="part" :value="part">
+                            {{ part }}
+                        </option>
+                    </select>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:col-span-2 items-end">
                     <button @click="fetchData"
                         class="h-12 bg-yellow-500 text-black font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-yellow-300 transition-all flex items-center justify-center">
@@ -148,6 +159,7 @@
                             <th style="width: 8%">Date / Time</th>
                             <th style="width: 12%">Items</th>
                             <th style="width: 10%">Part No.</th>
+                            <th style="width: 8%">Process</th>
                             <th style="width: 12%">Inspection</th>
                             <th style="width: 10%">Inspection By</th>
                             <th style="width: 8%">Total Checking</th>
@@ -168,6 +180,7 @@
                             <td>{{ formatDateTime(row.actual_finished || row.created_at) }}</td>
                             <td>{{ row.Part_Name }}</td>
                             <td>{{ row.part_no || '-' }}</td>
+                            <td class="font-semibold text-gray-700">{{ row.process || '-' }}</td>
                             <td>{{ row.Parameter || row.Inspection_Type }}</td>
                             <td>{{ row.InspectBy }}</td>
 
@@ -246,7 +259,7 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, watch } = Vue; // Added watch here
 
         createApp({
             setup() {
@@ -259,54 +272,109 @@
                 });
 
                 const allRecords = ref([]);
-                const cycleTimeMap = ref({});
-                const filterDate = ref(new Date().toISOString().slice(0, 10));
-                const selectedCategory = ref('');
-                const categories = ['Buy-Off', 'IQC', 'IPQC', 'OQC', 'Customer Return'];
-
-                // Add a ref for schedule records
                 const scheduleRecords = ref([]);
+                const cycleTimeMap = ref({});
+
+                // DEFAULTS
+                const filterDate = ref(new Date().toISOString().slice(0, 10)); // Today
+                const selectedCategory = ref(''); // All Categories
+                const selectedPart = ref('');     // All Items
+                const searchQuery = ref('');
+                const categories = ['Buy-Off', 'IQC', 'IPQC', 'OQC', 'Customer Return'];
 
                 const fetchData = async () => {
                     try {
                         const [resRec, resSch, resGui, resDet] = await Promise.all([
                             api.get('/InspectionRecord?select=*&order=created_at.desc'),
-                            api.get('/InspectionSchedule?select=*'), // Add this line
+                            api.get('/InspectionSchedule?select=*'),
                             api.get('/InspectionGuide?select=*'),
                             api.get('/InspectionGuideDetails?select=*')
                         ]);
                         allRecords.value = resRec.data;
-                        scheduleRecords.value = resSch.data; // Add this line
+                        scheduleRecords.value = resSch.data;
                         buildCycleTimeMap(resGui.data, resDet.data);
                     } catch (err) {
                         console.error("Fetch Error:", err);
                     }
                 };
 
+                // This dynamically updates the dropdown based on the selected date
+                const availableParts = computed(() => {
+                    const recordsForDate = allRecords.value.filter(r => {
+                        const dateStr = r.created_at || r.Created_At || "";
+                        return dateStr.startsWith(filterDate.value);
+                    });
+                    const parts = recordsForDate.map(r => r.Part_Name).filter(Boolean);
+                    return [...new Set(parts)].sort();
+                });
+
+                // Reset the item dropdown if the user changes the date
+                watch(filterDate, () => {
+                    selectedPart.value = '';
+                });
+
+                const reportRows = computed(() => {
+                    return allRecords.value.filter(r => {
+                        const dateStr = r.created_at || r.Created_At || "";
+                        const dateMatch = dateStr.startsWith(filterDate.value);
+
+                        const cat = r.Category || r.category || "";
+                        const catMatch = !selectedCategory.value || cat === selectedCategory.value;
+
+                        const partMatch = !selectedPart.value || r.Part_Name === selectedPart.value;
+
+                        const query = searchQuery.value.toLowerCase().trim();
+                        const searchMatch = !query ||
+                            (r.Part_Name || "").toLowerCase().includes(query) ||
+                            (r.part_no || "").toLowerCase().includes(query);
+
+                        return dateMatch && catMatch && partMatch && searchMatch;
+                    });
+                });
+
+                // --- Keep all your existing methods (getScheduleMatch, isOverdue, buildCycleTimeMap, etc.) ---
+                // const getScheduleMatch = (row) => {
+                //     return scheduleRecords.value.find(s =>
+                //         s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
+                //         s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
+                //         s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase()
+                //     );
+                // };
+
                 const getScheduleMatch = (row) => {
-                    return scheduleRecords.value.find(s =>
+                    const candidates = scheduleRecords.value.filter(s =>
                         s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
                         s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
-                        s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase()
+                        s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase() &&
+                        s.Parameter?.trim().toLowerCase() === row.Parameter?.trim().toLowerCase()
                     );
+
+                    if (candidates.length === 0) return null;
+                    if (candidates.length === 1) return candidates[0];
+
+                    const rowTime = new Date(row.actual_finished || row.created_at).getTime();
+                    const scored = candidates.map(s => ({
+                        s,
+                        diff: Math.abs(new Date(s.actual_finished_time).getTime() - rowTime)
+                    }));
+                    const best = scored.reduce((a, b) => (a.diff < b.diff ? a : b));
+
+                    // Guard rail: if even the closest candidate is more than 48h away from
+                    // this inspection, it's almost certainly a stale/unrelated row — better
+                    // to show "No Schedule Found" than a wrong one.
+                    const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+                    return best.diff <= FORTY_EIGHT_HOURS ? best.s : null;
                 };
 
-                // Check if the actual finished time is later than the estimated time
                 const isOverdue = (schedule) => {
                     if (!schedule || !schedule.actual_finished_time || !schedule.EstFinished) return false;
-
                     const act = new Date(schedule.actual_finished_time);
                     const est = new Date(schedule.EstFinished);
-
-                    // Set seconds and milliseconds to 0 for both to compare only HH:mm
                     act.setSeconds(0, 0);
                     est.setSeconds(0, 0);
-
-                    // Now it only returns true if the Actual Minute is strictly later than the Estimated Minute
                     return act.getTime() > est.getTime();
                 };
 
-                // Simple time formatter for the schedule column
                 const formatTimeOnly = (iso) => {
                     if (!iso) return '-';
                     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -315,32 +383,25 @@
                 const buildCycleTimeMap = (guides, details) => {
                     const map = {};
                     const idToName = {};
-
                     guides.forEach(g => {
                         const rawName = g.Parameter || g.parameter || "";
-                        const cleanName = rawName.toString().replace(/\s+/g, '').toLowerCase();
-                        idToName[String(g.id)] = cleanName;
+                        idToName[String(g.id)] = rawName.toString().replace(/\s+/g, '').toLowerCase();
                     });
-
                     details.forEach(detail => {
                         const pNo = (detail.part_no || detail.Part_No || "").toString().trim().toUpperCase();
                         if (!map[pNo]) map[pNo] = {};
-
                         let ids = detail.inspection_ids;
                         let times = detail.cycle_times;
                         try {
                             if (typeof ids === 'string') ids = JSON.parse(ids);
                             if (typeof times === 'string') times = JSON.parse(times);
-                        } catch (e) { console.error("Parse error"); }
-
+                        } catch (e) { }
                         if (Array.isArray(ids) && Array.isArray(times)) {
                             ids.forEach((id, index) => {
                                 const cycleTime = parseFloat(times[index]);
                                 map[pNo][String(id).trim()] = cycleTime;
                                 const cleanNameKey = idToName[String(id)];
-                                if (cleanNameKey) {
-                                    map[pNo][cleanNameKey] = cycleTime;
-                                }
+                                if (cleanNameKey) map[pNo][cleanNameKey] = cycleTime;
                             });
                         }
                     });
@@ -348,18 +409,13 @@
                 };
 
                 const calculateOutputPerHour = (row) => {
-                    const rawPartNo = row.part_no || "";
-                    const partNo = rawPartNo.toString().trim().toUpperCase();
+                    const partNo = (row.part_no || "").toString().trim().toUpperCase();
                     const rowId = (row.inspection_id || row.InspectionID || "").toString().trim();
-                    const rawName = (row.Parameter || row.Inspection_Type || row.Parameter_Name || "").toString();
+                    const rawName = (row.Parameter || row.Inspection_Type || "").toString();
                     const cleanRowName = rawName.replace(/\s+/g, '').toLowerCase();
-
                     if (partNo && cycleTimeMap.value[partNo]) {
-                        const partData = cycleTimeMap.value[partNo];
-                        const cycleTime = partData[rowId] || partData[cleanRowName];
-                        if (cycleTime && !isNaN(cycleTime) && cycleTime > 0) {
-                            return (3600 / cycleTime).toFixed(0);
-                        }
+                        const cycleTime = cycleTimeMap.value[partNo][rowId] || cycleTimeMap.value[partNo][cleanRowName];
+                        if (cycleTime > 0) return (3600 / cycleTime).toFixed(0);
                     }
                     return '-';
                 };
@@ -370,21 +426,7 @@
                     return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 };
 
-                const calculateTotal = (row) => {
-                    const acc = Number(row.AcceptQty || row.acceptqty || 0);
-                    const rej = Number(row.RejectQty || row.rejectqty || 0);
-                    return (acc + rej);
-                };
-
-                const reportRows = computed(() => {
-                    return allRecords.value.filter(r => {
-                        const dateStr = r.created_at || r.Created_At || "";
-                        const dateMatch = dateStr.startsWith(filterDate.value);
-                        const cat = r.Category || r.category || "";
-                        const catMatch = !selectedCategory.value || cat === selectedCategory.value;
-                        return dateMatch && catMatch;
-                    });
-                });
+                const calculateTotal = (row) => Number(row.AcceptQty || 0) + Number(row.RejectQty || 0);
 
                 const exportToExcel = () => {
                     const table = document.getElementById("checkerTable");
@@ -392,23 +434,11 @@
                     XLSX.writeFile(wb, `Checker_Daily_Record_${filterDate.value}.xlsx`);
                 };
 
-                onMounted(fetchData);
-
-                // Inside setup()
+                // --- Editing Logic ---
                 const editingId = ref(null);
-                const editForm = ref({
-                    id: null,
-                    TotalCheck: 0,
-                    AcceptQty: 0,
-                    RejectQty: 0,
-                    ReworkQty: 0,
-                    ScrapQty: 0
-                });
-
+                const editForm = ref({ id: null, TotalCheck: 0, AcceptQty: 0, RejectQty: 0, ReworkQty: 0, ScrapQty: 0 });
                 const startEdit = (row) => {
-                    // Prevent re-initializing if already editing this row
                     if (editingId.value === row.id) return;
-
                     editingId.value = row.id;
                     editForm.value = {
                         id: row.id,
@@ -419,50 +449,40 @@
                         ScrapQty: row.ScrapQty || 0
                     };
                 };
-
-                const cancelEdit = () => {
-                    editingId.value = null;
-                };
-
+                const cancelEdit = () => { editingId.value = null; };
                 const saveEdit = async () => {
                     try {
-                        // Find the record ID to update
                         const id = editForm.value.id;
-
-                        // Prepare the update payload
-                        const payload = {
-                            TotalCheck: editForm.value.TotalCheck, // Added this
-                            AcceptQty: editForm.value.AcceptQty,
-                            RejectQty: editForm.value.RejectQty,
-                            ReworkQty: editForm.value.ReworkQty,
-                            ScrapQty: editForm.value.ScrapQty
-                        };
-
-                        // Send PATCH request to Supabase/REST API
-                        // NOTE: We assume 'id' is the primary key column name
+                        const payload = { ...editForm.value };
+                        delete payload.id;
                         await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
-
-                        // Update local data so user sees changes immediately
                         const index = allRecords.value.findIndex(r => r.id === id);
-                        if (index !== -1) {
-                            allRecords.value[index] = { ...allRecords.value[index], ...payload };
-                        }
-
-                        alert("Record Updated Successfully!");
-                        editingId.value = null; // Close edit mode
-                    } catch (err) {
-                        console.error("Update Error:", err);
-                        alert("Failed to update record.");
-                    }
+                        if (index !== -1) allRecords.value[index] = { ...allRecords.value[index], ...payload };
+                        alert("Updated!");
+                        editingId.value = null;
+                    } catch (err) { alert("Failed!"); }
                 };
 
-                // Update your return statement to include these new variables/methods:
+                // onMounted(fetchData);
+
+                onMounted(() => {
+                    fetchData();
+
+                    // Re-fetch every 5 minutes while the tab is open
+                    setInterval(fetchData, 5 * 60 * 1000);
+
+                    // Re-fetch whenever the tab regains focus/visibility
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') fetchData();
+                    });
+                });
+
                 return {
-                    filterDate, selectedCategory, categories, reportRows,
+                    filterDate, selectedCategory, categories, reportRows, searchQuery,
+                    selectedPart, availableParts,
                     fetchData, formatDateTime, calculateTotal, exportToExcel,
                     calculateOutputPerHour,
                     printReport: () => window.print(),
-                    // Added for editing:
                     editingId, editForm, startEdit, cancelEdit, saveEdit,
                     getScheduleMatch, isOverdue, formatTimeOnly
                 }

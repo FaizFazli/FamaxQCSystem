@@ -1588,34 +1588,65 @@
         <table class="record-table">
             <thead>
                 <tr>
-                    <th>INVOICE NO. NO</th>
+                    <th>INVOICE NO.</th>
                     <th>CUSTOMER</th>
-                    <th>DATE</th>
-                    <th>ACTION</th>
+                    <th width="100" style="text-align:center;">DATE</th>
+                    <th width="280" style="text-align:center;">ACTION</th>
                 </tr>
             </thead>
             <tbody>`;
 
             if (!data || data.length === 0) {
-                html += `<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No matching records found.</td></tr>`;
+                html += `<tr><td colspan="4" style="text-align:center; padding:40px; color:#94a3b8;">No matching records found.</td></tr>`;
             } else {
-                window.tempRecords = data; // Store data globally
+                window.tempRecords = data;
                 data.forEach((r, index) => {
                     html += `
-                            <tr>
-                                <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
-                                <td>${r.customer_name}</td>
-                                <td>${formatDate(r.doc_date)}</td>                    
-                                <td>
-                                    <button class="btn" style="background:#0078d4; color:white;" onclick="loadRecordForEdit(window.tempRecords[${index}])">EDIT</button>
-                                    <button class="btn" style="background:#6b7280; color:white;" onclick="generatePDF(window.tempRecords[${index}])">PDF</button>
-                                </td>
-                            </tr>`;
+                    <tr>
+                        <td style="font-weight:700; color:#0078d4;">${r.invoice_no}</td>
+                        <td style="font-size: 13px;">${r.customer_name}</td>
+                        <td style="text-align:center; white-space: nowrap;">${formatDate(r.doc_date)}</td>                    
+                        <td>
+                            <!-- Flex container forces buttons into one row -->
+                            <div style="display: flex; gap: 4px; justify-content: center;">
+                                <button class="btn" style="background:#0078d4; color:white; padding: 6px 10px;" onclick="loadRecordForEdit(window.tempRecords[${index}])">EDIT</button>
+                                <button class="btn" style="background:#8b5cf6; color:white; padding: 6px 10px;" onclick="duplicateRecord(window.tempRecords[${index}])">DUPLICATE</button>
+                                <button class="btn" style="background:#64748b; color:white; padding: 6px 10px;" onclick="generatePDF(window.tempRecords[${index}])">PDF</button>
+                            </div>
+                        </td>
+                    </tr>`;
                 });
             }
 
             html += '</tbody></table>';
             $('#modalList').html(html);
+        }
+
+        function duplicateRecord(r) {
+            // 1. Fill the form using the existing edit logic
+            loadRecordForEdit(r);
+
+            // 2. IMPORTANT: Set editingId to null. 
+            // This tells submitForm() to perform an INSERT (new row) rather than an UPDATE.
+            editingId = null;
+
+            // 3. Update the UI to show we are saving a new record
+            $('.btn-submit').text("SAVE DUPLICATE AS NEW RECORD").css("background", "#10b981");
+
+            // 4. Handle the Invoice Number
+            // Option A: Clear it and force the user to type a new one
+            $('#invoice_no').val("");
+
+            // Option B: Auto-append "-COPY" (comment out if you prefer Option A)
+            // $('#invoice_no').val(r.invoice_no + "-COPY");
+
+            // 5. Provide feedback to the user
+            $('#invoice_no').focus();
+            Toastify({
+                text: "DATA COPIED! Please enter a new Invoice Number.",
+                background: "#8b5cf6",
+                duration: 5000
+            }).showToast();
         }
 
         function loadRecordForEdit(r) {
