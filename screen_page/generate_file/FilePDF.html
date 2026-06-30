@@ -387,7 +387,8 @@
     <div class="header-section">
       <div>
         <!-- Using local path as requested, ensure file exists -->
-        <img src=" http://192.168.0.5/FamaxQCSystem/assets/Famax.png" alt="Logo" class="logo" onerror="this.style.display='none'" />
+        <img src=" http://192.168.0.5/FamaxQCSystem/assets/Famax.png" alt="Logo" class="logo"
+          onerror="this.style.display='none'" />
       </div>
       <div class="header-content">
         <h1>FAMAX TECHNOLOGY (M) SDN BHD</h1>
@@ -630,12 +631,11 @@
         // 4. Send to Server
         const pdfBlob = doc.output("blob");
         const formData = new FormData();
-        const partDescRaw = localStorage.getItem("partDescription") || "Report";
+        // const partDescRaw = localStorage.getItem("partDescription") || "Report";
 
-        const safeFolderName = partDescRaw
-          .trim()
-          .replace(/[\\/:\*\?"<>\|]/g, "_")
-          .replace(/\.+$/, "");
+        const partNo = localStorage.getItem("partNo") || "NA";
+        const partDescRaw = localStorage.getItem("partDescription") || "Report";
+        const safeFolderName = partDescRaw.trim().replace(/[\\/:\*\?"<>\|]/g, "_");
 
         const filename = `Process_Flow_${safeFolderName}.pdf`;
 

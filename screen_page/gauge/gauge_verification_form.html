@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Famax | Gauge Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        .cap {
+            text-transform: uppercase;
+        }
+
+        .pdf-viewer-container {
+            height: 85vh;
+            /* Sets height to 85% of the screen height */
+            width: 100%;
+            background-color: #1e293b;
+            position: relative;
+            overflow: auto;
+            /* ENABLE SCROLLING */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* Start from top so scrolling works correctly */
+        }
+
+        .pdf-frame {
+            width: 100%;
+            height: 100%;
+            /* Important: set to 100% so scroll applies to container */
+            border: none;
+            transition: transform 0.3s ease;
+        }
+
+        /* Rotation classes without the forced "Scale" that causes cropping */
+        .rot-left-90 {
+            transform: rotate(-90deg);
+            transform-origin: center;
+            min-width: 150vh;
+            height: 100%;
+        }
+
+        .rot-right-90 {
+            transform: rotate(90deg);
+            transform-origin: center;
+            min-width: 150vh;
+            height: 100%;
+        }
+
+        .rot-180 {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <div id="app" v-cloak class="p-4 md:p-8 max-w-7xl mx-auto">
+        <!-- HEADER / NAV -->
+        <nav class="flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <!-- Grouped Buttons -->
+            <div class="flex items-center space-x-4">
+                <button @click="view = 'form'"
+                    :class="view === 'form' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
+                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Verification
+                    Form</button>
+
+                <button @click="openApprovalPage"
+                    :class="view === 'approval' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
+                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Approval
+                    Dashboard</button>
+
+                <button @click="view = 'report'"
+                    :class="view === 'report' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
+                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Reports</button>
+            </div>
+
+            <!-- Branding Section -->
+            <div class="hidden md:block text-right">
+                <p class="text-xs font-black text-indigo-600 tracking-widest uppercase">Famax Technology</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System Console</p>
+            </div>
+        </nav>
+
+        <!-- 1. VERIFICATION FORM -->
+        <div v-if="view === 'form'" class="animate-in fade-in duration-500">
+            <div class="bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
+                <div class="bg-slate-900 p-8 text-white">
+                    <h1 class="text-3xl font-black tracking-tight uppercase">Gauge Verification Record</h1>
+                    <p class="text-slate-400 mt-1 font-medium tracking-wide text-xs uppercase tracking-widest">Precision
+                        Measurement Logging System</p>
+                </div>
+
+                <div class="p-8">
+                    <!-- HEADER INPUTS -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <!-- CUSTOM DROPDOWN -->
+                        <div class="relative" id="gauge_select_wrapper">
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Gauge
+                                ID</label>
+                            <input type="text" v-model="form.gauge_no" @focus="showGaugeList = true"
+                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-indigo-500 focus:ring-0 outline-none font-black text-slate-700"
+                                placeholder="SEARCH GAUGE...">
+                            <transition name="dropdown">
+                                <div v-if="showGaugeList && filteredGauges.length > 0"
+                                    class="absolute z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                                    <div v-for="g in filteredGauges" :key="g.id" @click="selectGauge(g)"
+                                        class="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0">
+                                        <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}</p>
+                                        <p class="text-[10px] text-slate-500 font-bold cap">{{ g.gauge_name }}</p>
+                                    </div>
+                                </div>
+                            </transition>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Gauge
+                                Description</label>
+                            <input v-model="form.gauge_name"
+                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Drawing
+                                No</label>
+                            <input v-model="form.drawing_no"
+                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Process</label>
+                            <input v-model="form.for_process"
+                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Part
+                                No</label>
+                            <input v-model="form.part_no"
+                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">Verified
+                                By (Name)</label>
+                            <input v-model="form.verified_by"
+                                class="cap w-full bg-indigo-50 border-2 border-indigo-100 rounded-2xl px-4 py-3 outline-none font-black text-indigo-600">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Verification
+                                Date</label>
+                            <input type="date" v-model="form.verify_date" @change="updateDueDate"
+                                class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold text-slate-700">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Next
+                                Due Date (3 Months)</label>
+                            <!-- readonly attribute makes it non-editable. bg-slate-100 distinguishes it visually -->
+                            <input type="date" v-model="form.due_date" readonly
+                                class="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold text-slate-400 cursor-not-allowed">
+                        </div>
+                    </div>
+                    <!--PDF VIEW SECTION-->
+                    <div v-if="form.drawing_path" class="mb-10">
+                        <!-- Header with File Info -->
+                        <div class="flex items-center justify-between mb-4 px-2">
+                            <h3 class="font-black text-lg tracking-tight uppercase flex items-center">
+                                <span class="w-2 h-8 bg-amber-500 rounded-full mr-3 shadow-lg"></span>
+                                Technical Drawing View
+                            </h3>
+                            <div class="flex space-x-2">
+                                <button @click="rotatePdf"
+                                    class="bg-indigo-600 text-white text-[10px] font-black px-6 py-2.5 rounded-full hover:bg-slate-900 transition-all shadow-xl">
+                                    ROTATE LEFT 90°
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- MAIN VIEWER -->
+                        <div class="pdf-viewer-container rounded-3xl border-4 border-white shadow-2xl shadow-slate-200">
+                            <!-- Changed view=Fit to let user scroll properly -->
+                            <iframe :key="rotation" :src="form.drawing_path + '#toolbar=1&view=Fit'"
+                                :class="rotationClass" class="pdf-frame" allow="fullscreen">
+                            </iframe>
+                        </div>
+                    </div>
+
+                    <!-- SPECS SECTIONS (GO / NO-GO) -->
+                    <div v-for="section in ['GO', 'NO GO']" :key="section" class="mb-12">
+                        <div class="flex items-center justify-between mb-4 px-2">
+                            <h3 class="font-black text-lg tracking-tighter flex items-center">
+                                <div class="w-1.5 h-6 bg-indigo-600 rounded-full mr-3 shadow-md shadow-indigo-100">
+                                </div>
+                                {{ section }} PARAMETERS
+                            </h3>
+                            <button @click="addRow(section)"
+                                class="bg-indigo-600 text-white text-[10px] font-black px-6 py-2.5 rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100">
+                                New Dimension
+                            </button>
+                        </div>
+
+                        <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                            <table class="w-full text-left">
+                                <thead class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                    <tr>
+                                        <!-- AFTER -->
+                                        <th class="px-4 pb-2 text-left">Label / Dimension</th>
+                                        <th class="px-4 pb-2 text-left">Nominal & Tolerance</th>
+                                        <th class="px-4 pb-2 text-left">Measurement Equipment</th>
+                                        <th class="px-4 pb-2 text-left">Actual</th>
+                                        <th class="px-4 pb-2 text-center">Result</th>
+                                        <th class="px-4 pb-2 text-left">Remark</th>
+                                        <th class="px-4 pb-2 text-center">Action</th><!-- NEW COLUMN -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(row, idx) in (section === 'GO' ? form.go_specs : form.nogo_specs)"
+                                        :key="idx"
+                                        class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                        <td class="p-4">
+                                            <input v-model="row.spec_label"
+                                                class="cap w-full font-black text-slate-700 outline-none text-xs"
+                                                placeholder="ENTER LABEL">
+                                        </td>
+                                        <td class="p-4">
+                                            <div class="flex items-center space-x-2">
+                                                <input type="number" step="0.0001" v-model.number="row.nominal_value"
+                                                    class="w-20 p-2 bg-slate-50 rounded-xl text-xs font-black outline-none border border-slate-100">
+                                                <input type="number" step="0.0001" v-model.number="row.upper_tol"
+                                                    class="w-14 p-2 bg-green-50 text-green-700 rounded-xl text-xs font-black outline-none border border-green-100"
+                                                    placeholder="+">
+                                                <input type="number" step="0.0001" v-model.number="row.lower_tol"
+                                                    class="w-14 p-2 bg-red-50 text-red-700 rounded-xl text-xs font-black outline-none border border-red-100"
+                                                    placeholder="-">
+                                            </div>
+                                        </td>
+                                        <td class="p-4 text-slate-500 font-bold text-xs uppercase">
+                                            <input v-model="row.measuring_equipment" class="cap w-full outline-none">
+                                        </td>
+                                        <td class="p-4">
+                                            <input type="number" step="0.0001" v-model.number="row.actual_reading"
+                                                @input="calculateStatus(row)"
+                                                class="w-32 bg-amber-50 border-2 border-amber-100 p-2.5 rounded-2xl text-xs font-black text-slate-800 shadow-inner">
+                                        </td>
+                                        <td class="p-4 text-center">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <span v-if="row.status"
+                                                    :class="row.status === 'OK' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'"
+                                                    class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-current opacity-80">
+                                                    {{ row.status }}
+                                                    <span v-if="row.overridden"
+                                                        class="ml-1 text-amber-500">(SPECIAL)</span>
+                                                </span>
+                                                <span v-else class="text-slate-200 text-xs">—</span>
+
+                                                <!-- OVERRIDE BUTTON: only shows when status is NOT OK -->
+                                                <button v-if="row.status === 'NOT OK'"
+                                                    @click="row.status = 'OK'; row.overridden = true"
+                                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 border border-amber-300 hover:bg-amber-500 hover:text-white transition-all">
+                                                    ⚠ Accept as OK
+                                                </button>
+
+                                                <!-- UNDO button: shows after override so user can revert -->
+                                                <button v-if="row.overridden"
+                                                    @click="calculateStatus(row); row.overridden = false"
+                                                    class="text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-lg bg-slate-100 text-slate-400 hover:bg-red-100 hover:text-red-500 border border-slate-200 transition-all">
+                                                    ↩ Undo Override
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <!-- ADD THIS BETWEEN THE RESULT TD AND THE ACTION TD -->
+                                        <td class="p-4">
+                                            <!-- Remark field: always visible when NOT OK or overridden, hidden otherwise -->
+                                            <div v-if="row.status === 'NOT OK' || row.overridden">
+                                                <textarea v-model="row.remark" rows="2"
+                                                    :placeholder="row.overridden ? 'State reason for override...' : 'Note the defect...'"
+                                                    :class="row.overridden
+                ? 'border-amber-200 bg-amber-50 text-amber-800 placeholder-amber-300 focus:border-amber-400'
+                : 'border-red-200 bg-red-50 text-red-800 placeholder-red-300 focus:border-red-400'"
+                                                    class="w-full min-w-[160px] text-[10px] font-bold rounded-xl px-3 py-2 border-2 outline-none resize-none transition-all">
+        </textarea>
+                                                <p v-if="row.overridden && !row.remark"
+                                                    class="text-[9px] text-amber-500 font-black mt-1 uppercase tracking-widest">
+                                                    ⚠ Remark required
+                                                </p>
+                                            </div>
+                                            <span v-else class="text-slate-200 text-xs">—</span>
+                                        </td>
+                                        <td class="p-4 rounded-r-2xl border-y border-r border-slate-100 text-center">
+                                            <button @click="removeRow(section, idx)"
+                                                class="text-slate-300 hover:text-red-500 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="pt-10 flex justify-center">
+                        <button @click="submitForm" :disabled="isSubmitting"
+                            class="bg-slate-900 text-white font-black px-16 py-5 rounded-3xl shadow-2xl hover:bg-indigo-600 hover:-translate-y-1 transition-all disabled:bg-slate-300 uppercase tracking-widest text-xs">
+                            {{ isSubmitting ? 'Finalizing...' : 'Authorize and Record Inspection' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. APPROVAL DASHBOARD -->
+        <!-- 2. APPROVAL DASHBOARD -->
+        <div v-if="view === 'approval'" class="animate-in fade-in duration-500">
+            <div class="bg-white shadow-2xl rounded-3xl p-8 border border-slate-100">
+
+                <!-- Page Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-amber-100 p-3 rounded-2xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-amber-600" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-900 tracking-tighter uppercase">Audit Backlog</h2>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                {{ pendingRecords.length }} record{{ pendingRecords.length !== 1 ? 's' : '' }} pending
+                                approval
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button @click="openApprovalPage"
+                        class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 px-4 py-2.5 rounded-xl hover:bg-indigo-50 transition-all border border-slate-100 hover:border-indigo-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+
+                <!-- List Table -->
+                <div class="overflow-hidden border border-slate-100 rounded-[28px]">
+                    <table class="w-full text-left">
+                        <thead
+                            class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                            <tr>
+                                <th class="px-6 py-4">#</th>
+                                <th class="px-6 py-4">Gauge ID</th>
+                                <th class="px-6 py-4">Part No</th>
+                                <th class="px-6 py-4">Verified By</th>
+                                <th class="px-6 py-4">Verify Date</th>
+                                <th class="px-6 py-4">Due Date</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                                <th class="px-6 py-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <tr v-for="(rec, idx) in pendingRecords" :key="rec.id"
+                                class="hover:bg-indigo-50/30 transition-colors group">
+
+                                <!-- Row Number -->
+                                <td class="px-6 py-4 text-xs font-black text-slate-300">
+                                    {{ idx + 1 }}
+                                </td>
+
+                                <!-- Gauge ID -->
+                                <td class="px-6 py-4">
+                                    <p class="font-black text-slate-800 text-sm cap">{{ rec.gauges?.gauge_no }}</p>
+                                </td>
+
+                                <!-- Part No -->
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-slate-500 text-xs cap">{{ rec.part_no || '—' }}</p>
+                                </td>
+
+                                <!-- Verified By -->
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-2">
+                                        <div
+                                            class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-[10px]">
+                                            {{ rec.verified_by?.charAt(0) }}
+                                        </div>
+                                        <span class="font-bold text-slate-700 text-xs cap">{{ rec.verified_by }}</span>
+                                    </div>
+                                </td>
+
+                                <!-- Verify Date -->
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-slate-600 text-xs">{{ rec.verify_date }}</p>
+                                </td>
+
+                                <!-- Due Date -->
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-xs"
+                                        :class="new Date(rec.due_date) < new Date() ? 'text-red-500' : 'text-slate-600'">
+                                        {{ rec.due_date }}
+                                        <span v-if="new Date(rec.due_date) < new Date()"
+                                            class="ml-1 text-[9px] font-black text-red-400 uppercase">OVERDUE</span>
+                                    </p>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-6 py-4 text-center">
+                                    <span
+                                        class="inline-flex items-center space-x-1.5 bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                                        <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
+                                        <span>{{ rec.approval_status }}</span>
+                                    </span>
+                                </td>
+
+                                <!-- Action Button -->
+                                <td class="px-6 py-4 text-center">
+                                    <button @click="openApprovalDetail(rec)"
+                                        class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-100 hover:shadow-slate-200 group-hover:-translate-y-0.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span>Review & Approve</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Empty State -->
+                    <div v-if="pendingRecords.length === 0" class="py-24 text-center">
+                        <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-400" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <p class="font-black text-slate-300 text-lg uppercase tracking-widest">All Clear</p>
+                        <p class="text-slate-300 text-xs font-bold mt-1 uppercase">No pending approvals</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. REPORT / HISTORY PAGE -->
+        <div v-if="view === 'report'" class="animate-in fade-in duration-500">
+            <div class="bg-white shadow-2xl rounded-3xl p-8 border border-slate-100">
+                <h2 class="text-2xl font-black mb-8 uppercase flex items-center">
+                    <span class="bg-indigo-100 p-2 rounded-lg mr-3 shadow-indigo-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </span>
+                    Gauge Verification History
+                </h2>
+
+                <!-- FILTER SECTION -->
+                <div class="max-w-md mb-10 relative" id="report_filter_wrapper">
+                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select
+                        Gauge ID to Filter</label>
+                    <input type="text" v-model="reportFilter.gauge_no" @focus="showReportDropdown = true"
+                        class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-indigo-500 outline-none font-black text-slate-700"
+                        placeholder="TYPE GAUGE NO...">
+
+                    <transition name="dropdown">
+                        <div v-if="showReportDropdown && filteredGaugesReport.length > 0"
+                            class="absolute z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                            <div v-for="g in filteredGaugesReport" :key="g.id" @click="fetchHistory(g)"
+                                class="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50">
+                                <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}</p>
+                                <p class="text-[10px] text-slate-500 font-bold cap">{{ g.gauge_name }}</p>
+                            </div>
+                        </div>
+                    </transition>
+                </div>
+
+                <!-- HISTORY TABLE -->
+                <div class="overflow-hidden border border-slate-100 rounded-[32px]">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <tr>
+                                <th class="p-6">Verify Date</th>
+                                <th class="p-6">Auditor</th>
+                                <th class="p-6">Approval Status</th>
+                                <th class="p-6 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-50">
+                            <tr v-for="h in reportHistory" :key="h.id" class="hover:bg-slate-50/50">
+                                <td class="p-6 font-bold text-slate-700">{{ h.verify_date }}</td>
+                                <td class="p-6 font-bold text-slate-500 cap">{{ h.verified_by }}</td>
+                                <td class="p-6">
+                                    <span
+                                        :class="h.approval_status === 'APPROVED' ? 'text-green-600' : 'text-amber-500'"
+                                        class="font-black text-[10px] tracking-widest">{{ h.approval_status }}</span>
+                                </td>
+                                <td class="p-6 text-center flex items-center justify-center space-x-4">
+                                    <button @click="showDetailedReading(h)"
+                                        class="text-indigo-600 font-black text-xs hover:underline">VIEW DETAILS</button>
+                                    <!-- NEW DOWNLOAD BUTTON -->
+                                    <button @click="generatePDF(h)"
+                                        class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] tracking-widest hover:bg-indigo-600 transition-all flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-2" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        DOWNLOAD PDF
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div v-if="reportHistory.length === 0"
+                        class="py-20 text-center text-slate-300 font-bold uppercase text-xs">
+                        No history records for this Gauge.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORT DETAIL MODAL -->
+        <transition name="dropdown">
+            <div v-if="showReportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showReportModal = false"></div>
+
+                <!-- Modal Content -->
+                <div
+                    class="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col border border-white">
+
+                    <!-- Modal Header -->
+                    <div class="p-8 bg-slate-900 text-white flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-black uppercase tracking-tighter">Verification Details</h2>
+                            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase mt-1">
+                                {{ selectedRecord?.gauges?.gauge_no }} — RECORDED ON {{ selectedRecord?.verify_date }}
+                            </p>
+                        </div>
+                        <button @click="showReportModal = false"
+                            class="text-slate-400 hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body (Scrollable) -->
+                    <div class="p-8 overflow-y-auto custom-scroll space-y-8 bg-slate-50">
+                        <!-- Summary Card -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <span class="text-[9px] font-black text-slate-400 block uppercase mb-1">Auditor</span>
+                                <p class="font-black text-slate-700 cap">{{ selectedRecord?.verified_by }}</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <span class="text-[9px] font-black text-slate-400 block uppercase mb-1">Approval
+                                    By</span>
+                                <p class="font-black text-indigo-600 cap">
+                                    {{ selectedRecord?.approved_by || 'PENDING APPROVAL' }}
+                                </p>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                <span class="text-[9px] font-black text-slate-400 block uppercase mb-1">Part No</span>
+                                <p class="font-black text-slate-700 cap">{{ selectedRecord?.part_no }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Readings Tables -->
+                        <div v-for="sec in ['GO', 'NO GO']" :key="sec">
+                            <h3
+                                class="font-black text-xs text-slate-400 uppercase tracking-widest mb-3 flex items-center">
+                                <div class="w-4 h-1 bg-indigo-500 mr-2 rounded-full"></div> {{ sec }} READINGS
+                            </h3>
+                            <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                                <table class="w-full text-left text-sm">
+                                    <thead
+                                        class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase">
+                                        <tr>
+                                            <th class="p-4">Parameter</th>
+                                            <th class="p-4">Spec (Tol)</th>
+                                            <th class="p-4">Actual</th>
+                                            <th class="p-4 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="r in filterReadings(sec)" :key="r.id">
+                                            <td class="p-4 font-bold text-slate-700 cap">{{
+                                                r.gauge_specifications.spec_label }}</td>
+                                            <td class="p-4 text-slate-500 font-medium text-xs">
+                                                {{ r.gauge_specifications.nominal_value }} (+{{
+                                                r.gauge_specifications.upper_tol }} / -{{
+                                                r.gauge_specifications.lower_tol }})
+                                            </td>
+                                            <td class="p-4 font-black text-slate-900">{{ r.actual_reading }}</td>
+                                            <td class="p-4 text-center">
+                                                <span
+                                                    :class="r.status === 'OK' ? 'text-green-600 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200'"
+                                                    class="px-3 py-1 rounded-lg text-[10px] font-black border uppercase">
+                                                    {{ r.status }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div v-if="filterReadings(sec).length === 0"
+                                    class="p-4 text-center text-xs text-slate-300 italic">No {{ sec }} data available.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="p-6 border-t border-slate-100 bg-white flex justify-end">
+                        <button @click="showReportModal = false"
+                            class="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-600 transition-all">Close
+                            History</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- SUCCESS NOTIFICATION MODAL -->
+        <transition name="dropdown">
+            <div v-if="showSuccessModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
+
+                <!-- Content -->
+                <div
+                    class="relative bg-white w-full max-w-sm rounded-[40px] shadow-2xl p-10 text-center flex flex-col items-center">
+                    <!-- Animated Success Icon -->
+                    <div
+                        class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+
+                    <h2 class="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Record Authorized
+                    </h2>
+                    <p class="text-slate-500 text-sm font-medium mb-8">Verification for <b>{{ form.gauge_no }}</b> has
+                        been successfully transmitted to the database and is awaiting audit.</p>
+
+                    <div class="w-full space-y-3">
+                        <button @click="resetFormAfterSuccess"
+                            class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-600 transition-all">
+                            Verify Another Gauge
+                        </button>
+                        <button @click="goToReports"
+                            class="w-full bg-slate-50 text-slate-500 font-bold py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all">
+                            View Verification History
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- UPDATED APPROVAL DETAIL MODAL -->
+        <transition name="dropdown">
+            <div v-if="showApprovalModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md" @click="showApprovalModal = false"></div>
+
+                <!-- Modal Content -->
+                <div
+                    class="relative bg-white w-full max-w-6xl max-h-[95vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col border border-white">
+
+                    <!-- Modal Header -->
+                    <div class="p-6 bg-indigo-600 text-white flex justify-between items-center shadow-lg">
+                        <div>
+                            <h2 class="text-xl font-black uppercase tracking-tighter">Audit & Review Phase</h2>
+                            <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">
+                                Gauge: {{ selectedApprovalRecord?.gauges?.gauge_no }} — Operator: {{
+                                selectedApprovalRecord?.verified_by }}
+                            </p>
+                        </div>
+                        <button @click="showApprovalModal = false"
+                            class="bg-indigo-500/50 hover:bg-indigo-400 p-2 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body (Scrollable) -->
+                    <div class="p-8 overflow-y-auto bg-slate-50 space-y-8 custom-scroll">
+
+                        <!-- SECTION 1: Technical Drawing Viewer -->
+                        <div v-if="selectedApprovalRecord?.gauges?.drawing_path" class="space-y-3">
+                            <div class="flex items-center space-x-2 px-2">
+                                <div class="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reference
+                                    Drawing</span>
+                            </div>
+
+                            <div class="pdf-viewer-container rounded-3xl border-4 border-white shadow-xl bg-slate-200 overflow-hidden"
+                                style="height: 500px;">
+                                <iframe v-if="!isLocalPathApproval"
+                                    :src="selectedApprovalRecord?.gauges?.drawing_path + '#toolbar=1&view=Fit'"
+                                    class="w-full h-full border-none">
+                                </iframe>
+                                <div v-else
+                                    class="flex flex-col items-center justify-center h-full bg-slate-800 p-10 text-center">
+                                    <p class="text-amber-400 font-black text-sm uppercase">C:\ DRIVE FILE PROTECTED</p>
+                                    <p class="text-slate-500 text-xs mt-2 max-w-xs">Browser security prevents displaying
+                                        local files. Verify drawing on workstation storage.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 2: Measurement Data -->
+                        <div v-for="sec in ['GO', 'NO GO']" :key="sec" class="space-y-4">
+                            <h3
+                                class="font-black text-sm text-slate-400 uppercase tracking-widest flex items-center px-2">
+                                <div class="w-4 h-1 bg-indigo-500 mr-2 rounded-full"></div> {{ sec }} PARAMETERS
+                            </h3>
+
+                            <div class="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
+                                <table class="w-full text-left text-sm">
+                                    <thead
+                                        class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        <tr>
+                                            <th class="p-4 w-1/4">Label</th>
+                                            <th class="p-4 w-1/4">Spec (Tolerance)</th>
+                                            <th class="p-4">Equipment</th>
+                                            <th class="p-4">Actual</th>
+                                            <th class="p-4 text-center">Result</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-50">
+                                        <tr v-for="r in filterApprovalReadings(sec)" :key="r.id"
+                                            class="hover:bg-slate-50/50">
+                                            <td class="p-4 font-bold text-slate-800 cap">{{
+                                                r.gauge_specifications.spec_label }}</td>
+                                            <td class="p-4 text-slate-500 font-medium">
+                                                {{ r.gauge_specifications.nominal_value }}
+                                                <span class="text-[10px] ml-1 opacity-70">
+                                                    (+{{ r.gauge_specifications.upper_tol }} / -{{
+                                                    r.gauge_specifications.lower_tol }})
+                                                </span>
+                                            </td>
+                                            <td class="p-4 text-slate-400 italic text-xs cap">{{ r.measuring_equipment
+                                                }}</td>
+                                            <td class="p-4 font-black text-slate-900 text-lg">{{ r.actual_reading }}
+                                            </td>
+                                            <td class="p-4 text-center">
+                                                <span
+                                                    :class="r.status === 'OK' ? 'text-green-600 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200'"
+                                                    class="px-4 py-1.5 rounded-xl text-[10px] font-black border uppercase tracking-widest">
+                                                    {{ r.status }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <!-- Empty State Check -->
+                                <div v-if="filterApprovalReadings(sec).length === 0"
+                                    class="p-6 text-center text-xs text-slate-300 italic font-medium uppercase tracking-tighter">
+                                    No recorded {{ sec }} parameters for this session.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="p-6 border-t border-slate-100 bg-white flex justify-between items-center px-8">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase italic max-w-md">
+                            Note: Authorization confirms all actual readings are within the technical tolerance limits
+                            specified above.
+                        </p>
+                        <div class="flex space-x-4">
+                            <button @click="showApprovalModal = false"
+                                class="px-8 py-4 font-black text-slate-400 uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">
+                                Close Audit
+                            </button>
+                            <button @click="approveRecord(selectedApprovalRecord.id)"
+                                class="bg-green-600 hover:bg-green-700 text-white font-black px-12 py-4 rounded-[20px] shadow-2xl shadow-green-100 uppercase text-[10px] tracking-widest transition-all transform active:scale-95">
+                                Confirm & Sign Approval
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- REBUILT STABLE ONE-PAGE MASTER TEMPLATE -->
+        <!-- THE ULTIMATE 1-PAGE LOCK TEMPLATE -->
+        <div id="print-template"
+            style="width: 210mm; height: 297mm; background: white; padding: 0; margin: 0; display: none; box-sizing: border-box; font-family: 'Arial Narrow', sans-serif;">
+
+            <!-- Outer Border Box (Locked at 285mm height to prevent page break) -->
+            <div
+                style="width: 196mm; height: 282mm; margin: 7mm auto; border: 1.5pt solid black; position: relative; box-sizing: border-box; overflow: hidden;">
+
+                <!-- HEADER (Height: 28mm) -->
+                <div
+                    style="height: 28mm; width: 100%; border-bottom: 1.5pt solid black; text-align: center; padding-top: 4mm;">
+                    <div style="font-weight: 900; font-size: 20px; line-height: 1.1;">FAMAX TECHNOLOGY (M) SDN BHD.
+                    </div>
+                    <div style="font-size: 10px; font-weight: bold; margin-bottom: 3mm;">200601028954 (748710-K)</div>
+                    <div style="font-size: 16px; font-weight: 900; text-decoration: underline; letter-spacing: 0.5px;">
+                        GAUGE VERIFICATION RECORD</div>
+                </div>
+
+                <!-- INFO BOX (Height: 22mm) -->
+                <table style="width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 8.5pt;">
+                    <tr style="height: 7.3mm;">
+                        <td
+                            style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; width: 30mm; background: #eee;">
+                            GAUGE NO:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px; width: 65mm;">{{ printData.gauge_no }}
+                        </td>
+                        <td
+                            style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; width: 35mm; background: #eee;">
+                            VERIF. DATE:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px;">{{ printData.verify_date }}</td>
+                    </tr>
+                    <tr style="height: 7.3mm;">
+                        <td style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; background: #eee;">
+                            PART NAME:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px;">{{ printData.gauge_name }}</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; background: #eee;">
+                            DUE DATE:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px;">{{ printData.due_date }}</td>
+                    </tr>
+                    <tr style="height: 7.4mm;">
+                        <td style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; background: #eee;">
+                            FOR PROCESS:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px;">{{ printData.for_process }}</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; background: #eee;">
+                            PART NO:</td>
+                        <td style="border: 0.5pt solid black; padding-left: 5px;">{{ printData.part_no }}</td>
+                    </tr>
+                </table>
+
+                <!-- GO & NO GO SECTIONS -->
+                <div v-for="section in ['GO', 'NO GO']" :key="section" style="width: 100%;">
+                    <!-- Black Header Bar -->
+                    <div
+                        style="background: black; color: white; text-align: center; font-weight: bold; font-size: 10px; height: 5mm; line-height: 5mm; border-bottom: 0.5pt solid white;">
+                        {{ section }} SECTION
+                    </div>
+
+                    <table
+                        style="width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; font-size: 7.5pt;">
+                        <thead style="background: #f5f5f5;">
+                            <tr style="height: 8mm;">
+                                <th style="border: 0.5pt solid black; width: 12mm;">POINT</th>
+                                <th colspan="2" style="border: 0.5pt solid black; width: 55mm;">SPECIFICATION WITH
+                                    TOLERANCE</th>
+                                <th style="border: 0.5pt solid black; width: 45mm;">MEASURING EQUIPMENT</th>
+                                <th style="border: 0.5pt solid black; width: 30mm;">READING</th>
+                                <th style="border: 0.5pt solid black; width: 32mm;">STATUS (OK / NOT OK)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template v-for="n in 10" :key="n">
+                                <tr style="height: 3.9mm;">
+                                    <td rowspan="2" style="border: 0.5pt solid black; font-weight: bold;">{{ n }}</td>
+                                    <td rowspan="2"
+                                        style="border: 0.5pt solid black; font-size: 10pt; font-weight: bold;">
+                                        {{ getRow(section, n)?.gauge_specifications.nominal_value }}
+                                    </td>
+                                    <td
+                                        style="border: 0.5pt solid black; font-size: 6.5pt; width: 18mm; line-height: 1;">
+                                        +{{ getRow(section, n)?.gauge_specifications.upper_tol || '' }}
+                                    </td>
+                                    <td rowspan="2" style="border: 0.5pt solid black;">{{ getRow(section,
+                                        n)?.measuring_equipment }}</td>
+                                    <td rowspan="2"
+                                        style="border: 0.5pt solid black; font-weight: bold; font-size: 9pt;">{{
+                                        getRow(section, n)?.actual_reading }}</td>
+                                    <td rowspan="2" style="border: 0.5pt solid black; font-size: 14pt;">{{
+                                        getRow(section, n)?.status === 'OK' ? '✓' : '' }}</td>
+                                    <td v-if="false" rowspan="2" style="border: 0.5pt solid black;">{{ getRow(section,
+                                        n)?.status === 'NOT OK' ? '✓' : '' }}</td>
+                                </tr>
+                                <tr style="height: 3.9mm;">
+                                    <td style="border: 0.5pt solid black; font-size: 6.5pt; line-height: 1;">
+                                        -{{ getRow(section, n)?.gauge_specifications.lower_tol || '' }}
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- FOOTER ANCHOR (Locked at bottom) -->
+                <div
+                    style="position: absolute; bottom: 0; left: 0; width: 100%; border-top: 1.5pt solid black; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 9pt;">
+                        <tr style="height: 25mm; text-align: center; vertical-align: bottom;">
+                            <td style="width: 50%; padding-bottom: 4mm;">
+                                VERIFIED BY: <br><br>
+                                <div
+                                    style="width: 70%; border-bottom: 1pt solid black; margin: auto; font-weight: bold; font-size: 11pt;">
+                                    {{ printData.verified_by }}</div>
+                            </td>
+                            <td style="width: 50%; padding-bottom: 4mm;">
+                                APPROVED BY: <br><br>
+                                <div
+                                    style="width: 70%; border-bottom: 1pt solid black; margin: auto; font-weight: bold; font-size: 11pt;">
+                                    {{ printData.approved_by || '&nbsp;' }}</div>
+                            </td>
+                        </tr>
+                        <tr style="height: 7mm; font-size: 7.5pt; font-weight: bold;">
+                            <td style="padding-left: 10px;">EFFECTIVE DATE: 01 MARCH 2024</td>
+                            <td style="padding-right: 10px; text-align: right;">DOC NO: REC-QA-023-02</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createClient } = supabase;
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
+
+        createApp({
+            setup() {
+                // --- 1. DEFINE UTILITY FUNCTIONS FIRST ---
+                const getToday = () => new Date().toISOString().split('T')[0];
+
+                const calculateThreeMonths = (startDate) => {
+                    let d = new Date(startDate);
+                    d.setMonth(d.getMonth() + 3); // ADD 3 MONTHS
+                    return d.toISOString().split('T')[0];
+                };
+
+                // --- 2. INITIALIZE STATE ---
+                const view = ref('form');
+                const gaugeMasters = ref([]);
+                const pendingRecords = ref([]);
+                const isSubmitting = ref(false);
+                const showGaugeList = ref(false);
+                const rotation = ref(0);
+                const reportFilter = reactive({ gauge_no: '' });
+                const showReportDropdown = ref(false);
+                const reportHistory = ref([]);
+                const showReportModal = ref(false);
+                const selectedRecord = ref(null);
+                const detailedReadings = ref([]);
+                const showSuccessModal = ref(false);
+                const showApprovalModal = ref(false);
+                const selectedApprovalRecord = ref(null);
+                const approvalReadings = ref([]);
+                const printData = ref({});
+                const printReadings = ref([]);
+
+                const form = reactive({
+                    gauge_no: '',
+                    gauge_name: '',
+                    drawing_no: '',
+                    drawing_path: '',
+                    for_process: '',
+                    part_no: '',
+                    verified_by: '',
+                    verify_date: getToday(), // Works now because getToday is defined above
+                    due_date: calculateThreeMonths(getToday()), // Works now
+                    go_specs: [],
+                    nogo_specs: []
+                });
+
+                // --- 3. OTHER COMPUTED & FUNCTIONS ---
+                const filteredGauges = computed(() => {
+                    if (!form.gauge_no) return gaugeMasters.value.slice(0, 50);
+                    const q = form.gauge_no.toUpperCase();
+                    return gaugeMasters.value.filter(g => g.gauge_no.toUpperCase().includes(q));
+                });
+
+                const selectGauge = async (match) => {
+                    form.gauge_no = match.gauge_no;
+                    form.gauge_name = match.gauge_name;
+                    form.drawing_no = match.drawing_no;
+                    form.for_process = match.for_process;
+                    form.drawing_path = match.drawing_path;
+
+                    const { data: partsData, error: pError } = await _supabase
+                        .from('gauge_parts')
+                        .select('part_no')
+                        .eq('gauge_id', match.id);
+
+                    if (!pError && partsData.length > 0) {
+                        form.part_no = partsData.map(p => p.part_no).join(', ');
+                    } else {
+                        form.part_no = '';
+                    }
+
+                    showGaugeList.value = false;
+                    rotation.value = 0;
+
+                    const { data: specs } = await _supabase.from('gauge_specifications')
+                        .select('*')
+                        .eq('gauge_id', match.id);
+
+                    form.go_specs = (specs || []).filter(s => s.section_type === 'GO').map(s => ({ ...s, actual_reading: null, status: '', overridden: false, remark: '' }));
+                    form.nogo_specs = (specs || []).filter(s => s.section_type === 'NO GO').map(s => ({ ...s, actual_reading: null, status: '', overridden: false, remark: '' }));
+                };
+
+                const rotatePdf = () => { rotation.value = (rotation.value - 90) % 360; };
+
+                const rotationClass = computed(() => {
+                    const val = rotation.value % 360;
+                    if (val === -90 || val === 270) return 'rot-left-90';
+                    if (val === -180 || val === 180) return 'rot-180';
+                    if (val === -270 || val === 90) return 'rot-right-90';
+                    return '';
+                });
+
+                const isLocalPath = computed(() => {
+                    if (!form.drawing_path) return false;
+                    return form.drawing_path.startsWith('C:') || form.drawing_path.startsWith('\\') || form.drawing_path.includes('Desktop');
+                });
+
+                const closeDropdown = (e) => {
+                    const el = document.getElementById('gauge_select_wrapper');
+                    const elReport = document.getElementById('report_filter_wrapper'); // Added this
+                    if (el && !el.contains(e.target)) showGaugeList.value = false;
+                    if (elReport && !elReport.contains(e.target)) showReportDropdown.value = false;
+                };
+
+                onMounted(() => {
+                    fetchMasters();
+                    window.addEventListener('click', closeDropdown);
+                });
+
+                onUnmounted(() => window.removeEventListener('click', closeDropdown));
+
+                const fetchMasters = async () => {
+                    const { data } = await _supabase.from('gauges').select('*');
+                    gaugeMasters.value = data || [];
+                };
+
+                const addRow = (section) => {
+                    const row = { spec_label: '', nominal_value: 0, upper_tol: 0, lower_tol: 0, measuring_equipment: '', actual_reading: null, status: '', overridden: false, remark: '' };
+                    if (section === 'GO') form.go_specs.push(row); else form.nogo_specs.push(row);
+                };
+
+                const calculateStatus = (row) => {
+                    if (row.actual_reading === null || row.actual_reading === '') {
+                        row.status = '';
+                        return;
+                    }
+                    const nom = Number(row.nominal_value);
+                    const upTol = Math.abs(Number(row.upper_tol));
+                    const loTol = Math.abs(Number(row.lower_tol));
+                    const max = nom + upTol;
+                    const min = nom - loTol;
+                    const reading = Number(row.actual_reading);
+                    row.status = (reading >= min && reading <= max) ? 'OK' : 'NOT OK';
+                };
+
+                // Function to update Due Date whenever user changes Verify Date
+                const updateDueDate = () => {
+                    form.due_date = calculateThreeMonths(form.verify_date);
+                };
+
+
+
+                const submitForm = async () => {
+                    if (!form.verified_by) { alert("Please input SIGNATURE NAME"); return; }
+                    isSubmitting.value = true;
+
+                    try {
+                        const up = (val) => typeof val === 'string' ? val.toUpperCase().trim() : val;
+
+                        // --- STEP 1: GAUGE MASTER (Update if exists, else Create) ---
+                        const { data: gRec, error: gError } = await _supabase.from('gauges').upsert({
+                            gauge_no: up(form.gauge_no),
+                            gauge_name: up(form.gauge_name),
+                            drawing_no: up(form.drawing_no),
+                            for_process: up(form.for_process),
+                            drawing_path: form.drawing_path
+                        }, { onConflict: 'gauge_no' }).select();
+
+                        if (gError || !gRec || gRec.length === 0) throw new Error("Gauge Update Failed: " + gError?.message);
+                        const gaugeData = gRec[0];
+
+                        // --- STEP 2: VERIFICATION RECORD (Always CREATE NEW entry for history) ---
+                        const { data: hRec, error: hError } = await _supabase.from('verification_records').insert({
+                            gauge_id: gaugeData.id,
+                            part_no: up(form.part_no),
+                            verified_by: up(form.verified_by),
+                            verify_date: form.verify_date,
+                            due_date: form.due_date,
+                            approval_status: 'PENDING'
+                        }).select();
+
+                        if (hError || !hRec || hRec.length === 0) throw new Error("History Record Creation Failed.");
+                        const head = hRec[0];
+
+                        // --- STEP 3: SPECS & READINGS LOOP ---
+                        const sets = [{ t: 'GO', d: form.go_specs }, { t: 'NO GO', d: form.nogo_specs }];
+
+                        for (let s of sets) {
+                            let n = 1; // Resets line_no for each section
+                            for (let r of s.d) {
+                                // Skip empty rows added by the "Add New Dimension" button
+                                if (!r.spec_label || r.spec_label.trim() === '') continue;
+
+                                // A. GAUGE SPECIFICATION (Update existing slot or create new slot)
+                                const { data: sRec, error: sError } = await _supabase.from('gauge_specifications').upsert({
+                                    gauge_id: gaugeData.id,
+                                    part_no: up(form.part_no),
+                                    section_type: s.t,
+                                    line_no: n++, // This matches the 1, 2, 3 sequence
+                                    spec_label: up(r.spec_label),
+                                    nominal_value: r.nominal_value,
+                                    upper_tol: r.upper_tol,
+                                    lower_tol: r.lower_tol
+                                }, { onConflict: 'gauge_id,section_type,line_no' }).select();
+
+                                if (sError || !sRec) {
+                                    console.error("Master Spec Sync Error:", sError);
+                                    continue;
+                                }
+                                const specData = sRec[0];
+
+                                // B. VERIFICATION READING (Always CREATE NEW row for the historical audit trail)
+                                const { error: rError } = await _supabase.from('verification_readings').insert({
+                                    record_id: head.id,
+                                    spec_id: specData.id,
+                                    measuring_equipment: up(r.measuring_equipment),
+                                    actual_reading: r.actual_reading,
+                                    status: r.status,
+                                    overridden: r.overridden || false,
+                                    remark: r.remark ? r.remark.toUpperCase().trim() : null
+                                });
+
+                                if (rError) console.error("Reading Log Error:", rError);
+                            }
+                        }
+
+                        // Show success modal to user
+                        showSuccessModal.value = true;
+
+                    } catch (e) {
+                        console.error("LOGIC ERROR:", e);
+                        alert("CRITICAL ERROR: " + e.message);
+                    } finally {
+                        isSubmitting.value = false;
+                    }
+                };
+
+                const resetFormAfterSuccess = () => {
+                    // Clear relevant form data to allow the next entry
+                    form.gauge_no = '';
+                    form.for_process = '';
+                    form.gauge_name = '';
+                    form.drawing_no = '';
+                    form.drawing_path = '';
+                    form.part_no = '';
+                    form.go_specs = [];
+                    form.nogo_specs = [];
+                    rotation.value = 0;
+                    showSuccessModal.value = false;
+                    view.value = 'form';
+                };
+
+                const goToReports = () => {
+                    showSuccessModal.value = false;
+                    view.value = 'report';
+                    // Optionally auto-search the last gauge
+                    reportFilter.gauge_no = form.gauge_no;
+                };
+
+                // --- FIX 1: Add drawing_path to the initial load ---
+                const openApprovalPage = async () => {
+                    view.value = 'approval';
+                    // We must specifically ask for drawing_path here so the modal can use it later
+                    const { data, error } = await _supabase
+                        .from('verification_records')
+                        .select('*, gauges(gauge_no, drawing_path)')
+                        .eq('approval_status', 'PENDING');
+
+                    if (error) console.error("Error loading pending:", error);
+                    else pendingRecords.value = data || [];
+                };
+
+                // --- FIX 2: Add section_type to the detailed readings fetch ---
+                const openApprovalDetail = async (record) => {
+                    selectedApprovalRecord.value = record;
+
+                    const { data, error } = await _supabase
+                        .from('verification_readings')
+                        .select(`
+            *,
+            gauge_specifications(spec_label, section_type, nominal_value, upper_tol, lower_tol)
+        `) // Included 'section_type' so the GO/NOGO filter works
+                        .eq('record_id', record.id);
+
+                    if (!error) {
+                        approvalReadings.value = data;
+                        showApprovalModal.value = true;
+                    } else {
+                        alert("Error loading audit data.");
+                    }
+                };
+                // Computed to check if the path is C:\ in the approval modal
+                const isLocalPathApproval = computed(() => {
+                    // Check inside the linked 'gauges' object
+                    const path = selectedApprovalRecord.value?.gauges?.drawing_path;
+                    if (!path) return false;
+                    return path.startsWith('C:') || path.startsWith('\\') || path.includes('Desktop');
+                });
+
+                // Update the approveRecord function to also close the modal
+
+
+                const approveRecord = async (id) => {
+                    const boss = prompt("ENTER AUDITOR CREDENTIALS (NAME):");
+                    if (!boss) return;
+
+                    const { error } = await _supabase
+                        .from('verification_records')
+                        .update({
+                            approval_status: 'APPROVED',
+                            approved_by: boss.toUpperCase()
+                        })
+                        .eq('id', id);
+
+                    if (error) {
+                        alert("Approval failed: " + error.message);
+                    } else {
+                        showApprovalModal.value = false; // Close Modal
+                        openApprovalPage(); // Refresh List
+                    }
+                };
+
+                // Function to separate readings in the Approval Modal by GO / NO GO
+                const filterApprovalReadings = (type) => {
+                    return approvalReadings.value.filter(r => r.gauge_specifications.section_type === type);
+                };
+
+                const removeRow = (section, index) => {
+                    if (section === 'GO') form.go_specs.splice(index, 1);
+                    else form.nogo_specs.splice(index, 1);
+                };
+
+                // 1. Filtered List for the Report Search
+                const filteredGaugesReport = computed(() => {
+                    if (!reportFilter.gauge_no) return gaugeMasters.value.slice(0, 10);
+                    const q = reportFilter.gauge_no.toUpperCase();
+                    return gaugeMasters.value.filter(g => g.gauge_no.toUpperCase().includes(q));
+                });
+
+                // 2. Fetch History when a gauge is selected from dropdown
+                const fetchHistory = async (gauge) => {
+                    reportFilter.gauge_no = gauge.gauge_no;
+                    showReportDropdown.value = false;
+
+                    // We must specifically select the linked gauges table here
+                    const { data, error } = await _supabase
+                        .from('verification_records')
+                        .select('*, gauges(*)') // Fixed: added gauges(*)
+                        .eq('gauge_id', gauge.id)
+                        .order('verify_date', { ascending: false });
+
+                    if (error) {
+                        console.error(error);
+                        alert("Error fetching history");
+                    } else {
+                        reportHistory.value = data || [];
+                    }
+                };
+
+                // 3. Show Details (You can expand this into a Modal)
+                const showDetailedReading = async (record) => {
+                    selectedRecord.value = record;
+
+                    const { data, error } = await _supabase
+                        .from('verification_readings')
+                        .select(`
+            *,
+            gauge_specifications(spec_label, section_type, nominal_value, upper_tol, lower_tol)
+        `)
+                        .eq('record_id', record.id);
+
+                    if (error) {
+                        alert("Could not load details");
+                    } else {
+                        detailedReadings.value = data;
+                        showReportModal.value = true;
+                    }
+                };
+
+                const filterReadings = (type) => {
+                    return detailedReadings.value.filter(r => r.gauge_specifications.section_type === type);
+                };
+
+                const getRow = (section, index) => {
+                    return printReadings.value.find(r => r.gauge_specifications.section_type === section && r.gauge_specifications.line_no === index);
+                };
+
+                const generatePDF = async (record) => {
+                    // 1. Safety check
+                    if (!record || !record.gauges) {
+                        return alert("Critical Error: Gauge information missing for this record.");
+                    }
+
+                    try {
+                        // 2. Fetch detailed reading data for this specific record
+                        const { data, error } = await _supabase
+                            .from('verification_readings')
+                            .select('*, gauge_specifications(*)')
+                            .eq('record_id', record.id);
+
+                        if (error) throw error;
+
+                        // 3. Assign data to the variables used in the hidden PDF template
+                        printData.value = {
+                            gauge_no: record.gauges.gauge_no,
+                            gauge_name: record.gauges.gauge_name,
+                            for_process: record.gauges.for_process,
+                            verify_date: record.verify_date,
+                            due_date: record.due_date,
+                            part_no: record.part_no,
+                            verified_by: record.verified_by,
+                            approved_by: record.approved_by
+                        };
+                        printReadings.value = data || [];
+
+                        // 4. FIX STARTS HERE: Define the element
+                        const element = document.getElementById('print-template');
+
+                        if (!element) {
+                            console.error("Error: Could not find HTML element with ID 'print-template'");
+                            return;
+                        }
+
+                        // Show it temporarily so html2canvas can "see" it
+                        element.style.display = 'block';
+
+                        // 5. PDF Options
+                        const opt = {
+                            // margin: 10 means the PDF library will add 10mm of white space 
+                            // around your table so nothing touches the edge of the paper.
+                            margin: 10,
+                            filename: `VERIF_${record.gauges.gauge_no}.pdf`,
+                            image: { type: 'jpeg', quality: 1.0 },
+                            html2canvas: {
+                                scale: 3,
+                                useCORS: true,
+                                logging: false,
+                                letterRendering: true,
+                                scrollX: 0,  // CRITICAL: Resets horizontal shift
+                                scrollY: 0,  // CRITICAL: Resets vertical shift
+                                x: 0         // CRITICAL: Starts capture at the absolute left
+                            },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+
+                        try {
+                            await html2pdf().set(opt).from(element).save();
+                        } catch (e) {
+                            console.error(e);
+                        } finally {
+                            element.style.display = 'none';
+                        }
+
+                    } catch (err) {
+                        console.error("PDF Generation Error:", err);
+                        alert("Failed to generate PDF: " + err.message);
+                    }
+                };
+
+                return {
+                    view, gaugeMasters, form, pendingRecords, isSubmitting, showGaugeList, filteredGauges,
+                    rotation, rotatePdf, rotationClass, isLocalPath, removeRow, updateDueDate, getToday,
+                    selectGauge, addRow, calculateStatus, submitForm, openApprovalPage, approveRecord,
+                    reportFilter, showReportDropdown, filteredGaugesReport, reportHistory, fetchHistory,
+                    showDetailedReading, filterReadings, showReportModal, selectedRecord, detailedReadings,
+                    showSuccessModal, resetFormAfterSuccess, goToReports, showApprovalModal, selectedApprovalRecord,
+                    approvalReadings, openApprovalDetail, isLocalPathApproval, approveRecord, filterApprovalReadings,
+                    printData, printReadings, getRow, generatePDF,
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

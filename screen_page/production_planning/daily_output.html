@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Output Entry | Famax</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --readonly-bg: #f1f5f9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--bg-card);
+            height: 70px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-header h2 {
+            color: var(--primary);
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s;
+            background: #fff;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        input:read-only,
+        input:disabled {
+            background: var(--readonly-bg);
+            cursor: not-allowed;
+            color: #475569;
+        }
+
+        .output-highlight {
+            background: #f0fdf4 !important;
+            border-color: #86efac !important;
+            color: #166534 !important;
+            font-weight: 700;
+        }
+
+        /* Custom Dropdown Styling */
+        .dropdown-results {
+            position: absolute;
+            width: 100%;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 50;
+            box-shadow: var(--shadow);
+        }
+
+        .result-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .result-item:hover {
+            background: #eff6ff;
+        }
+
+        .result-item span {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .result-item strong {
+            color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 1.5rem;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background: var(--text-sub);
+            transform: none;
+        }
+
+        .success-msg {
+            background: #dcfce7;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
+        .helper-text {
+            font-size: 0.75rem;
+            color: var(--primary);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <header>
+            <h1 style="font-size:1.25rem; font-weight:700; color: var(--primary);">FAMAX <span
+                    style="color:var(--text-main)">Production</span></h1>
+        </header>
+
+        <div class="container">
+            <div class="card">
+                <div class="section-header">
+                    <h2>Daily Production Entry</h2>
+                    <p style="color:var(--text-sub)">Record production counts and rejects</p>
+                </div>
+
+                <div class="form-grid">
+                    <!-- Date of Production (Read Only) -->
+                    <div class="form-group full-width">
+                        <label>Production Date</label>
+                        <input type="date" v-model="form.production_date" readonly>
+                    </div>
+
+                    <!-- Job Order Number (Smart Search) -->
+                    <div class="form-group full-width">
+                        <label>Job Order Number</label>
+                        <input type="text" v-model="form.jo_number" @input="handleJOInput" @focus="showJOResults = true"
+                            placeholder="Search existing JO (e.g. JO/171225/...) or type new..." />
+                        <div v-if="showJOResults && filteredJO.length" class="dropdown-results">
+                            <div v-for="jo in filteredJO" :key="jo.id" class="result-item" @click="selectJO(jo)">
+                                <strong>{{ jo.JO_Number }}</strong>
+                                <span>Part: {{ jo.Part_Name }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Part Name -->
+                    <div class="form-group">
+                        <label>Part Name</label>
+                        <input type="text" v-model="form.part_name" @input="handlePartInput"
+                            @focus="showPartResults = true" placeholder="Search parts..." />
+                        <div v-if="showPartResults && filteredParts.length" class="dropdown-results">
+                            <div v-for="part in filteredParts" :key="part.id" class="result-item"
+                                @click="selectPart(part)">
+                                <strong>{{ part.Part_Name }}</strong>
+                                <span>PN: {{ part.Part_Number }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Part Number (Auto) -->
+                    <div class="form-group">
+                        <label>Part Number</label>
+                        <input type="text" v-model="form.part_number" readonly placeholder="Auto-filled">
+                    </div>
+
+                    <!-- Manufacturing Process -->
+                    <div class="form-group">
+                        <label>Manufacturing Process</label>
+                        <input type="text" v-model="form.process" @focus="showProcessResults = true"
+                            placeholder="Select process step..." readonly />
+                        <div v-if="showProcessResults && availableProcesses.length" class="dropdown-results">
+                            <div v-for="proc in availableProcesses" :key="proc" class="result-item"
+                                @click="selectProcess(proc)">
+                                <strong>{{ proc }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Machine Number -->
+                    <div class="form-group">
+                        <label>Machine Number</label>
+                        <input type="text" v-model="form.machine_no" @input="handleMachineInput"
+                            @focus="showMachineResults = true" placeholder="Search Machine..." />
+                        <div v-if="showMachineResults && filteredMachines.length" class="dropdown-results">
+                            <div v-for="m in filteredMachines" :key="m.machine_id" class="result-item"
+                                @click="selectMachine(m)">
+                                <strong>{{ m.machine_id }}</strong>
+                                <span>Category: {{ m.category_code }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="full-width" style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
+
+                    <!-- Machine Counter Start -->
+                    <div class="form-group">
+                        <label>Machine Counter Start</label>
+                        <input type="number" v-model.number="form.counter_start" placeholder="0">
+                    </div>
+
+                    <!-- Machine Counter End -->
+                    <div class="form-group">
+                        <label>Machine Counter End</label>
+                        <input type="number" v-model.number="form.counter_end" placeholder="0">
+                    </div>
+
+                    <!-- Total Reject -->
+                    <div class="form-group">
+                        <label>Total Reject Qty</label>
+                        <input type="number" v-model.number="form.reject_qty" placeholder="0">
+                    </div>
+
+                    <!-- Calculated Daily Output (Read Only) -->
+                    <div class="form-group">
+                        <label>Daily Output (Net OK)</label>
+                        <input type="number" :value="calculatedOutput" readonly class="output-highlight"
+                            placeholder="Calculated automatically">
+                    </div>
+
+                    <!-- Remark -->
+                    <div class="form-group full-width">
+                        <label>Remark</label>
+                        <textarea v-model="form.remark" rows="2" placeholder="Enter any issues or notes..."></textarea>
+                    </div>
+                </div>
+
+                <button class="btn" @click="submitOutput" :disabled="submitting || !isFormValid">
+                    {{ submitting ? 'Processing...' : 'Submit Entry' }}
+                </button>
+
+                <div v-if="success" class="success-msg">
+                    Entry saved successfully!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const SUPABASE_URL = "http://192.168.0.5:8000";
+                const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+                const api = axios.create({
+                    baseURL: SUPABASE_URL,
+                    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }
+                });
+
+                const masterParts = ref([]);
+                const masterJO = ref([]);
+                const masterMachines = ref([]);
+
+                const showJOResults = ref(false);
+                const showPartResults = ref(false);
+                const showProcessResults = ref(false);
+                const showMachineResults = ref(false);
+                const submitting = ref(false);
+                const success = ref(false);
+
+                // Initial Form State
+                const getToday = () => new Date().toISOString().split('T')[0];
+
+                const form = ref({
+                    production_date: getToday(),
+                    jo_number: '',
+                    part_name: '',
+                    part_number: '',
+                    process: '',
+                    machine_no: '',
+                    counter_start: null,
+                    counter_end: null,
+                    reject_qty: 0,
+                    output_count: 0,
+                    remark: ''
+                });
+
+                // AUTO CALCULATION LOGIC
+                const calculatedOutput = computed(() => {
+                    const start = form.value.counter_start || 0;
+                    const end = form.value.counter_end || 0;
+                    const reject = form.value.reject_qty || 0;
+                    const net = end - start - reject;
+                    return net > 0 ? net : 0;
+                });
+
+                // Keep form.output_count in sync with the computed value for DB submission
+                watch(calculatedOutput, (newVal) => {
+                    form.value.output_count = newVal;
+                });
+
+                onMounted(() => {
+                    fetchInitialData();
+                    window.addEventListener('click', (e) => {
+                        if (!e.target.closest('.form-group')) {
+                            showJOResults.value = false; showPartResults.value = false;
+                            showProcessResults.value = false; showMachineResults.value = false;
+                        }
+                    });
+                });
+
+                async function fetchInitialData() {
+                    try {
+                        const [partsRes, joRes, machRes] = await Promise.all([
+                            api.get('/rest/v1/Parts?select=Part_Name,Part_Number,Process'),
+                            api.get('/rest/v1/JobOrder?select=id,JO_Number,Part_Name,Process&order=id.desc'),
+                            api.get('/rest/v1/MachinesM?select=machine_id,category_code&is_active=eq.true')
+                        ]);
+                        masterParts.value = partsRes.data;
+                        masterJO.value = joRes.data;
+                        masterMachines.value = machRes.data;
+                    } catch (err) { console.error(err); }
+                }
+
+                const latestJOsPerPart = computed(() => {
+                    const map = new Map();
+                    masterJO.value.forEach(jo => {
+                        if (!map.has(jo.Part_Name)) map.set(jo.Part_Name, jo);
+                    });
+                    return Array.from(map.values());
+                });
+
+                const filteredJO = computed(() => {
+                    const query = form.value.jo_number;
+                    if (!query) return [];
+                    const q = query.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+                    return latestJOsPerPart.value.filter(item => {
+                        const joMatch = item.JO_Number.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes(q);
+                        const partMatch = item.Part_Name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes(q);
+                        return joMatch || partMatch;
+                    }).slice(0, 10);
+                });
+
+                const filteredParts = computed(() => {
+                    const q = (form.value.part_name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+                    if (!q) return [];
+                    return masterParts.value.filter(p => p.Part_Name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes(q)).slice(0, 10);
+                });
+
+                const filteredMachines = computed(() => {
+                    const q = (form.value.machine_no || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+                    if (!q) return [];
+                    return masterMachines.value.filter(m => m.machine_id.toLowerCase().includes(q)).slice(0, 10);
+                });
+
+                const availableProcesses = computed(() => {
+                    const part = masterParts.value.find(p => p.Part_Name === form.value.part_name);
+                    if (!part || !part.Process) return [];
+                    try { return typeof part.Process === 'string' ? JSON.parse(part.Process) : part.Process; }
+                    catch (e) { return []; }
+                });
+
+                function selectJO(jo) {
+                    form.value.jo_number = jo.JO_Number;
+                    form.value.part_name = jo.Part_Name;
+                    const part = masterParts.value.find(p => p.Part_Name === jo.Part_Name);
+                    if (part) form.value.part_number = part.Part_Number;
+                    showJOResults.value = false;
+                }
+
+                function selectPart(part) {
+                    form.value.part_name = part.Part_Name;
+                    form.value.part_number = part.Part_Number;
+                    form.value.process = '';
+                    showPartResults.value = false;
+                }
+
+                const handleJOInput = () => { form.value.jo_number = form.value.jo_number.toUpperCase(); showJOResults.value = true; };
+                const handlePartInput = () => { form.value.part_name = form.value.part_name.toUpperCase(); showPartResults.value = true; };
+                const handleMachineInput = () => { form.value.machine_no = form.value.machine_no.toUpperCase(); showMachineResults.value = true; };
+
+                const isFormValid = computed(() => {
+                    return form.value.jo_number &&
+                        form.value.part_name &&
+                        form.value.process &&
+                        form.value.counter_end > form.value.counter_start;
+                });
+
+                async function submitOutput() {
+                    submitting.value = true;
+                    try {
+                        const payload = { ...form.value, updated_at: new Date().toISOString() };
+                        await api.post('/rest/v1/Daily_Output', payload);
+                        success.value = true;
+
+                        // Reset form
+                        form.value = {
+                            production_date: getToday(),
+                            jo_number: '', part_name: '', part_number: '',
+                            process: '', machine_no: '', counter_start: null,
+                            counter_end: null, reject_qty: 0, output_count: 0, remark: ''
+                        };
+                        setTimeout(() => success.value = false, 4000);
+                    } catch (err) {
+                        alert("Error saving data. Check connection.");
+                    } finally {
+                        submitting.value = false;
+                    }
+                }
+
+                return {
+                    form, filteredJO, filteredParts, filteredMachines, availableProcesses,
+                    showJOResults, showPartResults, showProcessResults, showMachineResults,
+                    submitting, success, handleJOInput, handlePartInput, handleMachineInput,
+                    selectJO, selectPart, submitOutput, isFormValid, calculatedOutput,
+                    selectProcess: (p) => { form.value.process = p; showProcessResults.value = false; },
+                    selectMachine: (m) => { form.value.machine_no = m.machine_id; showMachineResults.value = false; }
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

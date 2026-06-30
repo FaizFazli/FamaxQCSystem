@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Famax | Quality Hub MES</title>
+<link rel="icon" type="png" href="assets/LogoRound.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Manrope',system-ui,sans-serif;background:#F4F5F8;color:#16161D;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  input,select,textarea,button{font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#4F46E5}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#cdd0da;border-radius:8px;border:2px solid #F4F5F8}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes livePulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .nav-link:hover{background:rgba(255,255,255,.06)}
+  .card-hover{transition:transform .15s,box-shadow .15s}
+  .card-hover:hover{box-shadow:0 14px 30px -14px rgba(20,18,58,.28);transform:translateY(-3px)}
+  .tile-hover:hover{border-color:#4F46E5 !important;box-shadow:0 8px 20px -12px rgba(79,70,229,.4)}
+  [v-cloak]{display:none}
+</style>
+</head>
+<body>
+<div id="app" v-cloak>
+<div style="min-height:100vh;width:100%">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside :style="`width:${v.sidebarW};background:linear-gradient(185deg,#211C5E 0%,#15123A 100%);color:#fff;display:flex;flex-direction:column;position:fixed;left:0;top:0;height:100vh;transition:width .25s ease;overflow:hidden;z-index:60`">
+    <div style="padding:20px 18px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <div style="background:#fff;border-radius:11px;padding:7px 9px;display:flex;align-items:center;flex-shrink:0;box-shadow:0 4px 14px rgba(0,0,0,.25)">
+        <img src="assets/Famax Logo R V2 Square.png" alt="Famax" style="height:30px;width:30px;object-fit:contain;display:block">
+      </div>
+      <div :style="{display:v.labelDisp,minWidth:0}">
+        <div style="font-size:15px;font-weight:800;letter-spacing:-.02em;line-height:1.1;white-space:nowrap">Quality Hub</div>
+        <div style="font-size:10px;color:#A7A4D6;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-top:4px;white-space:nowrap">Famax MES</div>
+      </div>
+    </div>
+
+    <nav style="flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:3px">
+      <div :style="`font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E6AA8;text-transform:uppercase;padding:8px 12px 4px;display:${v.labelDisp}`">Overview</div>
+      <a role="button" class="nav-link" @click="v.goHome()" :style="navBase + v.navHome">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></span>
+        <span :style="{display:v.labelDisp}">Launcher</span>
+      </a>
+
+      <div :style="`font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E6AA8;text-transform:uppercase;padding:14px 12px 4px;display:${v.labelDisp}`">Quality</div>
+      <a role="button" class="nav-link" @click="v.goQuality()" :style="navBase + v.navQuality">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"></path><path d="M9 12l2 2 4-4"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Quality Hub</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goInspect()" :style="navBase + v.navInspect">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path><path d="M8 11h6M11 8v6" opacity=".55"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Inspection Key-in</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goReports()" :style="navBase + v.navReports">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V8M12 21V3M19 21v-6"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Report Summary</span>
+      </a>
+
+      <div :style="`font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E6AA8;text-transform:uppercase;padding:14px 12px 4px;display:${v.labelDisp}`">Documents</div>
+      <a role="button" class="nav-link" @click="v.goDms()" :style="navBase + v.navDms">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"></path><path d="M8 13h8M8 16h5" opacity=".6"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Document (DMS)</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goNotify()" :style="navBase + v.navNotify">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.7 21a2 2 0 01-3.4 0"></path></svg></span>
+        <span :style="`display:${v.labelDisp};flex:1`">WI Signatures</span>
+        <span :style="`display:${v.labelDisp};font-size:9px;font-weight:800;background:#D97706;color:#fff;padding:2px 6px;border-radius:5px`">{{ v.wiCounts.qa }}</span>
+      </a>
+
+      <div :style="`font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E6AA8;text-transform:uppercase;padding:14px 12px 4px;display:${v.labelDisp}`">Production</div>
+      <a role="button" class="nav-link" @click="v.goOutput()" :style="navBase + v.navOutput">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"></rect><path d="M7 21h10M8 14l3-3 2 2 3-4"></path></svg></span>
+        <span :style="`display:${v.labelDisp};flex:1`">Daily Output</span>
+        <span :style="`display:${v.liveTagDisp};font-size:9px;font-weight:800;letter-spacing:.06em;background:#16A34A;color:#fff;padding:2px 6px;border-radius:5px`">LIVE</span>
+      </a>
+
+      <div :style="`font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E6AA8;text-transform:uppercase;padding:14px 12px 4px;display:${v.labelDisp}`">Inventory</div>
+      <a role="button" class="nav-link" @click="v.goStore()" :style="navBase + v.navStore">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Store &amp; Inventory</span>
+      </a>
+
+      <template v-if="v.auth">
+      <div :style="`display:flex;align-items:center;gap:7px;padding:14px 12px 4px;display:${v.labelDisp}`">
+        <span style="font-size:10px;font-weight:700;letter-spacing:.12em;color:#7C78C0;text-transform:uppercase">Restricted</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#7C78C0" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>
+      </div>
+      <a role="button" class="nav-link" @click="v.goGauge()" :style="navBase + v.navGauge">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14a8 8 0 018-8M12 14L8 6"></path><path d="M3.5 18a10 10 0 0117 0"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Gauge Verification</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goCycle()" :style="navBase + v.navCycle">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Cycle Time Study</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goMaint()" :style="navBase + v.navMaint">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7l3-3 3 3-3 3M14 7l-9 9v3h3l9-9M14 7l-3 3"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Preventive Maint.</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goBd()" :style="navBase + v.navBd">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4v10l-9 4-9-4V7z"></path><path d="M3 7l9 4 9-4M12 11v10"></path></svg></span>
+        <span :style="{display:v.labelDisp}">BD Forms</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goDocctrl()" :style="navBase + v.navDocctrl">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><path d="M14 2v6h6"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Document Control</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goUsers()" :style="navBase + v.navUsers">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20a6 6 0 0112 0"></path><path d="M16 5.2a3.2 3.2 0 010 5.6M21 20a6 6 0 00-5-5.9"></path></svg></span>
+        <span :style="{display:v.labelDisp}">User Management</span>
+      </a>
+      <a role="button" class="nav-link" @click="v.goAdmin()" :style="navBase + v.navAdmin">
+        <span style="flex-shrink:0;display:flex"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"></path><path d="M19.4 13a7.8 7.8 0 000-2l1.8-1.4-2-3.4-2.1.9a7.6 7.6 0 00-1.7-1l-.3-2.3h-4l-.3 2.3a7.6 7.6 0 00-1.7 1l-2.1-.9-2 3.4L4.6 11a7.8 7.8 0 000 2l-1.8 1.4 2 3.4 2.1-.9a7.6 7.6 0 001.7 1l.3 2.3h4l.3-2.3a7.6 7.6 0 001.7-1l2.1.9 2-3.4L19.4 13z"></path></svg></span>
+        <span :style="{display:v.labelDisp}">Admin Console</span>
+      </a>
+      </template>
+    </nav>
+
+    <div style="padding:14px 12px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#4338CA);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">QA</div>
+      <div :style="`display:${v.labelDisp};min-width:0;flex:1`">
+        <div style="font-size:13px;font-weight:700;line-height:1.1">QA Inspector</div>
+        <div style="font-size:11px;color:#9C99CF">{{ v.auth ? 'Admin session' : 'Guest · No login' }}</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div :style="`margin-left:${v.sidebarW};min-height:100vh;transition:margin-left .25s ease`">
+<!--CONTINUE-->
+
+    <!-- TOPBAR -->
+    <header style="height:64px;flex-shrink:0;background:#fff;border-bottom:1px solid #E8E9EF;display:flex;align-items:center;gap:16px;padding:0 24px;position:sticky;top:0;z-index:50">
+      <button @click="v.toggleCollapse()" style="width:38px;height:38px;border:1px solid #E8E9EF;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#4B4B5C;flex-shrink:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:11px;font-weight:700;color:#9A9AAB;letter-spacing:.04em">{{ v.crumb }}</div>
+        <div style="font-size:17px;font-weight:800;letter-spacing:-.02em;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ v.pageTitle }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+        <div :style="`display:flex;align-items:center;gap:7px;background:${v.srcBg};border:1px solid ${v.srcBorder};color:${v.srcColor};padding:7px 12px;border-radius:9px;font-size:12px;font-weight:700`">
+          <span :style="`width:8px;height:8px;border-radius:50%;background:${v.srcColor};animation:livePulse 1.4s infinite`"></span>{{ v.srcLabel }}
+        </div>
+        <div style="display:flex;align-items:center;background:#F4F5F8;border:1px solid #E8E9EF;border-radius:9px;overflow:hidden">
+          <span style="font-size:11px;font-weight:700;color:#9A9AAB;padding:0 10px">SHIFT</span>
+          <button @click="v.shiftA()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 13px;${v.shiftABtn}`">A</button>
+          <button @click="v.shiftB()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:8px 13px;${v.shiftBBtn}`">B</button>
+        </div>
+        <div style="text-align:right;padding-left:4px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;line-height:1">{{ v.clock }}</div>
+          <div style="font-size:10.5px;color:#9A9AAB;font-weight:600">{{ v.dateStr }}</div>
+        </div>
+        <button v-if="v.guest" @click="v.openLogin()" style="height:38px;padding:0 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,.32)">Admin Login</button>
+        <template v-if="v.auth">
+          <div style="display:flex;align-items:center;gap:8px;background:#E7F6EC;border:1px solid #B8E6C6;padding:6px 11px;border-radius:9px"><span style="width:8px;height:8px;border-radius:50%;background:#16A34A"></span><span style="font-size:12px;font-weight:700;color:#16A34A">Admin session</span></div>
+          <button @click="v.logout()" style="height:38px;padding:0 16px;border-radius:10px;border:1px solid #E8E9EF;background:#fff;color:#475569;font-weight:700;font-size:13px;cursor:pointer">Logout</button>
+        </template>
+      </div>
+    </header>
+
+    <!-- VIEWPORT -->
+    <main style="padding:26px 28px 60px">
+
+      <!-- ============ HUB / LAUNCHER ============ -->
+      <div v-if="v.isHub" style="max-width:1240px;margin:0 auto">
+        <div style="position:relative;overflow:hidden;border-radius:20px;background:linear-gradient(125deg,#2A2470 0%,#4338CA 60%,#4F46E5 100%);color:#fff;padding:34px 36px;box-shadow:0 18px 40px -16px rgba(67,56,202,.6)">
+          <img src="assets/Famax Falcon.png" alt="" style="position:absolute;right:-30px;top:50%;transform:translateY(-50%);height:230px;opacity:.13;pointer-events:none">
+          <div style="position:relative;z-index:1">
+            <div style="font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#C7C3FF">Famax Manufacturing Execution System</div>
+            <h1 style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:10px;line-height:1.1">Good {{ v.partOfDay }}. Plant is {{ v.plantState }}.</h1>
+            <p style="font-size:14.5px;color:#D6D3FF;margin-top:10px;max-width:560px;line-height:1.5">{{ v.runningCount }} of {{ v.machineTotal }} machines running · {{ v.totalOutFmt }} parts produced today · quality pass rate holding at {{ v.passRate }}%.</p>
+            <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
+              <button @click="v.goOutput()" style="height:42px;padding:0 20px;border-radius:11px;border:none;background:#fff;color:#312E81;font-weight:700;font-size:14px;cursor:pointer">View Live Output →</button>
+              <button @click="v.goQuality()" style="height:42px;padding:0 20px;border-radius:11px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:#fff;font-weight:700;font-size:14px;cursor:pointer">Quality Dashboard</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:18px">
+          <div v-for="s in v.hubStats" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;font-weight:700;color:#8A8A9A;letter-spacing:.02em">{{ s.label }}</span>
+              <span :style="`width:9px;height:9px;border-radius:50%;background:${s.dot}`"></span>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:10px;letter-spacing:-.02em">{{ s.value }}</div>
+            <div :style="`font-size:12px;font-weight:600;color:${s.trendColor};margin-top:3px`">{{ s.trend }}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:30px;display:flex;align-items:baseline;justify-content:space-between">
+          <h2 style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modules</h2>
+          <span style="font-size:12.5px;color:#9A9AAB;font-weight:600">No login required · select a workspace</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px">
+          <a v-for="m in v.modules" role="button" class="card-hover" @click="m.go()" :style="`display:block;background:#fff;border:1px solid #E8E9EF;border-radius:16px;padding:20px;cursor:${m.cursor};text-decoration:none;opacity:${m.opacity}`">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div :style="`width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:${m.iconBg};color:${m.iconColor}`" v-html="m.icon"></div>
+              <span :style="`font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${m.tagColor};background:${m.tagBg};padding:4px 9px;border-radius:20px`">{{ m.tag }}</span>
+            </div>
+            <div style="font-size:16px;font-weight:800;letter-spacing:-.01em;margin-top:16px;color:#16161D">{{ m.title }}</div>
+            <div style="font-size:13px;color:#7C7C8C;margin-top:5px;line-height:1.45">{{ m.desc }}</div>
+          </a>
+        </div>
+
+        <div style="margin-top:30px;display:flex;align-items:baseline;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:9px"><h2 style="font-size:17px;font-weight:800;letter-spacing:-.01em">Restricted Modules</h2><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.3"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg></div>
+          <span style="font-size:12.5px;color:#9A9AAB;font-weight:600">Admin login required</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px">
+          <a v-for="m in v.modulesLocked" role="button" class="card-hover" @click="m.go()" style="display:block;background:#fff;border:1px solid #E8E9EF;border-radius:16px;padding:20px;cursor:pointer;text-decoration:none">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div :style="`width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:${m.iconBg};color:${m.iconColor}`" v-html="m.icon"></div>
+              <span :style="`font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${m.tagColor};background:${m.tagBg};padding:4px 9px;border-radius:20px`">{{ m.tag }}</span>
+            </div>
+            <div style="font-size:16px;font-weight:800;letter-spacing:-.01em;margin-top:16px;color:#16161D">{{ m.title }}</div>
+            <div style="font-size:13px;color:#7C7C8C;margin-top:5px;line-height:1.45">{{ m.desc }}</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- ============ DAILY OUTPUT — LIVE MACHINE BOARD ============ -->
+      <div v-if="v.isOutput" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+          <div v-for="k in v.outputKpis" :style="`background:${k.bg};border:1px solid ${k.border};border-radius:15px;padding:16px 18px`">
+            <div :style="`font-size:11.5px;font-weight:700;color:${k.labelColor};letter-spacing:.03em;text-transform:uppercase`">{{ k.label }}</div>
+            <div :style="`font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;margin-top:8px;color:${k.valColor};letter-spacing:-.02em`">{{ k.value }}</div>
+            <div :style="`font-size:12px;font-weight:600;color:${k.subColor};margin-top:2px`">{{ k.sub }}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:26px;margin-bottom:13px">
+          <div style="display:flex;align-items:center;gap:11px">
+            <h2 style="font-size:17px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">Machine Floor</h2>
+            <span style="font-size:11px;font-weight:700;color:#16A34A;background:#E7F6EC;border:1px solid #B8E6C6;padding:4px 9px;border-radius:7px;display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:7px;height:7px;border-radius:50%;background:#16A34A;animation:livePulse 1.4s infinite"></span>MTLinki feed</span>
+          </div>
+          <div style="font-size:12.5px;color:#9A9AAB;font-weight:600">Auto-refresh · updated {{ v.clock }}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px">
+          <div v-for="m in v.machineCards" :style="`background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:16px 17px;border-left:4px solid ${m.accent}`">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+              <div style="min-width:0">
+                <div style="font-size:15px;font-weight:800;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</div>
+                <div style="font-size:11.5px;color:#9A9AAB;font-weight:600">{{ m.brand }}</div>
+              </div>
+              <span :style="`flex-shrink:0;font-size:11px;font-weight:800;color:${m.statusColor};background:${m.statusBg};padding:4px 9px;border-radius:7px;display:flex;align-items:center;gap:6px`"><span :style="`width:7px;height:7px;border-radius:50%;background:${m.statusColor};animation:${m.dotAnim}`"></span>{{ m.statusLabel }}</span>
+            </div>
+            <div style="margin-top:13px;display:flex;align-items:baseline;justify-content:space-between">
+              <div style="min-width:0">
+                <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.part }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9A9AAB;margin-top:2px">{{ m.jo }}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:7px;margin-top:14px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;letter-spacing:-.02em">{{ m.countFmt }}</span>
+              <span style="font-size:13px;color:#9A9AAB;font-weight:600">/ {{ m.targetFmt }}</span>
+              <span :style="`margin-left:auto;font-size:13px;font-weight:700;color:${m.accent}`">{{ m.pctStr }}</span>
+            </div>
+            <div style="height:7px;background:#EEF0F4;border-radius:6px;margin-top:8px;overflow:hidden">
+              <div :style="`height:100%;width:${m.pctStr};background:${m.accent};border-radius:6px;transition:width .6s ease`"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid #F0F1F5">
+              <div><div style="font-size:10px;font-weight:700;color:#A6A6B4;text-transform:uppercase;letter-spacing:.05em">Cycle</div><div style="font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;margin-top:2px">{{ m.cycleStr }}</div></div>
+              <div><div style="font-size:10px;font-weight:700;color:#A6A6B4;text-transform:uppercase;letter-spacing:.05em">Utilisation</div><div :style="`font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;margin-top:2px;color:${m.utilColor}`">{{ m.utilStr }}</div></div>
+              <div style="text-align:right"><div style="font-size:10px;font-weight:700;color:#A6A6B4;text-transform:uppercase;letter-spacing:.05em">Status</div><div :style="`font-size:12px;font-weight:700;margin-top:3px;color:${m.noteColor}`">{{ m.note }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ QUALITY HUB DASHBOARD ============ -->
+      <div v-if="v.isQuality" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.qualityKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</span><span :style="`width:9px;height:9px;border-radius:50%;background:${k.dot}`"></span></div>
+            <div :style="`font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:10px;color:${k.color};letter-spacing:-.02em`">{{ k.value }}</div>
+            <div style="font-size:12px;font-weight:600;color:#9A9AAB;margin-top:3px">{{ k.sub }}</div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:11px"><h3 style="font-size:15px;font-weight:800">Inspection Task Schedule</h3><span style="font-size:11.5px;font-weight:700;color:#6B7280;background:#F4F5F8;padding:5px 10px;border-radius:7px">Shift {{ v.shift }}</span></div>
+            <button @click="v.openCreate()" style="height:38px;padding:0 16px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>New Task</button>
+          </div>
+          <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:1020px">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Time</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Part / Process · Spec</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Type</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Checker</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0;width:130px">Part Count</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Status</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 10px 0">Actions</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.schedRows" :key="r.id" style="border-top:1px solid #F0F1F5">
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:12px 8px 12px 0;vertical-align:top">{{ r.time }}</td>
+                <td style="padding:12px 8px 12px 0;vertical-align:top">
+                  <div style="font-size:13px;font-weight:700">{{ r.part }}</div>
+                  <div style="font-size:11.5px;color:#9A9AAB">{{ r.process }} · {{ r.parameter }} · {{ r.cycle }}</div>
+                  <div v-if="r.isReinspection" style="font-size:10.5px;color:#3730A3;font-weight:700;margin-top:3px">↳ linked to initial inspection</div>
+                </td>
+                <td style="padding:12px 8px 12px 0;vertical-align:top"><span :style="`font-size:10.5px;font-weight:800;color:${r.typeColor};background:${r.typeBg};padding:4px 9px;border-radius:6px;white-space:nowrap`">{{ r.inspectionType }}</span></td>
+                <td style="padding:12px 8px 12px 0;vertical-align:top">
+                  <span v-if="r.noReassign" style="font-size:13px;font-weight:600">{{ r.checker }}</span>
+                  <div v-else style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    <span style="font-size:11.5px;color:#9A9AAB;text-decoration:line-through">{{ r.checker }}</span>
+                    <span style="color:#CBD0DC;font-weight:700;font-size:12px">→</span>
+                    <span style="font-size:12px;font-weight:700;color:#3730A3;background:#EEF0FF;padding:2px 8px;border-radius:6px">{{ r.reassignedTo }}</span>
+                  </div>
+                </td>
+                <td style="padding:12px 8px 12px 0;vertical-align:top">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600">{{ r.countStr }}</span>
+                  <div style="height:6px;background:#F0F1F5;border-radius:5px;margin-top:5px;overflow:hidden"><div :style="`height:100%;width:${r.pct};background:#4F46E5;border-radius:5px;transition:width .4s`"></div></div>
+                </td>
+                <td style="padding:12px 8px 12px 0;vertical-align:top"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 10px;border-radius:7px;white-space:nowrap`">{{ r.statusLabel }}</span></td>
+                <td style="text-align:right;padding:12px 0;vertical-align:top;white-space:nowrap">
+                  <button @click="r.onReassign()" style="height:32px;padding:0 12px;border:1px solid #E2E4EC;background:#fff;border-radius:8px;font-size:12px;font-weight:700;color:#475569;cursor:pointer;margin-right:6px">Reassign</button>
+                  <button @click="r.onKeyin()" style="height:32px;padding:0 12px;border:none;background:#EEF0FF;color:#3730A3;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Key-in</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:340px 1fr;gap:16px;margin-top:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:6px">Pass Rate</h3>
+            <div :style="`position:relative;width:148px;height:148px;margin:8px auto 4px;border-radius:50%;background:conic-gradient(#16A34A ${v.qPassDeg}, #EEF0F4 0)`">
+              <div style="position:absolute;inset:17px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:25px;font-weight:600">{{ v.qPassRate }}%</span>
+                <span style="font-size:10.5px;color:#9A9AAB;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Today</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:14px">NG by Process</h3>
+            <div v-for="n in v.qNg" style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <span style="width:96px;font-size:12px;font-weight:600;text-align:right;color:#475569">{{ n.name }}</span>
+              <div style="flex:1;height:9px;background:#F0F1F5;border-radius:6px;overflow:hidden"><div :style="`height:100%;width:${n.h};background:#DC2626;border-radius:6px`"></div></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;width:16px;text-align:right">{{ n.count }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px;margin-top:16px">
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:6px">7-Day Pass Rate Trend</h3>
+          <div style="display:flex;align-items:flex-end;gap:16px;height:140px;padding-top:14px">
+            <div v-for="d in v.qTrend" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;margin-bottom:7px;color:#475569">{{ d.val }}</span>
+              <div :style="`width:100%;max-width:54px;height:${d.h};background:linear-gradient(180deg,#6366F1,#4338CA);border-radius:8px 8px 0 0`"></div>
+              <span style="font-size:11px;color:#9A9AAB;margin-top:8px;font-weight:600">{{ d.day }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px;margin-top:16px">
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:14px">Recent Inspection Records</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Time</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">JO Number</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Part</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Process</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Type</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 10px 0">Sampled</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 10px 0">Result</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.qRecent" style="border-top:1px solid #F0F1F5">
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:11px 8px 11px 0">{{ r.time }}</td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;padding:11px 8px 11px 0">{{ r.jo }}</td>
+                <td style="font-size:13px;font-weight:600;padding:11px 8px 11px 0">{{ r.part }}</td>
+                <td style="font-size:13px;color:#475569;padding:11px 8px 11px 0">{{ r.process }}</td>
+                <td style="padding:11px 8px 11px 0"><span style="font-size:11px;font-weight:700;color:#3730A3;background:#EEF0FF;padding:3px 9px;border-radius:6px">{{ r.type }}</span></td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:11px 8px 11px 0">{{ r.qty }}</td>
+                <td style="text-align:right;padding:11px 0"><span :style="`font-size:11px;font-weight:800;color:${r.rc};background:${r.rb};padding:4px 11px;border-radius:7px`">{{ r.result }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ REPORT SUMMARY ============ -->
+      <div v-if="v.isReports" style="max-width:1320px;margin:0 auto">
+        <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:12px;padding:4px;gap:3px;margin-bottom:18px">
+          <button @click="v.setRtQc()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;transition:all .15s;${v.rtQc}`">QC Report</button>
+          <button @click="v.setRtStop()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;transition:all .15s;${v.rtStop}`">Machine Stop</button>
+          <button @click="v.setRtJo()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;transition:all .15s;${v.rtJo}`">Job Order</button>
+          <button @click="v.setRtOos()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;transition:all .15s;${v.rtOos}`">Out of Spec</button>
+        </div>
+
+        <div v-if="v.isRtQc" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+            <div><h3 style="font-size:16px;font-weight:800">QC Report — by Part</h3><p style="font-size:12.5px;color:#9A9AAB;margin-top:3px">Period: 01–16 Jun 2025 · all processes</p></div>
+            <button style="height:38px;padding:0 16px;border:1px solid #E8E9EF;background:#fff;border-radius:9px;font-size:13px;font-weight:700;color:#3730A3;cursor:pointer">Export Excel</button>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Inspected</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">OK</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">NG</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Pass Rate</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.qcByPart" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ r.part }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ r.insp }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16A34A;padding:13px 14px 13px 0">{{ r.ok }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#DC2626;padding:13px 14px 13px 0">{{ r.ng }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;padding:13px 0">{{ r.rate }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="v.isRtStop" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:18px">Machine Stop Summary — downtime (min)</h3>
+          <div v-for="s in v.stops" style="display:flex;align-items:center;gap:14px;margin-bottom:15px">
+            <span style="width:84px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600">{{ s.machine }}</span>
+            <div style="flex:1;height:26px;background:#F4F5F8;border-radius:7px;overflow:hidden;position:relative"><div :style="`height:100%;width:${s.h};background:linear-gradient(90deg,#F87171,#DC2626);border-radius:7px`"></div></div>
+            <span style="width:54px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600">{{ s.mins }}m</span>
+            <span style="width:150px;font-size:12.5px;color:#6B7280">{{ s.count }} stops · {{ s.reason }}</span>
+          </div>
+        </div>
+
+        <div v-if="v.isRtJo" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:18px">Job Order Summary</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">JO Number</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0;width:200px">Progress</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.jos" style="border-top:1px solid #F0F1F5">
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:13px 8px 13px 0">{{ r.jo }}</td>
+                <td style="font-size:13.5px;font-weight:600;padding:13px 8px 13px 0">{{ r.part }}</td>
+                <td style="padding:13px 8px 13px 0">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <div style="flex:1;height:8px;background:#F0F1F5;border-radius:6px;overflow:hidden"><div :style="`height:100%;width:${r.pct};background:#4F46E5;border-radius:6px`"></div></div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#6B7280;width:34px">{{ r.pct }}</span>
+                  </div>
+                </td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 11px;border-radius:7px`">{{ r.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="v.isRtOos" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:18px">Out of Spec Summary</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Characteristic</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Occurrences</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Max Deviation</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Severity</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.oos" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13px;font-weight:700;padding:13px 8px 13px 0">{{ r.char }}</td>
+                <td style="font-size:13px;color:#475569;padding:13px 8px 13px 0">{{ r.part }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ r.count }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:13px 14px 13px 0">{{ r.dev }}</td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sevC};background:${r.sevB};padding:4px 11px;border-radius:7px`">{{ r.sev }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ INSPECTION KEY-IN ============ -->
+      <div v-if="v.isInspect" style="max-width:1320px;margin:0 auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px">
+          <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:11px;padding:4px;gap:3px">
+            <button @click="v.setIpqc()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.tabIpqc}`">IPQC</button>
+            <button @click="v.setBuyoff()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.tabBuyoff}`">Buy-off</button>
+            <button @click="v.setIqc()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.tabIqc}`">IQC</button>
+            <button @click="v.setOqc()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.tabOqc}`">OQC</button>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:#D97706;background:#FCF1DE;border:1px solid #F0D9A8;padding:6px 12px;border-radius:8px">Prototype · save disabled (read-only)</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Job &amp; Part Details</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">JO Number</label><input value="JO-25-0412" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;background:#F8F9FB" readonly></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Machine</label><input value="CNC-01 · Mori Seiki" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB" readonly></div>
+              <div style="grid-column:span 2"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Part Name</label><input value="FX-2031 Hub Bracket" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;font-weight:600;background:#F8F9FB" readonly></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Process</label><input value="CNC Milling" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB" readonly></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Inspector</label><input value="Aiman" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB" readonly></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Sample Size</label><input :value="v.sampleSize" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;background:#F8F9FB" readonly></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Inspection Time</label><input :value="v.clock" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;background:#F8F9FB" readonly></div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <h3 style="font-size:15px;font-weight:800">Reference Drawing</h3>
+              <div style="display:flex;align-items:center;gap:4px;background:#F4F5F8;border:1px solid #E8E9EF;border-radius:9px;padding:3px">
+                <button @click="v.zoomOut()" style="width:28px;height:28px;border:none;background:#fff;border-radius:7px;cursor:pointer;font-size:17px;font-weight:700;color:#475569;display:flex;align-items:center;justify-content:center">−</button>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;width:46px;text-align:center">{{ v.drawZoomPct }}</span>
+                <button @click="v.zoomIn()" style="width:28px;height:28px;border:none;background:#fff;border-radius:7px;cursor:pointer;font-size:16px;font-weight:700;color:#475569;display:flex;align-items:center;justify-content:center">+</button>
+                <button @click="v.zoomReset()" style="height:28px;padding:0 10px;border:none;background:#fff;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700;color:#475569">Reset</button>
+              </div>
+            </div>
+            <div style="flex:1;min-height:260px;max-height:460px;overflow:auto;border-radius:11px;border:1.5px dashed #CDD2DE;background:#F8F9FB">
+              <div :style="`min-height:256px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;background:repeating-linear-gradient(45deg,#F6F7FA,#F6F7FA 11px,#F0F2F6 11px,#F0F2F6 22px);${v.drawZoomStyle}`">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#A6ABBA" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9298A8;font-weight:600">FX-2031_RevC_drawing.png</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#B6BAC6">Use + / − to zoom · scroll to pan</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:15px;font-weight:800">Measurement Entry</h3>
+            <span style="font-size:11.5px;color:#9A9AAB;font-weight:600">{{ v.inspTypeLabel }} · key in {{ v.sampleSize }} readings per point · auto pass/fail</span>
+          </div>
+          <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;min-width:1140px">
+            <thead><tr style="background:#F6F7FA">
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;border-radius:8px 0 0 8px">Drawing Point / Zone</th>
+              <th style="text-align:center;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 8px">Nominal</th>
+              <th style="text-align:center;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 8px">Tol</th>
+              <th style="text-align:center;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 8px">LSL</th>
+              <th style="text-align:center;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 8px">USL</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 8px">Measuring Instrument</th>
+              <th v-for="s in v.sampleCols" style="text-align:center;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;padding:10px 8px">{{ s.name }}</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#6B7280;text-transform:uppercase;padding:10px 12px;border-radius:0 8px 8px 0">Result</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="c in v.insChars" style="border-bottom:1px solid #F0F1F5">
+                <td style="padding:12px;vertical-align:top">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:#3730A3;background:#EEF0FF;padding:2px 7px;border-radius:6px">{{ c.point }}</span>
+                    <span style="font-size:12.5px;font-weight:800">Zone {{ c.zone }}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:#9A9AAB;font-weight:600">{{ c.char }}</div>
+                </td>
+                <td style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px 8px;vertical-align:top">{{ c.spec }}</td>
+                <td style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#6B7280;padding:12px 8px;vertical-align:top">{{ c.tol }}</td>
+                <td style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px 8px;vertical-align:top">{{ c.lsl }}</td>
+                <td style="text-align:center;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:12px 8px;vertical-align:top">{{ c.usl }}</td>
+                <td style="text-align:left;font-size:12px;color:#475569;font-weight:600;padding:12px 8px;vertical-align:top;white-space:nowrap">{{ c.instr }}</td>
+                <td v-for="cell in c.cells" style="text-align:center;padding:9px 5px;vertical-align:top"><input :value="cell.v" @input="cell.on" placeholder="—" style="width:64px;text-align:center;padding:7px 4px;border:1px solid #E2E4EC;border-radius:7px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></td>
+                <td style="text-align:right;padding:12px;vertical-align:top"><span :style="`font-size:11px;font-weight:800;color:${c.rc};background:${c.rb};padding:4px 11px;border-radius:7px`">{{ c.result }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:18px;border-top:1px solid #F0F1F5">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:13px;font-weight:700;color:#6B7280">Overall result</span>
+              <span :style="`font-size:13px;font-weight:800;color:${v.overallColor};background:${v.overallBg};padding:6px 14px;border-radius:9px`">{{ v.overallResult }}</span>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button @click="v.clearReadings()" style="height:40px;padding:0 18px;border:1px solid #E8E9EF;background:#fff;border-radius:10px;font-size:13px;font-weight:700;color:#475569;cursor:pointer">Clear</button>
+              <button style="height:40px;padding:0 20px;border:none;background:#CBD0DC;border-radius:10px;font-size:13px;font-weight:700;color:#fff;cursor:not-allowed">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ STORE & INVENTORY ============ -->
+      <div v-if="v.isStore" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.storeKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px">
+            <div style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</div>
+            <div :style="`font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:9px;color:${k.color};letter-spacing:-.02em`">{{ k.value }}</div>
+            <div style="font-size:12px;font-weight:600;color:#9A9AAB;margin-top:3px">{{ k.sub }}</div>
+          </div>
+        </div>
+
+        <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:12px;padding:4px;gap:3px;margin-top:18px;margin-bottom:16px">
+          <button @click="v.setStMat()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.stMat}`">Raw Material</button>
+          <button @click="v.setStFg()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 18px;border-radius:8px;transition:all .15s;${v.stFg}`">FG Store</button>
+        </div>
+
+        <template v-if="v.isStMat">
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:24px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <h3 style="font-size:17px;font-weight:800;letter-spacing:-.01em">Stock Update &amp; Movement</h3>
+            <button @click="v.clearRmForm()" style="height:34px;padding:0 14px;border:1px solid #E2E4EC;background:#fff;border-radius:9px;font-size:11px;font-weight:800;letter-spacing:.05em;color:#6B7280;cursor:pointer;text-transform:uppercase">Clear Form</button>
+          </div>
+          <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Search Existing Stock</label>
+          <input :value="v.rmSearch" @input="v.fRmSearch" placeholder="Search stock code / grade / lot…" style="width:100%;padding:12px 14px;border:1px solid #E2E4EC;border-radius:10px;font-size:14px;font-weight:600">
+          <div style="height:1px;background:#EEF0F4;margin:20px 0"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Area / Rack</label><input :value="v.rmArea" @input="v.fRmArea" placeholder="e.g. RACK K5" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Category</label><input :value="v.rmCategory" @input="v.fRmCategory" placeholder="Material category" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            <div style="grid-column:span 2"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Material Type</label><input :value="v.rmMaterial" @input="v.fRmMaterial" placeholder="e.g. SPCC - COLD DRAWN CARBON STEEL SHEET…" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Grade</label><input :value="v.rmGrade" @input="v.fRmGrade" placeholder="Grade" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Size / Dimensions</label><input :value="v.rmSize" @input="v.fRmSize" placeholder="e.g. Ø 12.00MM X ID 6.90MM X 7000MM" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">UOM</label><input :value="v.rmUom" @input="v.fRmUom" placeholder="PCS / KG / COIL" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Unit Weight (kg/pc)</label><input :value="v.rmUnitW" @input="v.fRmUnitW" type="number" placeholder="0.00" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></div>
+          </div>
+
+          <div style="background:#F6F8FC;border:1px dashed #C7D2E5;border-radius:14px;padding:18px;margin-top:20px">
+            <div style="font-size:12px;font-weight:800;color:#3730A3;letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px">Traceability &amp; Balance</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">System Balance (pcs)</label><input :value="v.rmSysBal" @input="v.fRmSysBal" type="number" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Reference Number (PO/JO/SO)</label><input :value="v.rmRef" @input="v.fRmRef" placeholder="Enter Reference No." style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Stock Movement (pcs)</label><input :value="v.rmMovePcs" @input="v.fRmPcs" type="number" placeholder="+/- pcs" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff"></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Stock Movement (kg)</label><input :value="v.rmMoveKg" readonly style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#EDEFF3;color:#6B7280"></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#3730A3;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Calculated Final Weight</label><div style="padding:11px 13px;border:1px solid #9DB2E8;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;background:#DCE6FB;color:#1E3A8A">{{ v.rmFinalW }}</div></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Lot Number / Heat No.</label><input :value="v.rmLot" @input="v.fRmLot" placeholder="LOT / HEAT" style="width:100%;padding:11px 13px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"></div>
+            </div>
+            <div style="margin-top:16px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Mill Cert Attachment · PDF / JPG / PNG <span style="color:#DC2626">required</span></label>
+              <div v-if="v.rmHasCert" style="display:flex;align-items:center;gap:11px;background:#E7F6EC;border:1px solid #B8E6C6;border-radius:11px;padding:13px 15px">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                <span style="flex:1;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#0F7A37">{{ v.rmCert }}</span>
+                <button @click="v.clearRmForm()" style="border:none;background:transparent;color:#6B7280;cursor:pointer;font-size:13px;font-weight:700">Replace</button>
+              </div>
+              <button v-if="v.rmNoCert" @click="v.attachCert()" style="width:100%;border:1.5px dashed #C7D2E5;border-radius:11px;padding:18px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7C8AA8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M7 9l5-5 5 5M12 4v12"></path></svg>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7C8AA8;font-weight:600">Click to attach mill cert (PDF / JPG / PNG)</span>
+              </button>
+            </div>
+          </div>
+          <button @click="v.saveRmTxn()" style="width:100%;height:52px;margin-top:18px;border:none;border-radius:12px;background:#1E2235;color:#fff;font-size:14.5px;font-weight:800;letter-spacing:.02em;cursor:pointer">SAVE TRANSACTION</button>
+        </div>
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Raw Material Inventory</h3>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Material</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0;width:180px">Stock Level</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">In Today</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Out Today</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.rawMaterials" style="border-top:1px solid #F0F1F5">
+                <td style="padding:13px 8px 13px 0"><div style="font-size:13.5px;font-weight:700">{{ r.name }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9A9AAB">reorder @ {{ r.reorder }} {{ r.unit }}</div></td>
+                <td style="padding:13px 8px 13px 0">
+                  <div style="display:flex;align-items:center;gap:9px">
+                    <div style="flex:1;height:8px;background:#F0F1F5;border-radius:6px;overflow:hidden"><div :style="`height:100%;width:${r.pct};background:${r.sc};border-radius:6px`"></div></div>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;width:70px;text-align:right">{{ r.stock }} {{ r.unit }}</span>
+                  </div>
+                </td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16A34A;padding:13px 14px 13px 0">+{{ r.inn }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#DC2626;padding:13px 14px 13px 0">-{{ r.out }}</td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 11px;border-radius:7px`">{{ r.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        </template>
+
+        <template v-if="v.isStFg">
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:20px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <h3 style="font-size:15px;font-weight:800">Record FG Movement</h3>
+            <span style="font-size:11.5px;font-weight:700;color:#6B7280;background:#F4F5F8;padding:5px 10px;border-radius:7px">Cartons + loose</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+            <div>
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Direction</label>
+              <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:10px;padding:4px;gap:3px">
+                <button @click="v.setTxnIn()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:800;padding:8px 18px;border-radius:7px;${v.txnInStyle}`">IN</button>
+                <button @click="v.setTxnOut()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:800;padding:8px 18px;border-radius:7px;${v.txnOutStyle}`">OUT</button>
+              </div>
+            </div>
+            <div style="flex:2;min-width:180px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Item / Part</label>
+              <input :value="v.txnItem" @input="v.fTxnItem" placeholder="e.g. FX-2031 Hub Bracket" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px">
+            </div>
+            <div style="width:84px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Cartons</label>
+              <input :value="v.txnCarton" @input="v.fCarton" type="number" placeholder="0" style="width:100%;padding:10px 10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center">
+            </div>
+            <div style="width:96px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Qty / Ctn</label>
+              <div style="padding:10px 10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center;background:#EDEFF3;color:#6B7280">{{ v.txnPerCarton }}</div>
+            </div>
+            <div style="width:90px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Loose pcs</label>
+              <input :value="v.txnLoose" @input="v.fLoose" type="number" placeholder="0" style="width:100%;padding:10px 10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:14px;text-align:center">
+            </div>
+            <div style="width:118px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#3730A3;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Overall Qty</label>
+              <div style="padding:10px 12px;border:1px solid #C7CBF5;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;background:#EEF0FF;color:#3730A3;text-align:center">{{ v.txnOverall }}</div>
+            </div>
+            <div style="flex:1;min-width:130px">
+              <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Reference</label>
+              <input :value="v.txnRef" @input="v.fTxnRef" placeholder="JO / DO number" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px">
+            </div>
+            <button @click="v.submitTxn()" style="height:42px;padding:0 22px;border:none;border-radius:10px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Record
+            </button>
+          </div>
+          <div style="font-size:11px;color:#9A9AAB;font-weight:600;margin-top:10px">Qty / Ctn is predetermined per item from the inventory table.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Finished Goods in Store</h3>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Location</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">In Store</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="r in v.fgItems" style="border-top:1px solid #F0F1F5">
+                  <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ r.part }}</td>
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6B7280;padding:13px 8px 13px 0">{{ r.loc }}</td>
+                  <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;padding:13px 14px 13px 0">{{ r.qty }}</td>
+                  <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 11px;border-radius:7px`">{{ r.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:14px">Today's Movements</h3>
+            <div v-for="m in v.storeMoves" style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #F4F5F8">
+              <span :style="`font-size:10.5px;font-weight:800;color:${m.dc};background:${m.db};padding:4px 9px;border-radius:6px;width:36px;text-align:center`">{{ m.dir }}</span>
+              <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.part }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9A9AAB">{{ m.qtyLine }} · {{ m.ref }}</div></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9A9AAB">{{ m.time }}</span>
+            </div>
+          </div>
+        </div>
+        </template>
+      </div>
+
+      <!-- ============ ADMIN CONSOLE ============ -->
+      <div v-if="v.isAdmin" style="max-width:1320px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#1E1B4B,#3730A3);color:#fff;border-radius:14px;padding:16px 20px;margin-bottom:18px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C7C3FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>
+          <div><div style="font-size:14px;font-weight:800">Admin / Engineering tools</div><div style="font-size:12px;color:#C7C3FF">Login required for write actions · viewing in prototype mode</div></div>
+        </div>
+
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px">
+          <button @click="v.setAtFg()" :style="`cursor:pointer;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;transition:all .15s;${v.atFg}`">File Generator</button>
+          <button @click="v.setAtAp()" :style="`cursor:pointer;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;transition:all .15s;${v.atAp}`">Add Part</button>
+          <button @click="v.setAtJo()" :style="`cursor:pointer;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;transition:all .15s;${v.atJo}`">Update JO</button>
+          <button @click="v.setAtDe()" :style="`cursor:pointer;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;transition:all .15s;${v.atDe}`">Data Editor</button>
+        </div>
+
+        <div v-if="v.isAtFg" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:15px;font-weight:800">Work Instruction Files</h3><button style="height:38px;padding:0 16px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">+ Generate WI</button></div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Revision</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Updated</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.wiFiles" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ r.name }}</td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ r.rev }}</td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6B7280;padding:13px 8px 13px 0">{{ r.date }}</td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 11px;border-radius:7px`">{{ r.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="v.isAtAp" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Register New Part</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:760px">
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Part Name</label><input placeholder="e.g. FX-2055 Mounting Plate" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Customer</label><input placeholder="Customer code" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Process</label><input placeholder="CNC Milling, Turning…" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Cycle Time (s)</label><input placeholder="e.g. 38" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div style="grid-column:span 2"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Inspection Master (Excel)</label>
+              <div style="border:1.5px dashed #CDD2DE;border-radius:11px;padding:20px;text-align:center;background:#F8F9FB"><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#9298A8">Drop (V10)IPQC.xlsx here or browse</span></div>
+            </div>
+          </div>
+          <button style="height:40px;padding:0 20px;border:none;background:#CBD0DC;border-radius:10px;font-size:13px;font-weight:700;color:#fff;cursor:not-allowed;margin-top:18px">Register Part (disabled)</button>
+        </div>
+
+        <div v-if="v.isAtJo" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:15px;font-weight:800">Active Job Orders</h3><button style="height:38px;padding:0 16px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">+ Create JO</button></div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">JO Number</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part / Process</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Machine</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Qty</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.adminJos" style="border-top:1px solid #F0F1F5">
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:13px 8px 13px 0">{{ r.jo }}</td>
+                <td style="padding:13px 8px 13px 0"><div style="font-size:13.5px;font-weight:600">{{ r.part }}</div><div style="font-size:11.5px;color:#9A9AAB">{{ r.process }}</div></td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ r.machine }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ r.qty }}</td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${r.sc};background:${r.sb};padding:4px 11px;border-radius:7px`">{{ r.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="v.isAtDe" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:6px">Database Tables</h3>
+          <p style="font-size:12.5px;color:#9A9AAB;margin-bottom:16px">Supabase · select a table to inspect &amp; edit rows</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+            <div v-for="t in v.dataTables" class="tile-hover" style="border:1px solid #E8E9EF;border-radius:13px;padding:16px;display:flex;align-items:center;gap:13px;cursor:pointer;transition:all .15s">
+              <div style="width:42px;height:42px;border-radius:11px;background:#EEF0FF;color:#3730A3;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600">{{ t.icon }}</div>
+              <div><div style="font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600">{{ t.name }}</div><div style="font-size:12px;color:#9A9AAB">{{ t.rows }}</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DMS — DOCUMENT MANAGEMENT ============ -->
+      <div v-if="v.isDms" style="max-width:1320px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#16A34A;background:#E7F6EC;border:1px solid #B8E6C6;padding:7px 13px;border-radius:9px"><span style="width:8px;height:8px;border-radius:50%;background:#16A34A;animation:livePulse 1.4s infinite"></span>Connected · \\FAMAX\Famax DMS</span>
+          <span style="font-size:12.5px;color:#9A9AAB;font-weight:600">File share + Supabase metadata</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.dmsKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px">
+            <div style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:9px;letter-spacing:-.02em">{{ k.value }}</div>
+            <div style="font-size:12px;font-weight:600;color:#9A9AAB;margin-top:3px">{{ k.sub }}</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;margin-top:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:16px">
+            <h3 style="font-size:14px;font-weight:800;margin-bottom:12px;padding:0 4px">Registered Parts</h3>
+            <div v-for="p in v.dmsParts" role="button" @click="p.onSel()" :style="`border:1px solid;border-radius:11px;padding:12px 13px;margin-bottom:8px;cursor:pointer;transition:all .15s;${p.selStyle}`">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                <span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                <span :style="`flex-shrink:0;width:8px;height:8px;border-radius:50%;background:${p.tc}`"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#3730A3;background:#EEF0FF;padding:2px 7px;border-radius:5px">{{ p.rev }}</span>
+                <span style="font-size:11.5px;color:#9A9AAB;font-weight:600">{{ p.docs }} documents</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+                <div><h3 style="font-size:16px;font-weight:800">{{ v.dmsActive.name }}</h3><div style="font-size:12.5px;color:#9A9AAB;margin-top:2px">Active revision {{ v.dmsActive.rev }} · {{ v.dmsActive.docs }} documents</div></div>
+                <button style="height:38px;padding:0 16px;border:1px solid #E8E9EF;background:#fff;border-radius:9px;font-size:13px;font-weight:700;color:#3730A3;cursor:pointer">Download all</button>
+              </div>
+              <div v-for="g in v.dmsGroups" style="margin-bottom:16px">
+                <div style="font-size:10.5px;font-weight:800;color:#9A9AAB;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px">{{ g.name }}</div>
+                <div v-for="f in g.files" style="display:flex;align-items:center;gap:13px;padding:11px 13px;border:1px solid #EEF0F4;border-radius:11px;margin-bottom:7px">
+                  <span :style="`flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:${f.fc};background:${f.fb};padding:5px 8px;border-radius:6px;width:46px;text-align:center`">{{ f.ext }}</span>
+                  <span style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9A9AAB">{{ f.size }}</span>
+                  <span style="flex-shrink:0;display:flex;color:#6B7280;cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><path d="M7 10l5 5 5-5M12 15V3"></path></svg></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+              <h3 style="font-size:15px;font-weight:800;margin-bottom:14px">Tooling Status</h3>
+              <div v-for="t in v.dmsTooling" style="display:flex;align-items:center;gap:13px;margin-bottom:12px">
+                <span style="width:170px;font-size:13px;font-weight:600">{{ t.name }}</span>
+                <div style="flex:1;height:9px;background:#F0F1F5;border-radius:6px;overflow:hidden"><div :style="`height:100%;width:${t.life};background:${t.tc};border-radius:6px`"></div></div>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;width:40px;text-align:right">{{ t.life }}</span>
+                <span :style="`font-size:10.5px;font-weight:800;color:${t.tc};background:${t.tb};padding:4px 10px;border-radius:7px;width:70px;text-align:center`">{{ t.tl }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ WI SIGNATURES & TEAMS NOTIFY ============ -->
+      <div v-if="v.isNotify" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:16px 18px"><div style="font-size:12px;font-weight:700;color:#D97706">Pending QA Sign</div><div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:7px;color:#D97706">{{ v.wiCounts.qa }}</div></div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:16px 18px"><div style="font-size:12px;font-weight:700;color:#3730A3">Pending Management</div><div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:7px;color:#3730A3">{{ v.wiCounts.mgmt }}</div></div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:16px 18px"><div style="font-size:12px;font-weight:700;color:#16A34A">Fully Approved</div><div style="font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:7px;color:#16A34A">{{ v.wiCounts.done }}</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;align-self:start">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Compose Teams Notification</h3>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Subject</label>
+            <div style="display:flex;gap:9px;margin-bottom:18px">
+              <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:9px;border-radius:9px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff">WI Approval</span>
+              <span style="flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:9px;border-radius:9px;background:#F4F5F8;color:#6B7280">General Notice</span>
+            </div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Parts</label>
+            <label v-for="p in v.composeParts" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #EEF0F4;border-radius:10px;margin-bottom:7px;cursor:pointer">
+              <input type="checkbox" :checked="p.on" style="width:16px;height:16px;accent-color:#4F46E5">
+              <span style="font-size:13px;font-weight:600">{{ p.name }}</span>
+            </label>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px">Attention Required From</label>
+            <input value="QA Team · @Ayyub" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB" readonly>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px">Message Preview</label>
+            <textarea readonly style="width:100%;min-height:120px;padding:12px;border:1px solid #E2E4EC;border-radius:10px;font-size:12.5px;line-height:1.6;color:#475569;background:#F8F9FB;resize:none;font-family:inherit">{{ v.wiMsg }}</textarea>
+            <button style="width:100%;height:44px;margin-top:16px;border:none;border-radius:11px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path></svg>
+              Send to Teams Channel
+            </button>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:6px">WI Approval Queue</h3>
+            <p style="font-size:12.5px;color:#9A9AAB;margin-bottom:16px">Two-step sign-off · each step notifies the Teams channel</p>
+            <div v-for="w in v.wiQ" style="border:1px solid #EEF0F4;border-radius:13px;padding:15px 16px;margin-bottom:12px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+                <div style="min-width:0">
+                  <div style="display:flex;align-items:center;gap:9px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#6B7280">{{ w.id }}</span><span :style="`font-size:10.5px;font-weight:800;color:${w.sc};background:${w.sb};padding:3px 9px;border-radius:6px`">{{ w.status }}</span></div>
+                  <div style="font-size:14px;font-weight:700;margin-top:6px">{{ w.parts }}</div>
+                  <div style="font-size:11.5px;color:#9A9AAB;margin-top:3px">Issued by {{ w.issuedBy }} · {{ w.date }}</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:13px">
+                <span :style="`font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;${w.step1Style}`">✓ {{ w.qaLabel }}</span>
+                <span style="color:#CBD0DC;font-weight:700">→</span>
+                <span :style="`font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;${w.step2Style}`">✓ {{ w.mgmtLabel }}</span>
+                <span style="flex:1"></span>
+                <button v-if="w.isPendingQa" @click="w.onQa()" style="height:36px;padding:0 16px;border:none;border-radius:9px;background:#D97706;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">QA Sign</button>
+                <button v-if="w.isPendingMgmt" @click="w.onMgmt()" style="height:36px;padding:0 16px;border:none;border-radius:9px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">Complete Sign</button>
+                <span v-if="w.isApproved" style="font-size:12px;font-weight:700;color:#16A34A;display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>Fully approved</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ GAUGE VERIFICATION ============ -->
+      <div v-if="v.isGauge" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.gaugeKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px"><div style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</div><div :style="`font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:9px;color:${k.color};letter-spacing:-.02em`">{{ k.value }}</div><div style="font-size:12px;font-weight:600;color:#9A9AAB;margin-top:3px">{{ k.sub }}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-top:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Gauge Register</h3>
+            <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px">
+              <thead><tr>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Gauge ID</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Type / Range</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Cal Due</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="g in v.gaugeRows" style="border-top:1px solid #F0F1F5">
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:12px 8px 12px 0">{{ g.id }}</td>
+                  <td style="padding:12px 8px 12px 0"><div style="font-size:13px;font-weight:600">{{ g.type }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#9A9AAB">{{ g.range }}</div></td>
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:12px 8px 12px 0">{{ g.due }}</td>
+                  <td style="text-align:right;padding:12px 0"><span :style="`font-size:11px;font-weight:800;color:${g.sc};background:${g.sb};padding:4px 10px;border-radius:7px;white-space:nowrap`">{{ g.status }}</span></td>
+                </tr>
+              </tbody>
+            </table></div>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Quick Verification</h3>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Gauge</label>
+            <select style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff;margin-bottom:14px"><option>VC-014 · Vernier Caliper</option><option>MM-007 · Micrometer</option></select>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Master / Reference</label>
+            <input value="50.000 mm" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#F8F9FB;margin-bottom:14px">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Readings</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+              <input value="50.01" readonly style="padding:10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;background:#F8F9FB">
+              <input value="49.99" readonly style="padding:10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;background:#F8F9FB">
+              <input value="50.00" readonly style="padding:10px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;text-align:center;background:#F8F9FB">
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#E7F6EC;border:1px solid #B8E6C6;border-radius:11px;padding:13px 16px"><span style="font-size:13px;font-weight:700;color:#0F7A37">Within tolerance</span><span style="font-size:13px;font-weight:800;color:#16A34A">PASS</span></div>
+            <button style="width:100%;height:42px;margin-top:14px;border:none;border-radius:11px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Record Verification</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CYCLE TIME STUDY ============ -->
+      <div v-if="v.isCycle" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:5px">Cycle Time Entry</h3>
+            <p style="font-size:12.5px;color:#9A9AAB;margin-bottom:16px">Record standard cycle time per part / process / machine</p>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Part Name</label>
+            <input value="FX-2031 Hub Bracket" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB;margin-bottom:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Process</label><input value="CNC Milling" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB"></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Machine</label><input value="CNC-01" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#F8F9FB"></div>
+            </div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Cycle Time</label>
+            <div style="display:flex;align-items:center;gap:10px">
+              <input placeholder="Min" type="number" style="flex:1;padding:11px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center">
+              <span style="font-weight:800;color:#9A9AAB">:</span>
+              <input placeholder="Sec" type="number" style="flex:1;padding:11px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center">
+            </div>
+            <button style="width:100%;height:42px;margin-top:18px;border:none;border-radius:11px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Save Cycle Time</button>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Recorded Cycle Times</h3>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Process</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Machine</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Cycle</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">σ</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="c in v.cycleRows" style="border-top:1px solid #F0F1F5">
+                  <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ c.part }}</td>
+                  <td style="font-size:13px;color:#475569;padding:13px 8px 13px 0">{{ c.process }}</td>
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ c.machine }}</td>
+                  <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;padding:13px 14px 13px 0">{{ c.ct }}</td>
+                  <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9A9AAB;padding:13px 0">{{ c.std }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PREVENTIVE MAINTENANCE ============ -->
+      <div v-if="v.isMaint" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.maintKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px"><div style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</div><div :style="`font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:9px;color:${k.color};letter-spacing:-.02em`">{{ k.value }}</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-top:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">PM Schedule</h3>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Machine</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Category</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Next PM</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="m in v.maintRows" style="border-top:1px solid #F0F1F5">
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:12px 8px 12px 0">{{ m.machine }}</td>
+                  <td style="font-size:13px;color:#475569;padding:12px 8px 12px 0">{{ m.cat }}</td>
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:12px 8px 12px 0">{{ m.next }}</td>
+                  <td style="text-align:right;padding:12px 0"><span :style="`font-size:11px;font-weight:800;color:${m.sc};background:${m.sb};padding:4px 10px;border-radius:7px`">{{ m.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:6px">PM Checklist · CNC-01</h3>
+            <p style="font-size:12.5px;color:#9A9AAB;margin-bottom:14px">Monthly preventive maintenance</p>
+            <label v-for="c in v.maintChecklist" style="display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #F4F5F8;cursor:pointer">
+              <input type="checkbox" style="width:17px;height:17px;accent-color:#16A34A">
+              <span style="font-size:13px;font-weight:600">{{ c }}</span>
+            </label>
+            <button style="width:100%;height:42px;margin-top:16px;border:none;border-radius:11px;background:linear-gradient(135deg,#16A34A,#0F7A37);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Complete PM &amp; Log</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ BD FORMS ============ -->
+      <div v-if="v.isBd" style="max-width:1320px;margin:0 auto">
+        <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:12px;padding:4px;gap:3px;margin-bottom:18px">
+          <button @click="v.setBdPacking()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;${v.bdPacking}`">Packing List</button>
+          <button @click="v.setBdShip()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;${v.bdShip}`">Shipment Checklist</button>
+          <button @click="v.setBdSo()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;${v.bdSo}`">Sales Order</button>
+        </div>
+
+        <div v-if="v.isBdPacking" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:16px">Packing List</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Customer</label><input placeholder="Select customer" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Invoice No</label><input placeholder="INV-..." style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Ship Date</label><input type="date" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Qty</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Cartons</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Net Wt</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Gross Wt</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="p in v.packItems" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ p.part }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ p.qty }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ p.ctn }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ p.net }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 0">{{ p.gross }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <button style="height:40px;padding:0 20px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:18px">Generate Packing List</button>
+        </div>
+
+        <div v-if="v.isBdShip" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;max-width:640px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:6px">Shipment Checklist</h3>
+          <p style="font-size:12.5px;color:#9A9AAB;margin-bottom:16px">Verify before container loading · INV-25-0881</p>
+          <label v-for="c in v.shipChecks" style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F4F5F8;cursor:pointer">
+            <input type="checkbox" :checked="c.on" style="width:18px;height:18px;accent-color:#16A34A">
+            <span style="font-size:13.5px;font-weight:600">{{ c.item }}</span>
+          </label>
+          <button style="height:40px;padding:0 20px;border:none;background:linear-gradient(135deg,#16A34A,#0F7A37);color:#fff;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:18px">Confirm Shipment Ready</button>
+        </div>
+
+        <div v-if="v.isBdSo" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+          <h3 style="font-size:16px;font-weight:800;margin-bottom:16px">Sales Order Entry</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">
+            <div style="grid-column:span 1"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Customer</label><input placeholder="Search customer" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">PO Number</label><input placeholder="PO-..." style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">S/O Number</label><input placeholder="SO-..." style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">ETD</label><input type="date" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">ETA</label><input type="date" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Payment Term</label><input placeholder="e.g. 30 DAYS" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Order Qty</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Stock</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 14px 11px 0">Unit Price</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Amount</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="r in v.soItems" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ r.part }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ r.qty }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#16A34A;padding:13px 14px 13px 0">{{ r.stock }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:13px 14px 13px 0">{{ r.price }}</td>
+                <td style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;padding:13px 0">{{ r.amt }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="display:flex;justify-content:flex-end;gap:14px;align-items:center;margin-top:18px">
+            <span style="font-size:13px;color:#6B7280;font-weight:700">Order total</span><span style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600">6,700.00</span>
+            <button style="height:40px;padding:0 20px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;margin-left:8px">Create S/O &amp; Job Orders</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DOCUMENT CONTROL ============ -->
+      <div v-if="v.isDocctrl" style="max-width:1320px;margin:0 auto">
+        <div style="display:inline-flex;background:#EAEBF0;border:1px solid #E0E2EA;border-radius:12px;padding:4px;gap:3px;margin-bottom:18px">
+          <button @click="v.setDcRev()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;${v.dcRev}`">Revision Upload</button>
+          <button @click="v.setDcRem()" :style="`border:none;cursor:pointer;font-size:13px;font-weight:700;padding:9px 16px;border-radius:8px;${v.dcRem}`">Remove / Obsolete</button>
+        </div>
+
+        <div v-if="v.isDcRev" style="display:grid;grid-template-columns:1fr 1.4fr;gap:16px">
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Upload New Revision</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Doc Type</label><select style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff"><option>IPQC</option><option>IQC</option><option>OQC</option></select></div>
+              <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Current Rev</label><input value="Rev B" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px;background:#F8F9FB"></div>
+            </div>
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Part</label>
+            <input value="FX-2031 Hub Bracket" readonly style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#F8F9FB;margin-bottom:14px">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">New Revision File (.xlsx)</label>
+            <div style="border:1.5px dashed #CDD2DE;border-radius:11px;padding:22px;text-align:center;background:#F8F9FB"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#9298A8">Drop FX-2031_RevC.xlsx or browse</span></div>
+            <div style="display:flex;align-items:center;gap:9px;background:#FCF1DE;border:1px solid #F0D9A8;border-radius:10px;padding:11px 13px;margin-top:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg><span style="font-size:12px;font-weight:600;color:#92400E">Uploading Rev C will set Rev B to inactive automatically.</span></div>
+            <button style="width:100%;height:42px;margin-top:14px;border:none;border-radius:11px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:14px;font-weight:700;cursor:pointer">Upload &amp; Supersede</button>
+          </div>
+          <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px">
+            <h3 style="font-size:15px;font-weight:800;margin-bottom:16px">Revision History</h3>
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Change</th>
+                <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">By / Date</th>
+                <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+              </tr></thead>
+              <tbody>
+                <tr v-for="r in v.revHistory" style="border-top:1px solid #F0F1F5">
+                  <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ r.part }}</td>
+                  <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ r.from }} → {{ r.to }}</td>
+                  <td style="padding:13px 8px 13px 0"><div style="font-size:12.5px;font-weight:600">{{ r.by }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#9A9AAB">{{ r.date }}</div></td>
+                  <td style="text-align:right;padding:13px 0"><span style="font-size:11px;font-weight:800;color:#16A34A;background:#E7F6EC;padding:4px 10px;border-radius:7px">{{ r.status }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="v.isDcRem" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;max-width:760px">
+          <div style="display:flex;align-items:center;gap:11px;background:#FCE8E8;border:1px solid #F5C2C2;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
+            <div><div style="font-size:13.5px;font-weight:800;color:#991B1B">Obsolete / Remove Folder</div><div style="font-size:12px;color:#B91C1C">Files move to the obsolete archive · only parts with no active JO can be removed.</div></div>
+          </div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Part</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Master Rev</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Files</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Action</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="p in v.obsoleteParts" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ p.part }}</td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ p.rev }}</td>
+                <td style="font-size:12.5px;color:#6B7280;padding:13px 8px 13px 0">{{ p.files }} files · {{ p.jo }}</td>
+                <td style="text-align:right;padding:13px 0"><button style="height:32px;padding:0 13px;border:1px solid #F5C2C2;background:#fff;color:#DC2626;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Obsolete</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ USER MANAGEMENT ============ -->
+      <div v-if="v.isUsers" style="max-width:1320px;margin:0 auto">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+          <div v-for="k in v.userKpis" style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:18px 19px"><div style="font-size:12px;font-weight:700;color:#8A8A9A">{{ k.label }}</div><div :style="`font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:600;margin-top:9px;color:${k.color};letter-spacing:-.02em`">{{ k.value }}</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid #E8E9EF;border-radius:15px;padding:22px;margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:15px;font-weight:800">Users &amp; Access</h3><button style="height:38px;padding:0 16px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add User</button></div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Name</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Emp ID</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Role</th>
+              <th style="text-align:left;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 8px 11px 0">Last Active</th>
+              <th style="text-align:right;font-size:10.5px;font-weight:700;color:#9A9AAB;text-transform:uppercase;letter-spacing:.05em;padding:0 0 11px 0">Status</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="u in v.userRows" style="border-top:1px solid #F0F1F5">
+                <td style="font-size:13.5px;font-weight:700;padding:13px 8px 13px 0">{{ u.name }}</td>
+                <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:13px 8px 13px 0">{{ u.emp }}</td>
+                <td style="padding:13px 8px 13px 0"><span :style="`font-size:11px;font-weight:800;color:${u.rc};background:${u.rb};padding:4px 10px;border-radius:7px`">{{ u.role }}</span></td>
+                <td style="font-size:12.5px;color:#6B7280;padding:13px 8px 13px 0">{{ u.last }}</td>
+                <td style="text-align:right;padding:13px 0"><span :style="`font-size:11px;font-weight:800;color:${u.stc};background:${u.stb};padding:4px 10px;border-radius:7px`">{{ u.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ===================== MODAL ===================== -->
+    <div v-if="v.modalOpen" @click="v.closeModal()" style="position:fixed;inset:0;background:rgba(20,18,58,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div @click.stop style="background:#fff;border-radius:18px;width:100%;max-width:540px;box-shadow:0 24px 60px rgba(0,0,0,.32);max-height:88vh;overflow-y:auto">
+
+        <div v-if="v.modalCreate" style="padding:24px 26px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><h3 style="font-size:18px;font-weight:800">New Inspection Task</h3><button @click="v.closeModal()" style="width:32px;height:32px;border:none;background:#F4F5F8;border-radius:9px;cursor:pointer;color:#6B7280;font-size:16px">✕</button></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="grid-column:span 2"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Part Name</label><input :value="v.formPart" @input="v.fPart" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">JO Number</label><input :value="v.formJo" @input="v.fJo" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Process</label><input :value="v.formProcess" @input="v.fProcess" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div style="grid-column:span 2"><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Parameter / Spec to check</label><input :value="v.formParameter" @input="v.fParameter" placeholder="e.g. Bore Ø25.000 +0.021 / 0 — surface Ra 1.6 max" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Cycle Time</label><input :value="v.formCycle" @input="v.fCycle" placeholder="e.g. 38s" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Checker</label>
+              <select :value="v.formChecker" @change="v.fChecker" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-size:13.5px;background:#fff">
+                <option v-for="c in v.checkerOptions" :value="c">{{ c }}</option>
+              </select>
+            </div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Target Qty</label><input :value="v.formTarget" @input="v.fTarget" type="number" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Scheduled Date &amp; Time</label><input :value="v.formTime" @input="v.fTime" type="datetime-local" style="width:100%;padding:10px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:13px"></div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px">
+            <button @click="v.closeModal()" style="height:42px;padding:0 18px;border:1px solid #E8E9EF;background:#fff;border-radius:10px;font-size:13.5px;font-weight:700;color:#475569;cursor:pointer">Cancel</button>
+            <button @click="v.addTask()" style="height:42px;padding:0 22px;border:none;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer">Create Task</button>
+          </div>
+        </div>
+
+        <div v-if="v.modalReassign" style="padding:24px 26px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><h3 style="font-size:18px;font-weight:800">Reassign Inspection Task</h3><button @click="v.closeModal()" style="width:32px;height:32px;border:none;background:#F4F5F8;border-radius:9px;cursor:pointer;color:#6B7280;font-size:16px">✕</button></div>
+          <p style="font-size:13px;color:#6B7280;margin-bottom:16px">{{ v.modalItem.part }} · {{ v.modalItem.process }} · {{ v.modalItem.parameter }}</p>
+          <div style="background:#F8F9FB;border:1px solid #EEF0F4;border-radius:12px;padding:14px 16px;margin-bottom:18px">
+            <div style="font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px">Originally assigned to</div>
+            <div style="font-size:15px;font-weight:800">{{ v.modalItem.checker }}</div>
+            <div v-if="v.modalItem.reassignedTo" style="font-size:12px;color:#3730A3;font-weight:700;margin-top:4px">Currently reassigned to {{ v.modalItem.reassignedTo }}</div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Reassign to (original checker is kept on record)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:9px">
+            <button v-for="c in v.reassignChips" @click="c.on()" :style="`padding:9px 16px;border:1px solid;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;${c.chipStyle}`">{{ c.name }}</button>
+          </div>
+        </div>
+
+        <div v-if="v.modalKeyin" style="padding:24px 26px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><h3 style="font-size:18px;font-weight:800">Key-in Part Count</h3><button @click="v.closeModal()" style="width:32px;height:32px;border:none;background:#F4F5F8;border-radius:9px;cursor:pointer;color:#6B7280;font-size:16px">✕</button></div>
+          <p style="font-size:13px;color:#6B7280;margin-bottom:16px">{{ v.modalItem.part }} · {{ v.modalItem.process }} · target {{ v.modalItem.target }} · already checked {{ v.modalItem.checked }}</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#16A34A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Accepted</label><input :value="v.keyAccept" @input="v.kAccept" type="number" placeholder="0" style="width:100%;padding:11px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Rework</label><input :value="v.keyRework" @input="v.kRework" type="number" placeholder="0" style="width:100%;padding:11px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center"></div>
+            <div><label style="display:block;font-size:11px;font-weight:700;color:#DC2626;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Scrap</label><input :value="v.keyScrap" @input="v.kScrap" type="number" placeholder="0" style="width:100%;padding:11px 12px;border:1px solid #E2E4EC;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:15px;text-align:center"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#F8F9FB;border:1px solid #EEF0F4;border-radius:12px;padding:13px 16px;margin-top:16px">
+            <span style="font-size:13px;font-weight:700;color:#6B7280">Total inspected this entry</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:#3730A3">{{ v.keyinTotal }}</span>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+            <button @click="v.closeModal()" style="height:42px;padding:0 18px;border:1px solid #E8E9EF;background:#fff;border-radius:10px;font-size:13.5px;font-weight:700;color:#475569;cursor:pointer">Cancel</button>
+            <button @click="v.submitKeyin()" style="height:42px;padding:0 22px;border:none;background:linear-gradient(135deg,#16A34A,#0F7A37);color:#fff;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer">Save Count</button>
+          </div>
+        </div>
+
+        <div v-if="v.modalLogin">
+          <div style="background:linear-gradient(135deg,#2A2470,#4338CA);padding:26px 28px;color:#fff;position:relative">
+            <button @click="v.closeModal()" style="position:absolute;top:18px;right:18px;width:32px;height:32px;border:none;background:rgba(255,255,255,.15);border-radius:9px;cursor:pointer;color:#fff;font-size:15px">✕</button>
+            <div style="background:#fff;border-radius:11px;padding:7px 9px;display:inline-flex;margin-bottom:14px"><img src="assets/Famax Logo R V2 Square.png" alt="Famax" style="height:28px;width:28px;object-fit:contain"></div>
+            <h3 style="font-size:20px;font-weight:800;letter-spacing:-.01em">Admin Login</h3>
+            <p style="font-size:13px;color:#D6D3FF;margin-top:5px">Sign in to access restricted engineering &amp; business-dev modules.</p>
+          </div>
+          <div style="padding:24px 26px">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">User ID</label>
+            <input :value="v.loginId" @input="v.setLoginId" placeholder="e.g. ADMIN01" style="width:100%;padding:12px 13px;border:1px solid #E2E4EC;border-radius:10px;font-size:14px;margin-bottom:16px">
+            <label style="display:block;font-size:11px;font-weight:700;color:#8A8A9A;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px">Password</label>
+            <input :value="v.loginPw" @input="v.setLoginPw" type="password" placeholder="Enter password" style="width:100%;padding:12px 13px;border:1px solid #E2E4EC;border-radius:10px;font-size:14px">
+            <div v-if="v.hasLoginErr" style="font-size:12.5px;font-weight:700;color:#DC2626;background:#FCE8E8;padding:9px 12px;border-radius:9px;margin-top:14px">{{ v.loginErr }}</div>
+            <button @click="v.doLogin()" style="width:100%;height:46px;margin-top:18px;border:none;border-radius:11px;background:linear-gradient(135deg,#4F46E5,#3730A3);color:#fff;font-size:14.5px;font-weight:700;cursor:pointer">Sign In</button>
+            <p style="font-size:11.5px;color:#9A9AAB;text-align:center;margin-top:13px;line-height:1.5">Prototype — any User ID &amp; password unlocks the demo.<br>On your network this validates against <span style="font-family:'IBM Plex Mono',monospace">AdminCredential</span>.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div v-if="v.toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#15123A;color:#fff;padding:13px 20px;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.3);font-size:13.5px;font-weight:600;z-index:200;display:flex;align-items:center;gap:10px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#16A34A;animation:livePulse 1.2s infinite"></span>{{ v.toast }}
+    </div>
+  </div>
+</div>
+</div>
+<script src="assets/vue.js"></script>
+<script src="quality-hub.app.js"></script>
+</body>
+</html>

@@ -517,31 +517,23 @@
                 <select id="partNameInput" class="select2">
                     <option value="">Search part name...</option>
                 </select>
+                <label>Revision (e.g., 0, 1, A)</label>
+                <input type="text" id="revInput" placeholder="Enter REV..."
+                    style="width:100%; padding:10px; border:1px solid var(--border-color); border-radius:var(--radius);">
             </div>
 
             <!-- File Drop Zone -->
             <div class="form-group" id="uploadSection" style="display: none">
                 <label>Upload Excel Files (.xlsx / .xls)</label>
                 <div class="drop-zone">
-                    <svg
-              class="drop-icon"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-              ></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
+                    <svg class="drop-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
                     <span class="drop-text">Drag files here or click to browse</span>
                     <!-- Note: 'webkitdirectory' allows folder selection -->
                     <input type="file" id="fileInput" webkitdirectory multiple />
@@ -759,20 +751,69 @@
 
         // --- Submission Logic ---
         async function submitFiles() {
+            // 1. Validations
+            const revision = $("#revInput").val() ? $("#revInput").val().trim() : "";
+            if (!revision) {
+                showToast("Please enter a Revision (e.g., 0, 1, A)", "error");
+                return;
+            }
+            if (!selectedPartName) {
+                showToast("Please select a Part Name first", "error");
+                return;
+            }
+
             $("#loading-overlay").show();
             $("#submitButton").prop("disabled", true);
 
             try {
-                // Prepare File Details
+                // --- STEP 1: PREPARE DMS FOLDERS (Local Network) ---
+                console.log("Creating DMS Folders for:", selectedPartName, "Rev:", revision);
+
+                const prepResponse = await fetch(`http://192.168.0.5/FamaxDMS/prepare`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productName: selectedPartName, revision: revision })
+                });
+
+                // Robust JSON parsing to avoid "undefined" errors
+                const prepData = await prepResponse.json().catch(() => ({
+                    success: false,
+                    error: "Server did not return valid JSON. Check Backend Console."
+                }));
+
+                if (!prepResponse.ok || !prepData.success) {
+                    throw new Error(prepData.error || `Server Error (${prepResponse.status})`);
+                }
+
+                // --- STEP 2: UPLOAD EXCEL FILES TO DMS DRIVE ---
+                console.log("Uploading files to local DMS...");
+                const dmsFormData = new FormData();
+                dmsFormData.append("productName", selectedPartName);
+                dmsFormData.append("revision", revision);
+                dmsFormData.append("subFolder", "Work Instruction (WI)");
+
+                // Append all selected files
+                fileArray.forEach(file => {
+                    dmsFormData.append("files", file);
+                });
+
+                const uploadDmsResponse = await fetch(`http://192.168.0.5/FamaxDMS/upload-multi`, {
+                    method: 'POST',
+                    body: dmsFormData
+                });
+
+                const uploadDmsData = await uploadDmsResponse.json().catch(() => ({ success: false }));
+                if (!uploadDmsResponse.ok || !uploadDmsData.success) {
+                    throw new Error("Failed to upload Excel files to the Network Drive.");
+                }
+
+                // --- STEP 3: PREPARE DATA FOR DATABASE & NEXT PAGE ---
                 const fileDetails = fileArray.map((file, idx) => {
                     const cat = $(`.category-select[data-index="${idx}"]`).val();
-                    // 1. Remove the extension (.xlsx or .xls) case-insensitively
                     const nameWithoutExt = file.name.replace(/\.(xlsx|xls)$/i, "");
-
-                    // 2. Now extract the process.
-                    // If the name is "Op10_IQC", this gets "Op10".
-                    // If the name is "Milling", this gets "Milling".
+                    // Extract process name (part before the underscore)
                     const process = nameWithoutExt.split("_")[0];
+
                     return {
                         partName: selectedPartName,
                         fileName: file.name,
@@ -782,28 +823,38 @@
                     };
                 });
 
-                // Store for Next Page
+                // Store configuration for the Image Upload page
                 const uniqueProc = [...new Set(fileDetails.map((d) => d.process))];
                 const categories = fileDetails.map((d) => d.category);
 
                 localStorage.setItem("selectedPartName", selectedPartName);
+                localStorage.setItem("currentRev", revision);
                 localStorage.setItem("processNames", JSON.stringify(uniqueProc));
                 localStorage.setItem("fileCategories", JSON.stringify(categories));
 
-                // Process Files
+                // --- STEP 4: PARSE EXCEL & INSERT INTO SUPABASE ---
+                console.log("Inserting data into Supabase tables...");
                 const promises = fileDetails.map((detail) => {
                     if (detail.category === "IPQC") return handleIPQCFile(detail);
                     if (detail.category === "OQC") return handleOQCFile(detail);
                     if (detail.category === "IQC") return handleIQCFile(detail);
                 });
 
+                // Wait for all database insertions to finish
                 await Promise.all(promises);
 
-                showToast("Success! Redirecting...", "success");
-                setTimeout(() => (window.location.href = "addPartImage.html"), 1500);
+                showToast("Success: Folders created and database updated!", "success");
+
+                // Redirect to Image Upload page
+                setTimeout(() => {
+                    window.location.href = "addPartImage.html";
+                }, 1500);
+
             } catch (e) {
-                console.error(e);
-                showToast("Submission Failed: " + e.message, "error");
+                console.error("Submit Error:", e);
+                showToast("Error: " + e.message, "error");
+
+                // Re-enable UI on failure
                 $("#loading-overlay").hide();
                 $("#submitButton").prop("disabled", false);
             }

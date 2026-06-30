@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>IPQC All-Date Report Generator</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #0078d4;
+            --bg-body: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--bg-body);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .report-card {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card-header {
+            background: var(--primary);
+            padding: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .card-header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .card-body {
+            padding: 35px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 54px !important;
+            border: 2px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            display: flex !important;
+            align-items: center !important;
+            padding: 0 10px !important;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--accent);
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e40af;
+            margin: 25px 0;
+        }
+
+        button#btnDownload {
+            width: 100%;
+            height: 56px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button#btnDownload:hover:not(:disabled) {
+            background: #000;
+            transform: translateY(-2px);
+        }
+
+        button#btnDownload:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        #stats {
+            margin-top: 15px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #059669;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="report-card">
+        <div class="card-header">
+            <h1>Report Generator</h1>
+        </div>
+        <div class="card-body">
+            <form id="reportForm">
+                <div style="margin-bottom: 20px;">
+                    <label>Select Component Identity</label>
+                    <select id="part-name" class="searchable-dropdown">
+                        <option value=""></option>
+                    </select>
+                </div>
+                <div id="info" class="info-box" hidden>
+                    The system will fetch <strong>all recorded data</strong> for this part and generate a sheet for
+                    every unique date found.
+                </div>
+                <button type="submit" id="btnDownload" disabled>Generate Full History</button>
+                <div id="stats" hidden></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const TEMPLATE_URL = "/Master_Document/IPQC_Form.xlsx";
+        const SUPABASE_URL = "http://192.168.0.5:8000";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+
+        const api = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+        });
+
+        const qs = (s) => document.querySelector(s);
+        function safeNum(v) { if (v === 0 || v === "0") return 0; if (v == null || v === "") return null; const n = parseFloat(v); return isNaN(n) ? null : n; }
+
+        $(document).ready(() => {
+            $(".searchable-dropdown").select2({ placeholder: "Search Part Name..." });
+            loadParts();
+
+            $("#part-name").on("change", function () {
+                const val = $(this).val();
+                qs("#btnDownload").disabled = !val;
+                qs("#info").hidden = !val;
+            });
+        });
+
+        async function loadParts() {
+            try {
+                const res = await api.get("/rest/v1/Parts?select=Part_Name");
+                const unique = [...new Set(res.data.map(i => i.Part_Name))].sort();
+                unique.forEach(p => $("#part-name").append(new Option(p, p)));
+            } catch (e) { console.error("Load failed", e); }
+        }
+
+        // Helper to get image from server
+        async function getImageBuffer(url) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Image load failed");
+            return await response.arrayBuffer();
+        }
+
+        // Helper to save Excel file
+        async function saveWorkbook(wb, name) {
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `${name}.xlsx`;
+            a.click();
+        }
+
+        // Logic to extract Malaysia local hour
+        function getMYTHour(iso) {
+            if (!iso) return 0;
+            try {
+                if (iso.includes(' ')) {
+                    return parseInt(iso.split(' ')[1].split(':')[0], 10);
+                }
+                const myt = new Date(iso).toLocaleString("en-GB", { timeZone: "Asia/Kuala_Lumpur", hour12: false });
+                return parseInt(myt.split(', ')[1].split(':')[0], 10);
+            } catch (e) { return new Date(iso).getHours(); }
+        }
+
+        qs("#reportForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const part = $("#part-name").val();
+            const btn = qs("#btnDownload");
+            const stats = qs("#stats");
+
+            try {
+                btn.disabled = true;
+                stats.hidden = false;
+                stats.textContent = "Fetching all database records...";
+
+                const res = await api.get(`/rest/v1/Data_IPQC?Part_Name=eq.${part}&order=created_at.asc`);
+                if (!res.data.length) throw new Error("No data found.");
+
+                const metaRes = await api.get(`/rest/v1/Parts?Part_Name=eq.${part}&select=*`);
+                const meta = metaRes.data[0] || {};
+
+                stats.textContent = `Processing ${res.data.length} records...`;
+                await buildMultiDateExcel(res.data, meta, part);
+
+                stats.textContent = "Download Successful!";
+            } catch (err) {
+                alert(err.message);
+                stats.hidden = true;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        async function buildMultiDateExcel(rows, meta, partName) {
+            const resp = await fetch(TEMPLATE_URL);
+            const arrayBuffer = await resp.arrayBuffer();
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(arrayBuffer);
+            const templateSheet = workbook.worksheets[0];
+
+            const [famaxBuf, confBuf] = await Promise.all([
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Famax.png"),
+                getImageBuffer("http://192.168.0.5:8000/storage/v1/object/public/assets/Confidential.png")
+            ]);
+            const logoFamax = workbook.addImage({ buffer: famaxBuf, extension: "png" });
+            const logoConf = workbook.addImage({ buffer: confBuf, extension: "png" });
+
+            const dataByDate = {};
+            rows.forEach(r => {
+                // This ensures we only get "2026-03-31" and ignore the time part
+                const d = r.created_at.substring(0, 10);
+                if (!dataByDate[d]) dataByDate[d] = [];
+                dataByDate[d].push(r);
+            });
+
+            for (const dateStr of Object.keys(dataByDate).sort()) {
+                const dayRows = dataByDate[dateStr];
+                // let ws = workbook.addWorksheet(dateStr.replace(/-/g, '.'));
+                // copySheetFormat(templateSheet, ws);
+
+                let sheetName = dateStr.replace(/-/g, '.');
+
+                // Final safety check to remove any other illegal characters and trim length
+                sheetName = sheetName.replace(/[*?:\\/\[\]]/g, '').substring(0, 31);
+
+                let ws = workbook.addWorksheet(sheetName);
+                copySheetFormat(templateSheet, ws);
+
+                const ptGroups = {};
+                dayRows.forEach(r => {
+                    const pt = r.Point_DWG_Zone || "Unknown";
+                    if (!ptGroups[pt]) ptGroups[pt] = [];
+                    ptGroups[pt].push(r);
+                });
+                const sortedPts = Object.keys(ptGroups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+                const pointsPerTable = 12;
+                const totalTablesNeeded = Math.ceil(sortedPts.length / pointsPerTable);
+                const rowsPerBlock = 50;
+                const rawProcessData = meta.Process_Sequence || meta.process || meta.Process || "[]";
+                let processList = [];
+
+                try {
+                    processList = typeof rawProcessData === "string" ? JSON.parse(rawProcessData) : rawProcessData;
+                } catch (e) {
+                    processList = [];
+                }
+
+                const totalProcessCount = Array.isArray(processList) ? processList.length : 0;
+
+                const currentProcessName = (dayRows[0].Process || "").trim().toUpperCase();
+                let currentProcessIndex = Array.isArray(processList) ? processList.findIndex((p) => String(p).trim().toUpperCase() === currentProcessName) : -1;
+                const currentProcessNumber = currentProcessIndex !== -1 ? currentProcessIndex + 1 : "";
+
+                for (let tableIdx = 0; tableIdx < totalTablesNeeded; tableIdx++) {
+                    const rowOffset = tableIdx * rowsPerBlock;
+                    if (tableIdx > 0) copyTemplateToBottom(ws, 1, 46, rowOffset + 1);
+
+                    ws.addImage(logoFamax, { tl: { col: 0, row: rowOffset }, ext: { width: 125, height: 51 } });
+                    ws.addImage(logoConf, { tl: { col: 18, row: rowOffset }, ext: { width: 189, height: 56 } });
+
+                    ws.getCell(4 + rowOffset, 3).value = meta.Part_Name || partName;
+                    ws.getCell(5 + rowOffset, 3).value = meta.Part_Number || "";
+                    ws.getCell(6 + rowOffset, 3).value = meta.Raw_Material || "";
+                    ws.getCell(7 + rowOffset, 3).value = meta.Raw_Material_Grade || "";
+                    ws.getCell(8 + rowOffset, 3).value = meta.Raw_Material_Size || "";
+                    ws.getCell(4 + rowOffset, 19).value = meta.WI_Number || "";
+                    ws.getCell(5 + rowOffset, 19).value = meta.DRW_Number || "";
+                    ws.getCell(6 + rowOffset, 19).value = meta.Revision || "";
+                    ws.getCell(9 + rowOffset, 3).value = dayRows[0].Process || "";
+                    // ws.getCell(10 + rowOffset, 20).value = dayRows[0].Machine || "";
+                    ws.getCell(11 + rowOffset, 18).value = dayRows[0].JO_Number || "";
+                    // ws.getCell(4 + rowOffset, 9).value = dayRows[0].Person || "ENG";
+                    ws.getCell(10 + rowOffset, 19).value = dayRows[0].Machine || "";
+                    // ws.getCell(11 + rowOffset, 17).value = dayRows[0].JO_Number || "";
+                    ws.getCell(45 + rowOffset, 17).value = dayRows[0].Person || "";
+                    ws.getCell(46 + rowOffset, 18).value = sheetName|| "";
+                    ws.getCell(10 + rowOffset, 3).value = currentProcessNumber;
+                    ws.getCell(10 + rowOffset, 5).value = totalProcessCount > 0 ? totalProcessCount : "";
+
+                    const dateCell = ws.getCell(9 + rowOffset, 9);
+                    dateCell.value = new Date(dateStr);
+                    dateCell.numFmt = "dd/mm/yyyy";
+
+                    const currentPoints = sortedPts.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
+                    currentPoints.forEach((pt, pIdx) => {
+                        const morningRow = 14 + pIdx + rowOffset;
+                        const afternoonRow = 27 + pIdx + rowOffset;
+                        const info = ptGroups[pt][0];
+                        const lsl = safeNum(info.LSL_OK);
+                        const usl = safeNum(info.USL_NG);
+
+                        ws.getCell(morningRow, 1).value = info.Point_DWG_Zone;
+                        ws.getCell(morningRow, 2).value = info.Measuring_Instrument;
+                        ws.getCell(morningRow, 3).value = lsl;
+                        ws.getCell(morningRow, 4).value = usl;
+
+                        ptGroups[pt].forEach(rec => {
+                            const hr = getMYTHour(rec.created_at);
+                            let targetRow = null, baseCol = null;
+
+                            if (hr >= 8 && hr <= 11) {
+                                targetRow = morningRow;
+                                baseCol = 10 + (hr - 8) * 3;
+                            } else if (hr >= 12 && hr <= 20) {
+                                targetRow = afternoonRow;
+                                baseCol = (hr === 12 || hr === 13) ? 1 : 4 + (hr - 14) * 3;
+                            }
+
+                            if (targetRow && baseCol) {
+                                [rec.Reading_1, rec.Reading_2, rec.Reading_3].forEach((val, rIdx) => {
+                                    if (val !== null && val !== undefined && val !== "") {
+                                        const cell = ws.getRow(targetRow).getCell(baseCol + rIdx);
+                                        const nVal = safeNum(val);
+                                        cell.value = nVal !== null ? nVal : val;
+                                        if ((nVal !== null && lsl !== null && (nVal < lsl || nVal > usl)) || String(val).toUpperCase() === "NG") {
+                                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF0000' } };
+                                            cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+            workbook.removeWorksheet(templateSheet.id);
+            await saveWorkbook(workbook, `IPQC_Full_History_${partName}`);
+        }
+
+        function copyTemplateToBottom(ws, startRow, endRow, targetStartRow) {
+            const rowOffset = targetStartRow - startRow;
+            for (let i = startRow; i <= endRow; i++) {
+                const srcRow = ws.getRow(i);
+                const destRow = ws.getRow(i + rowOffset);
+                destRow.height = srcRow.height;
+                for (let colNum = 1; colNum <= 24; colNum++) {
+                    const srcCell = srcRow.getCell(colNum);
+                    const destCell = destRow.getCell(colNum);
+                    destCell.style = JSON.parse(JSON.stringify(srcCell.style));
+                    if (i < 14 || i === 26 || i > 38) destCell.value = srcCell.value;
+                }
+            }
+            if (ws._merges) {
+                ws._merges.forEach(m => {
+                    if (m.model.top >= startRow && m.model.bottom <= endRow) {
+                        try { ws.mergeCells(m.model.top + rowOffset, m.model.left, m.model.bottom + rowOffset, m.model.right); } catch (e) { }
+                    }
+                });
+            }
+        }
+
+        function copySheetFormat(src, dest) {
+            src.columns.forEach((col, i) => (dest.getColumn(i + 1).width = col.width));
+            src.eachRow({ includeEmpty: true }, (row, rowNum) => {
+                const destRow = dest.getRow(rowNum);
+                destRow.height = row.height;
+                row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+                    const destCell = destRow.getCell(colNum);
+                    destCell.style = JSON.parse(JSON.stringify(cell.style));
+                    if (rowNum < 14 || rowNum === 26 || rowNum > 38) destCell.value = cell.value;
+                });
+            });
+            if (src._merges) {
+                Object.values(src._merges).forEach(m => {
+                    try { dest.mergeCells(m.model.top, m.model.left, m.model.bottom, m.model.right); } catch (e) { }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
