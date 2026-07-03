@@ -228,12 +228,13 @@
                             <!-- Display Schedule Mapping & Overdue Logic -->
                             <td class="text-[10px] leading-tight text-left px-2">
                                 <template v-if="getScheduleMatch(row)">
-                                    <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row))}">
+                                    <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row), row)}">
                                         <div>Start: {{ formatTimeOnly(getScheduleMatch(row).StartDate) }}</div>
                                         <div>Est: {{ formatTimeOnly(getScheduleMatch(row).EstFinished) }}</div>
-                                        <div>Act: {{ formatTimeOnly(getScheduleMatch(row).actual_finished_time) }}</div>
+                                        <!-- Also updated 'Act' display to show the Record's actual_finished time -->
+                                        <div>Act: {{ formatTimeOnly(row.actual_finished || row.created_at) }}</div>
 
-                                        <span v-if="isOverdue(getScheduleMatch(row))"
+                                        <span v-if="isOverdue(getScheduleMatch(row), row)"
                                             class="mt-1 inline-block bg-red-600 text-white px-1 rounded font-black">
                                             OVERDUE
                                         </span>
@@ -365,12 +366,21 @@
                     return best.diff <= FORTY_EIGHT_HOURS ? best.s : null;
                 };
 
-                const isOverdue = (schedule) => {
-                    if (!schedule || !schedule.actual_finished_time || !schedule.EstFinished) return false;
-                    const act = new Date(schedule.actual_finished_time);
+                const isOverdue = (schedule, row) => {
+                    // 1. Get the finish time from the record (row) instead of the schedule
+                    const recordFinishTime = row.actual_finished || row.created_at;
+
+                    // 2. Validate we have both the actual finish and the estimated finish
+                    if (!schedule || !schedule.EstFinished || !recordFinishTime) return false;
+
+                    const act = new Date(recordFinishTime);
                     const est = new Date(schedule.EstFinished);
+
+                    // Reset seconds/ms for a fair comparison
                     act.setSeconds(0, 0);
                     est.setSeconds(0, 0);
+
+                    // Return true if the record was finished after the estimated time
                     return act.getTime() > est.getTime();
                 };
 
@@ -453,13 +463,42 @@
                     try {
                         const id = editForm.value.id;
                         const payload = { ...editForm.value };
+
+                        // 1. Get the full row data before updating 
+                        // We need the JO_Number and Parameter to find the matching schedule
+                        const row = allRecords.value.find(r => r.id === id);
+
+                        // Use the current time for actual_finished if it's not already set
+                        const finishTime = new Date().toISOString();
+                        payload.actual_finished = row.actual_finished || finishTime;
+
                         delete payload.id;
+
+                        // 2. Update the InspectionRecord table
                         await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
+
+                        // 3. NEW: Sync with the InspectionSchedule table
+                        // We match by JO, Part Name, and Parameter
+                        await api.patch(`/InspectionSchedule?JO_Number=eq.${row.JO_Number}&Part_Name=eq.${row.Part_Name}&Parameter=eq.${row.Parameter}`, {
+                            actual_finished_time: payload.actual_finished,
+                            Status: 'Complete'
+                        });
+
+                        // Update local state so UI refreshes immediately
                         const index = allRecords.value.findIndex(r => r.id === id);
-                        if (index !== -1) allRecords.value[index] = { ...allRecords.value[index], ...payload };
-                        alert("Updated!");
+                        if (index !== -1) {
+                            allRecords.value[index] = {
+                                ...allRecords.value[index],
+                                ...payload
+                            };
+                        }
+
+                        alert("Record updated and Schedule marked as Complete!");
                         editingId.value = null;
-                    } catch (err) { alert("Failed!"); }
+                    } catch (err) {
+                        console.error("Sync Error:", err);
+                        alert("Failed to sync status to schedule.");
+                    }
                 };
 
                 // onMounted(fetchData);
