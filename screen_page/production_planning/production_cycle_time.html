@@ -5,124 +5,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cycle Time Entry | Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --border: #e2e8f0;
-            --radius: 12px;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --readonly-bg: #f1f5f9;
-            --accent: #7c3aed;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-        }
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        body { display: flex; flex-direction: column; }
 
         header {
-            background: var(--bg-card);
-            height: 70px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
-            z-index: 100;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .card {
+            z-index: var(--z-header);
+            display: flex;
+            align-items: center;
+            height: 64px;
+            padding: 0 var(--space-8);
             background: var(--bg-card);
-            padding: 2rem;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
+
+        .container { max-width: 900px; }
+
+        .card { padding: var(--space-8); }
 
         .section-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: var(--space-8);
         }
 
         .section-header h2 {
-            color: var(--primary);
-            font-size: 1.75rem;
+            margin: 0 0 var(--space-2);
+            font-size: var(--fs-xl);
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            letter-spacing: -0.4px;
+            color: var(--text-main);
         }
+
+        .section-header p { color: var(--text-muted); }
 
         .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-5);
         }
 
-        .full-width {
-            grid-column: span 2;
-        }
+        .full-width { grid-column: span 2; }
 
-        .form-group {
-            margin-bottom: 1rem;
-            position: relative;
-        }
+        .form-group { position: relative; }
 
         label {
             display: block;
-            font-size: 0.8rem;
+            margin-bottom: var(--space-2);
+            font-size: var(--fs-sm);
             font-weight: 700;
-            margin-bottom: 0.4rem;
-            color: var(--text-sub);
             text-transform: uppercase;
             letter-spacing: 0.025em;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.2s;
-            background: #fff;
-        }
-
-        input:focus,
-        textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            color: var(--text-muted);
         }
 
         input:read-only,
         input:disabled {
-            background: var(--readonly-bg);
-            cursor: not-allowed;
+            background: var(--surface-muted);
             color: #475569;
+            cursor: not-allowed;
         }
 
         .output-highlight {
@@ -132,44 +84,38 @@
             font-weight: 700;
         }
 
-        /* Custom Dropdown Styling */
+        /* Custom search dropdown */
         .dropdown-results {
             position: absolute;
             width: 100%;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 8px;
             margin-top: 4px;
             max-height: 250px;
             overflow-y: auto;
             z-index: 50;
-            box-shadow: var(--shadow);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
         }
 
         .result-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
             display: flex;
             flex-direction: column;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--surface-muted);
+            transition: background var(--transition);
         }
 
-        .result-item:last-child {
-            border-bottom: none;
-        }
-
-        .result-item:hover {
-            background: #eff6ff;
-        }
+        .result-item:last-child { border-bottom: none; }
+        .result-item:hover { background: var(--primary-soft); }
 
         .result-item span {
-            font-size: 0.85rem;
-            color: var(--text-sub);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
         }
 
-        .result-item strong {
-            color: var(--primary);
-        }
+        .result-item strong { color: var(--primary); }
 
         .time-input-group {
             display: grid;
@@ -177,118 +123,153 @@
             gap: 0.75rem;
         }
 
-        .time-unit-wrapper {
-            position: relative;
-        }
-
-        .time-unit-wrapper input {
-            padding-right: 3.2rem;
-        }
+        .time-unit-wrapper { position: relative; }
+        .time-unit-wrapper input { padding-right: 3.2rem; }
 
         .time-unit-label {
             position: absolute;
             right: 0.9rem;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 0.8rem;
+            font-size: var(--fs-sm);
             font-weight: 600;
-            color: var(--text-sub);
+            color: var(--text-muted);
             pointer-events: none;
         }
 
-        .btn {
-            width: 100%;
-            padding: 1rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.2s;
-            margin-top: 1.5rem;
-        }
-
-        .btn:hover:not(:disabled) {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-            background: var(--text-sub);
-            transform: none;
-            cursor: not-allowed;
-        }
+        /* Full-width submit, page-specific */
+        .btn { width: 100%; margin-top: var(--space-6); padding: 1rem; }
 
         .success-msg {
+            margin-top: var(--space-4);
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
             background: #dcfce7;
             color: #166534;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 1rem;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
         }
 
         .error-msg {
+            margin-top: var(--space-4);
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
             background: #fee2e2;
             color: #991b1b;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 1rem;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
         }
 
         .helper-text {
-            font-size: 0.75rem;
-            color: var(--primary);
             margin-top: 4px;
+            font-size: var(--fs-xs);
             font-weight: 500;
+            color: var(--primary);
         }
 
         .existing-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
+            margin-left: 0.5rem;
+            padding: 0.15rem 0.5rem;
             font-size: 0.7rem;
             font-weight: 700;
-            padding: 0.15rem 0.5rem;
-            border-radius: 999px;
-            margin-left: 0.5rem;
             text-transform: none;
             letter-spacing: 0;
             vertical-align: middle;
+            border-radius: var(--radius-full);
         }
 
-        .existing-badge.exists {
-            background: #ffedd5;
-            color: #9a3412;
-        }
-
-        .existing-badge.new {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
+        .existing-badge.exists { background: #ffedd5; color: #9a3412; }
+        .existing-badge.new { background: #dbeafe; color: #1d4ed8; }
 
         .preview-box {
             grid-column: span 2;
-            background: var(--readonly-bg);
-            border: 1px dashed var(--border);
-            border-radius: 8px;
             padding: 0.85rem 1rem;
-            font-size: 0.85rem;
-            color: var(--text-sub);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
         }
 
-        .preview-box strong {
+        .preview-box strong { color: var(--text-main); }
+        .preview-box .preview-time { color: var(--primary); font-weight: 700; }
+
+        /* ---- Saved cycle time cards ---- */
+        .records-section { margin-top: var(--space-8); }
+
+        .records-section > h3 {
+            margin: 0 0 var(--space-4);
+            font-size: var(--fs-lg);
+            font-weight: 700;
             color: var(--text-main);
         }
 
-        .preview-box .preview-time {
-            color: var(--primary);
+        .records-search {
+            width: 100%;
+            margin-bottom: var(--space-4);
+            padding: 0.75rem 1rem;
+            font-size: var(--fs-sm);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .records-list {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .record-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-4);
+            padding: var(--space-4) var(--space-5);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .record-row:last-child { border-bottom: none; }
+
+        .record-info .part-name {
+            margin: 0 0 var(--space-2);
+            font-size: var(--fs-md);
             font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .record-info .process-tag {
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            font-size: var(--fs-xs);
+            font-weight: 600;
+            color: var(--primary);
+            background: var(--primary-soft);
+            border-radius: var(--radius-full);
+        }
+
+        .record-time { text-align: right; white-space: nowrap; }
+
+        .record-time .cycle-time {
+            font-size: var(--fs-lg);
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .record-time .cycle-time-sec {
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
+
+        .records-empty {
+            padding: var(--space-5);
+            text-align: center;
+            color: var(--text-muted);
         }
     </style>
 </head>
@@ -409,6 +390,25 @@
                     {{ errorMsg }}
                 </div>
             </div>
+
+            <div v-if="cycleRecords.length" class="records-section">
+                <h3>Saved Cycle Times</h3>
+                <input type="text" class="records-search" v-model="recordSearch"
+                    placeholder="Search part name or process...">
+                <div class="records-list">
+                    <div v-for="rec in filteredRecords" :key="rec.id" class="record-row">
+                        <div class="record-info">
+                            <p class="part-name">{{ rec.part_name || rec.part_no }}</p>
+                            <span class="process-tag">{{ rec.process }}</span>
+                        </div>
+                        <div class="record-time">
+                            <div class="cycle-time">{{ recMinSec(rec.cycle_time_sec) }}</div>
+                            <div class="cycle-time-sec">{{ rec.cycle_time_sec }} sec</div>
+                        </div>
+                    </div>
+                    <div v-if="!filteredRecords.length" class="records-empty">No matching records.</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -417,8 +417,8 @@
 
         createApp({
             setup() {
-                const SUPABASE_URL = "http://192.168.0.5:8000";
-                const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+                const SUPABASE_URL = window.APP_CONFIG.url;
+                const SUPABASE_KEY = window.APP_CONFIG.key;
 
                 const api = axios.create({
                     baseURL: SUPABASE_URL,
@@ -435,6 +435,7 @@
                 const submitting = ref(false);
                 const success = ref(false);
                 const errorMsg = ref('');
+                const recordSearch = ref('');
 
                 const form = ref({
                     part_name: '',
@@ -461,7 +462,7 @@
                         const [partsRes, machRes, cycleRes] = await Promise.all([
                             api.get('/rest/v1/Parts?select=Part_Name,Part_Number,Process'),
                             api.get('/rest/v1/MachinesM?select=machine_id,category_code&is_active=eq.true'),
-                            api.get('/rest/v1/cycle_time?select=id,machine,part_no,process,cycle_time,cycle_time_sec')
+                            api.get('/rest/v1/cycle_time?select=id,machine,part_no,part_name,process,cycle_time,cycle_time_sec')
                         ]);
                         masterParts.value = partsRes.data;
                         masterMachines.value = machRes.data;
@@ -588,6 +589,22 @@
                     return out.trim();
                 });
 
+                // Format total seconds -> "Xm Ys" for the saved list
+                function recMinSec(total) {
+                    const t = total || 0;
+                    return `${Math.floor(t / 60)}m ${t % 60}s`;
+                }
+
+                const filteredRecords = computed(() => {
+                    const q = norm(recordSearch.value);
+                    if (!q) return cycleRecords.value;
+                    return cycleRecords.value.filter(r =>
+                        norm(r.part_name).includes(q) ||
+                        norm(r.part_no).includes(q) ||
+                        norm(r.process).includes(q)
+                    );
+                });
+
                 const isFormValid = computed(() => {
                     return form.value.part_name.trim() &&
                         form.value.part_no.trim() &&
@@ -636,7 +653,8 @@
                 }
 
                 return {
-                    form, filteredParts, availableProcesses, filteredMachines,
+                    form, cycleRecords, recMinSec, recordSearch, filteredRecords,
+                    filteredParts, availableProcesses, filteredMachines,
                     showPartResults, showProcessResults, showMachineResults,
                     submitting, success, errorMsg,
                     handlePartInput, handleMachineInput,
@@ -648,6 +666,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>
