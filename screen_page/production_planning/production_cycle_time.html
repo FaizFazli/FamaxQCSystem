@@ -17,7 +17,10 @@
 
     <style>
         /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        body { display: flex; flex-direction: column; }
+        body {
+            display: flex;
+            flex-direction: column;
+        }
 
         header {
             position: sticky;
@@ -32,9 +35,13 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .container { max-width: 900px; }
+        .container {
+            max-width: 900px;
+        }
 
-        .card { padding: var(--space-8); }
+        .card {
+            padding: var(--space-8);
+        }
 
         .section-header {
             text-align: center;
@@ -49,16 +56,22 @@
             color: var(--text-main);
         }
 
-        .section-header p { color: var(--text-muted); }
+        .section-header p {
+            color: var(--text-muted);
+        }
 
         .form-grid {
             grid-template-columns: repeat(2, 1fr);
             gap: var(--space-5);
         }
 
-        .full-width { grid-column: span 2; }
+        .full-width {
+            grid-column: span 2;
+        }
 
-        .form-group { position: relative; }
+        .form-group {
+            position: relative;
+        }
 
         label {
             display: block;
@@ -107,15 +120,22 @@
             transition: background var(--transition);
         }
 
-        .result-item:last-child { border-bottom: none; }
-        .result-item:hover { background: var(--primary-soft); }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item:hover {
+            background: var(--primary-soft);
+        }
 
         .result-item span {
             font-size: var(--fs-sm);
             color: var(--text-muted);
         }
 
-        .result-item strong { color: var(--primary); }
+        .result-item strong {
+            color: var(--primary);
+        }
 
         .time-input-group {
             display: grid;
@@ -123,8 +143,13 @@
             gap: 0.75rem;
         }
 
-        .time-unit-wrapper { position: relative; }
-        .time-unit-wrapper input { padding-right: 3.2rem; }
+        .time-unit-wrapper {
+            position: relative;
+        }
+
+        .time-unit-wrapper input {
+            padding-right: 3.2rem;
+        }
 
         .time-unit-label {
             position: absolute;
@@ -138,7 +163,11 @@
         }
 
         /* Full-width submit, page-specific */
-        .btn { width: 100%; margin-top: var(--space-6); padding: 1rem; }
+        .btn {
+            width: 100%;
+            margin-top: var(--space-6);
+            padding: 1rem;
+        }
 
         .success-msg {
             margin-top: var(--space-4);
@@ -181,8 +210,15 @@
             border-radius: var(--radius-full);
         }
 
-        .existing-badge.exists { background: #ffedd5; color: #9a3412; }
-        .existing-badge.new { background: #dbeafe; color: #1d4ed8; }
+        .existing-badge.exists {
+            background: #ffedd5;
+            color: #9a3412;
+        }
+
+        .existing-badge.new {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
 
         .preview-box {
             grid-column: span 2;
@@ -194,13 +230,21 @@
             border-radius: var(--radius-sm);
         }
 
-        .preview-box strong { color: var(--text-main); }
-        .preview-box .preview-time { color: var(--primary); font-weight: 700; }
+        .preview-box strong {
+            color: var(--text-main);
+        }
+
+        .preview-box .preview-time {
+            color: var(--primary);
+            font-weight: 700;
+        }
 
         /* ---- Saved cycle time cards ---- */
-        .records-section { margin-top: var(--space-8); }
+        .records-section {
+            margin-top: var(--space-8);
+        }
 
-        .records-section > h3 {
+        .records-section>h3 {
             margin: 0 0 var(--space-4);
             font-size: var(--fs-lg);
             font-weight: 700;
@@ -234,7 +278,9 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .record-row:last-child { border-bottom: none; }
+        .record-row:last-child {
+            border-bottom: none;
+        }
 
         .record-info .part-name {
             margin: 0 0 var(--space-2);
@@ -253,7 +299,10 @@
             border-radius: var(--radius-full);
         }
 
-        .record-time { text-align: right; white-space: nowrap; }
+        .record-time {
+            text-align: right;
+            white-space: nowrap;
+        }
 
         .record-time .cycle-time {
             font-size: var(--fs-lg);
@@ -417,8 +466,9 @@
 
         createApp({
             setup() {
-                const SUPABASE_URL = window.APP_CONFIG.url;
-                const SUPABASE_KEY = window.APP_CONFIG.key;
+                const SUPABASE_URL = 'http://192.168.0.5:8000';
+                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+
 
                 const api = axios.create({
                     baseURL: SUPABASE_URL,
