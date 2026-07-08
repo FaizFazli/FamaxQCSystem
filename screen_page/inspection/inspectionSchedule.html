@@ -954,26 +954,6 @@
                     }
                 };
 
-                // const filteredSchedule = computed(() => {
-                //     return schedule.value.filter(item => {
-                //         const remaining = parseFloat(item.remaining_qty || 0);
-                //         const total = parseFloat(item.quantity || 0);
-
-                //         // Get result values (handling both possible database naming styles)
-                //         const accept = parseFloat(item.AcceptQty || item.accept_qty || 0);
-                //         const reject = parseFloat(item.RejectQty || item.reject_qty || 0);
-                //         const scrap = parseFloat(item.ScrapQty || item.scrap_qty || 0);
-                //         const rework = parseFloat(item.ReworkQty || item.rework_qty || 0);
-
-                //         // Logic: 
-                //         // 1. It must pass your original rule (remaining === total)
-                //         // 2. AND it must have ZERO results recorded so far (accept, reject, scrap, rework)
-                //         const isUnstarted = (remaining === total);
-                //         const hasNoResults = (accept === 0 && reject === 0 && scrap === 0 && rework === 0);
-
-                //         return isUnstarted && hasNoResults && total > 0;
-                //     });
-                // });
 
                 const filteredSchedule = computed(() => {
                     return schedule.value.filter(item => {
@@ -985,17 +965,6 @@
                         return remaining === total && total > 0;
                     });
                 });
-
-                // const filteredSchedule = computed(() => {
-                //     return schedule.value.filter(item => {
-                //         const remaining = parseFloat(item.remaining_qty) || 0;
-
-                //         // The item disappears if remaining_qty reaches 0.
-                //         // It doesn't matter if they were Accepted, Rework, or Scrap; 
-                //         // as long as they are processed, remaining_qty will decrease.
-                //         return remaining > 0;
-                //     });
-                // });
 
                 const markComplete = (item) => {
                     const params = new URLSearchParams({
