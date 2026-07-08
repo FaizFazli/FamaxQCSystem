@@ -505,6 +505,8 @@
         <!-- --- MAIN CONTENT --- -->
         <!-- Fix: flex-1 combined with min-h-0 and overflow-y-auto is the key to mobile scrolling -->
         <main class="flex-1 min-h-0 overflow-y-auto p-4 md:p-10 custom-scrollbar mobile-scroll relative">
+            <iframe v-show="currentView === 'frame'" :src="frameSrc"
+                class="absolute inset-0 w-full h-full" style="border:0; background:#fff; z-index:20;"></iframe>
             <div class="max-w-6xl mx-auto w-full p-4 md:p-10">
                 <!-- --- HEADER --- -->
                 <header class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] p-4 lg:p-8 mb-8">
@@ -802,6 +804,7 @@
                 const isMobile = ref(window.innerWidth < 1024);
                 const isSidebarOpen = ref(window.innerWidth >= 1024);
                 const currentView = ref('dashboard');
+                const frameSrc = ref('');
                 const loading = ref(false);
                 const schedule = ref([]);
                 const records = ref([]);
@@ -997,6 +1000,7 @@
                     isSidebarOpen,
                     isMobile,
                     currentView,
+                    frameSrc,
                     schedule,
                     records,
                     loading,
@@ -1031,7 +1035,11 @@
                     formatDisplayDate: (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : 'ALL TIME',
                     getTabIcon: (tab) => ({ dashboard: 'fa fa-th-large', schedule: 'fa fa-clock', records: 'fa fa-layer-group' }[tab]),
                     formatDate: (iso) => iso ? new Date(iso).toLocaleDateString() : '--',
-                    goTo: (url) => window.location.href = url,
+                    goTo: (url) => {
+                        frameSrc.value = url;
+                        currentView.value = 'frame';
+                        if (isMobile.value) isSidebarOpen.value = false;
+                    },
                     selectPart: (p) => {
                         // Note: Ensure newTask is defined if you use selectPart, 
                         // or remove this if not needed

@@ -17,6 +17,7 @@
 
     <!-- Shared design system (tokens + UI primitives) -->
     <link rel="stylesheet" href="/assets/theme.css" />
+    <style>.is-framed .card-header { display: none !important; }</style>
 
     <style>
         /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
@@ -285,7 +286,7 @@
 </head>
 
 <body>
-    <div class="nav-top">
+    <!-- <div class="nav-top">
         <a onclick="goBack()" class="back-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -293,7 +294,7 @@
             </svg>
             Back to Dashboard
         </a>
-    </div>
+    </div> -->
 
     <div class="page-container">
         <div class="card-header">
@@ -365,6 +366,9 @@
         let globalReportData = {};
         document.getElementById("reportDate").value =
             dayjs().format("YYYY-MM-DD");
+        document.getElementById("reportType").value = "daily";
+        // Auto-load today's report in daily view on open.
+        generateReport();
 
         function getMachineMeta(machine) {
             const prefix = (machine || "").substring(0, 2).toUpperCase();

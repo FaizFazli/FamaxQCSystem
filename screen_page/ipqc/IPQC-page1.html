@@ -830,8 +830,8 @@
             return;
           }
 
-          // Order points grouped by instrument (fewer instrument swaps for the inspector).
-          ipqcData = orderByInstrument(data);
+          // Order points by drawing/system point (zone) number.
+          ipqcData = data.slice().sort((a, b) => pointNo(a) - pointNo(b));
 
           // Initialize readings
           userReadings = ipqcData.map(() => ({

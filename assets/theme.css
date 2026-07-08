@@ -167,7 +167,7 @@ img, svg { vertical-align: middle; }
 /* ----------------------------------------------------------------------- */
 .input, .select, .textarea,
 input[type="text"], input[type="email"], input[type="password"],
-input[type="number"], input[type="search"], input[type="date"],
+input[type="number"], input[type="search"], input[type="date"], input[type="month"],
 select, textarea {
   width: 100%;
   padding: 10px 12px;
@@ -478,3 +478,14 @@ input:focus, select:focus, textarea:focus {
   white-space: nowrap;
   border: 0;
 }
+
+/* ----------------------------------------------------------------------- */
+/* 13. EMBEDDED (in-iframe) — hide the page's own title header              */
+/* app-config.js adds .is-framed to <html> when the page is inside an       */
+/* iframe (e.g. the index.html content pane), so the shell's single header  */
+/* isn't duplicated. Standalone pages are unaffected. Semantic <header>      */
+/* bars are safe to hide globally; class-based title bars are hidden         */
+/* per-page in that page's own <style>.                                      */
+/* ----------------------------------------------------------------------- */
+.is-framed > body header,
+.is-framed .topbar { display: none !important; }

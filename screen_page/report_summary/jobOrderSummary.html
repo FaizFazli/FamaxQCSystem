@@ -1,415 +1,566 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Job Order History - Famax QC</title>
+    <link
+      rel="icon"
+      type="png"
+      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
+    />
 
-<head>
-  <meta charset="utf-8" />
-  <title>Job Order History - Famax QC</title>
-  <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- EXCEL LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="/assets/app-config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <!-- EXCEL LIBRARY -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css" />
 
-  <!-- Shared design system (tokens + UI primitives) -->
-  <link rel="stylesheet" href="/assets/theme.css" />
+    <style>
+      .is-framed .card-header {
+        display: none !important;
+      }
+      /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+      /* --success / --danger are referenced inline by JS-generated markup */
+      body {
+        padding: var(--space-8) var(--space-4);
+      }
 
-  <style>
-    /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-    /* --success / --danger are referenced inline by JS-generated markup */
-    body { padding: var(--space-8) var(--space-4); }
+      .container {
+        max-width: 1200px;
+      }
 
-    .container { max-width: 1200px; }
+      .card {
+        padding: 0;
+        overflow: hidden;
+      }
 
-    .card { padding: 0; overflow: hidden; }
+      .card-header {
+        padding: var(--space-5) var(--space-6);
+        background: var(--primary);
+        color: var(--on-primary);
+      }
 
-    .card-header {
-      padding: var(--space-5) var(--space-6);
-      background: var(--primary);
-      color: var(--on-primary);
-    }
+      .card-header h1 {
+        margin: 0;
+        font-size: var(--fs-xl);
+        font-weight: 700;
+        letter-spacing: -0.3px;
+      }
 
-    .card-header h1 {
-      margin: 0;
-      font-size: var(--fs-xl);
-      font-weight: 700;
-      letter-spacing: -0.3px;
-    }
+      /* Filter bar — same UI as the Machine Stop Summary page */
+      .toolbar {
+        background: var(--surface-muted);
+        padding: var(--space-5);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin: var(--space-8);
+        display: flex;
+        gap: var(--space-4);
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
 
-    .search-section {
-      display: flex;
-      gap: var(--space-3);
-      padding: var(--space-5) var(--space-6);
-      background: var(--bg-card);
-      border-bottom: 1px solid var(--border);
-    }
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+      }
+      .filter-group label {
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        color: var(--text-muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
 
-    #jobOrderSelect { flex: 1; height: 48px; }
+      select {
+        min-width: 150px;
+        width: auto;
+      }
+      #jobOrderSelect {
+        min-width: 260px;
+      }
 
-    .btn-search,
-    .btn-export {
-      flex-shrink: 0;
-      align-self: stretch;
-      white-space: nowrap;
-    }
+      .btn {
+        height: 42px;
+      }
+      .btn-blue {
+        background: var(--primary);
+      }
+      .btn-blue:hover {
+        background: var(--primary-hover);
+      }
+      .btn-green {
+        background: var(--success);
+      }
+      .btn-green:hover {
+        background: #059669;
+      }
 
-    .btn-export {
-      background: #166534;
-      display: none;
-      /* Hidden until data is loaded */
-    }
-    .btn-export:hover { background: #14532d; }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+        padding: var(--space-6);
+        background: var(--surface-muted);
+      }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-4);
-      padding: var(--space-6);
-      background: var(--surface-muted);
-    }
+      .stat-box {
+        padding: var(--space-4);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
 
-    .stat-box {
-      padding: var(--space-4);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-    }
+      .stat-label {
+        font-size: var(--fs-xs);
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-weight: 700;
+      }
 
-    .stat-label {
-      font-size: var(--fs-xs);
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-weight: 700;
-    }
+      .stat-value {
+        font-size: var(--fs-md);
+        font-weight: 700;
+        margin-top: var(--space-1);
+      }
 
-    .stat-value {
-      font-size: var(--fs-md);
-      font-weight: 700;
-      margin-top: var(--space-1);
-    }
+      .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
 
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
+      table.main-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        min-width: 1000px;
+      }
 
-    table.main-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      min-width: 1000px;
-    }
+      table.main-table th,
+      table.main-table td {
+        padding: 14px var(--space-3);
+        border-bottom: 1px solid var(--border);
+        font-size: var(--fs-sm);
+        word-wrap: break-word;
+      }
 
-    table.main-table th,
-    table.main-table td {
-      padding: 14px var(--space-3);
-      border-bottom: 1px solid var(--border);
-      font-size: var(--fs-sm);
-      word-wrap: break-word;
-    }
+      table.main-table th {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-align: left;
+      }
 
-    table.main-table th {
-      background: var(--surface-muted);
-      color: var(--text-muted);
-      font-size: var(--fs-xs);
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      text-align: left;
-    }
+      .col-icon {
+        width: 50px;
+        text-align: center;
+      }
+      .col-process {
+        width: auto;
+        font-weight: 700;
+      }
+      .col-machine {
+        width: 120px;
+      }
+      .col-date {
+        width: 130px;
+      }
+      .col-num {
+        width: 100px;
+        text-align: center !important;
+      }
+      .col-yield {
+        width: 100px;
+        text-align: center !important;
+      }
 
-    .col-icon { width: 50px; text-align: center; }
-    .col-process { width: auto; font-weight: 700; }
-    .col-machine { width: 120px; }
-    .col-date { width: 130px; }
-    .col-num { width: 100px; text-align: center !important; }
-    .col-yield { width: 100px; text-align: center !important; }
+      .process-row {
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .process-row:hover {
+        background-color: var(--surface-muted);
+      }
 
-    .process-row { cursor: pointer; transition: background var(--transition); }
-    .process-row:hover { background-color: var(--surface-muted); }
+      .expand-icon {
+        transition: transform var(--transition);
+        color: var(--primary);
+        font-size: 12px;
+        display: inline-block;
+      }
+      .row-expanded .expand-icon {
+        transform: rotate(180deg);
+      }
 
-    .expand-icon {
-      transition: transform var(--transition);
-      color: var(--primary);
-      font-size: 12px;
-      display: inline-block;
-    }
-    .row-expanded .expand-icon { transform: rotate(180deg); }
+      .details-row {
+        display: none;
+        background: var(--bg-card);
+      }
 
-    .details-row { display: none; background: var(--bg-card); }
+      .details-wrapper {
+        padding: var(--space-3) var(--space-4) var(--space-6) 60px;
+        border-left: 4px solid var(--primary);
+      }
 
-    .details-wrapper {
-      padding: var(--space-3) var(--space-4) var(--space-6) 60px;
-      border-left: 4px solid var(--primary);
-    }
+      .inner-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
 
-    .inner-table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
+      .inner-table th {
+        background: var(--surface-muted);
+        padding: var(--space-3);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: left;
+      }
 
-    .inner-table th {
-      background: var(--surface-muted);
-      padding: var(--space-3);
-      font-size: var(--fs-xs);
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      text-align: left;
-    }
+      .inner-table td {
+        padding: var(--space-3);
+        border-bottom: 1px solid var(--border);
+      }
 
-    .inner-table td {
-      padding: var(--space-3);
-      border-bottom: 1px solid var(--border);
-    }
+      /* JS toggles .badge-success / .badge-danger on these chips */
+      .badge {
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        font-size: var(--fs-xs);
+        font-weight: 700;
+      }
+      .badge-success {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .badge-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
 
-    /* JS toggles .badge-success / .badge-danger on these chips */
-    .badge {
-      padding: 3px 10px;
-      border-radius: var(--radius-full);
-      font-size: var(--fs-xs);
-      font-weight: 700;
-    }
-    .badge-success { background: #dcfce7; color: #15803d; }
-    .badge-danger { background: #fee2e2; color: #b91c1c; }
+      @media (max-width: 768px) {
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        #jobOrderSelect {
+          min-width: 0;
+          width: 100%;
+        }
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
 
-    @media (max-width: 768px) {
-      .search-section { flex-direction: column; }
-      .btn-export { width: 100%; height: 48px; }
-      .summary-grid { grid-template-columns: 1fr; }
-    }
-  </style>
-</head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <h1>Job Order History</h1>
+        </div>
 
-<body>
-  <div class="container">
-    <div class="card">
-      <div class="card-header">
-        <h1>Job Order History</h1>
-      </div>
-
-      <div class="search-section">
-        <select id="jobOrderSelect">
-          <option value="">Loading...</option>
-        </select>
-        <button class="btn-search" onclick="searchHistory()">View History</button>
-        <!-- ADDED EXPORT BUTTON -->
-        <button id="btnExport" class="btn-export" onclick="exportToExcel()">Export Excel</button>
-      </div>
-
-      <div id="loading" style="display:none; text-align:center; padding:20px;">Searching...</div>
-
-      <div id="resultArea" style="display: none;">
-        <div class="summary-grid">
-          <div class="stat-box">
-            <div class="stat-label">Part Name</div>
-            <div id="summaryPartName" class="stat-value">-</div>
+        <div class="toolbar">
+          <div class="filter-group">
+            <label>Job Order</label>
+            <select id="jobOrderSelect">
+              <option value="">Loading...</option>
+            </select>
           </div>
-          <div class="stat-box">
-            <div class="stat-label">Order Quantity</div>
-            <div id="summaryQuantity" class="stat-value">-</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Overall Yield</div>
-            <div id="summaryYield" class="stat-value">-</div>
+          <div style="margin-left: auto; display: flex; gap: var(--space-4)">
+            <button class="btn btn-blue" onclick="searchHistory()">
+              View History
+            </button>
+            <button
+              id="btnExport"
+              class="btn btn-green"
+              onclick="exportToExcel()"
+              style="display: none"
+            >
+              Export Excel
+            </button>
           </div>
         </div>
 
-        <div class="table-container">
-          <table class="main-table">
-            <thead>
-              <tr>
-                <th class="col-icon"></th>
-                <th class="col-process">Process Name</th>
-                <th class="col-machine">Machine</th>
-                <th class="col-date">Last Inspected</th>
-                <th class="col-num">Total</th>
-                <th class="col-num">OK</th>
-                <th class="col-num">NG</th>
-                <th class="col-yield">Yield</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody"></tbody>
-          </table>
+        <div
+          id="loading"
+          style="display: none; text-align: center; padding: 20px"
+        >
+          Searching...
+        </div>
+
+        <div id="resultArea" style="display: none">
+          <div class="summary-grid">
+            <div class="stat-box">
+              <div class="stat-label">Part Name</div>
+              <div id="summaryPartName" class="stat-value">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Order Quantity</div>
+              <div id="summaryQuantity" class="stat-value">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Overall Yield</div>
+              <div id="summaryYield" class="stat-value">-</div>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="main-table">
+              <thead>
+                <tr>
+                  <th class="col-icon"></th>
+                  <th class="col-process">Process Name</th>
+                  <th class="col-machine">Machine</th>
+                  <th class="col-date">Last Inspected</th>
+                  <th class="col-num">Total</th>
+                  <th class="col-num">OK</th>
+                  <th class="col-num">NG</th>
+                  <th class="col-yield">Yield</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    const SUPABASE_URL = window.APP_CONFIG.url;
-    const SUPABASE_KEY = window.APP_CONFIG.key;
+    <script>
+      const SUPABASE_URL = window.APP_CONFIG.url;
+      const SUPABASE_KEY = window.APP_CONFIG.key;
 
-    const api = axios.create({
-      baseURL: SUPABASE_URL,
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }
-    });
-
-    let joMetadata = new Map();
-    let currentProcessedData = null; // To store data for Excel export
-
-    $(document).ready(() => fetchJobOrders());
-
-    async function fetchJobOrders() {
-      try {
-        const response = await api.get('/rest/v1/JobOrder?select=JO_Number,Part_Name,Quantity&order=created_at.desc');
-        const $select = $("#jobOrderSelect").empty().append('<option value=""> Select Job Order </option>');
-        const seen = new Set();
-        response.data.forEach(item => {
-          if (item.JO_Number && !seen.has(item.JO_Number)) {
-            seen.add(item.JO_Number);
-            joMetadata.set(item.JO_Number, {
-              partName: item.Part_Name || "N/A",
-              quantity: item.Quantity || "-"
-            });
-            $select.append(`<option value="${item.JO_Number}">${item.JO_Number} — ${item.Part_Name}</option>`);
-          }
-        });
-      } catch (e) { console.error(e); }
-    }
-
-    async function searchHistory() {
-      const jo = $("#jobOrderSelect").val();
-      if (!jo) return;
-
-      const meta = joMetadata.get(jo);
-      $("#summaryPartName").text(meta.partName);
-      $("#summaryQuantity").text(meta.quantity);
-
-      $("#loading").show(); $("#resultArea").hide(); $("#btnExport").hide();
-      try {
-        const res = await api.get(`/rest/v1/Data_IPQC?JO_Number=eq.${jo}`);
-        if (!res.data.length) {
-          $("#loading").hide();
-          alert("No inspection data found.");
-          return;
-        }
-        processAndDisplayData(res.data);
-        $("#btnExport").show();
-      } catch (e) { alert("Error fetching data"); } finally { $("#loading").hide(); }
-    }
-
-    function processAndDisplayData(data) {
-      const processMap = {};
-      let grandTotalOk = 0, grandTotalNg = 0;
-
-      const byProcess = {};
-      data.forEach(row => {
-        const p = row.Process || "Unknown";
-        if (!byProcess[p]) byProcess[p] = [];
-        byProcess[p].push(row);
+      const api = axios.create({
+        baseURL: SUPABASE_URL,
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
       });
 
-      Object.keys(byProcess).forEach(pName => {
-        const rows = byProcess[pName].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        const clusters = [];
-        let currentCluster = [];
-        rows.forEach(row => {
-          if (currentCluster.length === 0) {
-            currentCluster.push(row);
-          } else {
-            const lastTime = new Date(currentCluster[0].created_at).getTime();
-            const currentTime = new Date(row.created_at).getTime();
-            if (Math.abs(currentTime - lastTime) <= 2000) {
+      let joMetadata = new Map();
+      let currentProcessedData = null; // To store data for Excel export
+
+      $(document).ready(() => fetchJobOrders());
+
+      async function fetchJobOrders() {
+        try {
+          const response = await api.get(
+            "/rest/v1/JobOrder?select=JO_Number,Part_Name,Quantity&order=created_at.desc",
+          );
+          const $select = $("#jobOrderSelect")
+            .empty()
+            .append('<option value=""> Select Job Order </option>');
+          const seen = new Set();
+          response.data.forEach((item) => {
+            if (item.JO_Number && !seen.has(item.JO_Number)) {
+              seen.add(item.JO_Number);
+              joMetadata.set(item.JO_Number, {
+                partName: item.Part_Name || "N/A",
+                quantity: item.Quantity || "-",
+              });
+              $select.append(
+                `<option value="${item.JO_Number}">${item.JO_Number} — ${item.Part_Name}</option>`,
+              );
+            }
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      async function searchHistory() {
+        const jo = $("#jobOrderSelect").val();
+        if (!jo) return;
+
+        const meta = joMetadata.get(jo);
+        $("#summaryPartName").text(meta.partName);
+        $("#summaryQuantity").text(meta.quantity);
+
+        $("#loading").show();
+        $("#resultArea").hide();
+        $("#btnExport").hide();
+        try {
+          const res = await api.get(`/rest/v1/Data_IPQC?JO_Number=eq.${jo}`);
+          if (!res.data.length) {
+            $("#loading").hide();
+            alert("No inspection data found.");
+            return;
+          }
+          processAndDisplayData(res.data);
+          $("#btnExport").show();
+        } catch (e) {
+          alert("Error fetching data");
+        } finally {
+          $("#loading").hide();
+        }
+      }
+
+      function processAndDisplayData(data) {
+        const processMap = {};
+        let grandTotalOk = 0,
+          grandTotalNg = 0;
+
+        const byProcess = {};
+        data.forEach((row) => {
+          const p = row.Process || "Unknown";
+          if (!byProcess[p]) byProcess[p] = [];
+          byProcess[p].push(row);
+        });
+
+        Object.keys(byProcess).forEach((pName) => {
+          const rows = byProcess[pName].sort(
+            (a, b) => new Date(a.created_at) - new Date(b.created_at),
+          );
+          const clusters = [];
+          let currentCluster = [];
+          rows.forEach((row) => {
+            if (currentCluster.length === 0) {
               currentCluster.push(row);
             } else {
-              clusters.push(currentCluster);
-              currentCluster = [row];
+              const lastTime = new Date(currentCluster[0].created_at).getTime();
+              const currentTime = new Date(row.created_at).getTime();
+              if (Math.abs(currentTime - lastTime) <= 2000) {
+                currentCluster.push(row);
+              } else {
+                clusters.push(currentCluster);
+                currentCluster = [row];
+              }
             }
-          }
-        });
-        if (currentCluster.length > 0) clusters.push(currentCluster);
+          });
+          if (currentCluster.length > 0) clusters.push(currentCluster);
 
-        processMap[pName] = {
-          name: pName,
-          mc: clusters[0][0].Machine || "-",
-          date: clusters[clusters.length - 1][0].created_at,
-          okCount: 0, ngCount: 0, totalCount: clusters.length,
-          dailySummary: {}
+          processMap[pName] = {
+            name: pName,
+            mc: clusters[0][0].Machine || "-",
+            date: clusters[clusters.length - 1][0].created_at,
+            okCount: 0,
+            ngCount: 0,
+            totalCount: clusters.length,
+            dailySummary: {},
+          };
+
+          clusters.forEach((cluster) => {
+            let clusterIsNg = false;
+            const dateKey = new Date(cluster[0].created_at).toLocaleDateString(
+              "en-GB",
+            );
+
+            if (!processMap[pName].dailySummary[dateKey]) {
+              processMap[pName].dailySummary[dateKey] = {
+                ok: 0,
+                ng: 0,
+                remarks: "",
+              };
+            }
+            if (
+              !processMap[pName].dailySummary[dateKey].remarks &&
+              cluster[0].Remarks
+            ) {
+              processMap[pName].dailySummary[dateKey].remarks =
+                cluster[0].Remarks;
+            }
+
+            cluster.forEach((row) => {
+              const lsl = parseFloat(row.LSL_OK),
+                usl = parseFloat(row.USL_NG);
+              [row.Reading_1, row.Reading_2, row.Reading_3].forEach((v) => {
+                if (v === null || v === "") return;
+                const n = parseFloat(v);
+                if (
+                  (!isNaN(n) && (n < lsl || n > usl)) ||
+                  String(v).toUpperCase() === "NG"
+                ) {
+                  clusterIsNg = true;
+                }
+              });
+            });
+
+            if (clusterIsNg) {
+              processMap[pName].ngCount++;
+              processMap[pName].dailySummary[dateKey].ng++;
+              grandTotalNg++;
+            } else {
+              processMap[pName].okCount++;
+              processMap[pName].dailySummary[dateKey].ok++;
+              grandTotalOk++;
+            }
+          });
+        });
+
+        const totalInspected = grandTotalOk + grandTotalNg;
+        const yieldPct =
+          totalInspected > 0
+            ? ((grandTotalOk / totalInspected) * 100).toFixed(1)
+            : "0.0";
+        $("#summaryYield").text(yieldPct + "%");
+
+        // Store globally for Excel export
+        currentProcessedData = {
+          processMap,
+          meta: joMetadata.get($("#jobOrderSelect").val()),
+          jo: $("#jobOrderSelect").val(),
+          overallYield: yieldPct + "%",
         };
 
-        clusters.forEach(cluster => {
-          let clusterIsNg = false;
-          const dateKey = new Date(cluster[0].created_at).toLocaleDateString('en-GB');
+        const $body = $("#historyTableBody").empty();
+        Object.keys(processMap)
+          .sort()
+          .forEach((k, i) => {
+            const p = processMap[k];
+            const y =
+              p.totalCount > 0
+                ? ((p.okCount / p.totalCount) * 100).toFixed(1)
+                : "0.0";
+            const dailyKeys = Object.keys(p.dailySummary).sort(
+              (a, b) =>
+                new Date(b.split("/").reverse().join("-")) -
+                new Date(a.split("/").reverse().join("-")),
+            );
 
-          if (!processMap[pName].dailySummary[dateKey]) {
-            processMap[pName].dailySummary[dateKey] = { ok: 0, ng: 0, remarks: "" };
-          }
-          if (!processMap[pName].dailySummary[dateKey].remarks && cluster[0].Remarks) {
-            processMap[pName].dailySummary[dateKey].remarks = cluster[0].Remarks;
-          }
-
-          cluster.forEach(row => {
-            const lsl = parseFloat(row.LSL_OK), usl = parseFloat(row.USL_NG);
-            [row.Reading_1, row.Reading_2, row.Reading_3].forEach(v => {
-              if (v === null || v === "") return;
-              const n = parseFloat(v);
-              if ((!isNaN(n) && (n < lsl || n > usl)) || String(v).toUpperCase() === "NG") {
-                clusterIsNg = true;
-              }
-            });
-          });
-
-          if (clusterIsNg) {
-            processMap[pName].ngCount++;
-            processMap[pName].dailySummary[dateKey].ng++;
-            grandTotalNg++;
-          } else {
-            processMap[pName].okCount++;
-            processMap[pName].dailySummary[dateKey].ok++;
-            grandTotalOk++;
-          }
-        });
-      });
-
-      const totalInspected = grandTotalOk + grandTotalNg;
-      const yieldPct = totalInspected > 0 ? ((grandTotalOk / totalInspected) * 100).toFixed(1) : "0.0";
-      $("#summaryYield").text(yieldPct + "%");
-
-      // Store globally for Excel export
-      currentProcessedData = {
-        processMap,
-        meta: joMetadata.get($("#jobOrderSelect").val()),
-        jo: $("#jobOrderSelect").val(),
-        overallYield: yieldPct + "%"
-      };
-
-      const $body = $("#historyTableBody").empty();
-      Object.keys(processMap).sort().forEach((k, i) => {
-        const p = processMap[k];
-        const y = p.totalCount > 0 ? ((p.okCount / p.totalCount) * 100).toFixed(1) : "0.0";
-        const dailyKeys = Object.keys(p.dailySummary).sort((a, b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-')));
-
-        const innerRows = dailyKeys.map(date => {
-          const s = p.dailySummary[date];
-          return `<tr>
+            const innerRows = dailyKeys
+              .map((date) => {
+                const s = p.dailySummary[date];
+                return `<tr>
                 <td style="width:25%; font-weight:600;">${date}</td>
                 <td style="width:20%; color:var(--success); font-weight:600;">${s.ok}</td>
                 <td style="width:20%; color:var(--danger); font-weight:600;">${s.ng}</td>
-                <td>${s.remarks || '-'}</td>
+                <td>${s.remarks || "-"}</td>
               </tr>`;
-        }).join('');
+              })
+              .join("");
 
-        $body.append(`
+            $body.append(`
           <tr class="process-row" onclick="toggleDetails(${i}, this)">
             <td class="col-icon"><span class="expand-icon">▼</span></td>
             <td class="col-process">${p.name}</td>
             <td class="col-machine">${p.mc}</td>
-            <td class="col-date">${new Date(p.date).toLocaleDateString('en-GB')}</td>
+            <td class="col-date">${new Date(p.date).toLocaleDateString("en-GB")}</td>
             <td class="col-num">${p.totalCount}</td>
             <td class="col-num" style="color:var(--success); font-weight:600">${p.okCount}</td>
             <td class="col-num" style="color:var(--danger); font-weight:600">${p.ngCount}</td>
-            <td class="col-yield"><span class="badge ${y >= 95 ? 'badge-success' : 'badge-danger'}">${y}%</span></td>
+            <td class="col-yield"><span class="badge ${y >= 95 ? "badge-success" : "badge-danger"}">${y}%</span></td>
           </tr>
           <tr class="details-row" id="det-${i}">
             <td colspan="8">
@@ -421,84 +572,104 @@
               </div>
             </td>
           </tr>`);
-      });
-      $("#resultArea").show();
-    }
+          });
+        $("#resultArea").show();
+      }
 
-    function toggleDetails(i, el) {
-      $(`#det-${i}`).toggle();
-      $(el).toggleClass("row-expanded");
-    }
+      function toggleDetails(i, el) {
+        $(`#det-${i}`).toggle();
+        $(el).toggleClass("row-expanded");
+      }
 
-    // EXPORT FUNCTION
-    function exportToExcel() {
-      if (!currentProcessedData) return;
+      // EXPORT FUNCTION
+      function exportToExcel() {
+        if (!currentProcessedData) return;
 
-      const { processMap, meta, jo, overallYield } = currentProcessedData;
-      const wb = XLSX.utils.book_new();
-      const exportRows = [];
+        const { processMap, meta, jo, overallYield } = currentProcessedData;
+        const wb = XLSX.utils.book_new();
+        const exportRows = [];
 
-      // 1. Header Information
-      exportRows.push(["JOB ORDER QUALITY REPORT"]);
-      exportRows.push(["JO Number:", jo]);
-      exportRows.push(["Part Name:", meta.partName]);
-      exportRows.push(["Order Qty:", meta.quantity]);
-      exportRows.push(["Overall Yield:", overallYield]);
-      exportRows.push([]); // Spacer
+        // 1. Header Information
+        exportRows.push(["JOB ORDER QUALITY REPORT"]);
+        exportRows.push(["JO Number:", jo]);
+        exportRows.push(["Part Name:", meta.partName]);
+        exportRows.push(["Order Qty:", meta.quantity]);
+        exportRows.push(["Overall Yield:", overallYield]);
+        exportRows.push([]); // Spacer
 
-      // 2. Main Process Summary Table
-      exportRows.push(["PROCESS SUMMARY"]);
-      exportRows.push(["Process Name", "Machine", "Last Inspected", "Total", "OK", "NG", "Yield %"]);
-
-      Object.keys(processMap).sort().forEach(k => {
-        const p = processMap[k];
-        const y = p.totalCount > 0 ? ((p.okCount / p.totalCount) * 100).toFixed(1) : "0.0";
+        // 2. Main Process Summary Table
+        exportRows.push(["PROCESS SUMMARY"]);
         exportRows.push([
-          p.name,
-          p.mc,
-          new Date(p.date).toLocaleDateString('en-GB'),
-          p.totalCount,
-          p.okCount,
-          p.ngCount,
-          y + "%"
+          "Process Name",
+          "Machine",
+          "Last Inspected",
+          "Total",
+          "OK",
+          "NG",
+          "Yield %",
         ]);
-      });
 
-      exportRows.push([]); // Spacer
-      exportRows.push(["DETAILED DAILY LOGS"]);
+        Object.keys(processMap)
+          .sort()
+          .forEach((k) => {
+            const p = processMap[k];
+            const y =
+              p.totalCount > 0
+                ? ((p.okCount / p.totalCount) * 100).toFixed(1)
+                : "0.0";
+            exportRows.push([
+              p.name,
+              p.mc,
+              new Date(p.date).toLocaleDateString("en-GB"),
+              p.totalCount,
+              p.okCount,
+              p.ngCount,
+              y + "%",
+            ]);
+          });
 
-      // 3. Detailed Logs per Process
-      Object.keys(processMap).sort().forEach(k => {
-        const p = processMap[k];
-        exportRows.push(["Process:", p.name]);
-        exportRows.push(["Date", "OK", "NG", "Remarks"]);
+        exportRows.push([]); // Spacer
+        exportRows.push(["DETAILED DAILY LOGS"]);
 
-        const dailyKeys = Object.keys(p.dailySummary).sort((a, b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-')));
-        dailyKeys.forEach(date => {
-          const s = p.dailySummary[date];
-          exportRows.push([date, s.ok, s.ng, s.remarks || "-"]);
-        });
-        exportRows.push([]); // Small spacer between processes
-      });
+        // 3. Detailed Logs per Process
+        Object.keys(processMap)
+          .sort()
+          .forEach((k) => {
+            const p = processMap[k];
+            exportRows.push(["Process:", p.name]);
+            exportRows.push(["Date", "OK", "NG", "Remarks"]);
 
-      const ws = XLSX.utils.aoa_to_sheet(exportRows);
+            const dailyKeys = Object.keys(p.dailySummary).sort(
+              (a, b) =>
+                new Date(b.split("/").reverse().join("-")) -
+                new Date(a.split("/").reverse().join("-")),
+            );
+            dailyKeys.forEach((date) => {
+              const s = p.dailySummary[date];
+              exportRows.push([date, s.ok, s.ng, s.remarks || "-"]);
+            });
+            exportRows.push([]); // Small spacer between processes
+          });
 
-      // Basic formatting: Column Widths
-      ws['!cols'] = [
-        { wch: 25 }, // A
-        { wch: 15 }, // B
-        { wch: 15 }, // C
-        { wch: 10 }, // D
-        { wch: 10 }, // E
-        { wch: 10 }, // F
-        { wch: 10 }  // G
-      ];
+        const ws = XLSX.utils.aoa_to_sheet(exportRows);
 
-      XLSX.utils.book_append_sheet(wb, ws, "JO History");
-      XLSX.writeFile(wb, `JO_${jo}_History_Report.xlsx`);
-    }
-  </script>
-<div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
-</body>
+        // Basic formatting: Column Widths
+        ws["!cols"] = [
+          { wch: 25 }, // A
+          { wch: 15 }, // B
+          { wch: 15 }, // C
+          { wch: 10 }, // D
+          { wch: 10 }, // E
+          { wch: 10 }, // F
+          { wch: 10 }, // G
+        ];
 
+        XLSX.utils.book_append_sheet(wb, ws, "JO History");
+        XLSX.writeFile(wb, `JO_${jo}_History_Report.xlsx`);
+      }
+    </script>
+    <div class="footer">
+      © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+  </body>
 </html>

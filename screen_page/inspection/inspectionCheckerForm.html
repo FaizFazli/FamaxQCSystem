@@ -1088,11 +1088,12 @@
                         const res = await api.get(`/JobOrder?Part_Name=eq.${encodeURIComponent(name)}&select=JO_Number`);
                         f.availableJOs = [...new Set(res.data.map(i => i.JO_Number || i.jo_number))].filter(Boolean).sort();
 
-                        // FIX: Use extractedPartNo consistently and fetch both ids and processes
-                        const guideRes = await api.get(`/InspectionGuideDetails?part_no=eq.${encodeURIComponent(extractedPartNo)}&select=process,inspection_ids`);
+                        // FIX: match the (now uppercase) stored part_no, and union across ALL
+                        // of the part's processes (each process may have a different spec set).
+                        const guideRes = await api.get(`/InspectionGuideDetails?part_no=eq.${encodeURIComponent(extractedPartNo.toUpperCase())}&select=process,inspection_ids`);
 
-                        // Populates the Process dropdown
-                        f.availableProcesses = [...new Set(guideRes.data.map(i => i.process.toUpperCase()))].sort();
+                        // Populates the Process dropdown (all processes for this part)
+                        f.availableProcesses = [...new Set(guideRes.data.map(i => (i.process || '').toUpperCase()))].filter(Boolean).sort();
 
                         if (guideRes.data.length > 0) {
                             let allIds = [];
