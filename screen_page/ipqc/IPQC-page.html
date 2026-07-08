@@ -511,7 +511,9 @@
 
             <div class="form-group">
                 <label>Person Name</label>
-                <input type="text" id="stop-person" class="modern-input" placeholder="Enter your name" />
+                <select id="stop-person" class="modern-input">
+                    <option value="">Loading names...</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -681,6 +683,7 @@
         $(document).ready(function () {
             initializeSelect2();
             fetchPartsFromDatabase();
+            fetchStopPersons(); // populate the Machine Stop person dropdown (QA/QC staff)
             fetchJobs(); // load the Active Job Orders side panel on start
 
             $("#part-name").on("change", function () {
@@ -769,6 +772,24 @@
         }
 
         // --- Database Fetch Functions ---
+        async function fetchStopPersons() {
+            try {
+                const res = await supabaseClient.get(
+                    "/rest/v1/EmployeeTable?select=name,position&position=ilike.*TECHNICIAN*&order=name.asc"
+                );
+                const names = [...new Set((res.data || []).map(e => e.name).filter(Boolean))];
+                const $sel = $("#stop-person").empty();
+                $sel.append('<option value="">Select name...</option>');
+                names.forEach(n => $sel.append(`<option value="${n}">${n}</option>`));
+                // Default to DIPAK if present (case-insensitive match).
+                const dipak = names.find(n => n.trim().toUpperCase() === 'DIPAK');
+                if (dipak) $sel.val(dipak);
+            } catch (err) {
+                console.error("Failed to load person names:", err);
+                $("#stop-person").empty().append('<option value="">Select name...</option>');
+            }
+        }
+
         async function fetchPartsFromDatabase() {
             try {
                 const res = await supabaseClient.get(
