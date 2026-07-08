@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/assets/theme.css" />
 
     <style>
+        .is-framed .card-header { display: none !important; }
         /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         :root { --oos-danger: #e11d48; }
 
@@ -52,14 +53,15 @@
         }
 
         .toolbar {
-            padding: var(--space-4) var(--space-5);
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
+            background: var(--surface-muted);
+            padding: var(--space-5);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin: var(--space-8) var(--space-8) 0;
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
             gap: var(--space-4);
-            margin-bottom: 0;
         }
 
         .filter-group {
@@ -73,20 +75,18 @@
             font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
 
-        input[type="month"] { width: auto; height: 38px; }
+        select,
+        input[type="month"] { min-width: 150px; width: auto; }
 
-        .btn { height: 38px; }
+        .btn { height: 42px; }
 
         .btn-blue { background: var(--primary); }
         .btn-blue:hover { background: var(--primary-hover); }
 
-        .btn-green {
-            background: var(--success);
-            margin-left: auto;
-        }
+        .btn-green { background: var(--success); }
         .btn-green:hover { background: #059669; }
 
         .report-content { padding: var(--space-4); }
@@ -192,10 +192,10 @@
                 <input type="month" id="monthPicker" onchange="generateReport()">
             </div>
 
-            <!-- Removed inline margin-top styles -->
-            <button class="btn btn-blue" onclick="generateReport()">Update Report</button>
-
-            <button id="exportBtn" class="btn btn-green" onclick="exportToExcel()" disabled>Export to Excel</button>
+            <div style="margin-left: auto; display: flex; gap: var(--space-4);">
+                <button class="btn btn-blue" onclick="generateReport()">Update Report</button>
+                <button id="exportBtn" class="btn btn-green" onclick="exportToExcel()" disabled>Export to Excel</button>
+            </div>
         </div>
 
         <div id="reportContent" class="report-content">

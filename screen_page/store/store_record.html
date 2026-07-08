@@ -27,6 +27,7 @@
 
     <!-- Shared design system (tokens + UI primitives) -->
     <link rel="stylesheet" href="/assets/theme.css">
+    <style>.is-framed .header-nav h2 { display: none !important; }</style>
 
     <style>
         /* --- Page tokens (build on theme.css; cyber-theme is JS-driven) --- */
@@ -288,6 +289,14 @@
             gap: 10px;
         }
 
+        .header-nav h2 {
+            margin: 0;
+            font-size: var(--fs-xl);
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            color: var(--text-main);
+        }
+
         /* The Fix: Force the grid to stay within the viewport */
         .grid-layout {
             display: grid;
@@ -359,19 +368,24 @@
         thead th {
             position: sticky;
             top: 0;
-            background: #fff;
+            background: var(--surface-muted);
             z-index: 10;
-            padding: 15px;
+            padding: 13px 15px;
             text-align: left;
             font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
             color: var(--text-muted);
-            border-bottom: 2px solid var(--bg);
+            border-bottom: 1px solid var(--border);
         }
 
         tbody td {
             padding: 12px 15px;
-            border-bottom: 1px solid var(--bg);
+            border-bottom: 1px solid var(--border);
         }
+
+        #history-rows tr:nth-child(even) { background: #fafbfc; }
 
         /* Rest of your styles kept identical */
         .form-group {
@@ -393,10 +407,18 @@
             width: 100%;
             height: 42px;
             padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
             font-size: 14px;
             box-sizing: border-box;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         #qty {
@@ -412,6 +434,28 @@
             gap: 12px;
             margin-bottom: 15px;
         }
+
+        /* Labeled form sections (Item / Quantity / Details) */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0 14px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .section-title.first {
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .section-title i { color: var(--primary); font-size: 13px; }
 
         .type-switcher {
             display: flex;
@@ -447,6 +491,18 @@
             color: var(--danger);
             background: #fef2f2;
             box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1);
+        }
+
+        .t-btn.active-res {
+            border-color: var(--warning);
+            color: #b45309;
+            background: #fffbeb;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.12);
+        }
+
+        .t-btn:not(.active-in):not(.active-out):not(.active-res):hover {
+            border-color: var(--border-strong);
+            background: var(--surface-muted);
         }
 
         .btn-save {
@@ -540,31 +596,16 @@
 
         #history-rows tr {
             cursor: pointer;
-            transition: all 0.2s ease;
-            border-left: 4px solid transparent;
-            /* Initial transparent border */
+            transition: background 0.15s ease;
         }
 
-        /* Hover State */
+        /* Hover State — subtle, professional */
         #history-rows tr:hover {
-            background-color: #f1f5f9 !important;
-            /* Light blue-grey background */
-            border-left: 4px solid var(--primary);
-            /* The "Accent" color on the left */
-            transform: translateX(4px);
-            /* Subtle nudge to the right */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            /* Slight shadow to lift it */
-        }
-
-        /* Make sure the text inside doesn't feel cramped with the nudge */
-        #history-rows td {
-            transition: padding 0.2s ease;
+            background-color: var(--primary-soft) !important;
         }
 
         #history-rows tr:hover td {
-            color: #000;
-            /* Darken text slightly on hover */
+            color: var(--text-main);
         }
 
         .spinner {
@@ -789,7 +830,7 @@
 
             <!-- This wrapper acts as a single unit to be pushed to the right -->
             <div class="header-btns">
-                <button class="btn-theme-toggle" onclick="toggleTheme()">CHANGE THEME</button>
+                <!-- <button class="btn-theme-toggle" onclick="toggleTheme()">CHANGE THEME</button> -->
                 <button class="btn-add" style="background: var(--primary)" onclick="openPackingListModal()">📦 Packing
                     Lists</button>
                 <button class="btn-add" onclick="openModal()">+ New Inventory</button>
@@ -813,6 +854,7 @@
                         <div id="btn-out" class="t-btn" onclick="changeEntryType('OUT')">OUT</div>
                         <div id="btn-res" class="t-btn" onclick="changeEntryType('RESERVATION')">RES</div>
                     </div>
+                    <div class="section-title first"><i class="fa-solid fa-box"></i> Item</div>
                     <div class="form-row-grid">
                         <div class="form-group">
                             <label>Barcode</label>
@@ -842,7 +884,7 @@
                     <!-- Place this below the Item Location form-group -->
                     <div id="qa-return-section" style="display: none; margin-bottom: 15px;">
                         <div class="form-group"
-                            style="display: flex; align-items: center; gap: 10px; background: #0f0f0f ; padding: 10px; border-radius: 8px; border: 1px solid #fecdd3; margin-bottom: 10px;">
+                            style="display: flex; align-items: center; gap: 10px; background: #fef2f2; padding: 10px; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 10px;">
                             <input type="checkbox" id="is_return_qa"
                                 style="width: 18px; height: 18px; margin: 0; cursor: pointer;">
                             <label for="is_return_qa"
@@ -860,11 +902,9 @@
                         <label>SCM REMARK</label>
                         <input type="text" id="scm_remark" placeholder="Enter reason for returning to QA...">
                     </div>
+                    <div class="section-title"><i class="fa-solid fa-calculator"></i> Quantity</div>
                     <div
-                        style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
-                        <label
-                            style="font-size: 10px; font-weight: 800; color: var(--text-muted); display: block; margin-bottom: 10px;">QUANTITY
-                            CALCULATION</label>
+                        style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
                         <div class="form-row-grid" style="margin-bottom: 0;">
                             <div class="form-group">
                                 <label>Qty Per Ctn</label>
@@ -886,6 +926,7 @@
                             </div>
                         </div>
                     </div>
+                    <div class="section-title"><i class="fa-solid fa-circle-info"></i> Details</div>
                     <div class="form-row-grid">
                         <div class="form-group">
                             <label>Date</label>

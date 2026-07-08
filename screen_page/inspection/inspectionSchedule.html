@@ -650,7 +650,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div class="relative">
                                 <label class="section-label">Process</label>
-                                <input type="text" v-model="newTask.process" placeholder="e.g. Plating"
+                                <select v-if="processOptions.length > 1" v-model="newTask.process"
+                                    @change="onProcessChange" class="form-input">
+                                    <option v-for="o in processOptions" :key="o.process" :value="o.process">{{ o.process }}</option>
+                                </select>
+                                <input v-else type="text" v-model="newTask.process" placeholder="e.g. Plating"
                                     class="form-input">
                             </div>
                             <div class="relative">
@@ -912,6 +916,7 @@
 
                 const guideDetails = ref([]); // To store the mapping table
                 const filteredParams = ref([]); // Just the related ones
+                const processOptions = ref([]); // Processes available for the chosen part+parameter
                 const allSortedParams = ref([]); // Related at top + Others at bottom
 
                 const fetchData = async () => {
@@ -1039,18 +1044,21 @@
                             .filter(jo => jo && jo !== '-' && jo !== 'EMPTY' && jo !== 'null')
                             .sort();
 
-                        // 4. Handle Parameter Mapping (Keep your existing logic here)
-                        const mapping = guideDetails.value.find(detail =>
-                            selectedPartName.toUpperCase().includes(detail.part_no.toUpperCase())
+                        // 4. Handle Parameter Mapping — a part can have MULTIPLE processes, each
+                        //    with a DIFFERENT set of parameters. Gather every process row for this
+                        //    part and take the UNION of their parameter ids so none are missed.
+                        const partUp = selectedPartName.toUpperCase();
+                        const partMappings = guideDetails.value.filter(detail =>
+                            detail.part_no && partUp.includes(detail.part_no.toUpperCase())
                         );
 
-                        let relatedIds = [];
-                        if (mapping && mapping.inspection_ids) {
-                            relatedIds = mapping.inspection_ids.map(id => String(id));
-                        }
+                        const relatedIdSet = new Set();
+                        partMappings.forEach(m =>
+                            (m.inspection_ids || []).forEach(id => relatedIdSet.add(String(id)))
+                        );
 
-                        const related = guideMapping.value.filter(g => relatedIds.includes(String(g.id)));
-                        const others = guideMapping.value.filter(g => !relatedIds.includes(String(g.id)));
+                        const related = guideMapping.value.filter(g => relatedIdSet.has(String(g.id)));
+                        const others = guideMapping.value.filter(g => !relatedIdSet.has(String(g.id)));
 
                         allSortedParams.value = [...related, ...others];
                         filteredParams.value = related;
@@ -1076,6 +1084,7 @@
                     // Reset dependent dropdown data
                     availableJOs.value = [];
                     filteredParams.value = [];
+                    processOptions.value = [];
                 };
 
                 const isFormValid = computed(() => {
@@ -1099,25 +1108,50 @@
                     newTask.value.paramDetails = paramObj.Details || '';
                     dropdowns.value.param = false;
 
-                    // 2. Try to find if this part + parameter + process is already mapped in InspectionGuideDetails
+                    // 2. Find ALL plan rows (InspectionGuideDetails) for this part that include
+                    //    the chosen parameter — a part may run this parameter under more than one
+                    //    process, each with its own preset cycle time.
                     const specId = String(paramObj.id);
+                    const partUpper = (newTask.value.part || '').toUpperCase();
 
-                    // We look through guideDetails (the mapping table)
-                    const mapping = guideDetails.value.find(detail => {
-                        const isPartMatch = newTask.value.part.includes(detail.part_no);
-                        const hasId = detail.inspection_ids && detail.inspection_ids.includes(specId);
-                        return isPartMatch && hasId;
+                    const matches = guideDetails.value.filter(detail => {
+                        const isPartMatch = detail.part_no && partUpper.includes(detail.part_no.toUpperCase());
+                        const ids = (detail.inspection_ids || []).map(String);
+                        return isPartMatch && ids.includes(specId);
                     });
 
-                    if (mapping) {
-                        // Auto-fill Process and Cycle Time from the mapping
-                        newTask.value.process = mapping.process;
-                        const idIndex = mapping.inspection_ids.indexOf(specId);
-                        if (idIndex !== -1 && mapping.cycle_times && mapping.cycle_times[idIndex]) {
-                            newTask.value.cycleTime = mapping.cycle_times[idIndex];
-                        }
+                    // One option per distinct process, carrying the cycle time preset for THIS parameter
+                    const opts = [];
+                    const seen = new Set();
+                    matches.forEach(m => {
+                        const proc = (m.process || '').toString();
+                        const key = proc.toUpperCase();
+                        if (seen.has(key)) return;
+                        seen.add(key);
+                        const idx = (m.inspection_ids || []).map(String).indexOf(specId);
+                        const ct = (idx !== -1 && m.cycle_times && m.cycle_times[idx] != null) ? m.cycle_times[idx] : '';
+                        opts.push({ process: proc, cycleTime: ct });
+                    });
+                    processOptions.value = opts;
+
+                    if (opts.length) {
+                        // Default to the first; when there are multiple, the Process field
+                        // renders as a dropdown (see template) so the user can pick.
+                        newTask.value.process = opts[0].process;
+                        newTask.value.cycleTime = opts[0].cycleTime;
+                        calculateTime();
                     }
                     // Note: If no mapping is found, user manually enters Process/Cycle Time
+                };
+
+                // When the part has multiple processes for the chosen parameter, switching the
+                // Process dropdown updates the cycle time to that process's preset.
+                const onProcessChange = () => {
+                    const opt = processOptions.value.find(o => o.process === newTask.value.process);
+                    if (opt) {
+                        newTask.value.cycleTime = opt.cycleTime;
+                        calculateTime();
+                    }
                 };
 
                 // --- Updated addTask function ---
@@ -1137,7 +1171,7 @@
                         const match = fullPartName.match(/\(([^)]+)\)/);
                         const partNoOnly = match ? match[1].trim().toUpperCase() : fullPartName.toUpperCase();
                         const currentParam = newTask.value.param.trim();
-                        const currentProcess = newTask.value.process.trim();
+                        const currentProcess = newTask.value.process.trim().toUpperCase();
 
                         // --- STEP 1: Handle InspectionGuide (Master Spec) ---
                         // Find-or-create by normalized name so we never create duplicate parameters.
@@ -1247,6 +1281,7 @@
                     schedule, loading, filterDate, filteredSchedule, showAddModal, showReplaceModal,
                     newTask, replacementName, selectedTask, distinctParts, availableJOs,
                     guideParams, operators, dropdowns, filterList, selectPart, selectParam,
+                    processOptions, onProcessChange,
                     closeDropdown, openModal, addTask, markComplete, openReplaceModal, submitReplacement,
                     newTask, calculateTime, formatDisplayTime, guideMapping, guideDetails, isOverdue,
                     getOverdueDuration, isFormValid,

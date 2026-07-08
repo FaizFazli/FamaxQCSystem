@@ -131,6 +131,14 @@
         .dropdown.is-active > .dropbtn::before { transform: translateY(-50%) scaleY(1); }
         .dropdown.is-active > .dropbtn { color: var(--primary); }
 
+        /* Active nav item (SPA in-frame navigation) */
+        .nav-link.active { color: var(--primary); background: var(--primary-soft); }
+        .nav-link.active::before { transform: translateY(-50%) scaleY(1); }
+        .dropdown-content a.active { background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+
+        /* In-place content frame */
+        .content-frame { display: none; width: 100%; border: 0; background: #fff; }
+
         /* Icon chip */
         .icon-wrap {
             display: flex;
@@ -170,6 +178,16 @@
             font-weight: 500;
         }
         .dropdown-content a:hover { background: var(--surface-muted); color: var(--text-main); }
+
+        /* Compact, flush-left, no-scroll sidebar nav */
+        .nav-link, .dropbtn { padding: 6px var(--space-2); font-size: var(--fs-sm); gap: var(--space-2); }
+        .icon-wrap { width: 24px; height: 24px; font-size: 13px; }
+        .nav-section-label { margin: var(--space-3) 0 2px; padding-left: var(--space-2); }
+        /* Flatten category groups so every item aligns to the same left edge */
+        .dropdown-content { display: block; margin: 0; padding-left: 0; border-left: 0; }
+        .dropdown-content a { padding: 6px var(--space-2); font-size: var(--fs-sm); gap: var(--space-2); }
+        .dropdown-content a > span { display: inline-flex; align-items: center; justify-content: center; width: 24px; flex: 0 0 24px; }
+        .dropdown-content a svg { width: 18px; height: 18px; }
 
         .sidebar-footer { padding: var(--space-4); border-top: 1px solid var(--border); }
         .admin-btn {
@@ -734,180 +752,102 @@
         </div>
         <div class="nav-section-label">Navigation</div>
         <nav class="nav-menu">
-            <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link"><span class="icon-wrap">✔️</span>
+            <a href="screen_page/inspection/inspectionDashboard.html" target="_blank" rel="noopener" class="nav-link"><span class="icon-wrap">✔️</span>
                 Famax Quality Hub</a>
-                <a href="screen_page/production_planning/daily_output.html" class="nav-link"><span class="icon-wrap">🧮</span>
+            <a href="javascript:void(0)" onclick="loadInView('screen_page/production_planning/daily_output.html', this)" class="nav-link"><span class="icon-wrap">🧮</span>
                 Famax Daily Output</a>
-                <a href="screen_page/production_planning/production_cycle_time.html" class="nav-link"><span class="icon-wrap">⌛</span>
+            <a href="javascript:void(0)" onclick="loadInView('screen_page/production_planning/production_cycle_time.html', this)" class="nav-link"><span class="icon-wrap">⌛</span>
                 Cycle time Form</a>
 
-
-            <div class="dropdown">
-                <button class="dropbtn">
-                    <span class="icon-wrap">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="13" width="4" height="8" rx="1" fill="#3B82F6" />
-                            <rect x="10" y="8" width="4" height="13" rx="1" fill="#60A5FA" />
-                            <rect x="17" y="3" width="4" height="18" rx="1" fill="#93C5FD" />
-                            <path d="M3 11L9 6L15 8L21 2" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+            <div class="nav-section-label">Report Summary</div>
+            <div class="dropdown-content" style="display:block;">
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/report_summary/qcReport.html', this)">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
+                                fill="#F0FDFA" stroke="#14B8A6" stroke-width="1.5" />
+                            <path d="M14 2V8H20" stroke="#14B8A6" stroke-width="1.5" />
+                            <path d="M9 15L11 17L15 13" stroke="#0D9488" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" />
-                        </svg>
-                    </span>
-                    Report Summary <span class="arrow">▼</span>
-                </button>
-                <div class="dropdown-content">
-                    <a href="screen_page/report_summary/qcReport.html"
-                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
-                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path
-                                    d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z"
-                                    fill="#F0FDFA" stroke="#14B8A6" stroke-width="1.5" />
-                                <path d="M14 2V8H20" stroke="#14B8A6" stroke-width="1.5" />
-                                <path d="M9 15L11 17L15 13" stroke="#0D9488" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg></span> IPQC Report Summary
-                    </a>
-                    <a href="screen_page/report_summary/machineStopReport.html"
-                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
-                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <rect x="4" y="4" width="16" height="16" rx="2" fill="#FEF2F2" stroke="#EF4444"
-                                    stroke-width="1.5" />
-                                <circle cx="12" cy="12" r="5" stroke="#EF4444" stroke-width="1.5"
-                                    stroke-dasharray="2 2" />
-                                <path d="M12 9V13M12 15H12.01" stroke="#EF4444" stroke-width="2"
-                                    stroke-linecap="round" />
-                            </svg></span> Machine Stop Summary
-                    </a>
-                    <a href="screen_page/report_summary/jobOrderSummary.html"
-                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
-                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path
-                                    d="M16 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4H8"
-                                    stroke="#6366F1" stroke-width="1.5" />
-                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#EEF2FF" stroke="#6366F1"
-                                    stroke-width="1.5" />
-                                <path d="M7 10H17M7 14H17M7 18H13" stroke="#818CF8" stroke-width="1.5"
-                                    stroke-linecap="round" />
-                            </svg></span> Job Order Summary
-                    </a>
-                    <a href="screen_page/report_summary/out_of_spec_summary.html"
-                        style="display: flex; align-items: center; gap: 12px; padding: 10px 15px; text-decoration: none; color: #475569; font-size: 14px;">
-                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 6H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
-                                    stroke-dasharray="3 3" />
-                                <path d="M3 18H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
-                                    stroke-dasharray="3 3" />
-                                <path d="M3 14L8 14L12 3L17 14L21 14" stroke="#6366F1" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round" />
-                                <circle cx="12" cy="3" r="2.5" fill="#EF4444" stroke="white" stroke-width="1" />
-                            </svg></span> Out of Spec Summary
-                    </a>
-                </div>
+                        </svg></span> IPQC Report Summary
+                </a>
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/report_summary/machineStopReport.html', this)">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <rect x="4" y="4" width="16" height="16" rx="2" fill="#FEF2F2" stroke="#EF4444"
+                                stroke-width="1.5" />
+                            <circle cx="12" cy="12" r="5" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="2 2" />
+                            <path d="M12 9V13M12 15H12.01" stroke="#EF4444" stroke-width="2" stroke-linecap="round" />
+                        </svg></span> Machine Stop Summary
+                </a>
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/report_summary/jobOrderSummary.html', this)">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M16 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4H8"
+                                stroke="#6366F1" stroke-width="1.5" />
+                            <rect x="9" y="2" width="6" height="4" rx="1" fill="#EEF2FF" stroke="#6366F1"
+                                stroke-width="1.5" />
+                            <path d="M7 10H17M7 14H17M7 18H13" stroke="#818CF8" stroke-width="1.5"
+                                stroke-linecap="round" />
+                        </svg></span> Job Order Summary
+                </a>
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/report_summary/out_of_spec_summary.html', this)">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 6H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                stroke-dasharray="3 3" />
+                            <path d="M3 18H21" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"
+                                stroke-dasharray="3 3" />
+                            <path d="M3 14L8 14L12 3L17 14L21 14" stroke="#6366F1" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                            <circle cx="12" cy="3" r="2.5" fill="#EF4444" stroke="white" stroke-width="1" />
+                        </svg></span> Out of Spec Summary
+                </a>
             </div>
 
-            <div class="dropdown">
-                <button class="dropbtn">
-                    <span class="icon-wrap">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <path d="M3 10V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V10"
-                                stroke="#0078D4" stroke-width="1.5" stroke-linecap="round" />
-                            <path d="M21 10L12 5L3 10" stroke="#0078D4" stroke-width="1.5" stroke-linejoin="round" />
-                            <path d="M12 18L7.5 15.5V10.5L12 13L16.5 10.5V15.5L12 18Z" fill="#FBBF24" stroke="#B45309"
+            <div class="nav-section-label">Packing &amp; Shipment</div>
+            <div class="dropdown-content" style="display:block;">
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/store/store_record.html', this)">
+                    <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+                                fill="#F1F5F9" stroke="#64748B" stroke-width="1.5" />
+                            <rect x="7" y="7" width="10" height="12" fill="white" stroke="#E2E8F0" stroke-width="0.5" />
+                            <rect x="9" y="2" width="6" height="4" rx="1" fill="#94A3B8" stroke="#475569"
+                                stroke-width="1.5" />
+                            <rect x="10" y="13" width="4" height="3.5" rx="0.5" fill="#FBBF24" stroke="#B45309"
                                 stroke-width="1" />
-                            <path d="M7.5 10.5L12 8L16.5 10.5L12 13L7.5 10.5Z" fill="#FDE68A" stroke="#B45309"
-                                stroke-width="1" />
-                            <path d="M17 6L21 6M19 3L22 6L19 9" stroke="#10B981" stroke-width="2" stroke-linecap="round"
+                            <path d="M10 14.5H14" stroke="#B45309" stroke-width="0.5" />
+                            <path d="M9 10H15M9 12H12" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                        </svg></span> Store Record Form
+                </a>
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/store/deliver_out_checklist.html', this)">
+                    <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <rect x="4" y="3" width="16" height="18" rx="2" fill="#F5F3FF" stroke="#6366F1"
+                                stroke-width="1.5" />
+                            <path d="M9 3H15" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 8H17M12 11H15" stroke="#818CF8" stroke-width="1.5" stroke-linecap="round" />
+                            <path d="M7 7.5L8.5 9L11 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round" />
-                        </svg>
-                    </span>
-                    Packing & Shipment <span class="arrow">▼</span>
-                </button>
-                <div class="dropdown-content">
-                    <!-- <a href="screen_page/packaging_checklist/packingList.html"
-                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
-                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <path d="M21 8L12 13L3 8L12 3L21 8Z" fill="#FDE68A" stroke="#B45309"
-                                    stroke-width="1.5" />
-                                <path d="M3 8V16L12 21V13L3 8Z" fill="#FBBF24" stroke="#B45309" stroke-width="1.5" />
-                                <path d="M12 21L21 16V8L12 13V21Z" fill="#F59E0B" stroke="#B45309" stroke-width="1.5" />
-                                <rect x="14" y="14" width="7" height="8" rx="1" fill="white" stroke="#0078D4"
-                                    stroke-width="1" />
-                                <path d="M16 17H19M16 19H18" stroke="#0078D4" stroke-width="1" stroke-linecap="round" />
-                            </svg></span> Packing List Form
-                    </a>
-                    <a href="screen_page/packaging_checklist/shipmentChecklist.html"
-                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
-                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <path d="M3 17H16V7H6C4.89543 7 4 7.89543 4 9V17H3" stroke="#0078D4" stroke-width="2"
-                                    stroke-linecap="round" />
-                                <path d="M16 17H21V12L18 9H16V17Z" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
-                                <circle cx="7" cy="18" r="2" fill="#334155" />
-                                <circle cx="18" cy="18" r="2" fill="#334155" />
-                                <path d="M7 11L9 13L13 9" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                            </svg></span> Shipment Checklist Form
-                    </a> -->
-                    <a href="screen_page/store/store_record.html"
-                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
-                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
-                                    fill="#F1F5F9" stroke="#64748B" stroke-width="1.5" />
-                                <rect x="7" y="7" width="10" height="12" fill="white" stroke="#E2E8F0"
-                                    stroke-width="0.5" />
-                                <rect x="9" y="2" width="6" height="4" rx="1" fill="#94A3B8" stroke="#475569"
-                                    stroke-width="1.5" />
-                                <rect x="10" y="13" width="4" height="3.5" rx="0.5" fill="#FBBF24" stroke="#B45309"
-                                    stroke-width="1" />
-                                <path d="M10 14.5H14" stroke="#B45309" stroke-width="0.5" />
-                                <path d="M9 10H15M9 12H12" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
-                            </svg></span> Store Record Form
-                    </a>
-                    <a href="screen_page/store/deliver_out_checklist.html"
-                        style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #334155; font-weight: 500; padding: 10px;">
-                        <span><svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <rect x="4" y="3" width="16" height="18" rx="2" fill="#F5F3FF" stroke="#6366F1"
-                                    stroke-width="1.5" />
-                                <path d="M9 3H15" stroke="#6366F1" stroke-width="2" stroke-linecap="round" />
-                                <path d="M12 8H17M12 11H15" stroke="#818CF8" stroke-width="1.5"
-                                    stroke-linecap="round" />
-                                <path d="M7 7.5L8.5 9L11 6.5" stroke="#10B981" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round" />
-                                <path d="M10 18.5L7 20L4 18.5V15.5L7 14L10 15.5V18.5Z" fill="#FBBF24" stroke="#B45309"
-                                    stroke-width="1" />
-                                <path d="M4 15.5L7 14L10 15.5L7 17L4 15.5Z" fill="#FDE68A" stroke="#B45309"
-                                    stroke-width="1" />
-                                <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
-                            </svg></span> Packaging Checklist Form
-                    </a>
-
-                </div>
+                            <path d="M10 18.5L7 20L4 18.5V15.5L7 14L10 15.5V18.5Z" fill="#FBBF24" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M4 15.5L7 14L10 15.5L7 17L4 15.5Z" fill="#FDE68A" stroke="#B45309"
+                                stroke-width="1" />
+                            <path d="M12 18H17" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" />
+                        </svg></span> Packaging Checklist Form
+                </a>
             </div>
 
-            <div class="dropdown">
-                <button class="dropbtn">
-                    <span class="icon-wrap">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                            <circle cx="9" cy="9" r="5" fill="#E0F2FE" stroke="#0078D4" stroke-width="2" />
-                            <circle cx="17" cy="17" r="3" fill="#F1F5F9" stroke="#64748B" stroke-width="2" />
-                            <path d="M9 2V4M9 14V16" stroke="#0078D4" stroke-width="2" />
-                        </svg>
-                    </span>
-                    Maintenance <span class="arrow">▼</span>
-                </button>
-                <div class="dropdown-content">
-                    <a href="screen_page/maintenance/preventive_maintenance.html"
-                        style="display: flex; align-items: center; gap: 12px; padding: 12px 15px; text-decoration: none; color: #475569; font-size: 14px;">
-                        <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22" stroke="#10B981"
-                                    stroke-width="2" stroke-linecap="round" />
-                                <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2" stroke="#E2E8F0"
-                                    stroke-width="2" stroke-dasharray="2 2" />
-                                <path
-                                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z"
-                                    fill="#FEF3C7" stroke="#D97706" stroke-width="1.5" />
-                            </svg></span> Preventive Maintenance
-                    </a>
-                </div>
+            <div class="nav-section-label">Maintenance</div>
+            <div class="dropdown-content" style="display:block;">
+                <a href="javascript:void(0)" onclick="loadInView('screen_page/maintenance/preventive_maintenance.html', this)">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22" stroke="#10B981"
+                                stroke-width="2" stroke-linecap="round" />
+                            <path d="M12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2" stroke="#E2E8F0"
+                                stroke-width="2" stroke-dasharray="2 2" />
+                            <path
+                                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.77 3.77z"
+                                fill="#FEF3C7" stroke="#D97706" stroke-width="1.5" />
+                        </svg></span> Preventive Maintenance
+                </a>
             </div>
         </nav>
         <div class="sidebar-footer">
@@ -943,9 +883,9 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <img src="assets/Famax Logo.png" alt="logo">
+                <a href="index.html" title="Home"><img src="assets/Famax Logo.png" alt="logo" style="cursor:pointer;"></a>
             </div>
-            <div class="header-title">IPQC DASHBOARD</div>
+            <div class="header-title" id="pageTitle">IPQC DASHBOARD</div>
         </header>
 
         <main class="main">
@@ -1199,7 +1139,40 @@
                 </div>
             </section>
         </main>
+        <iframe id="contentFrame" class="content-frame" title="Content"></iframe>
     </div>
+
+    <script>
+        // SPA-style in-frame navigation: sidebar stays, only the middle swaps.
+        function _frame() { return document.getElementById('contentFrame'); }
+        function _dash() { return document.querySelector('.content-wrapper main.main'); }
+        function _sizeFrame() {
+            const nav = document.querySelector('.content-wrapper .top-nav');
+            _frame().style.height = (window.innerHeight - (nav ? nav.offsetHeight : 64)) + 'px';
+        }
+        function _setActive(el) {
+            document.querySelectorAll('.nav-menu a').forEach(a => a.classList.remove('active'));
+            if (el) el.classList.add('active');
+        }
+        function _closeMobileSidebar() {
+            if (window.innerWidth <= 992) document.getElementById('closeSidebar')?.click();
+        }
+        function loadInView(url, el) {
+            _dash().style.display = 'none';
+            _frame().src = url;
+            _frame().style.display = 'block';
+            _sizeFrame();
+            _setActive(el);
+            // Reuse the Famax-logo header — just swap the wording to the page name.
+            const t = (el && el.textContent ? el.textContent.trim() : '').toUpperCase();
+            const title = document.getElementById('pageTitle');
+            if (title && t) title.textContent = t;
+            _closeMobileSidebar();
+        }
+        window.addEventListener('resize', () => {
+            if (_frame().style.display === 'block') _sizeFrame();
+        });
+    </script>
 
     <script src="/assets/app-config.js"></script>
     <script>
