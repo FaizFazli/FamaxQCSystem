@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Raw Material Request | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .spec-mini { font-size: var(--fs-xs); color: var(--text-muted); }
+        .msg { min-height: 1.1rem; font-weight: 700; font-size: var(--fs-sm); }
+        .issue-row { display: flex; gap: var(--space-2); align-items: center; }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">Raw Material Request</div>
+        <a href="/FamaxMES" class="btn btn--secondary">← MES</a>
+    </header>
+
+    <div id="app" class="container">
+        <div class="page-head">
+            <h1 class="page-head__title">Raw Material Requests</h1>
+            <p class="page-head__subtitle">Raise material requests against a sales order, then issue from store stock.</p>
+        </div>
+
+        <!-- Create requests from an SO -->
+        <div class="card" style="margin-bottom: var(--space-8)">
+            <div class="field" style="max-width:360px; margin-bottom: var(--space-4)">
+                <label class="label">Sales Order</label>
+                <select class="select" v-model="selectedSo" @change="loadItems">
+                    <option value="">Select an order…</option>
+                    <option v-for="so in orders" :key="so.id" :value="so.id">{{ so.so_number }} — {{ so.customer_name }} ({{ so.status }})</option>
+                </select>
+            </div>
+            <table class="table" v-if="soItems.length">
+                <thead><tr><th>Part</th><th>Material spec</th><th>Produce Qty</th><th>Request Qty</th></tr></thead>
+                <tbody>
+                    <tr v-for="(it, i) in soItems" :key="i">
+                        <td>{{ it.part_name || it.part_number }}</td>
+                        <td class="spec-mini">{{ it.spec || '— no spec on part —' }}</td>
+                        <td>{{ it.produce_qty }}</td>
+                        <td style="max-width:120px"><input class="input" type="number" min="0" v-model.number="it.qty_required"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button v-if="soItems.length" class="btn" style="margin-top: var(--space-4)" :disabled="busy" @click="createRequests">Create Requests</button>
+            <div class="msg" :style="{color: msgOk ? 'var(--success)' : 'var(--danger)'}">{{ msg }}</div>
+        </div>
+
+        <!-- Open requests -->
+        <div class="panel">
+            <div class="panel__head">
+                <h2 class="panel__title">Open requests ({{ requests.length }})</h2>
+                <button class="btn" @click="load">Refresh</button>
+            </div>
+            <table class="table">
+                <thead><tr><th>Request</th><th>S/O</th><th>Part</th><th>Material spec</th><th>Qty</th><th>Status</th><th>Issue from stock</th></tr></thead>
+                <tbody>
+                    <tr v-for="r in requests" :key="r.id">
+                        <td>{{ r.request_no }}</td>
+                        <td>{{ r.so_number }}</td>
+                        <td>{{ r.part_number }}</td>
+                        <td class="spec-mini">{{ [r.material_type, r.grade, r.size_dimensions].filter(Boolean).join(' · ') }}</td>
+                        <td>{{ r.qty_required }} {{ r.uom }}</td>
+                        <td><span class="badge" :class="r.status==='ISSUED' ? 'badge--success' : 'badge--warning'">{{ r.status }}</span></td>
+                        <td>
+                            <div v-if="r.status==='REQUESTED'" class="issue-row">
+                                <select class="select" v-model="issueChoice[r.id]" style="min-width:220px">
+                                    <option value="">Select stock…</option>
+                                    <option v-for="s in candidates(r)" :key="s.id" :value="s.id">
+                                        {{ [s.grade, s.size_dimensions].filter(Boolean).join(' ') }} — {{ s.qty_pcs }} pcs @ {{ s.area || '?' }}
+                                    </option>
+                                </select>
+                                <button class="btn" :disabled="busy || !issueChoice[r.id]" @click="issue(r)">Issue</button>
+                            </div>
+                            <span v-else class="spec-mini">Issued by {{ r.issued_by || '-' }}</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div v-if="!requests.length" class="empty-state">No open requests.</div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/FamaxMES/login.html';
+
+        const { createApp, ref } = Vue;
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: window.APP_CONFIG.url,
+                    headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}`, "Content-Type": "application/json" }
+                });
+
+                const orders = ref([]);
+                const parts = ref([]);
+                const stock = ref([]);
+                const requests = ref([]);
+                const selectedSo = ref('');
+                const soItems = ref([]);
+                const issueChoice = ref({});
+                const busy = ref(false);
+                const msg = ref(''); const msgOk = ref(false);
+
+                const norm = v => (v || '').toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+                async function load() {
+                    const [o, p, s, r] = await Promise.all([
+                        api.get('/rest/v1/SalesOrders?select=id,so_number,customer_name,status&order=created_at.desc'),
+                        api.get('/rest/v1/Parts?select=Part_Number,Part_Name,Raw_Material,Raw_Material_Grade,Raw_Material_Size'),
+                        api.get('/rest/v1/RawMaterialStock?select=id,material_type,grade,size_dimensions,qty_pcs,kg_per_pc,area'),
+                        api.get('/rest/v1/raw_material_requests?status=eq.REQUESTED&select=*&order=created_at.desc')
+                    ]);
+                    orders.value = o.data; parts.value = p.data; stock.value = s.data; requests.value = r.data;
+                }
+
+                function partSpec(pn) {
+                    const p = parts.value.find(x => x.Part_Number === pn) || {};
+                    return { material_type: p.Raw_Material || '', grade: p.Raw_Material_Grade || '', size: p.Raw_Material_Size || '',
+                        name: p.Part_Name || '', spec: [p.Raw_Material, p.Raw_Material_Grade, p.Raw_Material_Size].filter(Boolean).join(' · ') };
+                }
+
+                async function loadItems() {
+                    soItems.value = []; msg.value = '';
+                    if (!selectedSo.value) return;
+                    const it = await api.get(`/rest/v1/SalesOrder_Items?so_id=eq.${selectedSo.value}&select=*`);
+                    soItems.value = it.data.map(i => {
+                        const sp = partSpec(i.part_number);
+                        return { part_number: i.part_number, part_name: sp.name, spec: sp.spec,
+                            material_type: sp.material_type, grade: sp.grade, size: sp.size,
+                            produce_qty: i.produce_qty, qty_required: i.produce_qty };
+                    });
+                }
+
+                function todayDDMMYY() {
+                    const d = new Date();
+                    return String(d.getDate()).padStart(2, '0') + String(d.getMonth() + 1).padStart(2, '0') + String(d.getFullYear()).slice(-2);
+                }
+                async function nextReqBase() {
+                    const ddmmyy = todayDDMMYY(), prefix = `RMR/${ddmmyy}/`;
+                    const res = await api.get(`/rest/v1/raw_material_requests?request_no=like.${prefix}*&select=request_no`);
+                    let max = 0;
+                    (res.data || []).forEach(r => { const m = String(r.request_no || '').match(new RegExp('^RMR/' + ddmmyy + '/(\\d+)')); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+                    return { prefix, next: max + 1 };
+                }
+
+                async function createRequests() {
+                    busy.value = true; msg.value = '';
+                    try {
+                        const so = orders.value.find(o => o.id == selectedSo.value);
+                        const { prefix, next } = await nextReqBase();
+                        const rows = soItems.value.filter(i => i.qty_required > 0).map((i, idx) => ({
+                            request_no: prefix + String(next + idx).padStart(5, '0'),
+                            so_id: so.id, so_number: so.so_number, part_number: i.part_number,
+                            material_type: i.material_type, grade: i.grade, size_dimensions: i.size,
+                            qty_required: i.qty_required, uom: 'PCS', status: 'REQUESTED',
+                            requested_by: sessionStorage.getItem('userId'), created_at: new Date().toISOString()
+                        }));
+                        if (!rows.length) { msg.value = 'Nothing to request.'; msgOk.value = false; return; }
+                        await api.post('/rest/v1/raw_material_requests', rows);
+                        msgOk.value = true; msg.value = `${rows.length} request(s) created.`;
+                        selectedSo.value = ''; soItems.value = [];
+                        await load();
+                    } catch (e) { msgOk.value = false; msg.value = 'Failed: ' + (e.response?.data?.message || e.message); }
+                    finally { busy.value = false; }
+                }
+
+                function candidates(r) {
+                    const g = norm(r.grade), sz = norm(r.size_dimensions), mt = norm(r.material_type);
+                    return stock.value.filter(s => {
+                        if (!(Number(s.qty_pcs) > 0)) return false;
+                        const sg = norm(s.grade), ss = norm(s.size_dimensions), sm = norm(s.material_type);
+                        const gradeOk = g ? (sg.includes(g) || g.includes(sg)) : true;
+                        const sizeOk = sz ? (ss.includes(sz) || sz.includes(ss)) : true;
+                        const matOk = mt ? (sm.includes(mt) || mt.includes(sm)) : true;
+                        return (g || sz) ? (gradeOk && sizeOk) : matOk;
+                    });
+                }
+
+                async function issue(r) {
+                    busy.value = true; msg.value = '';
+                    try {
+                        const sid = issueChoice.value[r.id];
+                        const s = stock.value.find(x => x.id == sid);
+                        if (!s) { msg.value = 'Pick a stock row.'; msgOk.value = false; return; }
+                        const qty = Number(r.qty_required) || 0;
+                        const newQty = (Number(s.qty_pcs) || 0) - qty;
+                        // 1) movement OUT (reuse RawMaterialMovement schema)
+                        await api.post('/rest/v1/RawMaterialMovement', {
+                            material_id: s.id, move_type: 'OUT', qty_change: qty,
+                            weight_change: qty * (Number(s.kg_per_pc) || 0),
+                            ref_no: r.so_number, reason: `Issued for ${r.so_number} / ${r.part_number}`,
+                            created_at: new Date().toISOString()
+                        });
+                        // 2) decrement stock
+                        await api.patch(`/rest/v1/RawMaterialStock?id=eq.${s.id}`, { qty_pcs: newQty });
+                        // 3) mark request issued
+                        await api.patch(`/rest/v1/raw_material_requests?id=eq.${r.id}`,
+                            { status: 'ISSUED', issued_by: sessionStorage.getItem('userId') });
+                        msgOk.value = true; msg.value = `Issued ${qty} pcs for ${r.request_no}.`;
+                        await load();
+                    } catch (e) { msgOk.value = false; msg.value = 'Issue failed: ' + (e.response?.data?.message || e.message); }
+                    finally { busy.value = false; }
+                }
+
+                load();
+                return { orders, requests, selectedSo, soItems, issueChoice, busy, msg, msgOk, load, loadItems, createRequests, candidates, issue };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

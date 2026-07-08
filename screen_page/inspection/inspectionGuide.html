@@ -5,10 +5,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Guide Setup | Quality Hub</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
     <script src="/assets/app-config.js"></script>
@@ -18,43 +18,42 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
-            color: #1a1a1a;
-            padding: 2rem;
-            background-image: radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 25%), radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 25%);
+            font-family: var(--font-sans);
+            padding: var(--space-8);
             text-transform: uppercase;
         }
 
-        input {
-            text-transform: uppercase;
-        }
+        /* Behaviour parity: JS also uppercases via @input; keep CSS for instant paint */
+        input { text-transform: uppercase; }
 
-        [v-cloak] {
-            display: none;
-        }
+        [v-cloak] { display: none; }
 
+        /* Top app bar — uses .panel surface with the amber accent rail */
         .app-header {
-            background: #ffffff;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            border-radius: 2.5rem;
-            padding: 2rem;
-            margin-bottom: 2.5rem;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-6) var(--space-8);
+            margin-bottom: var(--space-8);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
         }
 
         .header-accent-bar {
-            width: 0.75rem;
-            height: 2.5rem;
-            background-color: #fbbf24;
-            border-radius: 9999px;
-            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);
+            width: var(--space-3);
+            height: 40px;
+            background-color: var(--primary);
+            border-radius: var(--radius-full);
+            box-shadow: 0 4px 10px var(--primary-ring);
         }
 
         .header-title {
@@ -65,84 +64,98 @@
             font-style: italic;
         }
 
+        /* Content section — maps onto the shared .panel pattern */
         .inspection-card {
-            background: #ffffff;
-            border-radius: 2.5rem;
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            margin-bottom: 2.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-8);
             overflow: hidden;
         }
 
         .card-header {
-            padding: 1.5rem 2.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            background-color: #fafafa;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-5) var(--space-8);
+            background-color: var(--surface-muted);
+            border-bottom: 1px solid var(--border);
         }
 
         .section-label {
-            font-size: 0.7rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #6b7280;
-            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+            font-size: var(--fs-xs);
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
         }
 
+        /* Form field — themed input with the local amber focus ring */
         .form-input {
             width: 100%;
             height: 3.5rem;
-            padding: 0 1.5rem;
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 1rem;
+            padding: 0 var(--space-5);
             font-weight: 600;
-            transition: all 0.2s;
+            color: var(--text-main);
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius);
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
 
         .form-input:focus {
             outline: none;
-            border-color: #fbbf24;
-            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
+        /* Primary action — variant of the shared .btn */
         .btn-submit {
-            background-color: #fbbf24;
-            color: black;
-            border-radius: 1.5rem;
-            padding: 1rem 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4) var(--space-8);
+            font-family: inherit;
             font-weight: 900;
-            text-transform: uppercase;
             letter-spacing: 0.05em;
-            transition: all 0.2s;
-            box-shadow: 0 10px 20px rgba(251, 191, 36, 0.2);
+            text-transform: uppercase;
+            color: var(--on-primary);
+            background-color: var(--primary);
+            border: 1px solid transparent;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            box-shadow: 0 10px 20px var(--primary-soft);
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
         }
+        .btn-submit:hover { background-color: var(--primary-hover); }
+        .btn-submit:active { transform: translateY(1px); }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .step-row {
-            background: #f9fafb;
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid rgba(0, 0, 0, 0.02);
+            padding: var(--space-5);
+            margin-bottom: var(--space-4);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
         }
 
         .card-id-badge {
-            width: 2rem;
-            height: 2rem;
-            background: #fbbf24;
-            color: #000;
-            border-radius: 0.5rem;
+            width: var(--space-8);
+            height: var(--space-8);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: var(--fs-sm);
             font-weight: 900;
-            font-size: 0.8rem;
+            color: var(--on-primary);
+            background: var(--primary);
+            border-radius: var(--radius-sm);
         }
     </style>
 </head>
@@ -154,7 +167,7 @@
         <header class="app-header">
             <div class="flex items-center gap-4">
                 <div class="header-accent-bar"></div>
-                <h1 class="header-title">Master <span class="text-yellow-500">Guide Setup</span></h1>
+                <h1 class="header-title">Master <span style="color: var(--primary);">Guide Setup</span></h1>
             </div>
             <button @click="submitAll" :disabled="isSubmitting" class="btn-submit">
                 <i class="fa fa-save mr-2"></i> {{ isSubmitting ? 'Processing...' : 'Save Guide' }}
@@ -165,7 +178,7 @@
         <div class="inspection-card">
             <div class="card-header">
                 <h2 class="font-black uppercase text-xl italic tracking-tighter">
-                    <span class="text-yellow-500">Guide</span> <span class="text-black">Definition</span>
+                    <span style="color: var(--primary);">Guide</span> <span style="color: var(--text-main);">Definition</span>
                 </h2>
             </div>
             <div class="p-10">
@@ -189,9 +202,9 @@
         <div class="inspection-card">
             <div class="card-header">
                 <h2 class="font-black uppercase text-xl italic tracking-tighter">
-                    <span class="text-yellow-500">Inspection</span> <span class="text-black">Steps</span>
+                    <span style="color: var(--primary);">Inspection</span> <span style="color: var(--text-main);">Steps</span>
                 </h2>
-                <button @click="addStep" class="text-yellow-600 font-bold hover:underline">
+                <button @click="addStep" class="font-bold hover:underline" style="color: var(--primary); background: none; border: none; cursor: pointer;">
                     <i class="fa fa-plus-circle"></i> ADD STEP
                 </button>
             </div>
@@ -282,6 +295,9 @@
                 const addStep = () => steps.value.push({ parameter: '', details: '', cycle: '0.00' });
                 const removeStep = (idx) => steps.value.splice(idx, 1);
                 const submitAll = async () => {
+                    // Guard against double-click / re-entry creating duplicate rows.
+                    if (isSubmitting.value) return;
+
                     // 1. Validation
                     if (!master.value.part_no || !master.value.process) {
                         return Toastify({
@@ -311,8 +327,9 @@
 
                             // Check if this parameter already exists in our existingParams list
                             // We find by Parameter name (case insensitive)
+                            // Trim BOTH sides so "HARDNESS " matches "HARDNESS" (avoids duplicate params).
                             let match = existingParams.value.find(p =>
-                                p.Parameter && p.Parameter.toUpperCase() === paramUpper
+                                p.Parameter && p.Parameter.trim().toUpperCase() === paramUpper
                             );
 
                             let targetId;
@@ -320,45 +337,53 @@
                             if (match) {
                                 // PARAMETER EXISTS: Use the existing ID
                                 targetId = match.id;
-                                console.log(`Using existing parameter: ${paramUpper} (ID: ${targetId})`);
                             } else {
                                 // PARAMETER IS NEW: Create it in the InspectionGuide table
-                                console.log(`Creating new parameter: ${paramUpper}`);
-                                const createRes = await api.post('/InspectionGuide',
-                                    {
-                                        Parameter: paramUpper,
-                                        Details: detailsUpper
-                                    },
-                                    { headers: { 'Prefer': 'return=representation' } }
-                                );
-
-                                // Get the ID of the newly created record
-                                targetId = createRes.data[0].id;
-
-                                // IMPORTANT: Add the new parameter to existingParams locally
-                                // This prevents creating it again if the user used the same name in another step
-                                existingParams.value.push({
-                                    id: targetId,
-                                    Parameter: paramUpper
-                                });
+                                try {
+                                    const createRes = await api.post('/InspectionGuide',
+                                        { Parameter: paramUpper, Details: detailsUpper },
+                                        { headers: { 'Prefer': 'return=representation' } }
+                                    );
+                                    targetId = createRes.data[0].id;
+                                } catch (e) {
+                                    // Race / unique-index conflict: another insert won — re-fetch and reuse it.
+                                    const again = await api.get(`/InspectionGuide?select=id,Parameter&Parameter=eq.${encodeURIComponent(paramUpper)}`);
+                                    if (again.data && again.data.length) targetId = again.data[0].id;
+                                    else throw e;
+                                }
+                                // Cache locally so the same name in another step doesn't create it again.
+                                existingParams.value.push({ id: targetId, Parameter: paramUpper });
                             }
 
                             inspection_ids.push(String(targetId));
                             cycle_times.push(String(s.cycle || 0));
                         }
 
-                        // 3. Save to InspectionGuideDetails
-                        // Note: PostgREST/Supabase expects array format for 'text[]' or 'int[]' columns: {val1,val2}
-                        // If your database columns are JSON or simple text, adjust accordingly.
-                        await api.post('/InspectionGuideDetails', {
-                            part_no: master.value.part_no.toUpperCase(),
-                            process: master.value.process.toUpperCase(),
-                            inspection_ids: inspection_ids, // Sending as array
-                            cycle_times: cycle_times        // Sending as array
-                        });
+                        // 3. Save to InspectionGuideDetails — UPSERT by part_no + process so we never
+                        //    create a second row for the same guide (re-save updates in place).
+                        const partNoUpper = master.value.part_no.trim().toUpperCase();
+                        const processUpper = master.value.process.trim().toUpperCase();
+                        const { data: existingGuide } = await api.get(
+                            `/InspectionGuideDetails?select=id&part_no=eq.${encodeURIComponent(partNoUpper)}&process=eq.${encodeURIComponent(processUpper)}`
+                        );
+
+                        const wasUpdate = existingGuide.length > 0;
+                        if (wasUpdate) {
+                            await api.patch(`/InspectionGuideDetails?id=eq.${existingGuide[0].id}`, {
+                                inspection_ids: inspection_ids,
+                                cycle_times: cycle_times
+                            });
+                        } else {
+                            await api.post('/InspectionGuideDetails', {
+                                part_no: partNoUpper,
+                                process: processUpper,
+                                inspection_ids: inspection_ids,
+                                cycle_times: cycle_times
+                            });
+                        }
 
                         Toastify({
-                            text: "SUCCESS: MASTER GUIDE CREATED",
+                            text: wasUpdate ? "UPDATED EXISTING GUIDE FOR THIS PART / PROCESS" : "SUCCESS: MASTER GUIDE CREATED",
                             style: { background: "#fbbf24", color: "#000" }
                         }).showToast();
 
@@ -387,6 +412,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

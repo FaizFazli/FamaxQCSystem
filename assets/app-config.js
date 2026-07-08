@@ -1,11 +1,11 @@
 // Single source of truth for the frontend's backend connection.
 // To move the app to a new machine, change ONLY the IP on the next two lines.
 (function () {
-  var IP = "192.168.2.196";
+  var IP = "192.168.2.195";
 
   window.APP_CONFIG = {
     // Supabase REST/storage base (port 8000)
-    url: "http://" + IP + ":8000",
+    url: "http://" + "192.168.2.195" + ":8000",
     // App/static host base (port 80) — used for /FamaxQCSystem/... endpoints
     host: "http://" + IP,
     // Public Supabase anon key (same across environments)

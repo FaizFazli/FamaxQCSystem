@@ -10,7 +10,7 @@
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
 
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <!-- Scripts & Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
@@ -22,537 +22,217 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        :root {
-            --primary: #0078d4;
-            --bg-body: #f3f4f6;
-            --bg-card: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --sidebar-width: 300px;
-        }
+        /* ===== index.html — IPQC Dashboard (built on shared tokens) ===== */
+        :root { --sidebar-width: 272px; }
 
         body {
-            font-family: "Inter", sans-serif;
+            margin: 0;
+            font-family: var(--font-sans);
             background: var(--bg-body);
             color: var(--text-main);
-            margin: 0;
-            display: flex;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        /* --- SIDEBAR --- */
+        /* ---------- SIDEBAR ---------- */
         .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: var(--bg-card);
             position: fixed;
-            left: 0;
-            top: 0;
-            z-index: 1200;
-            transition: all 0.3s ease;
-            border-right: 1px solid #e5e7eb;
+            inset: 0 auto 0 0;
+            width: var(--sidebar-width);
             display: flex;
             flex-direction: column;
-            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+            background:
+                linear-gradient(180deg, rgba(0, 120, 212, 0.04) 0, transparent 180px),
+                var(--bg-card);
+            border-right: 1px solid var(--border);
+            box-shadow: 2px 0 24px rgba(15, 23, 42, 0.05);
+            z-index: 1200;
+            transition: left 0.3s ease;
         }
 
-        .sidebar.collapsed {
-            left: calc(var(--sidebar-width) * -1);
-        }
+        .sidebar.collapsed { left: calc(var(--sidebar-width) * -1); }
 
         .sidebar-header {
-            padding: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #f3f4f6;
+            padding: var(--space-5);
+            border-bottom: 1px solid var(--border);
         }
+        .sb-brand { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+        .sb-brand img { height: 36px; width: auto; }
+        .sb-brand__text { display: flex; flex-direction: column; line-height: 1.1; }
+        .sb-brand__name { font-size: var(--fs-sm); font-weight: 800; color: var(--text-main); letter-spacing: -0.2px; }
+        .sb-brand__tag { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
 
-        .sidebar-header img {
-            height: 40px;
-            width: auto;
+        .nav-section-label {
+            padding: var(--space-5) var(--space-4) var(--space-2);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-faint);
         }
 
         .nav-menu {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 0 var(--space-3) var(--space-4);
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 3px;
             scrollbar-width: none;
-            -ms-overflow-style: none;
         }
-
-        .nav-menu::-webkit-scrollbar {
-            display: none;
-        }
+        .nav-menu::-webkit-scrollbar { display: none; }
 
         .nav-link,
         .dropbtn {
+            position: relative;
             width: 100%;
-            text-decoration: none;
-            color: #1f2937;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 12px 16px;
-            border-radius: 8px;
-            transition: all 0.2s;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-3);
+            padding: 10px var(--space-3);
             border: none;
             background: transparent;
-            cursor: pointer;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: var(--fs-base);
+            font-weight: 600;
+            color: var(--text-muted);
             text-align: left;
-            box-sizing: border-box;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
         }
-
+        /* Animated active accent bar */
+        .nav-link::before,
+        .dropbtn::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) scaleY(0);
+            width: 3px;
+            height: 60%;
+            border-radius: 0 3px 3px 0;
+            background: var(--primary);
+            transition: transform var(--transition);
+        }
         .nav-link:hover,
-        .dropbtn:hover {
-            background: #f0f7ff;
-            color: var(--primary);
-        }
+        .dropbtn:hover { background: var(--primary-soft); color: var(--primary); }
+        .nav-link:hover::before,
+        .dropbtn:hover::before,
+        .dropdown.is-active > .dropbtn::before { transform: translateY(-50%) scaleY(1); }
+        .dropdown.is-active > .dropbtn { color: var(--primary); }
 
+        /* Icon chip */
         .icon-wrap {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 24px;
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            font-size: 15px;
             flex-shrink: 0;
+            transition: background var(--transition);
         }
+        .nav-link:hover .icon-wrap,
+        .dropbtn:hover .icon-wrap,
+        .dropdown.is-active > .dropbtn .icon-wrap { background: rgba(0, 120, 212, 0.14); }
 
-        .arrow {
-            font-size: 10px;
-            color: #94a3b8;
-            transition: transform 0.3s;
-            margin-left: auto;
-        }
-
+        .arrow { margin-left: auto; font-size: 10px; color: var(--text-faint); transition: transform 0.3s; }
         .dropdown-content {
             display: none;
-            padding-left: 10px;
-            margin-top: 2px;
+            margin: 2px 0 4px;
+            padding-left: 38px;
+            border-left: 1px solid var(--border);
+            margin-left: var(--space-4);
         }
-
-        .dropdown.is-active .dropdown-content {
-            display: block;
-        }
-
-        .dropdown.is-active .arrow {
-            transform: rotate(180deg);
-        }
-
+        .dropdown.is-active .dropdown-content { display: block; }
+        .dropdown.is-active .arrow { transform: rotate(180deg); }
         .dropdown-content a {
-            padding: 10px 15px;
-            font-size: 14px;
-            color: #475569;
+            padding: var(--space-2) var(--space-3);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 12px;
-            border-radius: 8px;
+            gap: var(--space-3);
+            border-radius: var(--radius-sm);
             font-weight: 500;
         }
+        .dropdown-content a:hover { background: var(--surface-muted); color: var(--text-main); }
 
-        .sidebar-footer {
-            padding: 20px;
-            border-top: 1px solid #f3f4f6;
-        }
-
+        .sidebar-footer { padding: var(--space-4); border-top: 1px solid var(--border); }
         .admin-btn {
-            border: 1px solid #e5e7eb;
-            background: transparent;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-muted);
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            padding: 12px var(--space-4);
+            border: none;
+            background: linear-gradient(135deg, var(--primary), #0a5fa0);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-weight: 700;
+            color: var(--on-primary);
+            cursor: pointer;
+            box-shadow: 0 6px 14px -4px rgba(0, 120, 212, 0.5);
+            transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
         }
+        .admin-btn:hover { filter: brightness(1.05); transform: translateY(-1px); box-shadow: 0 10px 18px -5px rgba(0, 120, 212, 0.55); }
+        .admin-btn:active { transform: translateY(0); }
 
-        /* --- CONTENT WRAPPER FIX --- */
+        .close-sidebar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--text-faint);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .close-sidebar-btn:hover { background: #fee2e2; color: var(--danger); }
+
+        /* ---------- CONTENT SHELL ---------- */
         .content-wrapper {
-            flex: 1;
             margin-left: var(--sidebar-width);
-            transition: all 0.3s ease;
             min-width: 0;
             display: flex;
             flex-direction: column;
+            transition: margin-left 0.3s ease;
         }
-
-        .content-wrapper.expanded {
-            margin-left: 0;
-        }
+        .content-wrapper.expanded { margin-left: 0; }
 
         .top-nav {
             position: sticky;
             top: 0;
-            background: white;
-            padding: 0 15px;
-            /* Reduced padding for mobile */
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            z-index: var(--z-header);
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: var(--space-4);
             height: 60px;
-            /* Fixed height for consistency */
-            box-sizing: border-box;
-        }
-
-        .nav-logo-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            /* Space between button and logo */
-            flex-shrink: 0;
-            /* Prevents the logo/button from squishing */
-        }
-
-        /* Ensure the logo image doesn't jump around */
-        .nav-logo-group img {
-            height: 30px !important;
-            /* Smaller logo for mobile header */
-            width: auto !important;
-            display: block;
-        }
-
-
-
-        /* --- RESTORED MODAL CSS --- */
-        .modal {
-
-            border-radius: var(--radius);
-            padding: 30px;
-            max-width: 400px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .modal h2 {
-            margin-top: 0;
-            color: var(--text-main);
-            font-size: 20px;
-            margin-bottom: 20px;
-        }
-
-        
-
-        .modal h2 {
-            margin-top: 0;
-            color: var(--text-main);
-            font-size: 20px;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-muted);
-            font-size: 13px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-login {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-login:hover {
-            background: #0060aa;
-        }
-
-        /* --- QUICK NAV SMALLER FIX --- */
-        .main {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 20px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .quick-nav {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 10px;
-            margin-bottom: 30px;
-            overflow-x: auto;
-            padding-bottom: 5px;
-        }
-
-        .nav-card {
-            flex: 1;
-            min-width: 120px;
-            max-width: 300px;
+            padding: 0 var(--space-6);
             background: var(--bg-card);
-            padding: 12px 10px;
-            border-radius: var(--radius);
-            text-align: center;
-            box-shadow: var(--shadow);
-            cursor: pointer;
-            border: 1px solid #e5e7eb;
-            white-space: nowrap;
-            transition: all 0.2s;
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
+        .nav-logo-group { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+        .nav-logo-group img { height: 28px; width: auto; display: block; }
 
-        .nav-card h3 {
-            margin: 5px 0 2px;
-            font-size: 14px;
-        }
-
-        .nav-card p {
-            margin: 0;
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .buyoff {
-            border-bottom: 4px solid #8b5cf6;
-        }
-
-        .ipqc {
-            border-bottom: 4px solid #0078d4;
-        }
-
-        /* KPI & CHARTS */
-        .tab-container {
-            background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .tabs {
-            display: flex;
-            gap: 20px;
-            border-bottom: 2px solid #e5e7eb;
-            margin-bottom: 20px;
-        }
-
-        .tab-btn {
-            padding: 10px 20px;
-            border: none;
-            background: none;
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            position: relative;
-            top: 2px;
-        }
-
-        .tab-btn.active {
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .filter-group label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        select,
-        input[type="date"] {
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-            min-width: 150px;
-        }
-
-        .kpi-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .kpi-card {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-        }
-
-        .kpi-val {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .ok-color {
-            color: var(--success);
-        }
-
-        .ng-color {
-            color: var(--danger);
-        }
-
-        .canvas-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-
-        /* TOOLTIP CSS */
-        #chartjs-tooltip {
-            opacity: 0;
-            position: absolute;
-            background: rgba(255, 255, 255, 0.98);
-            color: #1f2937;
-            border-radius: 12px;
-            padding: 15px;
-            pointer-events: auto;
-            transition: all 0.2s ease;
-            z-index: 3000;
-            min-width: 240px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e5e7eb;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .tooltip-title {
-            font-weight: 700;
-            font-size: 15px;
-            margin-bottom: 8px;
-            color: var(--primary);
-            border-bottom: 1px solid #f3f4f6;
-            padding-bottom: 5px;
-        }
-
-        .process-item {
-            font-weight: 600;
-            color: #ef4444;
-            margin-top: 10px;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .date-group {
-            margin-top: 8px;
-            background: #f8fafc;
-            padding: 8px;
-            border-radius: 6px;
-        }
-
-        .date-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-
-        .date-header {
-            font-size: 11px;
-            font-weight: 700;
-            color: #64748b;
-        }
-
-        .time-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-
-        .time-tag {
-            background: #e2e8f0;
-            color: #475569;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-        }
-
-        .btn-tooltip-download {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 10px;
-            font-weight: 600;
-        }
-
-        #loader {
-            position: fixed;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.9);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* --- MODERN SIDEBAR TOGGLE BUTTON --- */
-        /* Updated Menu Button Design */
         .menu-btn {
             display: flex;
             align-items: center;
@@ -560,202 +240,451 @@
             width: 38px;
             height: 38px;
             border: none;
-            border-radius: 8px;
-            background: #f8fafc;
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
             color: #475569;
             cursor: pointer;
-            transition: all 0.2s;
-            padding: 0;
+            transition: background var(--transition), color var(--transition);
             flex-shrink: 0;
         }
+        .menu-btn:hover { background: var(--border); color: var(--primary); }
+        .menu-btn:active { transform: scale(0.94); }
 
-        .menu-btn:hover {
-            background: #e2e8f0;
-            color: #0078d4;
-        }
-
-        /* Responsive Dashboard Title */
         .header-title {
-            font-size: 13px;
+            font-size: var(--fs-sm);
             font-weight: 700;
-            color: #64748b;
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             white-space: nowrap;
-            /* Keeps title on one line */
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-left: 10px;
         }
 
-        .menu-btn:active {
-            transform: scale(0.92);
-            /* Subtle click animation */
+        /* ---------- MAIN ---------- */
+        .main {
+            width: 100%;
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: var(--space-8) var(--space-6) var(--space-10);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-8);
         }
 
-        /* Style for the 'X' button inside the sidebar */
-        .close-sidebar-btn {
+        /* Hero banner */
+        .hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-xl);
+            padding: var(--space-8);
+            color: #fff;
+            background: linear-gradient(120deg, #0a4f7a 0%, var(--primary) 55%, #2b9be8 100%);
+            box-shadow: var(--shadow);
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            right: -60px;
+            top: -60px;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
+        }
+        .hero__eyebrow {
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            opacity: 0.85;
+            margin: 0 0 var(--space-2);
+        }
+        .hero__title {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.6px;
+            line-height: 1.15;
+        }
+        .hero__subtitle {
+            margin: var(--space-3) 0 0;
+            max-width: 560px;
+            font-size: var(--fs-md);
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        /* Section heading */
+        .section-title {
+            margin: 0 0 calc(var(--space-4) * -1 + var(--space-4));
+            font-size: var(--fs-md);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--space-4); }
+        .section-head p { margin: 4px 0 0; font-size: var(--fs-sm); color: var(--text-muted); }
+        .section-head h2 { margin: 0; font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.3px; }
+
+        /* Quick action cards */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: var(--space-5);
+        }
+        .nav-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-5);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform var(--transition-emphasis), box-shadow var(--transition-emphasis), border-color var(--transition-emphasis);
+        }
+        .nav-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 4px;
+            background: var(--primary);
+            transform: scaleY(0);
+            transform-origin: bottom;
+            transition: transform var(--transition-emphasis);
+        }
+        .nav-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-strong); }
+        .nav-card:hover::before { transform: scaleY(1); }
+        .nav-card .ac-icon {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            width: 46px;
+            height: 46px;
+            border-radius: var(--radius);
+            flex-shrink: 0;
+            background: var(--primary-soft);
+            color: var(--primary);
+        }
+        .nav-card.buyoff .ac-icon { background: #f3e8ff; color: #7e22ce; }
+        .nav-card.iqc .ac-icon { background: var(--surface-muted); color: var(--text-faint); }
+        .nav-card.oqc .ac-icon { background: var(--surface-muted); color: var(--text-faint); }
+        .nav-card h3 { margin: 0 0 2px; font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .nav-card p { margin: 0; font-size: var(--fs-sm); color: var(--text-muted); }
+
+        /* Analytics panel */
+        .tab-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: var(--space-6);
+        }
+        .tabs {
+            display: flex;
+            gap: var(--space-2);
+            border-bottom: 1px solid var(--border);
+            margin-bottom: var(--space-5);
+        }
+        .tab-btn {
+            padding: var(--space-3) var(--space-4);
             border: none;
-            background: transparent;
-            color: #94a3b8;
+            background: none;
+            font-family: inherit;
+            font-size: var(--fs-base);
+            font-weight: 600;
+            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.2s;
+            position: relative;
+            top: 1px;
+            border-bottom: 2px solid transparent;
+            transition: color var(--transition), border-color var(--transition);
+        }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-5);
+            align-items: flex-end;
+            margin-bottom: var(--space-6);
+            padding: var(--space-5);
+            background: linear-gradient(180deg, var(--surface-muted), var(--bg-card));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label {
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .close-sidebar-btn:hover {
-            background: #fee2e2;
-            color: #ef4444;
+        /* Icon-prefixed control wrapper */
+        .ctrl { position: relative; display: flex; align-items: center; }
+        .ctrl > svg {
+            position: absolute;
+            left: 12px;
+            width: 16px;
+            height: 16px;
+            color: var(--text-faint);
+            pointer-events: none;
+            transition: color var(--transition);
+            z-index: 1;
         }
+        .ctrl:focus-within > svg { color: var(--primary); }
 
-        /* Align the logo and button perfectly */
-        .nav-logo-group img {
-            height: 32px;
-            /* Adjust to match the 40px button height visually */
+        .ctrl select,
+        .ctrl input[type="date"] {
+            width: 100%;
+            min-width: 180px;
+            height: 44px;
+            padding: 0 var(--space-4) 0 38px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            font-family: inherit;
+            font-size: var(--fs-base);
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+        }
+        .ctrl select {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        .ctrl select:hover,
+        .ctrl input[type="date"]:hover { border-color: var(--primary); }
+        .ctrl select:focus,
+        .ctrl input[type="date"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+        .ctrl input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        .btn-refresh {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            height: 42px;
+            padding: 0 var(--space-5);
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--primary);
+            color: var(--on-primary);
+            font-family: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .btn-refresh:hover { background: var(--primary-hover); }
+
+        /* KPI stat cards */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--space-5);
+            margin-bottom: var(--space-8);
+        }
+        .kpi-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+            padding: var(--space-5);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+        }
+        .kpi-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius);
+            flex-shrink: 0;
+        }
+        .kpi-icon.i-total { background: var(--primary-soft); color: var(--primary); }
+        .kpi-icon.i-ok { background: #dcfce7; color: #15803d; }
+        .kpi-icon.i-ng { background: #fee2e2; color: #b91c1c; }
+        .kpi-icon.i-rate { background: #fef3c7; color: #b45309; }
+        .kpi-meta { display: flex; flex-direction: column; min-width: 0; }
+        .kpi-val { font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--text-main); letter-spacing: -0.5px; }
+        .kpi-meta > div:last-child { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 500; }
+        .ok-color { color: var(--success); }
+        .ng-color { color: var(--danger); }
+
+        /* Chart panels */
+        .chart-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-6); }
+        .chart-box {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            background: var(--bg-card);
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow var(--transition), border-color var(--transition);
+        }
+        .chart-box:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+
+        .chart-box__head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--space-4);
+            flex-wrap: wrap;
+            padding-bottom: var(--space-4);
+            margin-bottom: var(--space-5);
+            border-bottom: 1px solid var(--border);
+        }
+        .chart-box__head h3 {
+            margin: 0;
+            font-size: var(--fs-md);
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        .chart-box__sub { display: block; margin-top: 3px; font-size: var(--fs-sm); color: var(--text-muted); font-weight: 500; }
+        .chart-box__head svg { color: var(--primary); }
+
+        /* Legend chips */
+        .chart-legend { display: flex; align-items: center; gap: var(--space-3); }
+        .lg { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
+        .lg::before { content: ""; width: 9px; height: 9px; border-radius: 50%; }
+        .lg--ok::before { background: var(--success); }
+        .lg--ng::before { background: var(--danger); }
+        .lg--total::before { background: #94a3b8; }
+        .lg--yield::before { background: var(--primary); }
+
+        /* Compact in-header select */
+        .chart-select {
+            min-width: 0;
             width: auto;
+            padding: 8px var(--space-3);
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-strong);
+            background: var(--surface-muted);
+            cursor: pointer;
         }
 
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+        .canvas-container { position: relative; height: 320px; width: 100%; min-width: 0; }
+        .canvas-container canvas { max-width: 100% !important; display: block; }
+        /* Let flex/grid descendants shrink so charts never force horizontal overflow */
+        .main, .tab-container, .chart-grid, .chart-box { min-width: 0; }
 
+        /* ---------- LOGIN MODAL ---------- */
+        .modal { border-radius: var(--radius-lg); padding: var(--space-8); max-width: 400px; box-shadow: var(--shadow-lg); }
+        .modal h2 { margin: 0 0 var(--space-5); color: var(--text-main); font-size: var(--fs-lg); }
+        .form-group { margin-bottom: var(--space-5); }
+        .form-group label { display: block; margin-bottom: var(--space-2); font-weight: 600; color: var(--text-muted); font-size: var(--fs-sm); }
+        .form-group input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: var(--space-3);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-base);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+        .modal-buttons { display: flex; gap: var(--space-2); margin-top: var(--space-6); }
+        .btn { flex: 1; padding: var(--space-3); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 700; font-family: inherit; }
+        .btn-login { background: var(--primary); color: var(--on-primary); }
+        .btn-login:hover { background: var(--primary-hover); }
+
+        /* ---------- LOADER / SPINNER ---------- */
+        #loader {
+            position: fixed;
+            inset: 0;
+            background: rgba(248, 250, 252, 0.92);
+            z-index: var(--z-modal);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--surface-muted);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------- SIDEBAR OVERLAY ---------- */
         .sidebar-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(15, 23, 42, 0.45);
             z-index: 1100;
         }
+        .sidebar-overlay.active { display: block; }
 
-        .sidebar-overlay.active {
-            display: block;
+        /* ---------- CHART TOOLTIP (injected by JS — do not rename) ---------- */
+        #chartjs-tooltip {
+            opacity: 0;
+            position: absolute;
+            background: rgba(255, 255, 255, 0.98);
+            color: var(--text-main);
+            border-radius: var(--radius);
+            padding: var(--space-4);
+            pointer-events: auto;
+            transition: opacity 0.2s ease;
+            z-index: 3000;
+            min-width: 240px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            font-family: var(--font-sans);
         }
-
-        @media (min-width: 1101px) {
-            #sidebar:not(.collapsed)+#contentWrapper .top-nav {
-                display: none;
-            }
-
-            #sidebar.collapsed+#contentWrapper .top-nav {
-                display: flex;
-            }
-
-            /* 1. Fix KPI Cards: Change from 4 columns to 2 columns */
-            .kpi-row {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-
-            .kpi-val {
-                font-size: 22px;
-                /* Slightly smaller text for mobile */
-            }
-
-            /* 2. Fix Toolbar/Filters: Allow inputs to wrap and take full width */
-            .toolbar {
-                gap: 10px;
-            }
-
-            .filter-group {
-                width: 100%;
-                /* Each filter takes its own line on very small screens */
-                flex: 1 1 100%;
-            }
-
-            /* Remove fixed min-width that causes the Part Name overflow */
-            select,
-            input[type="date"] {
-                min-width: 0 !important;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* 3. Adjust Tab Container padding for more space */
-            .tab-container {
-                padding: 15px;
-            }
-
-            /* 4. Refresh Button: Make it full width on mobile */
-            .toolbar button.admin-btn {
-                width: 100%;
-                margin-left: 0;
-            }
-
-            .nav-card {
-                min-width: 100px;
-                font-size: 12px;
-            }
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: var(--space-2);
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--space-1);
         }
+        .process-item { font-weight: 600; color: var(--danger); margin-top: var(--space-3); font-size: var(--fs-sm); display: flex; align-items: center; gap: var(--space-1); }
+        .date-group { margin-top: var(--space-2); background: var(--surface-muted); padding: var(--space-2); border-radius: var(--radius-sm); }
+        .date-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-1); }
+        .date-header { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); }
+        .time-grid { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+        .time-tag { background: var(--border); color: #475569; padding: 2px 6px; border-radius: var(--radius-sm); font-size: 10px; font-weight: 600; }
+        .btn-tooltip-download { background: var(--primary); color: var(--on-primary); border: none; padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); cursor: pointer; font-size: 10px; font-weight: 600; }
 
+        /* ---------- RESPONSIVE ---------- */
         @media (max-width: 1100px) {
-            .top-nav {
-                display: flex !important;
-            }
-
-            .sidebar {
-                left: calc(var(--sidebar-width) * -1);
-            }
-
-            .sidebar.is-mobile-open {
-                left: 0;
-            }
-
-            .content-wrapper {
-                margin-left: 0 !important;
-            }
-
-            /* 1. Fix KPI Cards: Change from 4 columns to 2 columns */
-            .kpi-row {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-
-            .kpi-val {
-                font-size: 22px;
-                /* Slightly smaller text for mobile */
-            }
-
-            /* 2. Fix Toolbar/Filters: Allow inputs to wrap and take full width */
-            .toolbar {
-                gap: 10px;
-            }
-
-            .filter-group {
-                width: 100%;
-                /* Each filter takes its own line on very small screens */
-                flex: 1 1 100%;
-            }
-
-            /* Remove fixed min-width that causes the Part Name overflow */
-            select,
-            input[type="date"] {
-                min-width: 0 !important;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            /* 3. Adjust Tab Container padding for more space */
-            .tab-container {
-                padding: 15px;
-            }
-
-            /* 4. Refresh Button: Make it full width on mobile */
-            .toolbar button.admin-btn {
-                width: 100%;
-                margin-left: 0;
-            }
-
-            .nav-card {
-                min-width: 100px;
-                font-size: 12px;
-            }
+            .sidebar { left: calc(var(--sidebar-width) * -1); }
+            .sidebar.is-mobile-open { left: 0; }
+            .content-wrapper { margin-left: 0 !important; }
+            .hero__title { font-size: 24px; }
+            .kpi-row { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+            .kpi-val { font-size: 22px; }
+            .toolbar { gap: var(--space-3); }
+            .filter-group { flex: 1 1 100%; }
+            select, input[type="date"] { min-width: 0 !important; width: 100%; box-sizing: border-box; }
+            .btn-refresh { margin-left: 0; width: 100%; justify-content: center; }
+            .tab-container { padding: var(--space-4); }
+            .main { padding: var(--space-6) var(--space-4) var(--space-8); }
         }
     </style>
 </head>
@@ -765,7 +694,7 @@
         <div class="spinner"></div>
     </div>
 
-    <!-- LOGIN MODAL (STRICT STYLING) -->
+    <!-- LOGIN MODAL -->
     <div id="login-modal" class="modal" style="display: none">
         <h2>Admin Login</h2>
         <form id="loginForm" onsubmit="event.preventDefault(); document.getElementById('submitLogin').click();">
@@ -783,13 +712,19 @@
             </div>
         </form>
     </div>
+
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="assets/Famax Logo.png" alt="logo">
-            <!-- New Styled Close Button -->
-            <button class="close-sidebar-btn" id="closeSidebar">
+            <div class="sb-brand">
+                <img src="assets/Famax Logo.png" alt="Famax">
+                <!-- <span class="sb-brand__text">
+                    <span class="sb-brand__name">Famax</span>
+                    <span class="sb-brand__tag">QC System</span>
+                </span> -->
+            </div>
+            <button class="close-sidebar-btn" id="closeSidebar" aria-label="Close menu">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                     stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -797,6 +732,7 @@
                 </svg>
             </button>
         </div>
+        <div class="nav-section-label">Navigation</div>
         <nav class="nav-menu">
             <a href="screen_page/inspection/inspectionDashboard.html" class="nav-link"><span class="icon-wrap">✔️</span>
                 Famax Quality Hub</a>
@@ -804,7 +740,7 @@
                 Famax Daily Output</a>
                 <a href="screen_page/production_planning/production_cycle_time.html" class="nav-link"><span class="icon-wrap">⌛</span>
                 Cycle time Form</a>
-           
+
 
             <div class="dropdown">
                 <button class="dropbtn">
@@ -974,14 +910,32 @@
                 </div>
             </div>
         </nav>
-        <div class="sidebar-footer"><button class="admin-btn" id="loginButton">Admin Login</button></div>
+        <div class="sidebar-footer">
+            <button class="admin-btn" id="loginButton">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                </svg>
+                Admin Login</button>
+            <button class="admin-btn" id="mesButton" onclick="window.location.href='/FamaxMES/login.html'"
+                style="margin-top:8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                </svg>
+                Famax MES</button>
+        </div>
     </aside>
 
     <div class="content-wrapper" id="contentWrapper">
         <header class="top-nav">
             <div class="nav-logo-group">
-                <!-- Button and Image are side-by-side inside this div -->
-                <button class="menu-btn" id="menuToggle">
+                <button class="menu-btn" id="menuToggle" aria-label="Toggle menu">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                         stroke-linecap="round" stroke-linejoin="round">
                         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -995,95 +949,255 @@
         </header>
 
         <main class="main">
-            <div class="quick-nav">
-                <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
-                    <h3>Buyoff Checking</h3>
-                    <p>Initial Checks</p>
-                </div>
-                <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
-                    <h3>IPQC Checking</h3>
-                    <p>In-Process QC</p>
-                </div>
-                <div class="nav-card iqc" style="opacity: 0.5; cursor: not-allowed">
-                    <h3>IQC Checking</h3>
-                    <p>Incoming QC</p>
-                </div>
-                <div class="nav-card oqc" style="opacity: 0.5; cursor: not-allowed">
-                    <h3>OQC Checking</h3>
-                    <p>Outgoing QC</p>
-                </div>
-            </div>
+            <!-- Hero -->
+            <section class="hero">
+                <p class="hero__eyebrow">Famax Quality Control</p>
+                <h1 class="hero__title">In-Process Quality Dashboard</h1>
+                <p class="hero__subtitle">Monitor inspection outcomes, track yield, and drill into out-of-spec
+                    processes across IPQC, IQC and OQC — all in one place.</p>
+            </section>
 
-            <div class="tab-container">
+            <!-- Quick actions -->
+            <section>
+                <div class="section-head">
+                    <div>
+                        <h2>Quick Checks</h2>
+                        <p>Jump straight into an inspection workflow.</p>
+                    </div>
+                </div>
+                <div class="action-grid quick-nav">
+                    <div class="nav-card buyoff" onclick="window.location.href='screen_page/buy_off/Buyoff-page.html'">
+                        <div class="ac-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Buyoff Checking</h3>
+                            <p>Initial Checks</p>
+                        </div>
+                    </div>
+                    <div class="nav-card ipqc" onclick="window.location.href='screen_page/ipqc/IPQC-page.html'">
+                        <div class="ac-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>IPQC Checking</h3>
+                            <p>In-Process QC</p>
+                        </div>
+                    </div>
+                    <div class="nav-card iqc" style="opacity: 0.5; cursor: not-allowed">
+                        <div class="ac-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>IQC Checking</h3>
+                            <p>Incoming QC</p>
+                        </div>
+                    </div>
+                    <div class="nav-card oqc" style="opacity: 0.5; cursor: not-allowed">
+                        <div class="ac-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14"></path>
+                                <path d="M12 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>OQC Checking</h3>
+                            <p>Outgoing QC</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics -->
+            <section class="tab-container">
                 <div class="tabs">
+                    <button class="tab-btn" onclick="switchTab('buyoff', this)">Buyoff Overview</button>
                     <button class="tab-btn active" onclick="switchTab('ipqc', this)">IPQC Overview</button>
                     <button class="tab-btn" onclick="switchTab('iqc', this)">IQC Overview</button>
                     <button class="tab-btn" onclick="switchTab('oqc', this)">OQC Overview</button>
                 </div>
 
                 <div class="toolbar">
-                    <div class="filter-group"><label>Time Range</label>
-                        <select id="timeFilter" onchange="handleTimeFilterChange()">
-                            <option value="custom">Custom Range</option>
-                            <option value="7">Last 7 Days</option>
-                            <option value="30">Last 30 Days</option>
-                            <option value="90">Last 90 Days</option>
-                        </select>
+                    <div class="filter-group">
+                        <label>Time Range</label>
+                        <div class="ctrl">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <polyline points="12 7 12 12 15 14"></polyline>
+                            </svg>
+                            <select id="timeFilter" onchange="handleTimeFilterChange()">
+                                <option value="custom">Custom Range</option>
+                                <option value="7">Last 7 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                            </select>
+                        </div>
                     </div>
-                    <!-- From -->
                     <div class="filter-group">
                         <label>From</label>
-                        <input type="date" id="startDateInput" onchange="triggerNewFetch()" />
+                        <div class="ctrl">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="date" id="startDateInput" onchange="triggerNewFetch()" />
+                        </div>
                     </div>
-
-                    <!-- To -->
                     <div class="filter-group">
                         <label>To</label>
-                        <input type="date" id="endDateInput" onchange="triggerNewFetch()" />
+                        <div class="ctrl">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                            <input type="date" id="endDateInput" onchange="triggerNewFetch()" />
+                        </div>
                     </div>
-
-                    <div class="filter-group"><label>Part Name</label><select id="partFilter"
-                            onchange="renderCurrentView()">
-                            <option value="all">All Parts</option>
-                        </select></div>
-                    <button class="admin-btn"
-                        style="margin-left: auto; background: var(--primary); color: white; border: none; width: auto; height: 42px; align-self: flex-end;"
-                        onclick="triggerNewFetch()">Refresh</button>
+                    <div class="filter-group">
+                        <label>Part Name</label>
+                        <div class="ctrl">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z">
+                                </path>
+                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                            </svg>
+                            <select id="partFilter" onchange="renderCurrentView()">
+                                <option value="all">All Parts</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-refresh" onclick="triggerNewFetch()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                        Refresh
+                    </button>
                 </div>
 
                 <div class="kpi-row">
                     <div class="kpi-card">
-                        <div class="kpi-val" id="kpi-total">0</div>
-                        <div>Total Checks</div>
+                        <div class="kpi-icon i-total">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 11H3v10h6V11zM21 3h-6v18h6V3zM15 7H9v14h6V7z"></path>
+                            </svg>
+                        </div>
+                        <div class="kpi-meta">
+                            <div class="kpi-val" id="kpi-total">0</div>
+                            <div>Total Checks</div>
+                        </div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-val ok-color" id="kpi-ok">0</div>
-                        <div>Go (OK)</div>
+                        <div class="kpi-icon i-ok">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="kpi-meta">
+                            <div class="kpi-val ok-color" id="kpi-ok">0</div>
+                            <div>Go (OK)</div>
+                        </div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-val ng-color" id="kpi-ng">0</div>
-                        <div>No Go (NG)</div>
+                        <div class="kpi-icon i-ng">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                        </div>
+                        <div class="kpi-meta">
+                            <div class="kpi-val ng-color" id="kpi-ng">0</div>
+                            <div>No Go (NG)</div>
+                        </div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-val" id="kpi-rate">0%</div>
-                        <div>Yield Rate</div>
+                        <div class="kpi-icon i-rate">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="20" x2="12" y2="10"></line>
+                                <line x1="18" y1="20" x2="18" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="kpi-meta">
+                            <div class="kpi-val" id="kpi-rate">0%</div>
+                            <div>Yield Rate</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="chart-box">
-                    <h3>Daily Trend</h3>
-                    <div class="canvas-container"><canvas id="mainChart"></canvas></div>
+                <div class="chart-grid">
+                    <div class="chart-box">
+                        <div class="chart-box__head">
+                            <h3>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Daily Trend
+                                <span class="chart-box__sub">Go vs No-Go volume by part / process</span>
+                            </h3>
+                            <div class="chart-legend">
+                                <span class="lg lg--ok">OK</span>
+                                <span class="lg lg--ng">NG</span>
+                            </div>
+                        </div>
+                        <div class="canvas-container"><canvas id="mainChart"></canvas></div>
+                    </div>
+                    <div class="chart-box">
+                        <div class="chart-box__head">
+                            <h3>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                </svg>
+                                Breakdown
+                                <span class="chart-box__sub">Top contributors — hover a bar for NG detail</span>
+                            </h3>
+                            <select id="breakdownFilter" class="chart-select" onchange="renderCurrentView()">
+                                <option value="part">By Part</option>
+                                <option value="default">By Machine</option>
+                            </select>
+                        </div>
+                        <div class="canvas-container"><canvas id="subChart"></canvas></div>
+                    </div>
                 </div>
-                <div class="chart-box">
-                    <h3>Breakdown</h3>
-                    <select id="breakdownFilter" onchange="renderCurrentView()"
-                        style="width: 100%; margin-bottom: 10px">
-                        <option value="part">By Part</option>
-                        <option value="default">By Machine</option>
-                    </select>
-                    <div class="canvas-container"><canvas id="subChart"></canvas></div>
-                </div>
-            </div>
+            </section>
         </main>
     </div>
 
@@ -1094,7 +1208,7 @@
         const TEMPLATE_URL = "Master_Document/IPQC_Form.xlsx";
         const supabaseClient = axios.create({ baseURL: API_URL, headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` } });
 
-        let currentTab = "ipqc", allData = { ipqc: [], iqc: [], oqc: [] }, mainChartInst = null, subChartInst = null;
+        let currentTab = "ipqc", allData = { ipqc: [], iqc: [], oqc: [], buyoff: [] }, mainChartInst = null, subChartInst = null;
         let isTooltipHovered = false, tooltipHideTimeout;
         let currentMousePos = { x: 0, y: 0 };
 
@@ -1347,7 +1461,7 @@
         async function fetchFilteredData(startDate, endDate) {
             $("#loader").show();
 
-            // Ensure we are working with strings. 
+            // Ensure we are working with strings.
             // If objects were passed by mistake, this converts them.
             const s = typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0];
             const e = typeof endDate === 'string' ? endDate : endDate.toISOString().split('T')[0];
@@ -1356,15 +1470,17 @@
             const endISO = `${e}T23:59:59`;
 
             try {
-                const [resIPQC, resIQC, resOQC] = await Promise.all([
+                const [resIPQC, resIQC, resOQC, resBUYOFF] = await Promise.all([
                     supabaseClient.get(`/rest/v1/Data_IPQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
                     supabaseClient.get(`/rest/v1/Data_IQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
                     supabaseClient.get(`/rest/v1/Data_OQC?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
+                    supabaseClient.get(`/rest/v1/Data_BUYOFF?created_at=gte.${startISO}&created_at=lte.${endISO}&select=*&order=created_at.asc`),
                 ]);
 
                 allData.ipqc = processReadings(resIPQC.data, "IPQC");
                 allData.iqc = processReadings(resIQC.data, "IQC");
                 allData.oqc = processReadings(resOQC.data, "OQC");
+                allData.buyoff = processReadings(resBUYOFF.data, "IPQC"); // Data_BUYOFF shares the IPQC schema (LSL_OK/USL_NG/Machine)
 
                 updatePartDropdown();
                 renderCurrentView(); // This will now update the charts
@@ -1428,6 +1544,7 @@
 
         function updateMainChart(data) {
             const ctx = document.getElementById("mainChart").getContext("2d"); if (mainChartInst) mainChartInst.destroy();
+            // Daily Trend per part: group by part-code (All Parts) or by process (single part)
             const grouped = {}; data.forEach(d => {
                 let k = $("#partFilter").val() === "all" ? (d.part.match(/\(([^)]+)\)/)?.[1] || d.part) : d.process;
                 if (!grouped[k]) grouped[k] = { ok: 0, ng: 0 };
@@ -1437,11 +1554,22 @@
             mainChartInst = new Chart(ctx, {
                 type: "bar", data: {
                     labels: labels, datasets: [
-                        { label: "Go (OK)", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" },
-                        { label: "No Go (NG)", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" }
+                        { label: "Go (OK)", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981", borderRadius: 6, borderSkipped: false, maxBarThickness: 36 },
+                        { label: "No Go (NG)", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444", borderRadius: 6, borderSkipped: false, maxBarThickness: 36 }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 4 } },
+                    plugins: {
+                        legend: { position: "bottom", labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 16, color: "#64748b", font: { family: "Inter", size: 12, weight: "600" } } }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { color: "#64748b", font: { family: "Inter", size: 11 } } },
+                        y: { stacked: true, beginAtZero: true, grid: { color: "#eef2f7", drawBorder: false }, ticks: { precision: 0, color: "#94a3b8", font: { family: "Inter", size: 11 } } }
+                    }
+                }
             });
         }
 
@@ -1461,12 +1589,12 @@
                 }
             });
             const labels = Object.keys(grouped).sort((a, b) => grouped[b].ng - grouped[a].ng);
-            document.getElementById("subChart").style.height = Math.max(300, labels.length * 45 + 100) + "px";
+            document.getElementById("subChart").parentElement.style.height = Math.max(300, labels.length * 45 + 100) + "px";
             subChartInst = new Chart(ctx, {
                 type: "bar", data: {
                     labels: labels, datasets: [
-                        { label: "NG", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444" },
-                        { label: "OK", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981" }
+                        { label: "NG", data: labels.map(l => grouped[l].ng), backgroundColor: "#ef4444", borderRadius: 5, borderSkipped: false, maxBarThickness: 22 },
+                        { label: "OK", data: labels.map(l => grouped[l].ok), backgroundColor: "#10b981", borderRadius: 5, borderSkipped: false, maxBarThickness: 22 }
                     ]
                 },
                 options: {
@@ -1478,8 +1606,12 @@
                         mode: 'nearest',
                         intersect: false,
                     },
-                    scales: { x: { stacked: true }, y: { stacked: true } },
+                    scales: {
+                        x: { stacked: true, beginAtZero: true, grid: { color: "#eef2f7", drawBorder: false }, ticks: { precision: 0, color: "#94a3b8", font: { family: "Inter", size: 11 } } },
+                        y: { stacked: true, grid: { display: false }, ticks: { color: "#475569", font: { family: "Inter", size: 11, weight: "600" } } }
+                    },
                     plugins: {
+                        legend: { position: "bottom", labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 16, color: "#64748b", font: { family: "Inter", size: 12, weight: "600" } } },
                         tooltip: {
                             enabled: false,
                             external: function (context) {
@@ -1509,7 +1641,7 @@
                                 tooltipEl.innerHTML = html;
                                 tooltipEl.style.opacity = 1;
                                 tooltipEl.style.left = currentMousePos.x + 15 + "px"; // 15px offset to the right
-                                tooltipEl.style.top = currentMousePos.y - 40 + "px";  // 40px offset upwards                            
+                                tooltipEl.style.top = currentMousePos.y - 40 + "px";  // 40px offset upwards
                             }
                         }
                     }
@@ -1537,6 +1669,7 @@
             fetchFilteredData(startStr, endStr);
         }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

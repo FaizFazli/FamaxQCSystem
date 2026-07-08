@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Production Planning | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .board { display: flex; gap: var(--space-6); align-items: flex-start; }
+        .pool, .cats { }
+        .pool { flex: 0 0 280px; position: sticky; top: 80px; }
+        .cats { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+
+        .cat__name { margin: 0 0 var(--space-3); font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .machines { display: flex; gap: var(--space-4); overflow-x: auto; padding-bottom: var(--space-2); }
+
+        .col {
+            flex: 0 0 240px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+            min-height: 120px;
+        }
+        .col.is-over { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+        .col__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); font-weight: 700; font-size: var(--fs-sm); }
+        .col__count { font-size: var(--fs-xs); color: var(--text-muted); }
+
+        .jo {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            margin-bottom: var(--space-2);
+            cursor: grab;
+            box-shadow: var(--shadow-sm);
+        }
+        .jo:active { cursor: grabbing; }
+        .jo__num { font-weight: 700; font-size: var(--fs-sm); color: var(--primary); }
+        .jo__seq { display: inline-block; margin-right: 4px; padding: 0 6px; border-radius: var(--radius-full); background: var(--primary-soft); color: var(--primary); font-size: var(--fs-xs); }
+        .jo__part { font-size: var(--fs-sm); color: var(--text-main); }
+        .jo__meta { font-size: var(--fs-xs); color: var(--text-muted); }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">Production Planning</div>
+        <a href="/FamaxMES" class="btn btn--secondary">← MES</a>
+    </header>
+
+    <div id="app" class="container">
+        <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end">
+            <div>
+                <h1 class="page-head__title">Production Board</h1>
+                <p class="page-head__subtitle">Drag approved job orders onto an available machine.</p>
+            </div>
+            <button class="btn" @click="load">Refresh</button>
+        </div>
+
+        <div class="board">
+            <!-- Unassigned pool -->
+            <div class="pool">
+                <div class="col" :class="{'is-over': overCol === '__pool'}"
+                    @dragover.prevent="overCol = '__pool'" @dragleave="overCol = null" @drop="drop(null)">
+                    <div class="col__head">Unassigned <span class="col__count">{{ unassigned.length }}</span></div>
+                    <div v-for="j in unassigned" :key="j.id" class="jo" draggable="true" @dragstart="dragId = j.id">
+                        <div class="jo__num">{{ j.JO_Number }}</div>
+                        <div class="jo__part">{{ j.Part_Name }}</div>
+                        <div class="jo__meta">{{ j.Process }} · {{ j.Quantity }} pcs</div>
+                    </div>
+                    <div v-if="!unassigned.length" class="jo__meta" style="text-align:center; padding:var(--space-4)">
+                        No approved job orders waiting.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Machines grouped by category -->
+            <div class="cats">
+                <div v-for="cat in visibleCategories" :key="cat.code">
+                    <h2 class="cat__name">{{ cat.name || cat.code }}</h2>
+                    <div class="machines">
+                        <div v-for="m in machinesOf(cat.code)" :key="m.machine_id" class="col"
+                            :class="{'is-over': overCol === m.machine_id}"
+                            @dragover.prevent="overCol = m.machine_id" @dragleave="overCol = null" @drop="drop(m.machine_id)">
+                            <div class="col__head">{{ m.machine_id }} <span class="col__count">{{ jobsOf(m.machine_id).length }} in queue</span></div>
+                            <div v-for="(j, qi) in jobsOf(m.machine_id)" :key="j.id" class="jo" draggable="true" @dragstart="dragId = j.id">
+                                <div class="jo__num"><span class="jo__seq">#{{ qi + 1 }}</span> {{ j.JO_Number }}</div>
+                                <div class="jo__part">{{ j.Part_Name }}</div>
+                                <div class="jo__meta">{{ j.Process }} · {{ j.Quantity }} pcs</div>
+                            </div>
+                        </div>
+                        <div v-if="!machinesOf(cat.code).length" class="jo__meta">No active machines.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div v-if="msg" class="jo__meta" style="margin-top:var(--space-4); color:var(--danger)">{{ msg }}</div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/FamaxMES/login.html';
+
+        const { createApp, ref, computed } = Vue;
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: window.APP_CONFIG.url,
+                    headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}`, "Content-Type": "application/json" }
+                });
+
+                const categories = ref([]);
+                const machines = ref([]);
+                const jobs = ref([]);
+                const approvedSo = ref(new Set());
+                const dragId = ref(null);
+                const overCol = ref(null);
+                const msg = ref('');
+
+                // so_number = first 3 segments of a JO_Number (SO/ddmmyy/NNNNN)
+                const soOf = jo => String(jo.JO_Number || '').split('/').slice(0, 3).join('/');
+
+                async function load() {
+                    msg.value = '';
+                    const [c, m, so] = await Promise.all([
+                        api.get('/rest/v1/MachineCategoriesM?select=code,name'),
+                        api.get('/rest/v1/MachinesM?select=machine_id,category_code,is_active&is_active=eq.true'),
+                        api.get('/rest/v1/SalesOrders?status=in.(APPROVED,IN_PRODUCTION)&select=so_number')
+                    ]);
+                    categories.value = c.data; machines.value = m.data;
+                    approvedSo.value = new Set(so.data.map(s => s.so_number));
+                    const j = await api.get('/rest/v1/JobOrder?Status=eq.active&select=id,JO_Number,Part_Name,Process,Quantity,machine_id,sequence');
+                    jobs.value = j.data.filter(jo => approvedSo.value.has(soOf(jo)));
+                }
+
+                // Only these process categories appear on the board, in this order.
+                const ALLOWED = ['cnc milling', 'thread roll', 'stamping', 'cnc turning', 'swiss auto lathe'];
+                const nrm = s => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+                const allowedNorm = ALLOWED.map(nrm);
+                const rank = cat => {
+                    const n = nrm(cat.name || cat.code);
+                    const i = allowedNorm.findIndex(a => n === a || n.includes(a) || a.includes(n));
+                    return i < 0 ? 99 : i;
+                };
+                const visibleCategories = computed(() => {
+                    const match = categories.value.filter(c => rank(c) < 99);
+                    // ponytail: fall back to all categories if none match (guards against name drift emptying the board)
+                    const list = match.length ? match : categories.value;
+                    return list.slice().sort((a, b) => rank(a) - rank(b));
+                });
+
+                const machinesOf = code => machines.value.filter(m => m.category_code === code);
+                const unassigned = computed(() => jobs.value.filter(j => !j.machine_id));
+                const jobsOf = mid => jobs.value.filter(j => j.machine_id === mid).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+
+                async function drop(machineId) {
+                    overCol.value = null;
+                    const job = jobs.value.find(j => j.id === dragId.value);
+                    dragId.value = null;
+                    if (!job || job.machine_id === machineId) return;
+                    const seq = machineId ? jobsOf(machineId).length : null;
+                    job.machine_id = machineId; job.sequence = seq;  // optimistic
+                    try {
+                        await api.patch(`/rest/v1/JobOrder?id=eq.${job.id}`, { machine_id: machineId, sequence: seq });
+                        if (machineId) {
+                            // first assignment moves the order into production
+                            await api.patch(`/rest/v1/SalesOrders?so_number=eq.${encodeURIComponent(soOf(job))}&status=eq.APPROVED`,
+                                { status: 'IN_PRODUCTION' });
+                        }
+                    } catch (e) {
+                        msg.value = 'Save failed: ' + (e.response?.data?.message || e.message);
+                        await load();  // resync on error
+                    }
+                }
+
+                load();
+                return { categories, visibleCategories, machines, jobs, dragId, overCol, msg, machinesOf, unassigned, jobsOf, drop, load };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

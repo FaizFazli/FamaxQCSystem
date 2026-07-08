@@ -9,73 +9,62 @@
   <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
   <!-- Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
   <script src="/assets/app-config.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    :root {
-      --primary-color: #1976D2;
-      --primary-dark: #1565C0;
-      --primary-light: #E3F2FD;
-      --bg-body: #F4F6F8;
-      --bg-card: #FFFFFF;
-      --text-main: #1A202C;
-      --text-secondary: #4A5568;
-      --text-muted: #718096;
-      --border-color: #E2E8F0;
-      --radius: 12px;
-      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
+  <!-- Shared design system (tokens + UI primitives) -->
+  <link rel="stylesheet" href="/assets/theme.css">
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+  <style>
+    /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
+    :root {
+      --primary-color: var(--primary);
+      --primary-dark: var(--primary-hover);
+      --primary-light: var(--primary-soft);
+      --text-secondary: var(--text-muted);
+      --border-color: var(--border);
     }
 
     body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
       line-height: 1.5;
     }
 
     header {
       background: var(--bg-card);
-      height: 60px;
-      padding: 0 1rem;
+      height: 64px;
+      padding: 0 var(--space-6);
       display: flex;
       align-items: center;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: var(--z-header);
     }
 
     .header-title {
       font-weight: 700;
-      font-size: 1.1rem;
-      color: var(--primary-color);
+      font-size: var(--fs-md);
+      color: var(--text-main);
+      letter-spacing: -0.2px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: var(--space-3);
     }
 
     .header-title::before {
       content: '';
       width: 4px;
       height: 20px;
-      background: var(--primary-color);
+      background: var(--primary);
       border-radius: 2px;
     }
 
     .main-wrapper {
-      padding: 1rem;
+      padding: var(--space-6);
       max-width: 1200px;
       margin: 0 auto;
     }
@@ -119,18 +108,136 @@
       /* Prevents long names from breaking the box */
     }
 
-    .info-item:last-child {
-      grid-column: 1 / -1;
-      margin-top: 5px;
+    .inspector-grid .info-item:last-child {
+      margin-top: 0;
+    }
+
+    /* let the dropdown escape the card instead of being clipped */
+    .inspector-grid .info-item {
+      overflow: visible;
     }
 
     .person-name-input {
       width: 100%;
+      height: 46px;
+      box-sizing: border-box;
       padding: 12px;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 1rem;
       background: #fdfdfd;
+    }
+
+    select.person-name-input {
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    /* Auto-filled from an existing checker → read-only look */
+    .person-name-input[readonly],
+    .person-name-input:disabled {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .badge-hint {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #b45309;
+      margin-top: 4px;
+    }
+
+    /* --- Inspector name combobox (dropdown + typeable) --- */
+    .combo {
+      position: relative;
+    }
+
+    .combo .person-name-input {
+      padding-right: 64px;
+      /* room for the clear + toggle buttons */
+    }
+
+    .combo-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: 36px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .combo-clear {
+      position: absolute;
+      top: 0;
+      right: 32px;
+      height: 100%;
+      width: 28px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .combo-clear:hover {
+      color: #ef4444;
+    }
+
+    .combo-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 50;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .combo-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .combo-item:last-child {
+      border-bottom: none;
+    }
+
+    .combo-item:hover,
+    .combo-item.active {
+      background: var(--primary-light);
+    }
+
+    .combo-item .combo-sub {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .combo-empty {
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     /* --- VISUAL PANEL --- */
@@ -193,6 +300,36 @@
       font-size: 0.8rem;
       color: var(--text-muted);
       margin-top: 10px;
+    }
+
+    /* Shown in place of the drawing when it is missing / corrupt */
+    .image-status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.5rem;
+      gap: 6px;
+      color: var(--text-muted);
+    }
+
+    .image-status-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .image-status-title {
+      font-weight: 800;
+      color: #b91c1c;
+      margin: 0;
+    }
+
+    .image-status-msg {
+      font-size: 0.85rem;
+      max-width: 340px;
+      margin: 0;
+      line-height: 1.4;
     }
 
     /* --- PROGRESS BAR (The Fix for 31 circles) --- */
@@ -293,6 +430,22 @@
       margin: 1rem 0;
     }
 
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding-left: 8px;
+      border-left: 3px solid transparent;
+    }
+
+    .spec-item--min {
+      border-left-color: #10b981;
+    }
+
+    .spec-item--max {
+      border-left-color: #ef4444;
+    }
+
     .spec-label {
       font-size: 0.65rem;
       font-weight: 700;
@@ -305,7 +458,37 @@
       font-weight: 700;
     }
 
+    /* --- ZONE HEADER --- */
+    .zone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .zone-count {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .zone-chip {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
     /* --- INPUTS --- */
+    .input-wrapper {
+      margin-bottom: 1rem;
+    }
+
     .reading-input {
       width: 100%;
       padding: 14px;
@@ -313,8 +496,28 @@
       /* Prevents auto-zoom on iPhone */
       border: 2px solid var(--border-color);
       border-radius: 8px;
-      margin-bottom: 1rem;
       font-weight: 600;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    /* Live spec feedback (warn-only) */
+    .reading-input.in-spec {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .reading-input.out-spec {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .spec-hint {
+      display: block;
+      min-height: 1rem;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ef4444;
     }
 
     .button-container {
@@ -368,6 +571,10 @@
         grid-template-columns: repeat(4, 1fr);
       }
 
+      .inspector-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
       .info-item:last-child {
         grid-column: auto;
       }
@@ -404,11 +611,29 @@
           <span class="info-label">Machine</span>
           <span class="info-value" id="selected-machine">Loading...</span>
         </div>
+      </div>
+
+      <div class="inspector-grid">
         <div class="info-item">
           <span class="info-label">Inspector Name</span>
-          <input type="text" class="person-name-input" id="person-name" placeholder="Enter name..." autocomplete="off"
-            onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter') 
-                         {event.preventDefault(); document.getElementById('reading-input-1').focus(); }" />
+          <div class="combo">
+            <input type="text" class="person-name-input" id="person-name"
+              placeholder="Select or type name..." autocomplete="off" />
+            <button type="button" class="combo-clear hidden" id="checker-clear" aria-label="Clear inspector name">✕</button>
+            <button type="button" class="combo-toggle" id="checker-toggle" aria-label="Show inspector list">▾</button>
+            <div class="combo-list hidden" id="checker-list"></div>
+          </div>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Emp No</span>
+          <input type="text" class="person-name-input" id="emp-no" placeholder="Emp No" autocomplete="off" />
+          <span class="badge-hint hidden" id="inspector-hint">Name not found in QA/QC staff — contact HR</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Position</span>
+          <select class="person-name-input" id="position-select">
+            <option value="" disabled selected>Select position...</option>
+          </select>
         </div>
       </div>
     </div>
@@ -430,8 +655,15 @@
       <div class="visual-panel">
         <div class="image-container">
           <img id="ipqc-image" class="ipqc-image" alt="IPQC Reference Image" />
+          <div id="image-status" class="image-status hidden">
+            <div class="image-status-icon">⚠️</div>
+            <p class="image-status-title">Drawing image unavailable</p>
+            <p class="image-status-msg">The reference drawing is missing or corrupted.
+              You can still record measurements below. Please contact
+              <strong>IT Support</strong> to restore this drawing.</p>
+          </div>
         </div>
-        <div class="zoom-hint">Click image to Zoom</div>
+        <div class="zoom-hint" id="zoom-hint">Click image to Zoom</div>
       </div>
 
       <!-- Right: Controls -->
@@ -489,6 +721,31 @@
       let currentZoneIndex = 0;
       let userReadings = [];
       let personNameEntered = false;
+      let checkerMap = {}; // { NAME_UPPER: { empId, position } } from EmployeeTable (QA/QC)
+      let checkersArr = []; // [{ name, empId, position }] for the dropdown list
+
+      const POSITION_OPTIONS = ['PRODUCTION OPERATOR', 'QA ASSISTANT', 'QA ENGINEER', 'ASSISTANT ENGINEER', 'QA TECHNICIAN'];
+
+      const pointNo = z => (parseInt(String(z.Point_DWG_Zone || '').replace(/\D/g, '')) || 0);
+
+      // Group points by instrument (fewer instrument swaps); groups ordered by their lowest
+      // point number, points within a group by point number, no-instrument rows last.
+      function orderByInstrument(rows) {
+        const firstPoint = {};
+        rows.forEach(z => {
+          const k = (z.Measuring_Instrument || '').trim().toUpperCase();
+          const p = pointNo(z);
+          if (!(k in firstPoint) || p < firstPoint[k]) firstPoint[k] = p;
+        });
+        return rows.slice().sort((a, b) => {
+          const ia = (a.Measuring_Instrument || '').trim(), ib = (b.Measuring_Instrument || '').trim();
+          const ea = ia === '' ? 1 : 0, eb = ib === '' ? 1 : 0;
+          if (ea !== eb) return ea - eb;
+          const ka = ia.toUpperCase(), kb = ib.toUpperCase();
+          if (ka !== kb) return (firstPoint[ka] - firstPoint[kb]) || (ka < kb ? -1 : 1);
+          return pointNo(a) - pointNo(b);
+        });
+      }
 
       // DOM elements
       const loadingIndicator = document.getElementById('loading-indicator');
@@ -499,9 +756,25 @@
       const progressBar = document.getElementById('progress-bar');
       const zoneContainer = document.getElementById('zone-container');
       const personNameInput = document.getElementById('person-name');
+      const empNoInput = document.getElementById('emp-no');
+      const positionSelect = document.getElementById('position-select');
+      const inspectorHint = document.getElementById('inspector-hint');
+      const comboList = document.getElementById('checker-list');
+      const comboToggle = document.getElementById('checker-toggle');
+      const comboClear = document.getElementById('checker-clear');
       const backButton = document.getElementById('back-btn');
       const nextButton = document.getElementById('next-btn');
       const submitButton = document.getElementById('submit-btn');
+
+      // Drawing missing/corrupt: swap the image for a placeholder, keep inputs.
+      function showImageUnavailable() {
+        const img = document.getElementById('ipqc-image');
+        const status = document.getElementById('image-status');
+        const hint = document.getElementById('zoom-hint');
+        if (img) img.classList.add('hidden');
+        if (hint) hint.classList.add('hidden');
+        if (status) status.classList.remove('hidden');
+      }
 
       function setupImageZoom() {
         const imageElement = document.getElementById('ipqc-image');
@@ -557,52 +830,25 @@
             return;
           }
 
-          // Sort data
-          ipqcData = data.sort((a, b) => {
-            const zoneA = parseInt(a.Point_DWG_Zone.match(/\d+/)[0] || 0);
-            const zoneB = parseInt(b.Point_DWG_Zone.match(/\d+/)[0] || 0);
-            return zoneA - zoneB;
-          });
+          // Order points grouped by instrument (fewer instrument swaps for the inspector).
+          ipqcData = orderByInstrument(data);
 
           // Initialize readings
           userReadings = ipqcData.map(() => ({
             reading1: '', reading2: '', reading3: ''
           }));
-          // 2. NEW: Check if there is saved data in localStorage to restore
-          // const savedSummary = localStorage.getItem('summaryData');
-          // const savedJO = localStorage.getItem('joNumber');
-          // const savedPart = localStorage.getItem('partName');
-          // const savedPerson = localStorage.getItem('personName');
-
-          // // Only restore if the Job Order and Part match current session
-          // if (savedSummary && savedJO === joNumber && savedPart === partName) {
-          //   const parsedSummary = JSON.parse(savedSummary);
-
-          //   // Map saved Reading_1, Reading_2, Reading_3 back to userReadings array
-          //   userReadings = parsedSummary.map(item => ({
-          //     reading1: item.Reading_1 || '',
-          //     reading2: item.Reading_2 || '',
-          //     reading3: item.Reading_3 || ''
-          //   }));
-
-          //   // Restore Inspector Name
-          //   if (savedPerson) {
-          //     personNameInput.value = savedPerson;
-          //     personNameEntered = true;
-          //   }
-          // }
 
           setupProgressIndicator();
 
-          // Display the image
+          // Display the image. If it is missing or fails to load, show the
+          // "unavailable" placeholder but KEEP the measurement inputs live.
           const imageElement = document.getElementById('ipqc-image');
-          imageElement.src = ipqcData[0].Path.replace('http://localhost:8000', window.APP_CONFIG.url);
-
-          imageElement.onerror = function () {
-            contentArea.classList.add('hidden');
-            errorMessage.classList.remove('hidden');
-            errorMessage.textContent = 'Error loading image. The image path may be invalid.';
-          };
+          if (!ipqcData[0].Path) {
+            showImageUnavailable();
+          } else {
+            imageElement.src = ipqcData[0].Path.replace('http://localhost:8000', window.APP_CONFIG.url);
+            imageElement.onerror = showImageUnavailable;
+          }
 
           setupImageZoom();
           showCurrentZone();
@@ -625,10 +871,12 @@
         const container = document.getElementById('progress-indicator');
         container.innerHTML = ''; // Clear existing
 
-        ipqcData.forEach((_, i) => {
+        ipqcData.forEach((z, i) => {
           const step = document.createElement('div');
           step.className = 'progress-step';
-          step.textContent = i + 1;
+          // Label by the drawing/system point zone (not the instrument-sorted position).
+          step.textContent = pointNo(z) || (i + 1);
+          step.title = 'Point ' + (z.Point_DWG_Zone || (i + 1));
 
           // --- THE JUMP FEATURE ---
           step.addEventListener('click', () => {
@@ -692,6 +940,41 @@
         return minVal === 'ok' || maxVal === 'ng' || minVal === 'go' || maxVal === 'nogo';
       }
 
+      // Warn-only spec check for live feedback. Returns 'ok' | 'ng' | 'neutral'.
+      function evaluateReading(value, min, max) {
+        const v = String(value).trim();
+        if (!v) return 'neutral';
+
+        if (isOkNgRange(min, max)) {
+          const up = v.toUpperCase();
+          if (up === 'OK' || up === 'GO') return 'ok';
+          if (up === 'NG' || up === 'NOGO') return 'ng';
+          return 'neutral';
+        }
+
+        const num = parseFloat(v);
+        const lo = parseFloat(min);
+        const hi = parseFloat(max);
+        if (isNaN(num) || isNaN(lo) || isNaN(hi)) return 'neutral'; // one-sided / non-numeric
+        return (num >= lo && num <= hi) ? 'ok' : 'ng';
+      }
+
+      // Paint a reading input + its hint based on the spec check.
+      function applySpecFeedback(input, min, max) {
+        const result = evaluateReading(input.value, min, max);
+        input.classList.remove('in-spec', 'out-spec');
+        const hint = input.parentNode.querySelector('.spec-hint');
+        if (result === 'ok') {
+          input.classList.add('in-spec');
+          if (hint) hint.textContent = '';
+        } else if (result === 'ng') {
+          input.classList.add('out-spec');
+          if (hint) hint.textContent = 'Out of spec';
+        } else if (hint) {
+          hint.textContent = '';
+        }
+      }
+
       function setupInputValidation(input, min, max) {
         const isOkNg = isOkNgRange(min, max);
 
@@ -744,8 +1027,16 @@
         }
 
         input.addEventListener('input', function () {
+          applySpecFeedback(input, min, max);
           checkReadingsAndEnableButtons();
         });
+
+        input.addEventListener('blur', function () {
+          applySpecFeedback(input, min, max);
+        });
+
+        // Paint pre-filled values (e.g. navigating back to a done zone).
+        applySpecFeedback(input, min, max);
 
         input.addEventListener("keydown", function (e) {
           if (e.key === "Enter") {
@@ -771,8 +1062,8 @@
 
         zoneElement.innerHTML = `
                     <div class="zone-header">
-                        <h3 class="zone-title">Zone ${currentZoneIndex + 1}</h3>
-                        <div style="color:var(--text-secondary); margin-top:4px;">${currentZone.Point_DWG_Zone || 'N/A'}</div>
+                        <h3 class="zone-title">Zone ${currentZoneIndex + 1} <span class="zone-count">of ${ipqcData.length}</span></h3>
+                        <span class="zone-chip">${currentZone.Point_DWG_Zone || 'N/A'}</span>
                     </div>
 
                     <div class="spec-grid">
@@ -784,11 +1075,11 @@
                             <span class="spec-label">SC Class</span>
                             <span class="spec-val">${currentZone.SC || '-'}</span>
                         </div>
-                        <div class="spec-item">
+                        <div class="spec-item spec-item--min">
                             <span class="spec-label">Min / OK</span>
                             <span class="spec-val">${currentZone.LSL_OK || 'N/A'}</span>
                         </div>
-                        <div class="spec-item">
+                        <div class="spec-item spec-item--max">
                             <span class="spec-label">Max / NG</span>
                             <span class="spec-val">${currentZone.USL_NG || 'N/A'}</span>
                         </div>
@@ -798,25 +1089,28 @@
                         <div class="input-wrapper">
                             <label for="reading-input-1" class="info-label">Reading 1</label>
                             <input type="text" id="reading-input-1" class="reading-input" autocomplete="off"
-                             onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter') 
+                             onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter')
                                 {event.preventDefault(); document.getElementById('reading-input-2').focus(); }"
                             value="${userReadings[currentZoneIndex].reading1}">
+                            <span class="spec-hint"></span>
                         </div>
-                        
+
                         <div class="input-wrapper">
                             <label for="reading-input-2" class="info-label">Reading 2</label>
-                            <input type="text" id="reading-input-2" class="reading-input" autocomplete="off" 
-                              onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter') 
+                            <input type="text" id="reading-input-2" class="reading-input" autocomplete="off"
+                              onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter')
                                  {event.preventDefault(); document.getElementById('reading-input-3').focus(); }"
                             value="${userReadings[currentZoneIndex].reading2}">
+                            <span class="spec-hint"></span>
                         </div>
-                        
+
                         <div class="input-wrapper">
                             <label for="reading-input-3" class="info-label">Reading 3</label>
-                            <input type="text" id="reading-input-3" class="reading-input" autocomplete="off" 
-                            onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter') 
+                            <input type="text" id="reading-input-3" class="reading-input" autocomplete="off"
+                            onkeydown="if(event.key==='Enter'||event.code==='NumpadEnter')
                                 {event.preventDefault(); }"
                             value="${userReadings[currentZoneIndex].reading3}">
+                            <span class="spec-hint"></span>
                         </div>
                     </div>
                 `;
@@ -861,29 +1155,6 @@
         }
       }
 
-      // nextButton.addEventListener('click', function () {
-      //   userReadings[currentZoneIndex] = {
-      //     reading1: document.getElementById('reading-input-1').value.trim(),
-      //     reading2: document.getElementById('reading-input-2').value.trim(),
-      //     reading3: document.getElementById('reading-input-3').value.trim()
-      //   };
-      //   currentZoneIndex++;
-      //   updateProgressBar();
-      //   showCurrentZone();
-      // });
-
-      // backButton.addEventListener('click', function () {
-      //   userReadings[currentZoneIndex] = {
-      //     reading1: document.getElementById('reading-input-1').value.trim(),
-      //     reading2: document.getElementById('reading-input-2').value.trim(),
-      //     reading3: document.getElementById('reading-input-3').value.trim()
-      //   };
-      //   currentZoneIndex--;
-      //   updateProgressBar();
-      //   showCurrentZone();
-      // });
-
-
       nextButton.addEventListener('click', function () {
         saveCurrentReadings();
         currentZoneIndex++;
@@ -908,7 +1179,113 @@
       });
 
 
-      submitButton.addEventListener('click', function () {
+      // Fetch existing inspection checkers for the name dropdown.
+      async function fetchCheckers() {
+        // Position options are always available even if the fetch fails.
+        POSITION_OPTIONS.forEach(pos => {
+          const opt = document.createElement('option');
+          opt.value = pos; opt.textContent = pos;
+          positionSelect.appendChild(opt);
+        });
+
+        try {
+          // Inspection staff come from the HR-owned EmployeeTable, QA/QC department only.
+          const { data, error } = await supabaseClient
+            .from('EmployeeTable')
+            .select('name, empID, position')
+            .eq('department', 'QA/QC')
+            .order('name', { ascending: true });
+          if (error) { console.error('EmployeeTable fetch error:', error); return; }
+          if (!data) return;
+
+          checkerMap = {};
+          checkersArr = [];
+          data.forEach(c => {
+            const rawName = c.name || c.Name;
+            if (!rawName) return;
+            const name = String(rawName).trim();
+            const empId = c.empID || c.empid || c.EmpID || '';
+            const position = c.position || c.Position || '';
+            checkerMap[name.toUpperCase()] = { empId, position };
+            checkersArr.push({ name, empId, position });
+          });
+          renderCheckerList('');
+
+          // Default the inspector to Dipak Pokhrel when present.
+          const def = checkersArr.find(c => c.name.toUpperCase() === 'DIPAK POKHREL');
+          if (def && personNameInput.value.trim() === '') {
+            personNameInput.value = def.name;
+            applyInspectorMode();
+          }
+        } catch (e) {
+          console.error('Failed to load inspection checkers:', e);
+        }
+      }
+
+      // Build the dropdown items, filtered by what the user has typed.
+      function renderCheckerList(filter) {
+        const f = (filter || '').trim().toUpperCase();
+        const matches = checkersArr.filter(c => c.name.toUpperCase().includes(f));
+        if (!matches.length) {
+          comboList.innerHTML = '<div class="combo-empty">No match — only registered QA/QC staff. Contact HR to add.</div>';
+          return;
+        }
+        comboList.innerHTML = matches.map(c =>
+          `<div class="combo-item" data-name="${c.name.replace(/"/g, '&quot;')}">${c.name}
+             <span class="combo-sub">${c.empId || '—'} · ${c.position || '—'}</span>
+           </div>`
+        ).join('');
+      }
+
+      function openCheckerList() {
+        renderCheckerList(personNameInput.value);
+        comboList.classList.remove('hidden');
+      }
+
+      function closeCheckerList() {
+        comboList.classList.add('hidden');
+      }
+
+      // Toggle read-only (existing checker) vs editable "new checker" mode.
+      function applyInspectorMode() {
+        const key = personNameInput.value.trim().toUpperCase();
+        const existing = checkerMap[key];
+        comboClear.classList.toggle('hidden', personNameInput.value.trim() === '');
+
+        if (existing) {
+          empNoInput.value = existing.empId;
+          empNoInput.readOnly = true;
+          // Ensure the stored position is selectable even if outside the preset list.
+          if (existing.position && !POSITION_OPTIONS.includes(existing.position) &&
+            !Array.from(positionSelect.options).some(o => o.value === existing.position)) {
+            const opt = document.createElement('option');
+            opt.value = existing.position; opt.textContent = existing.position;
+            positionSelect.appendChild(opt);
+          }
+          positionSelect.value = existing.position;
+          positionSelect.disabled = true;
+          inspectorHint.classList.add('hidden');
+        } else {
+          // Unknown name → pick-only: Emp No / Position stay auto-filled & read-only,
+          // cleared, and the name must be corrected. HR owns the roster.
+          empNoInput.value = '';
+          empNoInput.readOnly = true;
+          positionSelect.value = '';
+          positionSelect.disabled = true;
+          // Show the "not found" hint only once the user has typed something.
+          inspectorHint.classList.toggle('hidden', personNameInput.value.trim() === '');
+        }
+        updateInspectorState();
+      }
+
+      function updateInspectorState() {
+        // Valid only when the typed name matches a registered QA/QC employee.
+        const key = personNameInput.value.trim().toUpperCase();
+        personNameEntered = !!checkerMap[key];
+        checkReadingsAndEnableButtons();
+      }
+
+      submitButton.addEventListener('click', async function () {
         userReadings[currentZoneIndex] = {
           reading1: document.getElementById('reading-input-1').value.trim(),
           reading2: document.getElementById('reading-input-2').value.trim(),
@@ -916,7 +1293,14 @@
         };
 
         const personName = personNameInput.value.trim();
-        if (!personName) { alert('Please enter your name.'); return; }
+        const key = personName.toUpperCase();
+        const known = checkerMap[key];
+        if (!known) {
+          alert('Please select a registered QA/QC inspector. If missing, contact HR.');
+          return;
+        }
+        const empNo = (known.empId || '').toString().toUpperCase();
+        const position = known.position || '';
 
         const summaryData = ipqcData.map((zone, index) => ({
           ...zone,
@@ -925,25 +1309,57 @@
           Reading_3: userReadings[index].reading3
         }));
 
+        // Measured in instrument order; report/summary back in point-number order.
+        summaryData.sort((a, b) => pointNo(a) - pointNo(b));
+
         localStorage.setItem('summaryData', JSON.stringify(summaryData));
         localStorage.setItem('partName', partName);
         localStorage.setItem('processName', processName);
         localStorage.setItem('joNumber', joNumber);
         localStorage.setItem('machineNumber', machineNumber);
         localStorage.setItem('personName', personName);
+        localStorage.setItem('personEmpNo', empNo);
+        localStorage.setItem('personPosition', position);
 
         window.location.href = 'IPQC-page2.html';
       });
 
       personNameInput.addEventListener('input', function () {
-        personNameEntered = personNameInput.value.trim() !== '';
-        checkReadingsAndEnableButtons();
+        applyInspectorMode();
+        openCheckerList();
       });
+      personNameInput.addEventListener('focus', openCheckerList);
+      comboToggle.addEventListener('click', function () {
+        if (comboList.classList.contains('hidden')) { personNameInput.focus(); openCheckerList(); }
+        else { closeCheckerList(); }
+      });
+      comboClear.addEventListener('click', function () {
+        personNameInput.value = '';
+        empNoInput.value = ''; empNoInput.readOnly = false;
+        positionSelect.value = ''; positionSelect.disabled = false;
+        applyInspectorMode();
+        closeCheckerList();
+        personNameInput.focus();
+      });
+      comboList.addEventListener('mousedown', function (e) {
+        const item = e.target.closest('.combo-item');
+        if (!item) return;
+        e.preventDefault(); // keep focus / avoid blur race
+        personNameInput.value = item.dataset.name;
+        applyInspectorMode();
+        closeCheckerList();
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.combo')) closeCheckerList();
+      });
+      empNoInput.addEventListener('input', updateInspectorState);
+      positionSelect.addEventListener('change', updateInspectorState);
 
       function checkPersonNameAndEnableButtons() {
-        personNameEntered = personNameInput.value.trim() !== '';
-        checkReadingsAndEnableButtons();
+        updateInspectorState();
       }
+
+      fetchCheckers();
 
       if (partName && processName) {
         fetchIPQCData();
@@ -951,64 +1367,6 @@
         loadingIndicator.classList.add('hidden');
         errorMessage.classList.remove('hidden');
         errorMessage.textContent = 'Missing part name or process parameters.';
-      }
-
-      function validateReading(reading, min, max) {
-        const r = reading.toLowerCase();
-        const mi = String(min).toLowerCase();
-        const ma = String(max).toLowerCase();
-
-        if (mi === 'ok' || mi === 'go') {
-          return r === 'ok' || r === 'go';
-        }
-        if (ma === 'ng' || ma === 'nogo') {
-          return r !== 'ng' && r !== 'nogo';
-        }
-
-        const readingValue = parseFloat(reading);
-        const minValue = parseFloat(min);
-        const maxValue = parseFloat(max);
-        return !isNaN(readingValue) && !isNaN(minValue) && !isNaN(maxValue) && readingValue >= minValue && readingValue <= maxValue;
-      }
-
-      async function sendTelegramAlert(outOfSpecReadings) {
-        try {
-          const personName = personNameInput.value.trim();
-          let message = `⚠️ *IPQC ALERT*\n\n`;
-          message += `*Part:* ${partName}\n`;
-          message += `*Process:* ${processName}\n`;
-          message += `*Job Order:* ${joNumber}\n`;
-          message += `*Machine:* ${machineNumber}\n`;
-          message += `*Person:* ${personName}\n\n`;
-          message += `*Out-of-spec measurements:*\n`;
-
-          const zoneMap = {};
-          outOfSpecReadings.forEach(item => {
-            if (!zoneMap[item.zone]) zoneMap[item.zone] = [];
-            zoneMap[item.zone].push(item);
-          });
-
-          Object.keys(zoneMap).forEach(zone => {
-            const readings = zoneMap[zone];
-            const firstReading = readings[0];
-            message += `\n*Zone ${zone}*\n`;
-            message += `Expected range: ${firstReading.min} - ${firstReading.max}\n`;
-            message += `Readings: `;
-            readings.forEach((item, idx) => {
-              message += `R${item.readingNum}:${item.value}`;
-              if (idx < readings.length - 1) message += ", ";
-            });
-            message += "\n";
-          });
-
-          const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4';
-          const chatId = '-1003227469075';
-
-          await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-            chat_id: chatId, text: message, parse_mode: 'Markdown'
-          });
-
-        } catch (error) { console.error('Error sending Telegram alert:', error); }
       }
     });
   </script>

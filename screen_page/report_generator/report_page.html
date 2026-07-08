@@ -9,22 +9,19 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         :root {
             --sidebar-width: 260px;
-            --primary: #0078d4;
-            --bg-body: #f8fafc;
             --sidebar-bg: #1e293b;
         }
 
-        body,
-        html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
+        html { height: 100%; }
+        body { height: 100%; overflow: hidden; }
 
         .app-wrapper {
             display: flex;
@@ -32,61 +29,65 @@
             width: 100vw;
         }
 
-        /* Sidebar Styles */
+        /* Dark sidebar (page-specific look, not the light theme .sidebar) */
         .sidebar {
             width: var(--sidebar-width);
+            padding: 0;
             background-color: var(--sidebar-bg);
-            color: white;
+            color: #fff;
+            border-right: none;
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
         }
 
         .sidebar-header {
-            padding: 30px 20px;
+            padding: var(--space-8) var(--space-5);
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-header img {
             width: 50px;
-            margin-bottom: 10px;
+            margin-bottom: var(--space-3);
         }
 
         .sidebar-header h2 {
-            font-size: 16px;
+            font-size: var(--fs-md);
             font-weight: 800;
             margin: 0;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .nav-list {
             list-style: none;
-            padding: 20px 0;
+            padding: var(--space-5) var(--space-3);
             margin: 0;
             flex-grow: 1;
         }
 
         .nav-item {
-            padding: 12px 25px;
+            padding: 12px var(--space-4);
+            margin-bottom: var(--space-1);
+            border-radius: var(--radius-sm);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 14px;
+            gap: var(--space-3);
+            font-size: var(--fs-base);
             font-weight: 600;
-            color: #94a3b8;
-            transition: 0.3s;
+            color: var(--text-faint);
+            transition: background var(--transition), color var(--transition);
         }
 
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-            color: white;
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
         }
 
         .nav-item.active {
             background: var(--primary);
-            color: white;
+            color: #fff;
         }
 
         .nav-item svg {
@@ -109,15 +110,19 @@
         }
 
         .back-to-admin {
-            padding: 20px;
+            padding: var(--space-5);
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 12px;
+            font-size: var(--fs-sm);
+            font-weight: 600;
             text-decoration: none;
-            color: #94a3b8;
+            color: var(--text-faint);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--space-2);
+            transition: color var(--transition);
         }
+
+        .back-to-admin:hover { color: #fff; }
     </style>
 </head>
 
@@ -205,6 +210,7 @@
             element.classList.add('active');
         }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

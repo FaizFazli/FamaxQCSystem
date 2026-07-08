@@ -4,11 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Famax DMS - Dashboard</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/assets/theme.css">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
     <style>
+        body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -104,7 +109,7 @@
                 <!-- Content Area -->
                 <div class="bg-white rounded-b-3xl border shadow-sm p-6 md:p-10 min-h-[600px]">
                     <div v-if="detailsLoading" class="flex flex-col items-center justify-center py-40">
-                        <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div class="spinner"></div>
                         <p class="mt-4 font-black text-gray-400 uppercase tracking-widest">Fetching Data...</p>
                     </div>
 
@@ -252,5 +257,6 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 </html>

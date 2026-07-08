@@ -5,26 +5,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checker Daily Record | Famax Quality Hub</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="/assets/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Library for Excel Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
+        /* ---- Page-specific styles (built on shared tokens in theme.css) ----
+           NOTE: This page renders with Vue 3 + Tailwind CDN; Tailwind utility
+           classes drive layout/behaviour, so markup is left intact. Only
+           page-owned visuals below are aligned to the shared design system. */
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
+            /* Keep Inter from the shared system instead of the old Jakarta face */
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-main);
         }
 
         .glass-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
         }
 
         /* Responsive Table Container */
@@ -51,33 +61,37 @@
             }
         }
 
+        /* Printable inspection grid — hard borders kept for paper legibility */
         .checker-table {
             min-width: 1000px;
             /* Ensures table doesn't squash on mobile */
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid black;
-
+            border: 2px solid var(--text-main);
         }
 
         .checker-table th {
-            border: 1px solid black;
+            border: 1px solid var(--border-strong);
             padding: 8px 4px;
-            font-size: 11px;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
-            background-color: #fff;
+            color: var(--text-muted);
+            background-color: var(--surface-muted);
         }
 
         .checker-table td {
-            border: 1px solid black;
+            border: 1px solid var(--border-strong);
             padding: 10px 4px;
-            font-size: 12px;
-            text-align: center;
+            font-size: var(--fs-sm);
             height: 45px;
             text-align: left;
-            /* Changed from center to left */
-
         }
+
+        /* Row interaction states (slate + primary, replaces old yellow) */
+        .row-hover:hover { background: var(--primary-soft); }
+        .row-editing { background: var(--primary-soft) !important; }
     </style>
 </head>
 
@@ -88,36 +102,34 @@
         <header class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-8 no-print">
             <div class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-3 md:gap-4">
-                    <div class="h-8 md:h-10 w-1 bg-yellow-500 rounded-full"></div>
+                    <div class="h-8 md:h-10 w-1 rounded-full" style="background: var(--primary);"></div>
                     <h1 class="text-lg md:text-2xl font-black italic uppercase leading-none">
-                        Checker <span class="text-yellow-500">Daily Record</span>
+                        Checker <span style="color: var(--primary);">Daily Record</span>
                     </h1>
                 </div>
                 <button @click="window.location.href='../../inspectionDashboard.html'"
-                    class="w-9 h-9 md:w-10 md:h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors">
+                    class="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors"
+                    style="background: var(--surface-muted);"
+                    onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-muted)'">
                     <i class="fa fa-home text-sm md:text-base"></i>
                 </button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Date Filter</label>
-                    <input type="date" v-model="filterDate"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                <div class="field">
+                    <label class="label">Date Filter</label>
+                    <input type="date" v-model="filterDate" class="input">
                 </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Category</label>
-                    <select v-model="selectedCategory"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                <div class="field">
+                    <label class="label">Category</label>
+                    <select v-model="selectedCategory" class="select">
                         <option value="">All Categories</option>
                         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                     </select>
                 </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 ml-2">Available Items (for this
-                        date)</label>
-                    <select v-model="selectedPart"
-                        class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none">
+                <div class="field">
+                    <label class="label">Available Items (for this date)</label>
+                    <select v-model="selectedPart" class="select">
                         <option value="">All Items</option>
                         <option v-for="part in availableParts" :key="part" :value="part">
                             {{ part }}
@@ -125,16 +137,16 @@
                     </select>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:col-span-2 items-end">
-                    <button @click="fetchData"
-                        class="h-12 bg-yellow-500 text-black font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-yellow-300 transition-all flex items-center justify-center">
+                    <button @click="fetchData" class="btn">
                         <i class="fa fa-sync mr-2"></i> Refresh
                     </button>
-                    <button @click="exportToExcel"
-                        class="h-12 bg-green-600 text-white font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-green-700 transition-all flex items-center justify-center">
+                    <button @click="exportToExcel" class="btn" style="background: var(--success);"
+                        onmouseover="this.style.background='#059669'" onmouseout="this.style.background='var(--success)'">
                         <i class="fa fa-file-excel mr-2"></i> Export
                     </button>
-                    <button @click="printReport"
-                        class="h-12 bg-black text-white font-bold rounded-xl uppercase text-[10px] tracking-wider hover:bg-neutral-800 transition-all flex items-center justify-center">
+                    <button @click="printReport" class="btn btn--secondary"
+                        style="background: var(--text-main); color: #fff;"
+                        onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background='var(--text-main)'">
                         <i class="fa fa-print mr-2"></i> Print
                     </button>
                 </div>
@@ -174,8 +186,8 @@
                     </thead>
                     <tbody>
                         <tr v-for="(row, index) in reportRows" :key="index" @click="startEdit(row)"
-                            class="cursor-pointer hover:bg-yellow-50 transition-colors"
-                            :class="{'bg-yellow-100': editingId === row.id}">
+                            class="cursor-pointer row-hover transition-colors"
+                            :class="{'row-editing': editingId === row.id}">
 
                             <td>{{ formatDateTime(row.actual_finished || row.created_at) }}</td>
                             <td>{{ row.Part_Name }}</td>
@@ -188,7 +200,7 @@
                             <td>
                                 <input v-if="editingId === row.id" type="number" v-model.number="editForm.TotalCheck"
                                     @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
-                                    class="w-20 border rounded px-1 font-bold bg-blue-50">
+                                    class="w-20 border rounded px-1 font-bold" style="background: var(--primary-soft);">
                                 <span v-else class="font-bold">{{ row.TotalCheck || calculateTotal(row) }}</span>
                             </td>
 
@@ -216,12 +228,12 @@
                             </td>
 
                             <!-- Output Calculation -->
-                            <td class="bg-blue-50 font-bold text-blue-700">
+                            <td class="font-bold" style="background: var(--primary-soft); color: var(--primary);">
                                 <div v-if="editingId === row.id" class="flex flex-col gap-1 no-print">
                                     <button @click.stop="saveEdit"
-                                        class="bg-green-600 text-white text-[10px] py-1 px-2 rounded">SAVE</button>
+                                        class="text-white text-[10px] py-1 px-2 rounded" style="background: var(--success);">SAVE</button>
                                     <button @click.stop="cancelEdit"
-                                        class="bg-gray-400 text-white text-[10px] py-1 px-2 rounded">CANCEL</button>
+                                        class="text-white text-[10px] py-1 px-2 rounded" style="background: var(--text-muted);">CANCEL</button>
                                 </div>
                                 <span v-else>{{ calculateOutputPerHour(row) }}</span>
                             </td>
@@ -229,12 +241,13 @@
                             <!-- Display Schedule Mapping & Overdue Logic -->
                             <td class="text-[10px] leading-tight text-left px-2">
                                 <template v-if="getScheduleMatch(row)">
-                                    <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row))}">
+                                    <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row), row)}">
                                         <div>Start: {{ formatTimeOnly(getScheduleMatch(row).StartDate) }}</div>
                                         <div>Est: {{ formatTimeOnly(getScheduleMatch(row).EstFinished) }}</div>
-                                        <div>Act: {{ formatTimeOnly(getScheduleMatch(row).actual_finished_time) }}</div>
+                                        <!-- Also updated 'Act' display to show the Record's actual_finished time -->
+                                        <div>Act: {{ formatTimeOnly(row.actual_finished || row.created_at) }}</div>
 
-                                        <span v-if="isOverdue(getScheduleMatch(row))"
+                                        <span v-if="isOverdue(getScheduleMatch(row), row)"
                                             class="mt-1 inline-block bg-red-600 text-white px-1 rounded font-black">
                                             OVERDUE
                                         </span>
@@ -264,10 +277,10 @@
         createApp({
             setup() {
                 const api = axios.create({
-                    baseURL: `${window.APP_CONFIG.url}/rest/v1`,
+                    baseURL: 'http://192.168.0.5:8000/rest/v1',
                     headers: {
-                        'apikey': window.APP_CONFIG.key,
-                        'Authorization': `Bearer ${window.APP_CONFIG.key}`
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
                     }
                 });
 
@@ -366,12 +379,21 @@
                     return best.diff <= FORTY_EIGHT_HOURS ? best.s : null;
                 };
 
-                const isOverdue = (schedule) => {
-                    if (!schedule || !schedule.actual_finished_time || !schedule.EstFinished) return false;
-                    const act = new Date(schedule.actual_finished_time);
+                const isOverdue = (schedule, row) => {
+                    // 1. Get the finish time from the record (row) instead of the schedule
+                    const recordFinishTime = row.actual_finished || row.created_at;
+
+                    // 2. Validate we have both the actual finish and the estimated finish
+                    if (!schedule || !schedule.EstFinished || !recordFinishTime) return false;
+
+                    const act = new Date(recordFinishTime);
                     const est = new Date(schedule.EstFinished);
+
+                    // Reset seconds/ms for a fair comparison
                     act.setSeconds(0, 0);
                     est.setSeconds(0, 0);
+
+                    // Return true if the record was finished after the estimated time
                     return act.getTime() > est.getTime();
                 };
 
@@ -454,13 +476,42 @@
                     try {
                         const id = editForm.value.id;
                         const payload = { ...editForm.value };
+
+                        // 1. Get the full row data before updating 
+                        // We need the JO_Number and Parameter to find the matching schedule
+                        const row = allRecords.value.find(r => r.id === id);
+
+                        // Use the current time for actual_finished if it's not already set
+                        const finishTime = new Date().toISOString();
+                        payload.actual_finished = row.actual_finished || finishTime;
+
                         delete payload.id;
+
+                        // 2. Update the InspectionRecord table
                         await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
+
+                        // 3. NEW: Sync with the InspectionSchedule table
+                        // We match by JO, Part Name, and Parameter
+                        await api.patch(`/InspectionSchedule?JO_Number=eq.${row.JO_Number}&Part_Name=eq.${row.Part_Name}&Parameter=eq.${row.Parameter}`, {
+                            actual_finished_time: payload.actual_finished,
+                            Status: 'Complete'
+                        });
+
+                        // Update local state so UI refreshes immediately
                         const index = allRecords.value.findIndex(r => r.id === id);
-                        if (index !== -1) allRecords.value[index] = { ...allRecords.value[index], ...payload };
-                        alert("Updated!");
+                        if (index !== -1) {
+                            allRecords.value[index] = {
+                                ...allRecords.value[index],
+                                ...payload
+                            };
+                        }
+
+                        alert("Record updated and Schedule marked as Complete!");
                         editingId.value = null;
-                    } catch (err) { alert("Failed!"); }
+                    } catch (err) {
+                        console.error("Sync Error:", err);
+                        alert("Failed to sync status to schedule.");
+                    }
                 };
 
                 // onMounted(fetchData);
@@ -489,6 +540,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

@@ -6,237 +6,201 @@
     <title>IQC Checking - Summary</title>
     <!-- Add /FamaxQCSystem to the beginning of the path -->
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
     <style>
-        :root {
-            --primary-color: #1976D2;
-            --primary-light: #42a5f5;
-            --primary-dark: #0d47a1;
-            --accent-color: #FF5722;
-            --text-light: #ffffff;
-            --text-dark: #333333;
-            --background-light: #f5f5f5;
-            --background-white: #ffffff;
-            --border-color: #e0e0e0;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-            --disabled-color: #cccccc;
-            --exceeded-color: #D32F2F;
-        }
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        body { display: flex; flex-direction: column; min-height: 100vh; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--background-light);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-
+        /* Sticky top app bar */
         header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 2rem;
-            height: 70px;
-            background-color: var(--primary-color);
-            color: var(--text-light);
-            box-shadow: 0 2px 10px var(--shadow-color);
             position: sticky;
             top: 0;
-            width: 100%;
-            z-index: 100;
+            z-index: var(--z-header);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            height: 64px;
+            padding: 0 var(--space-8);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .header-title {
-            font-weight: 600;
-            font-size: 1.5rem;
+            font-size: var(--fs-md);
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            color: var(--text-main);
         }
 
         .container {
             width: 100%;
-            max-width: 100%;
-            padding: 1rem;
-            background-color: var(--background-white);
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: var(--space-8);
         }
 
         .section-title {
-            font-size: 1.5rem;
-            color: var(--primary-dark);
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--primary-light);
+            margin: 0 0 var(--space-6);
+            padding-bottom: var(--space-3);
+            font-size: var(--fs-lg);
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
         }
 
         .info-card {
-            background-color: var(--primary-light);
-            color: var(--text-light);
-            padding: 1.5rem;
-            border-radius: 6px;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px var(--shadow-color);
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-8);
+            background: var(--primary);
+            color: var(--on-primary);
+            box-shadow: var(--shadow);
         }
 
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--space-5);
         }
 
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
+        .info-item { display: flex; flex-direction: column; }
 
         .info-label {
-            font-size: 0.9rem;
-            font-weight: normal;
-            margin-bottom: 0.3rem;
-            opacity: 0.9;
+            font-size: var(--fs-xs);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: var(--space-2);
+            opacity: 0.85;
         }
 
-        .info-value {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
+        .info-value { font-size: var(--fs-lg); font-weight: 700; }
 
         .exceeded {
-            background-color: #D32F2F;
-            color: white;
+            background-color: var(--danger);
+            color: #ffffff;
         }
 
         .exceeded-value {
-            background-color: #FFE6E6;
-            color: #D32F2F;
-            font-weight: bold;
+            background-color: #fee2e2;
+            color: #b91c1c;
+            font-weight: 700;
         }
 
         .detail-table {
-            font-size: 12px;
-            margin-bottom: 20px;
+            font-size: var(--fs-sm);
+            margin-bottom: var(--space-5);
             width: 100%;
+            border-collapse: collapse;
         }
 
         .detail-table th, .detail-table td {
-            padding: 6px;
+            padding: var(--space-2) var(--space-3);
             text-align: center;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
         }
 
         .detail-table th {
-            background-color: var(--primary-color);
-            color: var(--text-light);
+            background: var(--primary);
+            color: var(--on-primary);
         }
 
         .detail-table th.exceeded {
-            background-color: #D32F2F;
+            background-color: var(--danger);
             color: #ffffff;
         }
 
         .detail-table .range-row td {
-            background-color: #E3F2FD;
-            font-weight: 500;
+            background-color: var(--primary-soft);
+            font-weight: 600;
         }
 
         .button-container {
             display: flex;
             justify-content: flex-end;
-            margin-top: 2rem;
+            margin-top: var(--space-8);
         }
 
-        .btn {
-            padding: 10px 20px;
-            font-size: 1rem;
-            font-weight: 500;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: var(--text-light);
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn-primary:disabled {
-            background-color: var(--disabled-color);
-            cursor: not-allowed;
-        }
+        /* Map legacy .btn-primary onto shared .btn primitive */
+        .btn-primary { color: var(--on-primary); background: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-primary:disabled { background: var(--border-strong); color: var(--text-faint); cursor: not-allowed; }
 
         .footer {
+            margin-top: auto;
+            padding: var(--space-6) var(--space-8);
             text-align: center;
-            margin-top: 2rem;
-            padding: 1rem;
-            color: #777;
-            font-size: 0.9rem;
+            font-size: var(--fs-sm);
+            font-weight: 500;
+            color: var(--text-faint);
+            border-top: 1px solid var(--border);
         }
 
         /* Visual inspection section styles */
         .visual-section {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background-color: #F5F5F5;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px var(--shadow-color);
+            margin-top: var(--space-8);
+            padding: var(--space-6);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
         }
 
         .visual-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--primary-dark);
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--primary-light);
+            font-size: var(--fs-md);
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-2);
+            border-bottom: 1px solid var(--border);
         }
 
         .visual-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
         }
 
         .visual-item {
-            background-color: white;
-            padding: 1rem;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
+            background: var(--surface-muted);
+            padding: var(--space-4);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
         }
 
         .rating-label {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
         }
 
         .rating-value {
-            font-size: 1.2rem;
-            font-weight: 600;
+            font-size: var(--fs-lg);
+            font-weight: 700;
         }
 
         .rating-low {
-            color: #D32F2F;
+            color: var(--danger);
         }
 
         .decision-section {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background-color: #E3F2FD;
-            border-radius: 4px;
+            margin-top: var(--space-5);
+            padding: var(--space-4);
+            background-color: var(--primary-soft);
+            border-radius: var(--radius-sm);
         }
 
         .remark-section {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background-color: #FAFAFA;
-            border-radius: 4px;
-            border: 1px solid #EEEEEE;
+            margin-top: var(--space-5);
+            padding: var(--space-4);
+            background-color: var(--surface-muted);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
         }
 
         @media print {
@@ -306,9 +270,7 @@
         </div>
     </div>
     
-    <div class="footer">
-        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
-    </div>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -5,25 +5,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generate Report | Famax Quality Hub</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="/assets/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
         }
 
         .glass-card {
-            background: #ffffff;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
         }
+
+        /* On-screen chrome wrapper (themed; excluded from print) */
+        .report-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: var(--space-4);
+        }
+        .report-toolbar .field { flex: 1 1 220px; }
+        .report-toolbar__actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        .btn--icon { padding: 10px; width: 44px; height: 44px; }
 
         /* Print Styles to match PDF Form */
         @media print {
@@ -120,55 +141,42 @@
 <body class="p-4 md:p-8">
     <div id="app" class="max-w-[1400px] mx-auto">
         <!-- ... (Keep Header section same) ... -->
-        <header class="glass-card rounded-[2rem] p-6 mb-8 no-print">
-            <!-- Navigation Header -->
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="h-10 w-1 bg-yellow-400 rounded-full"></div>
-                    <h1 class="text-2xl font-black italic uppercase">Report <span
-                            class="text-yellow-500">Generator</span></h1>
-                </div>
-                <!-- <button @click="window.history.back()"
-                    class="text-xs font-bold uppercase text-neutral-400 hover:text-black">
-                    <i class="fa fa-arrow-left mr-2"></i> Back to Dashboard
-                </button> -->
+        <header class="panel mb-8 no-print">
+            <div class="panel__head">
+                <h1 class="panel__title">Report Generator</h1>
             </div>
+            <div class="panel__body">
+                <!-- Filters -->
+                <div class="report-toolbar">
+                    <div class="field">
+                        <label class="label">Report Month/Year</label>
+                        <input type="month" v-model="filterMonth">
+                    </div>
+                    <div class="field">
+                        <label class="label">Category Filter</label>
+                        <select v-model="selectedCategory">
+                            <option value="">All Categories</option>
+                            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                        </select>
+                    </div>
+                    <div class="report-toolbar__actions">
+                        <!-- Generate Preview -->
+                        <button @click="fetchData" class="btn">
+                            <i class="fa fa-sync"></i>
+                            <span>Generate Preview</span>
+                        </button>
 
-            <!-- Filters -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-neutral-400 ml-2">Report Month/Year</label>
-                    <input type="month" v-model="filterMonth"
-                        class="w-full bg-gray-50 border border-black/5 rounded-xl p-3 text-sm font-bold">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-neutral-400 ml-2">Category Filter</label>
-                    <select v-model="selectedCategory"
-                        class="w-full bg-gray-50 border border-black/5 rounded-xl p-3 text-sm font-bold">
-                        <option value="">All Categories</option>
-                        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-                    </select>
-                </div>
-                <div class="flex items-center gap-3 mt-auto">
-                    <!-- Generate Preview -->
-                    <button @click="fetchData"
-                        class="flex-1 h-12 bg-yellow-400 text-black font-extrabold rounded-xl uppercase text-[10px] tracking-[0.15em] hover:bg-yellow-500 hover:shadow-lg transition-all flex items-center justify-center gap-4 px-6">
-                        <i class="fa fa-sync text-xs"></i>
-                        <span>Generate Preview</span>
-                    </button>
+                        <!-- Print PDF -->
+                        <button @click="printReport" class="btn btn--secondary">
+                            <i class="fa fa-print"></i>
+                            <span>Print PDF</span>
+                        </button>
 
-                    <!-- Print PDF -->
-                    <button @click="printReport"
-                        class="flex-1 h-12 bg-black text-white font-extrabold rounded-xl uppercase text-[10px] tracking-[0.15em] hover:bg-neutral-800 hover:shadow-lg transition-all flex items-center justify-center gap-4 px-6">
-                        <i class="fa fa-print text-xs"></i>
-                        <span>Print PDF</span>
-                    </button>
-
-                    <!-- Home Icon -->
-                    <button @click="window.location.href='../../index.html'"
-                        class="flex-none w-12 h-12 bg-gray-100 text-neutral-400 hover:text-black hover:bg-gray-200 rounded-xl transition-all flex items-center justify-center">
-                        <i class="fa fa-home text-lg"></i>
-                    </button>
+                        <!-- Home Icon -->
+                        <button @click="window.location.href='../../index.html'" class="btn btn--secondary btn--icon">
+                            <i class="fa fa-home"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -467,6 +475,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

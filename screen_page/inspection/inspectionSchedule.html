@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Hub | Inspection Schedule </title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
     <!-- External Libraries -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="/assets/app-config.js"></script>
@@ -20,15 +20,19 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
-            color: #1a1a1a;
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-main);
             padding: 2rem;
             background-image:
-                radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 25%),
-                radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 25%);
+                radial-gradient(circle at 0% 0%, var(--primary-soft) 0%, transparent 25%),
+                radial-gradient(circle at 100% 100%, rgba(0, 120, 212, 0.05) 0%, transparent 25%);
         }
 
         @media (min-width: 768px) {
@@ -38,14 +42,15 @@
         }
 
         .app-header {
-            background: #ffffff;
+            background: var(--bg-card);
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
             border-radius: 2.5rem;
             padding: 2rem;
             margin-bottom: 2.5rem;
-            color: #1a1a1a;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            color: var(--text-main);
+            box-shadow: var(--shadow);
             position: relative;
             overflow: hidden;
             display: flex;
@@ -71,7 +76,7 @@
             margin-top: -5rem;
             width: 20rem;
             height: 20rem;
-            background-color: rgba(251, 191, 36, 0.15);
+            background-color: var(--primary-soft);
             border-radius: 9999px;
             filter: blur(64px);
         }
@@ -79,18 +84,18 @@
         .header-accent-bar {
             width: 0.75rem;
             height: 2.5rem;
-            background-color: #fbbf24;
+            background-color: var(--primary);
             border-radius: 9999px;
-            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 10px var(--primary-ring);
         }
 
         .header-title {
             font-size: 2.25rem;
-            font-weight: 900;
+            font-weight: 800;
             letter-spacing: -0.05em;
             text-transform: uppercase;
             font-style: italic;
-            color: #000;
+            color: var(--text-main);
         }
 
         .filter-container {
@@ -111,7 +116,7 @@
             outline: none;
             font-weight: 700;
             font-size: 0.875rem;
-            color: #000;
+            color: var(--text-main);
             cursor: pointer;
         }
 
@@ -127,32 +132,32 @@
         }
 
         .nav-link-home {
-            background: #f3f4f6;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            color: #4b5563;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
 
         .nav-link-form {
-            background: #000;
-            color: #fbbf24;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: var(--primary);
+            color: var(--on-primary);
+            box-shadow: 0 10px 15px -3px var(--primary-ring);
         }
 
         .schedule-card {
-            background: #ffffff;
+            background: var(--bg-card);
             border-radius: 2.5rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
             overflow: visible;
             animation: fadeInUp 0.5s ease-out;
         }
 
         .table-th {
-            font-size: 0.7rem;
-            font-weight: 800;
+            font-size: var(--fs-xs);
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #6b7280;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
             padding: 1.25rem 0.75rem;
             /* Reduced from 1.5rem */
             text-align: left;
@@ -161,16 +166,17 @@
         .table-td {
             padding: 1.25rem 0.75rem;
             /* Reduced from 1.5rem */
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
         }
 
         /* Modal Overlays */
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(12px);
-            z-index: 100;
+            background: rgba(15, 23, 42, 0.55);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+            z-index: var(--z-modal);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -178,11 +184,11 @@
         }
 
         .modal-content {
-            background: #ffffff;
+            background: var(--bg-card);
             width: 100%;
             max-width: 48rem;
             border-radius: 3rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
 
             /* ADD THESE LINES */
             max-height: 90vh;
@@ -194,13 +200,13 @@
             overflow: hidden;
             /* Hide the container's overflow */
 
-            animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: zoomIn var(--transition-emphasis);
             position: relative;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
         .modal-header {
-            background: #000;
+            background: var(--text-main);
             color: white;
             padding: 2rem 2.5rem;
             display: flex;
@@ -208,7 +214,7 @@
             align-items: center;
             border-top-left-radius: 3rem;
             border-top-right-radius: 3rem;
-            border-bottom: 1px solid #fbbf24;
+            border-bottom: 1px solid var(--primary);
         }
 
         .modal-body {
@@ -225,16 +231,16 @@
         }
 
         .modal-body::-webkit-scrollbar-thumb {
-            background-color: #e5e7eb;
+            background-color: var(--border-strong);
             border-radius: 10px;
         }
 
         .section-label {
-            font-size: 0.7rem;
-            font-weight: 800;
+            font-size: var(--fs-sm);
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #6b7280;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
             margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
@@ -247,12 +253,12 @@
             padding: 0 1.5rem;
             padding-right: 3rem !important;
             /* Make room for the X button */
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
             border-radius: 1.25rem;
             font-weight: 600;
-            color: #1a1a1a;
-            transition: all 0.2s;
+            color: var(--text-main);
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
 
         .clear-btn {
@@ -267,13 +273,13 @@
         }
 
         .clear-btn:hover {
-            color: #ef4444;
+            color: var(--danger);
         }
 
         .form-input:focus {
-            border-color: #fbbf24;
+            border-color: var(--primary);
             outline: none;
-            box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.1);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         /* Fix: Ensure the replacement modal has enough vertical room */
@@ -291,16 +297,14 @@
             /* Align directly under the input */
             left: 0;
             right: 0;
-            background: #ffffff;
+            background: var(--bg-card);
             border-radius: 1.25rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            /* Stronger shadow */
+            box-shadow: var(--shadow-lg);
             z-index: 999;
             /* Ensure it stays above everything */
             max-height: 180px;
             overflow-y: auto;
-            border: 2px solid #fbbf24;
-            /* Thicker border for clarity */
+            border: 1px solid var(--border-strong);
             margin-top: 5px;
         }
 
@@ -312,15 +316,15 @@
         .dropdown-item {
             padding: 0.75rem 1rem;
             cursor: pointer;
-            font-size: 0.875rem;
+            font-size: var(--fs-base);
             font-weight: 600;
             border-radius: 0.75rem;
-            color: #374151;
+            color: var(--text-main);
         }
 
         .dropdown-item:hover {
-            background-color: #fbbf24;
-            color: #000;
+            background-color: var(--primary-soft);
+            color: var(--primary);
         }
 
         .btn-action {
@@ -368,7 +372,7 @@
             <div class="relative z-10">
                 <div class="flex items-center gap-4 mb-3">
                     <div class="header-accent-bar"></div>
-                    <h1 class="header-title">Daily <span class="text-yellow-500">Schedule</span></h1>
+                    <h1 class="header-title">Daily <span style="color: var(--primary);">Schedule</span></h1>
                 </div>
             </div>
 
@@ -383,12 +387,14 @@
                 </nav>
 
                 <div
-                    class="flex items-center gap-3 bg-white border border-gray-200 p-2 px-4 rounded-2xl shadow-sm w-fit">
-                    <i class="fa fa-calendar text-yellow-500"></i>
-                    <input type="date" v-model="filterDate" class="filter-input bg-transparent text-black outline-none">
-                    <div class="w-px h-4 bg-gray-200 mx-2"></div>
+                    class="flex items-center gap-3 p-2 px-4 rounded-2xl w-fit"
+                    style="background: var(--bg-card); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+                    <i class="fa fa-calendar" style="color: var(--primary);"></i>
+                    <input type="date" v-model="filterDate" class="filter-input bg-transparent outline-none" style="width: auto;">
+                    <div class="w-px h-4 mx-2" style="background: var(--border);"></div>
                     <button @click="fetchData"
-                        class="text-gray-400 hover:text-black transition-colors flex items-center gap-2">
+                        class="transition-colors flex items-center gap-2"
+                        style="color: var(--text-muted);">
                         <span class="text-[10px] font-bold uppercase tracking-wider">Sync</span>
                         <i class="fa fa-sync-alt" :class="{'fa-spin': loading}"></i>
                     </button>
@@ -399,19 +405,18 @@
         <!-- --- MAIN CONTENT --- -->
         <main class="animate-in">
             <div class="schedule-card">
-                <div class="p-8 md:p-10 flex justify-between items-center border-b border-gray-100">
-                    <h2 class="text-2xl font-black text-black tracking-tighter italic uppercase">
-                        Job Queue <span class="text-yellow-600">({{ filteredSchedule.length }})</span>
+                <div class="p-8 md:p-10 flex justify-between items-center" style="border-bottom: 1px solid var(--border);">
+                    <h2 class="text-2xl font-black tracking-tighter italic uppercase" style="color: var(--text-main);">
+                        Job Queue <span style="color: var(--primary);">({{ filteredSchedule.length }})</span>
                     </h2>
-                    <button @click="openModal"
-                        class="bg-yellow-400 text-black px-8 py-3 rounded-2xl font-black hover:bg-yellow-300 transition-all shadow-xl shadow-yellow-400/20">
+                    <button @click="openModal" class="btn">
                         <i class="fa fa-plus mr-2"></i> Assign Task
                     </button>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full">
-                        <thead class="bg-gray-50">
+                        <thead style="background: var(--surface-muted);">
                             <tr>
                                 <th class="table-th w-[20%]">Job Order & Part</th>
                                 <th class="table-th w-[10%]">Remaining Qty/Total</th>
@@ -421,17 +426,17 @@
                                 <th class="table-th w-[15%] text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody>
                             <tr v-for="item in filteredSchedule" :key="item.id"
                                 class="hover:bg-gray-50 transition-all group"
                                 :class="{'bg-red-50/50': isOverdue(item)}">
 
                                 <!-- Job & Part -->
                                 <td class="table-td">
-                                    <div class="font-black text-yellow-600 text-base leading-tight mb-1">{{
+                                    <div class="font-black text-base leading-tight mb-1" style="color: var(--primary);">{{
                                         item.JO_Number }}</div>
                                     <div
-                                        class="text-[10px] text-neutral-400 font-bold uppercase tracking-tight max-w-[200px] truncate">
+                                        class="text-[10px] font-bold uppercase tracking-tight max-w-[200px] truncate" style="color: var(--text-faint);">
                                         {{ item.Part_Name }}
                                     </div>
                                 </td>
@@ -439,17 +444,18 @@
                                 <!-- Quantity -->
                                 <td class="table-td">
                                     <div class="font-bold text-sm">
-                                        <span class="text-red-600">{{ item.remaining_qty || 0 }}</span>
-                                        <span class="text-gray-300 mx-1">/</span>
-                                        <span class="text-gray-900">{{ item.quantity || 0 }}</span>
-                                        <span class="text-[9px] text-gray-400 font-black ml-1 uppercase">Balance</span>
+                                        <span style="color: var(--danger);">{{ item.remaining_qty || 0 }}</span>
+                                        <span class="mx-1" style="color: var(--border-strong);">/</span>
+                                        <span style="color: var(--text-main);">{{ item.quantity || 0 }}</span>
+                                        <span class="text-[9px] font-black ml-1 uppercase" style="color: var(--text-muted);">Balance</span>
                                     </div>
                                 </td>
 
                                 <!-- Parameter -->
                                 <td class="table-td">
                                     <div
-                                        class="inline-flex items-center gap-2 bg-gray-100 text-neutral-600 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] border border-gray-200 uppercase">
+                                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold text-[10px] uppercase"
+                                        style="background: var(--surface-muted); color: var(--text-muted); border: 1px solid var(--border);">
                                         {{ item.Parameter || 'STANDARD' }}
                                     </div>
                                 </td>
@@ -458,11 +464,12 @@
                                 <td class="table-td">
                                     <div class="flex flex-col gap-1">
                                         <div
-                                            class="inline-flex items-center gap-2 bg-yellow-50 text-yellow-700 px-3 py-1.5 rounded-xl font-black text-[10px] border border-yellow-100">
+                                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-[10px]"
+                                            style="background: var(--primary-soft); color: var(--primary); border: 1px solid var(--primary-soft);">
                                             <i class="fa fa-user-circle"></i> {{ item.AssignTo }}
                                         </div>
                                         <div v-if="item.Replacement && item.Replacement !== '-'"
-                                            class="text-[9px] text-blue-600 font-bold italic">
+                                            class="text-[9px] font-bold italic" style="color: var(--primary);">
                                             <i class="fa fa-exchange-alt mr-1"></i> Rep: {{ item.Replacement }}
                                         </div>
                                     </div>
@@ -514,16 +521,16 @@
             <div class="modal-content !max-w-md allow-overflow">
                 <div class="modal-header">
                     <h3 class="font-black text-xl italic uppercase">
-                        <span class="text-yellow-400">Assign</span> Replacement
+                        <span style="color: var(--primary);">Assign</span> Replacement
                     </h3>
                     <button @click="showReplaceModal = false"><i class="fa fa-times"></i></button>
                 </div>
 
                 <!-- Added 'replacement-modal-body' class here -->
                 <div class="p-8 space-y-6 replacement-modal-body">
-                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-2">
-                        <div class="text-[10px] font-bold text-gray-400">CURRENTLY ASSIGNED TO</div>
-                        <div class="font-black text-black">{{ selectedTask?.AssignTo }}</div>
+                    <div class="p-4 rounded-2xl mb-2" style="background: var(--surface-muted); border: 1px solid var(--border);">
+                        <div class="text-[10px] font-bold" style="color: var(--text-muted);">CURRENTLY ASSIGNED TO</div>
+                        <div class="font-black" style="color: var(--text-main);">{{ selectedTask?.AssignTo }}</div>
                     </div>
 
                     <div class="relative">
@@ -548,7 +555,7 @@
                     <!-- Added margin-top to push button down and leave room for dropdown above it if needed -->
                     <div class="pt-4">
                         <button @click="submitReplacement"
-                            class="w-full bg-black text-yellow-400 py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-900 transition-colors shadow-lg">
+                            class="btn w-full py-5 rounded-2xl uppercase tracking-widest">
                             Update Assignment
                         </button>
                     </div>
@@ -561,7 +568,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <div class="flex items-center gap-4">
-                        <div class="w-2 h-8 bg-yellow-400 rounded-full"></div>
+                        <div class="w-2 h-8 rounded-full" style="background: var(--primary);"></div>
                         <h3 class="font-black text-2xl italic uppercase tracking-tighter">Schedule Assignment</h3>
                     </div>
                     <button @click="showAddModal = false"
@@ -631,7 +638,8 @@
 
                                     <!-- Visual indicator for related items (Top items) -->
                                     <span v-if="filteredParams.some(fp => fp.id === pObj.id)"
-                                        class="text-[9px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-black uppercase">
+                                        class="text-[9px] px-2 py-0.5 rounded font-black uppercase"
+                                        style="background: var(--primary-soft); color: var(--primary);">
                                         Related
                                     </span>
                                 </div>
@@ -704,7 +712,8 @@
                     </div>
 
                     <div v-if="newTask.cycleTime > 0"
-                        class="relative overflow-hidden bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl border-b-8 border-yellow-500">
+                        class="relative overflow-hidden text-white p-8 rounded-[2.5rem] shadow-2xl border-b-8"
+                        style="background: #1e293b; border-bottom-color: var(--primary);">
                         <!-- Decorative background icon -->
                         <i class="fa fa-business-time absolute -right-4 -bottom-4 text-8xl opacity-10 rotate-12"></i>
 
@@ -713,7 +722,7 @@
                             <div>
                                 <div class="flex items-center gap-2 mb-2">
                                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                    <div class="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em]">
+                                    <div class="text-[10px] font-black uppercase tracking-[0.2em]" style="color: var(--primary);">
                                         Estimated Completion</div>
                                 </div>
                                 <div class="text-3xl font-black italic tracking-tighter">
@@ -731,7 +740,7 @@
                                 <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Working
                                     Duration
                                 </div>
-                                <div class="text-2xl font-black text-yellow-400">{{ newTask.estimatedDuration }}
+                                <div class="text-2xl font-black" style="color: var(--primary);">{{ newTask.estimatedDuration }}
                                 </div>
                             </div>
                         </div>
@@ -740,7 +749,7 @@
                     <!-- Find this button near the end of the Add Task Modal -->
                     <button @click="addTask" :disabled="!isFormValid"
                         :class="{'opacity-50 cursor-not-allowed': !isFormValid}"
-                        class="w-full bg-yellow-400 text-black py-6 rounded-[1.5rem] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-yellow-400/20 hover:bg-yellow-300">
+                        class="btn w-full py-6 rounded-[1.5rem] uppercase tracking-widest active:scale-95">
                         <i v-if="loading" class="fa fa-sync fa-spin"></i>
                         <span v-if="!isFormValid">Fill Required Fields</span>
                         <span v-else>Confirm Assignment</span>
@@ -913,7 +922,8 @@
                             api.get('/Parts?select=Part_Name'),
                             // Fetch ID, Parameter, and Details for mapping
                             api.get('/InspectionGuide?select=id,Parameter,Details'),
-                            api.get('/InspectionChecker?select=CheckerName'),
+                            // Inspection staff now come from the HR-owned EmployeeTable, QA/QC department only
+                            api.get('/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc'),
                             // Fetch the new mapping table
                             api.get('/InspectionGuideDetails?select=*')
                         ]);
@@ -924,7 +934,7 @@
                         // Store full guide list for lookup by ID later
                         guideMapping.value = gRes.data;
 
-                        operators.value = [...new Set(cRes.data.map(i => i.CheckerName))].filter(Boolean).sort();
+                        operators.value = [...new Set(cRes.data.map(i => i.name || i.Name))].filter(Boolean).sort();
 
                         // Store the part-to-ids mapping
                         guideDetails.value = gdRes.data;
@@ -1161,25 +1171,28 @@
                         const currentProcess = newTask.value.process.trim();
 
                         // --- STEP 1: Handle InspectionGuide (Master Spec) ---
-                        // We use 'on_conflict' to handle parameters that might already exist
-                        const specRes = await api.post('/InspectionGuide', {
-                            Parameter: currentParam,
-                            Details: newTask.value.paramDetails
-                        }, {
-                            headers: {
-                                'Prefer': 'return=representation,resolution=merge',
-                                'on_conflict': 'Parameter' // Tells DB to ignore or update if Parameter exists
-                            }
-                        });
-
-                        // Get the ID (either from the new insert or the existing one)
+                        // Find-or-create by normalized name so we never create duplicate parameters.
+                        const paramUpper = currentParam.toUpperCase();
                         let parameterId;
-                        if (specRes.data && specRes.data.length > 0) {
-                            parameterId = specRes.data[0].id;
+                        const foundParam = guideMapping.value.find(g =>
+                            g.Parameter && g.Parameter.trim().toUpperCase() === paramUpper
+                        );
+                        if (foundParam) {
+                            parameterId = foundParam.id;
                         } else {
-                            // Fallback: If merge didn't return data, find it in your local list
-                            const found = guideMapping.value.find(g => g.Parameter.toLowerCase() === currentParam.toLowerCase());
-                            parameterId = found ? found.id : null;
+                            try {
+                                const specRes = await api.post('/InspectionGuide',
+                                    { Parameter: paramUpper, Details: newTask.value.paramDetails },
+                                    { headers: { 'Prefer': 'return=representation' } }
+                                );
+                                parameterId = specRes.data[0].id;
+                            } catch (e) {
+                                // Race / conflict: reuse the winning row.
+                                const again = await api.get(`/InspectionGuide?select=id,Parameter&Parameter=eq.${encodeURIComponent(paramUpper)}`);
+                                if (again.data && again.data.length) parameterId = again.data[0].id;
+                                else throw e;
+                            }
+                            guideMapping.value.push({ id: parameterId, Parameter: paramUpper });
                         }
 
                         if (!parameterId) throw new Error("Could not determine Parameter ID");
@@ -1273,6 +1286,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

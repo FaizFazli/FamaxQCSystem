@@ -5,14 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Famax | Gauge Verification</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Shared design system (tokens + UI primitives) — loaded before page styles -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
         [v-cloak] {
             display: none;
+        }
+
+        /* Adopt the shared Inter typeface across the page (overrides Tailwind's
+           default system font stack on the body class). Visual only. */
+        body {
+            font-family: var(--font-sans) !important;
         }
 
         .cap {
@@ -23,7 +40,7 @@
             height: 85vh;
             /* Sets height to 85% of the screen height */
             width: 100%;
-            background-color: #1e293b;
+            background-color: var(--text-main);
             position: relative;
             overflow: auto;
             /* ENABLE SCROLLING */
@@ -64,28 +81,32 @@
 
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
 
-    <div id="app" v-cloak class="p-4 md:p-8 max-w-7xl mx-auto">
+    <div id="app" v-cloak class="container">
         <!-- HEADER / NAV -->
-        <nav class="flex items-center justify-between mb-8 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <nav class="topbar" style="border-radius: var(--radius-lg); margin-bottom: var(--space-8);">
             <!-- Grouped Buttons -->
-            <div class="flex items-center space-x-4">
+            <div class="tabs" style="border-bottom: none; margin-bottom: 0;">
                 <button @click="view = 'form'"
-                    :class="view === 'form' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
-                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Verification
+                    :class="view === 'form' ? 'is-active' : ''"
+                    class="tab">Verification
                     Form</button>
 
                 <button @click="openApprovalPage"
-                    :class="view === 'approval' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
-                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Approval
+                    :class="view === 'approval' ? 'is-active' : ''"
+                    class="tab">Approval
                     Dashboard</button>
 
                 <button @click="view = 'report'"
-                    :class="view === 'report' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'"
-                    class="px-5 py-2.5 rounded-xl font-bold transition-all text-xs uppercase tracking-widest">Reports</button>
+                    :class="view === 'report' ? 'is-active' : ''"
+                    class="tab">Reports</button>
+
+                <button @click="view = 'addgauge'"
+                    :class="view === 'addgauge' ? 'is-active' : ''"
+                    class="tab">Add Gauge</button>
             </div>
 
             <!-- Branding Section -->
-            <div class="hidden md:block text-right">
+            <div class="topbar__brand hidden md:block text-right">
                 <p class="text-xs font-black text-indigo-600 tracking-widest uppercase">Famax Technology</p>
                 <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System Console</p>
             </div>
@@ -93,24 +114,21 @@
 
         <!-- 1. VERIFICATION FORM -->
         <div v-if="view === 'form'" class="animate-in fade-in duration-500">
-            <div class="bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-100">
+            <div class="panel">
                 <div class="bg-slate-900 p-8 text-white">
                     <h1 class="text-3xl font-black tracking-tight uppercase">Gauge Verification Record</h1>
                     <p class="text-slate-400 mt-1 font-medium tracking-wide text-xs uppercase tracking-widest">Precision
                         Measurement Logging System</p>
                 </div>
 
-                <div class="p-8">
+                <div class="panel__body p-8">
                     <!-- HEADER INPUTS -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div class="form-grid mb-10">
                         <!-- CUSTOM DROPDOWN -->
-                        <div class="relative" id="gauge_select_wrapper">
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Gauge
-                                ID</label>
+                        <div class="field relative" id="gauge_select_wrapper">
+                            <label class="label">Gauge ID</label>
                             <input type="text" v-model="form.gauge_no" @focus="showGaugeList = true"
-                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-indigo-500 focus:ring-0 outline-none font-black text-slate-700"
-                                placeholder="SEARCH GAUGE...">
+                                class="input cap" placeholder="SEARCH GAUGE...">
                             <transition name="dropdown">
                                 <div v-if="showGaugeList && filteredGauges.length > 0"
                                     class="absolute z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
@@ -123,60 +141,40 @@
                             </transition>
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Gauge
-                                Description</label>
-                            <input v-model="form.gauge_name"
-                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        <div class="field">
+                            <label class="label">Gauge Description</label>
+                            <input v-model="form.gauge_name" class="input cap">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Drawing
-                                No</label>
-                            <input v-model="form.drawing_no"
-                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        <div class="field">
+                            <label class="label">Drawing No</label>
+                            <input v-model="form.drawing_no" class="input cap">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Process</label>
-                            <input v-model="form.for_process"
-                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        <div class="field">
+                            <label class="label">Process</label>
+                            <input v-model="form.for_process" class="input cap">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Part
-                                No</label>
-                            <input v-model="form.part_no"
-                                class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold">
+                        <div class="field">
+                            <label class="label">Part No</label>
+                            <input v-model="form.part_no" class="input cap">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">Verified
-                                By (Name)</label>
-                            <input v-model="form.verified_by"
-                                class="cap w-full bg-indigo-50 border-2 border-indigo-100 rounded-2xl px-4 py-3 outline-none font-black text-indigo-600">
+                        <div class="field">
+                            <label class="label">Verified By (Name)</label>
+                            <input v-model="form.verified_by" class="input cap">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Verification
-                                Date</label>
-                            <input type="date" v-model="form.verify_date" @change="updateDueDate"
-                                class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold text-slate-700">
+                        <div class="field">
+                            <label class="label">Verification Date</label>
+                            <input type="date" v-model="form.verify_date" @change="updateDueDate" class="input">
                         </div>
 
-                        <div>
-                            <label
-                                class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Next
-                                Due Date (3 Months)</label>
-                            <!-- readonly attribute makes it non-editable. bg-slate-100 distinguishes it visually -->
-                            <input type="date" v-model="form.due_date" readonly
-                                class="w-full bg-slate-100 border-2 border-slate-100 rounded-2xl px-4 py-3 outline-none font-bold text-slate-400 cursor-not-allowed">
+                        <div class="field">
+                            <label class="label">Next Due Date (3 Months)</label>
+                            <!-- readonly attribute makes it non-editable -->
+                            <input type="date" v-model="form.due_date" readonly class="input">
                         </div>
                     </div>
                     <!--PDF VIEW SECTION-->
@@ -188,8 +186,7 @@
                                 Technical Drawing View
                             </h3>
                             <div class="flex space-x-2">
-                                <button @click="rotatePdf"
-                                    class="bg-indigo-600 text-white text-[10px] font-black px-6 py-2.5 rounded-full hover:bg-slate-900 transition-all shadow-xl">
+                                <button @click="rotatePdf" class="btn">
                                     ROTATE LEFT 90°
                                 </button>
                             </div>
@@ -212,24 +209,23 @@
                                 </div>
                                 {{ section }} PARAMETERS
                             </h3>
-                            <button @click="addRow(section)"
-                                class="bg-indigo-600 text-white text-[10px] font-black px-6 py-2.5 rounded-2xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-lg shadow-indigo-100">
+                            <button @click="addRow(section)" class="btn">
                                 New Dimension
                             </button>
                         </div>
 
                         <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-                            <table class="w-full text-left">
-                                <thead class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <table class="table">
+                                <thead>
                                     <tr>
                                         <!-- AFTER -->
-                                        <th class="px-4 pb-2 text-left">Label / Dimension</th>
-                                        <th class="px-4 pb-2 text-left">Nominal & Tolerance</th>
-                                        <th class="px-4 pb-2 text-left">Measurement Equipment</th>
-                                        <th class="px-4 pb-2 text-left">Actual</th>
-                                        <th class="px-4 pb-2 text-center">Result</th>
-                                        <th class="px-4 pb-2 text-left">Remark</th>
-                                        <th class="px-4 pb-2 text-center">Action</th><!-- NEW COLUMN -->
+                                        <th class="text-left">Label / Dimension</th>
+                                        <th class="text-left">Nominal & Tolerance</th>
+                                        <th class="text-left">Measurement Equipment</th>
+                                        <th class="text-left">Actual</th>
+                                        <th class="text-center">Result</th>
+                                        <th class="text-left">Remark</th>
+                                        <th class="text-center">Action</th><!-- NEW COLUMN -->
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -323,8 +319,7 @@
                     </div>
 
                     <div class="pt-10 flex justify-center">
-                        <button @click="submitForm" :disabled="isSubmitting"
-                            class="bg-slate-900 text-white font-black px-16 py-5 rounded-3xl shadow-2xl hover:bg-indigo-600 hover:-translate-y-1 transition-all disabled:bg-slate-300 uppercase tracking-widest text-xs">
+                        <button @click="submitForm" :disabled="isSubmitting" class="btn">
                             {{ isSubmitting ? 'Finalizing...' : 'Authorize and Record Inspection' }}
                         </button>
                     </div>
@@ -335,7 +330,7 @@
         <!-- 2. APPROVAL DASHBOARD -->
         <!-- 2. APPROVAL DASHBOARD -->
         <div v-if="view === 'approval'" class="animate-in fade-in duration-500">
-            <div class="bg-white shadow-2xl rounded-3xl p-8 border border-slate-100">
+            <div class="panel" style="padding: var(--space-8);">
 
                 <!-- Page Header -->
                 <div class="flex items-center justify-between mb-8">
@@ -357,8 +352,7 @@
                     </div>
 
                     <!-- Refresh Button -->
-                    <button @click="openApprovalPage"
-                        class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 px-4 py-2.5 rounded-xl hover:bg-indigo-50 transition-all border border-slate-100 hover:border-indigo-100">
+                    <button @click="openApprovalPage" class="btn btn--secondary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -370,21 +364,20 @@
 
                 <!-- List Table -->
                 <div class="overflow-hidden border border-slate-100 rounded-[28px]">
-                    <table class="w-full text-left">
-                        <thead
-                            class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <th class="px-6 py-4">#</th>
-                                <th class="px-6 py-4">Gauge ID</th>
-                                <th class="px-6 py-4">Part No</th>
-                                <th class="px-6 py-4">Verified By</th>
-                                <th class="px-6 py-4">Verify Date</th>
-                                <th class="px-6 py-4">Due Date</th>
-                                <th class="px-6 py-4 text-center">Status</th>
-                                <th class="px-6 py-4 text-center">Action</th>
+                                <th>#</th>
+                                <th>Gauge ID</th>
+                                <th>Part No</th>
+                                <th>Verified By</th>
+                                <th>Verify Date</th>
+                                <th>Due Date</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50">
+                        <tbody>
                             <tr v-for="(rec, idx) in pendingRecords" :key="rec.id"
                                 class="hover:bg-indigo-50/30 transition-colors group">
 
@@ -431,8 +424,7 @@
 
                                 <!-- Status Badge -->
                                 <td class="px-6 py-4 text-center">
-                                    <span
-                                        class="inline-flex items-center space-x-1.5 bg-amber-50 text-amber-600 border border-amber-200 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                                    <span class="badge badge--warning">
                                         <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
                                         <span>{{ rec.approval_status }}</span>
                                     </span>
@@ -440,8 +432,7 @@
 
                                 <!-- Action Button -->
                                 <td class="px-6 py-4 text-center">
-                                    <button @click="openApprovalDetail(rec)"
-                                        class="inline-flex items-center space-x-2 bg-indigo-600 hover:bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-100 hover:shadow-slate-200 group-hover:-translate-y-0.5">
+                                    <button @click="openApprovalDetail(rec)" class="btn">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
@@ -472,7 +463,7 @@
 
         <!-- 3. REPORT / HISTORY PAGE -->
         <div v-if="view === 'report'" class="animate-in fade-in duration-500">
-            <div class="bg-white shadow-2xl rounded-3xl p-8 border border-slate-100">
+            <div class="panel" style="padding: var(--space-8);">
                 <h2 class="text-2xl font-black mb-8 uppercase flex items-center">
                     <span class="bg-indigo-100 p-2 rounded-lg mr-3 shadow-indigo-50">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none"
@@ -485,12 +476,10 @@
                 </h2>
 
                 <!-- FILTER SECTION -->
-                <div class="max-w-md mb-10 relative" id="report_filter_wrapper">
-                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">Select
-                        Gauge ID to Filter</label>
+                <div class="field max-w-md mb-10 relative" id="report_filter_wrapper">
+                    <label class="label">Select Gauge ID to Filter</label>
                     <input type="text" v-model="reportFilter.gauge_no" @focus="showReportDropdown = true"
-                        class="cap w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-3 focus:border-indigo-500 outline-none font-black text-slate-700"
-                        placeholder="TYPE GAUGE NO...">
+                        class="input cap" placeholder="TYPE GAUGE NO...">
 
                     <transition name="dropdown">
                         <div v-if="showReportDropdown && filteredGaugesReport.length > 0"
@@ -506,16 +495,16 @@
 
                 <!-- HISTORY TABLE -->
                 <div class="overflow-hidden border border-slate-100 rounded-[32px]">
-                    <table class="w-full text-left">
-                        <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <table class="table">
+                        <thead>
                             <tr>
-                                <th class="p-6">Verify Date</th>
-                                <th class="p-6">Auditor</th>
-                                <th class="p-6">Approval Status</th>
-                                <th class="p-6 text-center">Action</th>
+                                <th>Verify Date</th>
+                                <th>Auditor</th>
+                                <th>Approval Status</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50">
+                        <tbody>
                             <tr v-for="h in reportHistory" :key="h.id" class="hover:bg-slate-50/50">
                                 <td class="p-6 font-bold text-slate-700">{{ h.verify_date }}</td>
                                 <td class="p-6 font-bold text-slate-500 cap">{{ h.verified_by }}</td>
@@ -528,8 +517,7 @@
                                     <button @click="showDetailedReading(h)"
                                         class="text-indigo-600 font-black text-xs hover:underline">VIEW DETAILS</button>
                                     <!-- NEW DOWNLOAD BUTTON -->
-                                    <button @click="generatePDF(h)"
-                                        class="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] tracking-widest hover:bg-indigo-600 transition-all flex items-center">
+                                    <button @click="generatePDF(h)" class="btn">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -549,15 +537,65 @@
             </div>
         </div>
 
+        <!-- 4. ADD GAUGE -->
+        <div v-if="view === 'addgauge'" class="animate-in fade-in duration-500">
+            <div class="panel">
+                <div class="bg-slate-900 p-8 text-white">
+                    <h1 class="text-3xl font-black tracking-tight uppercase">Register New Gauge</h1>
+                    <p class="text-slate-400 mt-1 font-medium text-xs uppercase tracking-widest">Create a gauge master
+                        and upload its technical drawing</p>
+                </div>
+
+                <div class="panel__body p-8">
+                    <div class="form-grid mb-8">
+                        <div class="field">
+                            <label class="label">Gauge ID *</label>
+                            <input v-model="newGauge.gauge_no" class="input cap" placeholder="e.g. GA-001">
+                        </div>
+                        <div class="field">
+                            <label class="label">Gauge Description *</label>
+                            <input v-model="newGauge.gauge_name" class="input cap">
+                        </div>
+                        <div class="field">
+                            <label class="label">Drawing No *</label>
+                            <input v-model="newGauge.drawing_no" class="input cap">
+                        </div>
+                        <div class="field">
+                            <label class="label">For Process *</label>
+                            <input v-model="newGauge.for_process" class="input cap">
+                        </div>
+                        <div class="field">
+                            <label class="label">Part No (optional)</label>
+                            <input v-model="newGauge.part_no" class="input cap">
+                        </div>
+                        <div class="field">
+                            <label class="label">Drawing PDF *</label>
+                            <input id="gauge-file-input" type="file" accept="application/pdf" @change="onGaugeFile"
+                                class="input">
+                            <p v-if="gaugeFileName" class="text-[10px] text-slate-500 font-bold mt-1 cap">{{ gaugeFileName }}</p>
+                        </div>
+                    </div>
+
+                    <p v-if="addGaugeMsg" class="text-red-500 font-bold text-sm mb-4 text-center">{{ addGaugeMsg }}</p>
+
+                    <div class="pt-4 flex justify-center">
+                        <button @click="addNewGauge" :disabled="isAddingGauge" class="btn">
+                            {{ isAddingGauge ? 'Uploading…' : 'Create Gauge' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- REPORT DETAIL MODAL -->
         <transition name="dropdown">
-            <div v-if="showReportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div v-if="showReportModal" class="modal-overlay">
                 <!-- Backdrop -->
                 <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showReportModal = false"></div>
 
                 <!-- Modal Content -->
-                <div
-                    class="relative bg-white w-full max-w-4xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col border border-white">
+                <div class="modal relative w-full overflow-hidden flex flex-col"
+                    style="max-width: 56rem; max-height: 90vh; padding: 0; text-align: left;">
 
                     <!-- Modal Header -->
                     <div class="p-8 bg-slate-900 text-white flex justify-between items-center">
@@ -605,17 +643,16 @@
                                 <div class="w-4 h-1 bg-indigo-500 mr-2 rounded-full"></div> {{ sec }} READINGS
                             </h3>
                             <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
-                                <table class="w-full text-left text-sm">
-                                    <thead
-                                        class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase">
+                                <table class="table">
+                                    <thead>
                                         <tr>
-                                            <th class="p-4">Parameter</th>
-                                            <th class="p-4">Spec (Tol)</th>
-                                            <th class="p-4">Actual</th>
-                                            <th class="p-4 text-center">Status</th>
+                                            <th>Parameter</th>
+                                            <th>Spec (Tol)</th>
+                                            <th>Actual</th>
+                                            <th class="text-center">Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-50">
+                                    <tbody>
                                         <tr v-for="r in filterReadings(sec)" :key="r.id">
                                             <td class="p-4 font-bold text-slate-700 cap">{{
                                                 r.gauge_specifications.spec_label }}</td>
@@ -644,8 +681,7 @@
 
                     <!-- Modal Footer -->
                     <div class="p-6 border-t border-slate-100 bg-white flex justify-end">
-                        <button @click="showReportModal = false"
-                            class="bg-slate-900 text-white font-black px-10 py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-600 transition-all">Close
+                        <button @click="showReportModal = false" class="btn">Close
                             History</button>
                     </div>
                 </div>
@@ -654,13 +690,13 @@
 
         <!-- SUCCESS NOTIFICATION MODAL -->
         <transition name="dropdown">
-            <div v-if="showSuccessModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <div v-if="showSuccessModal" class="modal-overlay" style="z-index: 110;">
                 <!-- Backdrop -->
                 <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md"></div>
 
                 <!-- Content -->
-                <div
-                    class="relative bg-white w-full max-w-sm rounded-[40px] shadow-2xl p-10 text-center flex flex-col items-center">
+                <div class="modal relative flex flex-col items-center"
+                    style="max-width: 24rem; padding: var(--space-10);">
                     <!-- Animated Success Icon -->
                     <div
                         class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
@@ -676,12 +712,10 @@
                         been successfully transmitted to the database and is awaiting audit.</p>
 
                     <div class="w-full space-y-3">
-                        <button @click="resetFormAfterSuccess"
-                            class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-600 transition-all">
+                        <button @click="resetFormAfterSuccess" class="btn" style="width: 100%;">
                             Verify Another Gauge
                         </button>
-                        <button @click="goToReports"
-                            class="w-full bg-slate-50 text-slate-500 font-bold py-4 rounded-2xl uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-all">
+                        <button @click="goToReports" class="btn btn--secondary" style="width: 100%;">
                             View Verification History
                         </button>
                     </div>
@@ -691,13 +725,13 @@
 
         <!-- UPDATED APPROVAL DETAIL MODAL -->
         <transition name="dropdown">
-            <div v-if="showApprovalModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div v-if="showApprovalModal" class="modal-overlay" style="z-index: 120;">
                 <!-- Backdrop -->
                 <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md" @click="showApprovalModal = false"></div>
 
                 <!-- Modal Content -->
-                <div
-                    class="relative bg-white w-full max-w-6xl max-h-[95vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col border border-white">
+                <div class="modal relative w-full overflow-hidden flex flex-col"
+                    style="max-width: 72rem; max-height: 95vh; padding: 0; text-align: left;">
 
                     <!-- Modal Header -->
                     <div class="p-6 bg-indigo-600 text-white flex justify-between items-center shadow-lg">
@@ -752,18 +786,17 @@
                             </h3>
 
                             <div class="bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm">
-                                <table class="w-full text-left text-sm">
-                                    <thead
-                                        class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <table class="table">
+                                    <thead>
                                         <tr>
-                                            <th class="p-4 w-1/4">Label</th>
-                                            <th class="p-4 w-1/4">Spec (Tolerance)</th>
-                                            <th class="p-4">Equipment</th>
-                                            <th class="p-4">Actual</th>
-                                            <th class="p-4 text-center">Result</th>
+                                            <th class="w-1/4">Label</th>
+                                            <th class="w-1/4">Spec (Tolerance)</th>
+                                            <th>Equipment</th>
+                                            <th>Actual</th>
+                                            <th class="text-center">Result</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-50">
+                                    <tbody>
                                         <tr v-for="r in filterApprovalReadings(sec)" :key="r.id"
                                             class="hover:bg-slate-50/50">
                                             <td class="p-4 font-bold text-slate-800 cap">{{
@@ -805,12 +838,11 @@
                             specified above.
                         </p>
                         <div class="flex space-x-4">
-                            <button @click="showApprovalModal = false"
-                                class="px-8 py-4 font-black text-slate-400 uppercase text-[10px] tracking-widest hover:text-slate-600 transition-colors">
+                            <button @click="showApprovalModal = false" class="btn btn--secondary">
                                 Close Audit
                             </button>
                             <button @click="approveRecord(selectedApprovalRecord.id)"
-                                class="bg-green-600 hover:bg-green-700 text-white font-black px-12 py-4 rounded-[20px] shadow-2xl shadow-green-100 uppercase text-[10px] tracking-widest transition-all transform active:scale-95">
+                                class="btn" style="background: var(--success);">
                                 Confirm & Sign Approval
                             </button>
                         </div>
@@ -956,7 +988,7 @@
 
         const _supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
+        const { createApp, ref, reactive, computed, onMounted, onUnmounted, nextTick } = Vue;
 
         createApp({
             setup() {
@@ -988,6 +1020,14 @@
                 const approvalReadings = ref([]);
                 const printData = ref({});
                 const printReadings = ref([]);
+
+                // Add-Gauge tab state
+                const newGauge = reactive({ gauge_no: '', gauge_name: '', drawing_no: '', for_process: '', part_no: '' });
+                const gaugeFile = ref(null);
+                const gaugeFileName = ref('');
+                const isAddingGauge = ref(false);
+                const addGaugeMsg = ref('');
+                const GAUGE_BUCKET = 'gauge'; // Supabase Storage bucket for drawing PDFs
 
                 const form = reactive({
                     gauge_no: '',
@@ -1334,6 +1374,70 @@
                     return printReadings.value.find(r => r.gauge_specifications.section_type === section && r.gauge_specifications.line_no === index);
                 };
 
+                const onGaugeFile = (e) => {
+                    const f = e.target.files && e.target.files[0];
+                    gaugeFile.value = f || null;
+                    gaugeFileName.value = f ? f.name : '';
+                };
+
+                const addNewGauge = async () => {
+                    const g = newGauge;
+                    if (!g.gauge_no || !g.gauge_name || !g.drawing_no || !g.for_process) {
+                        addGaugeMsg.value = 'Please fill Gauge ID, Description, Drawing No and For Process.';
+                        return;
+                    }
+                    if (!gaugeFile.value) { addGaugeMsg.value = 'Please upload the drawing PDF.'; return; }
+                    if (gaugeFile.value.type !== 'application/pdf') { addGaugeMsg.value = 'Drawing must be a PDF file.'; return; }
+
+                    isAddingGauge.value = true;
+                    addGaugeMsg.value = '';
+                    try {
+                        const up = (v) => String(v).toUpperCase().trim();
+
+                        // 1. Upload the drawing PDF to the storage bucket
+                        const safe = up(g.gauge_no).replace(/[^A-Z0-9_-]/g, '_');
+                        const path = `${safe}-${Date.now()}.pdf`;
+                        const { error: upErr } = await _supabase.storage
+                            .from(GAUGE_BUCKET)
+                            .upload(path, gaugeFile.value, { upsert: true, contentType: 'application/pdf' });
+                        if (upErr) throw new Error('Upload failed: ' + upErr.message);
+
+                        const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(path);
+                        const drawingUrl = pub.publicUrl;
+
+                        // 2. Create/refresh the gauge master
+                        const { data: gRec, error: gErr } = await _supabase.from('gauges').upsert({
+                            gauge_no: up(g.gauge_no),
+                            gauge_name: up(g.gauge_name),
+                            drawing_no: up(g.drawing_no),
+                            for_process: up(g.for_process),
+                            drawing_path: drawingUrl
+                        }, { onConflict: 'gauge_no' }).select();
+                        if (gErr || !gRec || !gRec.length) throw new Error('Save failed: ' + (gErr?.message || 'no row'));
+
+                        // 3. Optional part link
+                        if (g.part_no && g.part_no.trim()) {
+                            await _supabase.from('gauge_parts').insert({ gauge_id: gRec[0].id, part_no: up(g.part_no) });
+                        }
+
+                        await fetchMasters();
+
+                        // reset
+                        newGauge.gauge_no = ''; newGauge.gauge_name = ''; newGauge.drawing_no = '';
+                        newGauge.for_process = ''; newGauge.part_no = '';
+                        gaugeFile.value = null; gaugeFileName.value = '';
+                        const fi = document.getElementById('gauge-file-input'); if (fi) fi.value = '';
+
+                        alert('Gauge "' + up(g.gauge_no) + '" registered and drawing uploaded.');
+                        view.value = 'form';
+                    } catch (e) {
+                        console.error('Add gauge failed:', e);
+                        addGaugeMsg.value = e.message || 'Could not add gauge.';
+                    } finally {
+                        isAddingGauge.value = false;
+                    }
+                };
+
                 const generatePDF = async (record) => {
                     // 1. Safety check
                     if (!record || !record.gauges) {
@@ -1362,7 +1466,7 @@
                         };
                         printReadings.value = data || [];
 
-                        // 4. FIX STARTS HERE: Define the element
+                        // 4. Define the element
                         const element = document.getElementById('print-template');
 
                         if (!element) {
@@ -1370,24 +1474,33 @@
                             return;
                         }
 
+                        // Wait for Vue to render printData/printReadings into the template
+                        // BEFORE html2pdf captures it (otherwise the PDF is blank/stale).
+                        await nextTick();
+
                         // Show it temporarily so html2canvas can "see" it
                         element.style.display = 'block';
 
                         // 5. PDF Options
                         const opt = {
-                            // margin: 10 means the PDF library will add 10mm of white space 
-                            // around your table so nothing touches the edge of the paper.
-                            margin: 10,
+                            // Template is already full A4 with its own 7mm inner margin,
+                            // so no extra html2pdf margin (10mm here overflowed to a 2nd page).
+                            margin: 0,
                             filename: `VERIF_${record.gauges.gauge_no}.pdf`,
                             image: { type: 'jpeg', quality: 1.0 },
                             html2canvas: {
-                                scale: 3,
+                                scale: 2,
                                 useCORS: true,
                                 logging: false,
                                 letterRendering: true,
-                                scrollX: 0,  // CRITICAL: Resets horizontal shift
-                                scrollY: 0,  // CRITICAL: Resets vertical shift
-                                x: 0         // CRITICAL: Starts capture at the absolute left
+                                scrollX: 0,
+                                scrollY: 0,
+                                x: 0,
+                                y: 0,
+                                // Render at the template's OWN full size so no columns are clipped
+                                // to the browser viewport width (the cause of the "half table" cut-off).
+                                windowWidth: element.scrollWidth,
+                                windowHeight: element.scrollHeight
                             },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
@@ -1415,10 +1528,12 @@
                     showSuccessModal, resetFormAfterSuccess, goToReports, showApprovalModal, selectedApprovalRecord,
                     approvalReadings, openApprovalDetail, isLocalPathApproval, approveRecord, filterApprovalReadings,
                     printData, printReadings, getRow, generatePDF,
+                    newGauge, gaugeFile, gaugeFileName, isAddingGauge, addGaugeMsg, onGaugeFile, addNewGauge,
                 };
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

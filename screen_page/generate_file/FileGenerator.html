@@ -20,38 +20,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
 
-  <style>
-    :root {
-      --primary: #0078d4;
-      --primary-dark: #005a9e;
-      --bg-body: #f3f4f6;
-      --bg-card: #ffffff;
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
-      --border-color: #e5e7eb;
-      --danger: #ef4444;
-      --success: #10b981;
-      --focus-ring: rgba(0, 120, 212, 0.25);
-      --radius: 8px;
-      --input-height: 46px;
-      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-        0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    }
+  <!-- Shared design system (tokens + UI primitives) -->
+  <link rel="stylesheet" href="/assets/theme.css" />
 
-    * {
-      box-sizing: border-box;
+  <style>
+    /* ---- Page-specific overrides (tokens live in theme.css) ---- */
+    :root {
+      --primary-dark: var(--primary-hover);
+      --border-color: var(--border);
+      --focus-ring: var(--primary-ring);
+      --input-height: 46px;
+      --shadow-card: var(--shadow-lg);
     }
 
     body {
-      font-family: "Inter", sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
+      padding: var(--space-5);
     }
 
     /* --- Navigation --- */
@@ -742,9 +728,7 @@
     </div>
   </div>
 
-  <div class="footer">
-    © 2025 Famax Technology (M) System. All rights reserved.
-  </div>
+  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
   <script>
     const SUPABASE_URL = window.APP_CONFIG.url;

@@ -23,45 +23,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
 
-    <style>
-        :root {
-            --primary: #0078d4;
-            --primary-dark: #005a9e;
-            --bg-body: #f3f4f6;
-            --bg-card: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --danger: #ef4444;
-            --success: #10b981;
-            --focus-ring: rgba(0, 120, 212, 0.25);
-            --input-height: 46px;
-            --radius: 8px;
-            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-                0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        }
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
 
-        * {
-            box-sizing: border-box;
+    <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* Local aliases for tokens this page references by old names */
+        :root {
+            --primary-dark: var(--primary-hover);
+            --border-color: var(--border);
+            --focus-ring: var(--primary-ring);
+            --input-height: 46px;
+            --shadow-card: var(--shadow-lg);
         }
 
         body {
-            font-family: "Inter", sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            padding: 20px;
+            padding: var(--space-5);
         }
 
         /* --- Navigation --- */
         .nav-top {
             width: 100%;
             max-width: 600px;
-            margin-bottom: 15px;
+            margin-bottom: var(--space-4);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -70,13 +58,13 @@
         .back-link {
             color: var(--text-muted);
             text-decoration: none;
-            font-size: 14px;
+            font-size: var(--fs-base);
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 6px;
             cursor: pointer;
-            transition: color 0.2s;
+            transition: color var(--transition);
         }
 
         .back-link:hover {
@@ -88,17 +76,18 @@
             background: var(--bg-card);
             width: 100%;
             max-width: 600px;
-            border-radius: 16px;
-            box-shadow: var(--shadow-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
             overflow: hidden;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
+            padding: 0;
         }
 
         /* Header */
         .card-header {
             background: var(--primary);
-            padding: 24px 30px;
-            color: white;
+            padding: var(--space-6) var(--space-8);
+            color: var(--on-primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -106,35 +95,36 @@
 
         .card-header h1 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 600;
+            font-size: var(--fs-lg);
+            font-weight: 700;
+            letter-spacing: -0.2px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--space-3);
         }
 
         .user-badge {
-            font-size: 12px;
+            font-size: var(--fs-sm);
             background: rgba(255, 255, 255, 0.2);
             padding: 4px 10px;
-            border-radius: 20px;
+            border-radius: var(--radius-full);
         }
 
         .card-body {
-            padding: 30px;
+            padding: var(--space-8);
         }
 
         /* --- Form Elements --- */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
         }
 
         label {
             display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-main);
-            margin-bottom: 8px;
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
         }
 
         /* Select2 Override */
@@ -187,23 +177,23 @@
         /* --- File Drop Area --- */
         .drop-zone {
             position: relative;
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius);
-            padding: 30px;
+            border: 2px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
+            padding: var(--space-8);
             text-align: center;
-            background-color: #f9fafb;
-            transition: all 0.2s;
+            background-color: var(--surface-muted);
+            transition: border-color var(--transition), background-color var(--transition);
             cursor: pointer;
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
         }
 
         .drop-zone:hover {
             border-color: var(--primary);
-            background-color: #eff6ff;
+            background-color: var(--primary-soft);
         }
 
         .drop-text {
-            font-size: 13px;
+            font-size: var(--fs-sm);
             color: var(--text-muted);
             pointer-events: none;
         }
@@ -211,7 +201,7 @@
         .drop-icon {
             font-size: 24px;
             color: var(--primary);
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
             display: block;
             pointer-events: none;
         }
@@ -230,14 +220,14 @@
         .file-list {
             list-style: none;
             padding: 0;
-            margin: 0 0 20px 0;
+            margin: 0 0 var(--space-5) 0;
         }
 
         .file-item {
-            background: #fff;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 10px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px var(--space-4);
             margin-bottom: 10px;
             display: flex;
             align-items: center;
@@ -253,8 +243,8 @@
         }
 
         .file-name {
-            font-size: 13px;
-            font-weight: 500;
+            font-size: var(--fs-sm);
+            font-weight: 600;
             color: var(--text-main);
             word-break: break-all;
         }
@@ -262,11 +252,11 @@
         /* Styled Dropdown inside list */
         .category-select {
             padding: 4px 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-xs);
             color: var(--text-main);
-            background: #f9fafb;
+            background: var(--surface-muted);
             cursor: pointer;
             width: 80px;
         }
@@ -276,11 +266,11 @@
             color: #991b1b;
             border: none;
             padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-xs);
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background var(--transition);
         }
 
         .btn-remove:hover {
@@ -288,88 +278,70 @@
         }
 
         /* --- Buttons --- */
+        /* .btn-action mirrors .btn (theme) but keeps page-specific full-width sizing */
         .btn-action {
             width: 100%;
             height: 48px;
             background-color: var(--primary);
-            color: white;
+            color: var(--on-primary);
             border: none;
             border-radius: var(--radius);
-            font-size: 16px;
-            font-weight: 600;
+            font-size: var(--fs-md);
+            font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: background 0.2s;
+            gap: var(--space-2);
+            transition: background var(--transition);
         }
 
         .btn-action:hover:not(:disabled) {
-            background-color: var(--primary-dark);
+            background-color: var(--primary-hover);
         }
 
         .btn-action:disabled {
-            background-color: #cbd5e1;
+            background-color: var(--border-strong);
             cursor: not-allowed;
         }
 
         /* --- Loading Overlay --- */
+        /* spinner + #loading-overlay base styles come from theme.css; override sizing/bg */
         #loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             background: rgba(255, 255, 255, 0.9);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+            z-index: var(--z-modal);
+            gap: var(--space-2);
         }
 
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
             width: 30px;
             height: 30px;
-            animation: spin 1s linear infinite;
+            border-width: 3px;
             margin-bottom: 10px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
         }
 
         /* --- Modal Styles --- */
         .modal {
             display: none;
             position: fixed;
-            z-index: 3000;
+            z-index: var(--z-modal);
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(15, 23, 42, 0.55);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
         }
 
         .modal-content {
             background-color: var(--bg-card);
             margin: 5% auto;
-            padding: 25px;
-            border-radius: 16px;
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
             width: 90%;
             max-width: 700px;
-            box-shadow: var(--shadow-card);
+            box-shadow: var(--shadow-lg);
             position: relative;
             max-height: 80vh;
             overflow-y: auto;
@@ -377,12 +349,13 @@
 
         .close-modal {
             position: absolute;
-            right: 20px;
-            top: 15px;
+            right: var(--space-5);
+            top: var(--space-4);
             font-size: 28px;
             font-weight: bold;
             color: var(--text-muted);
             cursor: pointer;
+            transition: color var(--transition);
         }
 
         .close-modal:hover {
@@ -393,78 +366,69 @@
         .wi-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 14px;
+            margin-top: var(--space-4);
+            font-size: var(--fs-base);
         }
 
         .wi-table th,
         .wi-table td {
-            padding: 12px 15px;
+            padding: 12px var(--space-4);
             text-align: left;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border);
         }
 
         .wi-table th {
-            background-color: #f9fafb;
+            background-color: var(--surface-muted);
             color: var(--text-muted);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 11px;
+            font-size: var(--fs-xs);
             letter-spacing: 0.05em;
         }
 
         .status-pill {
             padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
+            border-radius: var(--radius-full);
+            font-size: var(--fs-xs);
+            font-weight: 700;
             background: #dcfce7;
             color: #166534;
         }
 
         .btn-view-list {
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--primary);
             color: var(--primary);
             padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-xs);
+            font-weight: 600;
             cursor: pointer;
             margin-bottom: 10px;
-            transition: all 0.2s;
+            transition: background var(--transition), color var(--transition);
         }
 
         .btn-view-list:hover {
-            background: var(--primary-dark);
-            color: white;
+            background: var(--primary-hover);
+            color: var(--on-primary);
         }
 
         /* New Search Style */
         .wi-search-container {
-            margin-top: 15px;
+            margin-top: var(--space-4);
             margin-bottom: 10px;
         }
 
         #wiSearchInput {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            font-family: inherit;
-            font-size: 14px;
-            outline: none;
-        }
-
-        #wiSearchInput:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
         .footer {
             margin-top: auto;
-            padding: 20px;
-            color: var(--text-muted);
-            font-size: 12px;
+            padding: var(--space-5);
+            color: var(--text-faint);
+            font-size: var(--fs-xs);
+            font-weight: 500;
         }
 
         .drop-icon {
@@ -580,9 +544,7 @@
         </div>
     </div>
 
-    <div class="footer">
-        © 2025 Famax Technology (M) System. All rights reserved.
-    </div>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
     <script>
         // --- Config ---

@@ -15,219 +15,200 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* --success / --danger are also read at runtime by the Toastify call;
+           theme.css defines both, these kept for clarity. */
         :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --border: #e2e8f0;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             --danger: #ef4444;
             --success: #10b981;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-        }
+        body { display: flex; flex-direction: column; }
 
         header {
-            background: var(--bg-card);
-            height: 60px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: var(--z-header);
+            display: flex;
+            align-items: center;
+            height: 64px;
+            padding: 0 var(--space-8);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .main-container {
             max-width: 1500px;
-            margin: 20px auto;
-            padding: 0 20px;
+            margin: var(--space-6) auto;
+            padding: 0 var(--space-5);
             display: grid;
             grid-template-columns: 380px 1fr;
-            gap: 20px;
+            gap: var(--space-5);
+            align-items: start;
         }
 
         .card {
             background: var(--bg-card);
-            border-radius: var(--radius);
             border: 1px solid var(--border);
-            box-shadow: var(--shadow);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
             overflow: visible;
         }
 
         .card-header {
-            background: #f1f5f9;
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-radius: 12px 12px 0 0;
+            padding: var(--space-4) var(--space-5);
+            background: var(--surface-muted);
+            border-bottom: 1px solid var(--border);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
         }
 
         .card-header h3 {
-            font-size: 0.9rem;
+            margin: 0;
+            font-size: var(--fs-sm);
             font-weight: 800;
             text-transform: uppercase;
-            color: var(--text-sub);
             letter-spacing: 0.5px;
+            color: var(--text-muted);
         }
 
-        .card-body {
-            padding: 20px;
-        }
+        .card-body { padding: var(--space-5); }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: var(--space-4);
             position: relative;
         }
 
         label {
             display: block;
-            font-size: 0.75rem;
+            margin-bottom: var(--space-1);
+            font-size: var(--fs-xs);
             font-weight: 700;
-            margin-bottom: 5px;
-            color: var(--text-sub);
             text-transform: uppercase;
+            color: var(--text-muted);
         }
 
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: all 0.2s;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        /* Table Design */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+        /* Data table */
+        table { width: 100%; border-collapse: collapse; }
 
         th {
-            text-align: left;
             padding: 12px;
-            font-size: 0.7rem;
+            text-align: left;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
-            color: var(--text-sub);
-            background: #f8fafc;
-            border-bottom: 2px solid var(--border);
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border-bottom: 1px solid var(--border);
         }
 
         td {
-            padding: 8px;
-            border-bottom: 1px solid #f1f5f9;
+            padding: var(--space-2);
             vertical-align: middle;
             overflow: visible;
             position: relative;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* Generic Dropdown for Comboboxes */
+        /* Generic combobox dropdown */
         .dropdown-list {
             position: absolute;
             width: 100%;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 8px;
             margin-top: 4px;
             max-height: 200px;
             overflow-y: auto;
             z-index: 9999;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
         }
 
         .dropdown-item {
             padding: 10px 12px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            border-bottom: 1px solid #f8fafc;
+            font-size: var(--fs-sm);
             line-height: 1.4;
+            cursor: pointer;
+            border-bottom: 1px solid var(--surface-muted);
+            transition: background var(--transition), color var(--transition);
         }
 
-        .dropdown-item:hover {
-            background: #eff6ff;
-            color: var(--primary);
-        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: var(--primary-soft); color: var(--primary); }
 
         .dropdown-item small {
             display: block;
-            color: var(--text-sub);
-            font-size: 0.75rem;
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
         }
 
-        /* Status Badges */
+        /* Status badges */
         .produce-badge {
             padding: 6px;
-            border-radius: 6px;
-            font-weight: 800;
-            font-size: 0.85rem;
             text-align: center;
+            font-size: var(--fs-sm);
+            font-weight: 800;
+            border-radius: var(--radius-sm);
         }
 
-        .bg-urgent {
-            background: #fee2e2;
-            color: var(--danger);
-        }
+        .bg-urgent { background: #fee2e2; color: var(--danger); }
+        .bg-stock { background: #dcfce7; color: var(--success); }
 
-        .bg-stock {
-            background: #dcfce7;
-            color: var(--success);
+        .new-part-note { margin-top: 6px; }
+        .new-part-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: #b45309;
+            background: #fef3c7;
+            border-radius: var(--radius-full);
         }
 
         .btn-primary {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
             width: 100%;
-            margin-top: 10px;
+            margin-top: var(--space-3);
+            padding: 12px;
+            font-weight: 700;
+            color: var(--on-primary);
+            background: var(--primary);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition);
         }
+
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btn-add {
-            background: var(--text-main);
-            color: white;
-            border: none;
             padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
+            font-size: var(--fs-xs);
+            font-weight: 600;
+            color: var(--on-primary);
+            background: var(--text-main);
+            border: none;
+            border-radius: var(--radius-sm);
             cursor: pointer;
+            transition: opacity var(--transition);
         }
 
+        .btn-add:hover { opacity: 0.85; }
+
         .remove-row {
-            color: var(--danger);
-            cursor: pointer;
             font-size: 1.2rem;
+            color: var(--danger);
             background: none;
             border: none;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -268,8 +249,7 @@
                         </div>
                         <div class="form-group">
                             <label>S/O Number (S/O No.)</label>
-                            <input type="text" v-model="header.so_number" placeholder="SO-..."
-                                @input="header.so_number = header.so_number.toUpperCase()">
+                            <input type="text" v-model="header.so_number" readonly placeholder="Auto-generated…">
                         </div>
                     </div>
 
@@ -333,6 +313,11 @@
                                             <strong>{{ p.Part_Number }}</strong>
                                             <small>{{ p.Part_Name }}</small>
                                         </div>
+                                    </div>
+                                    <div v-if="isUnregistered(row)" class="new-part-note">
+                                        <span class="new-part-badge">New part — engineer will be notified</span>
+                                        <input type="text" v-model="row.description" placeholder="Description (optional)"
+                                            style="margin-top:6px">
                                     </div>
                                 </td>
                                 <td><input type="number" v-model.number="row.order_qty"></td>
@@ -412,6 +397,25 @@
                     });
                 };
 
+                // ---- Auto SO number: SO/ddmmyy/NNNNN, counter resets daily ----
+                function todayDDMMYY() {
+                    const d = new Date();
+                    return String(d.getDate()).padStart(2, '0')
+                        + String(d.getMonth() + 1).padStart(2, '0')
+                        + String(d.getFullYear()).slice(-2);
+                }
+                async function generateSoNumber() {
+                    const ddmmyy = todayDDMMYY();
+                    const prefix = `SO/${ddmmyy}/`;
+                    const res = await api.get(`/rest/v1/SalesOrders?so_number=like.${prefix}*&select=so_number`);
+                    let max = 0;
+                    (res.data || []).forEach(r => {
+                        const m = String(r.so_number || '').match(new RegExp('^SO/' + ddmmyy + '/(\\d+)'));
+                        if (m) max = Math.max(max, parseInt(m[1], 10));
+                    });
+                    return prefix + String(max + 1).padStart(5, '0');
+                }
+
                 onMounted(async () => {
                     try {
                         const [cRes, pRes, tRes] = await Promise.all([
@@ -422,6 +426,7 @@
                         customers.value = cRes.data;
                         parts.value = pRes.data;
                         paymentTerms.value = tRes.data;
+                        header.value.so_number = await generateSoNumber();
                         addRow(); // Start with 1 row
                     } catch (e) { console.error("Load failed", e); }
 
@@ -456,21 +461,30 @@
                 };
 
                 const handlePartSearch = (index) => {
-                    items.value[index].part_input = items.value[index].part_input.toUpperCase();
-                    items.value[index].showList = true;
+                    const row = items.value[index];
+                    row.part_input = row.part_input.toUpperCase();
+                    row.showList = true;
+                    // Typing again breaks the link to a picked part; re-select to re-register.
+                    row.is_registered = false;
+                    row.part_number = '';
                 };
+
+                // Row has text but was never matched to a Parts record.
+                const isUnregistered = (row) => !!(row.part_input && row.part_input.trim() && !row.is_registered);
 
                 const selectPart = (index, part) => {
                     const row = items.value[index];
                     row.part_number = part.Part_Number;
-                    row.part_input = part.Part_Number;
+                    row.is_registered = true;
+                    // Show "Description (Part Number)"; part_number is kept separately for lookups/submit.
+                    row.part_input = `${part.Part_Name} (${part.Part_Number})`;
                     row.showList = false;
                     checkStock(index);
                 };
 
                 function addRow() {
                     items.value.push({
-                        part_input: '', part_number: '', order_qty: 0,
+                        part_input: '', part_number: '', description: '', is_registered: false, order_qty: 0,
                         stock_available: 0, produce_qty: 0, unit_price: 0, showList: false
                     });
                 }
@@ -498,6 +512,42 @@
                     });
                 }, { deep: true });
 
+                // Notify engineering (via the existing Teams relay) that new parts need registering.
+                async function notifyEngineerNewParts(parts, soNo, custName) {
+                    const list = parts.map(p => {
+                        const d = (p.description && p.description.trim()) ? `${p.description.trim()} ` : '';
+                        return `${d}(${p.part_number})`;
+                    }).join(', ');
+                    const payload = {
+                        type: "message",
+                        attachments: [{
+                            contentType: "application/vnd.microsoft.card.adaptive",
+                            content: {
+                                type: "AdaptiveCard",
+                                body: [
+                                    { type: "TextBlock", text: "🆕 NEW PART — REGISTRATION NEEDED", weight: "Bolder", color: "Warning", size: "Large" },
+                                    { type: "TextBlock", text: "A sales order references part(s) not yet registered in the system. Please set them up (processes, raw material, tooling).", wrap: true },
+                                    { type: "FactSet", facts: [
+                                        { title: "S/O:", value: soNo },
+                                        { title: "Customer:", value: custName || '-' },
+                                        { title: "Part(s):", value: list },
+                                        { title: "Issued by:", value: sessionStorage.getItem('userId') || 'Sales' },
+                                        { title: "Attention:", value: "<at>Engineer</at>" }
+                                    ]}
+                                ],
+                                msteams: { entities: [{ type: "mention", text: "<at>Engineer</at>", mentioned: { id: "azim.bakar@famax.com.my", name: "Engineer" } }] },
+                                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                version: "1.4"
+                            }
+                        }]
+                    };
+                    try {
+                        await axios.post(`${window.APP_CONFIG.host}/FamaxQCSystem/api/teams`, payload);
+                    } catch (e) {
+                        console.warn('Engineer notification failed (order still saved):', e);
+                    }
+                }
+
                 async function submitOrder() {
                     // 1. Validation
                     const soNo = header.value.so_number ? header.value.so_number.trim() : "";
@@ -508,26 +558,48 @@
                         return alert("S/O No and Customer Name are required");
                     }
 
+                    // Free-text (unregistered) rows: use the typed text as the part number so they aren't dropped.
+                    items.value.forEach(i => {
+                        if (!i.is_registered && i.part_input && i.part_input.trim()) {
+                            i.part_number = i.part_input.trim().toUpperCase();
+                        }
+                    });
+
                     const validItems = items.value.filter(i => i.part_number && i.order_qty > 0);
                     if (validItems.length === 0) {
                         return alert("Please add at least one part with an Order Quantity.");
                     }
+                    const unregistered = validItems.filter(i => !i.is_registered);
 
                     submitting.value = true;
                     try {
-                        // 2. INSERT HEADER 
-                        const hRes = await api.post('/rest/v1/SalesOrders', {
-                            so_number: header.value.so_number,
-                            po_number: header.value.po_number,
-                            customer_id: header.value.customer_id || null,
-                            customer_name: header.value.customer_name,
-                            shipping_address: header.value.shipping_address,
-                            eta: header.value.eta,
-                            etd: header.value.etd,
-                            payment_term: header.value.payment_term
-                        }, { headers: { "Prefer": "return=representation" } });
-
-                        const so_id = hRes.data[0].id;
+                        // 2. INSERT HEADER (retry with next number if the SO number was taken concurrently)
+                        // ponytail: read-then-write counter, guarded by so_number_unique; retry a few times, then fail loud.
+                        let hRes, so_id;
+                        for (let attempt = 0; attempt < 5; attempt++) {
+                            try {
+                                hRes = await api.post('/rest/v1/SalesOrders', {
+                                    so_number: header.value.so_number,
+                                    po_number: header.value.po_number,
+                                    customer_id: header.value.customer_id || null,
+                                    customer_name: header.value.customer_name,
+                                    shipping_address: header.value.shipping_address,
+                                    eta: header.value.eta,
+                                    etd: header.value.etd,
+                                    payment_term: header.value.payment_term,
+                                    status: 'PENDING_SCM'
+                                }, { headers: { "Prefer": "return=representation" } });
+                                so_id = hRes.data[0].id;
+                                break;
+                            } catch (e) {
+                                if (e.response && e.response.status === 409) {
+                                    header.value.so_number = await generateSoNumber();  // number taken → next
+                                    continue;
+                                }
+                                throw e;
+                            }
+                        }
+                        if (!so_id) throw new Error("Could not allocate an SO number, please retry.");
 
                         // 3. DEFINE ITEM PAYLOAD
                         const itemPayload = validItems.map(i => ({
@@ -549,8 +621,8 @@
                                 const indexedJO = `${header.value.so_number}/${index + 1}`;
                                 const partInfo = parts.value.find(p => p.Part_Number === item.part_number);
 
+                                let processList = [];
                                 if (partInfo && partInfo.Process) {
-                                    let processList = [];
                                     try {
                                         processList = typeof partInfo.Process === 'string'
                                             ? JSON.parse(partInfo.Process)
@@ -558,7 +630,9 @@
                                     } catch (e) {
                                         console.error("Error parsing process", e);
                                     }
+                                }
 
+                                if (processList && processList.length) {
                                     processList.forEach(procName => {
                                         jobOrderPayload.push({
                                             Part_Name: partInfo.Part_Name,
@@ -571,6 +645,18 @@
                                             created_at: new Date().toISOString()
                                         });
                                     });
+                                } else {
+                                    // Unregistered / no-process part: one placeholder JO so it's still tracked.
+                                    jobOrderPayload.push({
+                                        Part_Name: (item.description && item.description.trim()) || (partInfo && partInfo.Part_Name) || item.part_number,
+                                        Process: 'PENDING PART SETUP',
+                                        JO_Number: indexedJO,
+                                        Status: 'active',
+                                        Quantity: item.produce_qty,
+                                        Created_By: 'Sales System',
+                                        Customer_PO: poNo,
+                                        created_at: new Date().toISOString()
+                                    });
                                 }
                             }
                         });
@@ -578,6 +664,11 @@
                         // 5. BULK INSERT JOB ORDERS
                         if (jobOrderPayload.length > 0) {
                             await api.post('/rest/v1/JobOrder', jobOrderPayload);
+                        }
+
+                        // 6. Notify an engineer about any unregistered parts (best-effort).
+                        if (unregistered.length) {
+                            await notifyEngineerNewParts(unregistered, header.value.so_number, custName);
                         }
 
                         Toastify({
@@ -599,11 +690,12 @@
                     customers, parts, header, items, showTerms, filteredTerms, submitting,
                     onCustomerChange, handlePartSearch, selectPart, filterParts, selectTerm,
                     addRow, submitOrder, showCustomers, filterCustomers, handleCustomerSearch,
-                    selectCustomer,
+                    selectCustomer, isUnregistered,
                 };
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

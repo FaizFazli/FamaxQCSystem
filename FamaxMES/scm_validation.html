@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SCM Validation | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .so-meta { font-size: var(--fs-sm); color: var(--text-muted); }
+        .modal-overlay { display: none; }
+        .modal-overlay.show { display: flex; }
+        .modal { max-width: 820px; text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal h3 { margin: 0 0 var(--space-1); }
+        .approve-form { margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--border); display: grid; gap: var(--space-3); }
+        .msg { min-height: 1.1rem; font-size: var(--fs-sm); font-weight: 700; }
+        .row-actions { display: flex; gap: var(--space-2); }
+        .spec-mini { font-size: var(--fs-xs); color: var(--text-muted); }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">SCM Validation</div>
+        <a href="/FamaxMES" class="btn btn--secondary">← MES</a>
+    </header>
+
+    <div id="app" class="container">
+        <div class="page-head">
+            <h1 class="page-head__title">Orders awaiting SCM validation</h1>
+            <p class="page-head__subtitle">Verify raw material & tooling, then release the order for production.</p>
+        </div>
+
+        <div class="panel">
+            <div class="panel__head">
+                <h2 class="panel__title">Pending ({{ pending.length }})</h2>
+                <button class="btn" @click="load">Refresh</button>
+            </div>
+            <table class="table">
+                <thead><tr><th>S/O Number</th><th>Customer</th><th>Items</th><th>Created</th><th></th></tr></thead>
+                <tbody>
+                    <tr v-for="so in pending" :key="so.id">
+                        <td><strong>{{ so.so_number }}</strong></td>
+                        <td>{{ so.customer_name }}</td>
+                        <td>{{ (itemsBySo[so.id] || []).length }}</td>
+                        <td class="spec-mini">{{ so.created_at ? new Date(so.created_at).toLocaleString('en-GB') : '-' }}</td>
+                        <td><button class="btn" @click="review(so)">Review</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div v-if="!pending.length" class="empty-state">Nothing awaiting validation. 🎉</div>
+        </div>
+    </div>
+
+    <!-- Review modal -->
+    <div class="modal-overlay" :class="{show: current}" @click.self="current = null">
+        <div class="modal card" v-if="current">
+            <h3>{{ current.so_number }}</h3>
+            <div class="so-meta">{{ current.customer_name }}</div>
+
+            <table class="table" style="margin-top: var(--space-4)">
+                <thead><tr><th>Part</th><th>Produce Qty</th><th>Raw Material</th><th>Available</th><th>Material</th><th>Tooling</th></tr></thead>
+                <tbody>
+                    <tr v-for="c in checks" :key="c.part_number">
+                        <td>{{ c.part_name || c.part_number }}</td>
+                        <td>{{ c.required }}</td>
+                        <td class="spec-mini">{{ c.spec || '— no spec on part —' }}</td>
+                        <td>{{ c.available }}</td>
+                        <td><span class="badge" :class="c.raw_material_status==='OK' ? 'badge--success' : c.raw_material_status==='SHORT' ? 'badge--danger' : 'badge--warning'">{{ c.raw_material_status }}</span></td>
+                        <td><span class="badge" :class="c.tooling_status==='READY' ? 'badge--success' : 'badge--danger'">{{ c.tooling_status }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="approve-form">
+                <div class="field"><label class="label">Approver</label>
+                    <select class="select" v-model="approver"><option value="">Select approver…</option>
+                        <option v-for="a in approvers" :key="a.name" :value="a.name">{{ a.label }}</option>
+                    </select></div>
+                <div class="field"><label class="label">PIN</label>
+                    <input class="input" type="password" v-model="pin" inputmode="numeric" autocomplete="off" placeholder="Enter PIN"></div>
+                <div class="field"><label class="label">Remark (required to reject)</label>
+                    <input class="input" v-model="remark" placeholder="Reason / note"></div>
+                <div class="msg" :style="{color: 'var(--danger)'}">{{ msg }}</div>
+                <div class="row-actions">
+                    <button class="btn" :disabled="busy" @click="decide('APPROVED')">Approve</button>
+                    <button class="btn btn--danger" :disabled="busy" @click="decide('REJECTED')">Reject</button>
+                    <button class="btn btn--secondary" @click="current = null">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/FamaxMES/login.html';
+
+        const { createApp, ref, computed } = Vue;
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: window.APP_CONFIG.url,
+                    headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}`, "Content-Type": "application/json" }
+                });
+
+                const pending = ref([]);
+                const itemsBySo = ref({});
+                const parts = ref([]);
+                const stock = ref([]);
+                const tooling = ref([]);
+                const approverMap = ref({});
+                const approvers = ref([]);
+
+                const current = ref(null);
+                const checks = ref([]);
+                const approver = ref(''); const pin = ref(''); const remark = ref(''); const msg = ref(''); const busy = ref(false);
+
+                const norm = v => (v || '').toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+                async function load() {
+                    current.value = null;
+                    const so = await api.get('/rest/v1/SalesOrders?status=eq.PENDING_SCM&select=id,so_number,customer_name,created_at&order=created_at.asc');
+                    pending.value = so.data;
+                    const ids = pending.value.map(s => s.id);
+                    itemsBySo.value = {};
+                    if (ids.length) {
+                        const it = await api.get(`/rest/v1/SalesOrder_Items?so_id=in.(${ids.join(',')})&select=*`);
+                        it.data.forEach(r => { (itemsBySo.value[r.so_id] = itemsBySo.value[r.so_id] || []).push(r); });
+                    }
+                    const [p, s, t, e] = await Promise.all([
+                        api.get('/rest/v1/Parts?select=Part_Number,Part_Name,Raw_Material,Raw_Material_Grade,Raw_Material_Size'),
+                        api.get('/rest/v1/RawMaterialStock?select=material_type,grade,size_dimensions,qty_pcs'),
+                        api.get('/rest/v1/Tooling?select=part_number,status'),
+                        api.get('/rest/v1/EmployeeTable?select=name,position,pin&pin=not.is.null&order=name.asc')
+                    ]);
+                    parts.value = p.data; stock.value = s.data; tooling.value = t.data;
+                    approverMap.value = {}; approvers.value = [];
+                    e.data.forEach(emp => {
+                        const nm = (emp.name || '').trim(), pn = String(emp.pin || '').trim();
+                        if (!nm || !pn) return;
+                        approverMap.value[nm.toUpperCase()] = { pin: pn, position: emp.position || '' };
+                        approvers.value.push({ name: nm, label: nm + (emp.position ? ` (${emp.position})` : '') });
+                    });
+                }
+
+                // Lenient stock match: count qty for stock whose grade+size (or material desc) match the part's spec.
+                function matchStock(part) {
+                    const g = norm(part.Raw_Material_Grade), sz = norm(part.Raw_Material_Size), mt = norm(part.Raw_Material);
+                    if (!g && !sz && !mt) return null;  // part has no material spec → UNKNOWN
+                    let avail = 0;
+                    stock.value.forEach(s => {
+                        const sg = norm(s.grade), ss = norm(s.size_dimensions), sm = norm(s.material_type);
+                        const gradeOk = g ? (sg.includes(g) || g.includes(sg)) : true;
+                        const sizeOk = sz ? (ss.includes(sz) || sz.includes(ss)) : true;
+                        const matOk = mt ? (sm.includes(mt) || mt.includes(sm)) : false;
+                        if ((g || sz) ? (gradeOk && sizeOk) : matOk) avail += Number(s.qty_pcs) || 0;
+                    });
+                    return avail;
+                }
+
+                function review(so) {
+                    current.value = so; approver.value = ''; pin.value = ''; remark.value = ''; msg.value = '';
+                    const items = itemsBySo.value[so.id] || [];
+                    checks.value = items.map(it => {
+                        const part = parts.value.find(p => p.Part_Number === it.part_number) || {};
+                        const required = Number(it.produce_qty) || 0;
+                        const avail = matchStock(part);
+                        const spec = [part.Raw_Material, part.Raw_Material_Grade, part.Raw_Material_Size].filter(Boolean).join(' · ');
+                        const rmStatus = avail === null ? 'UNKNOWN' : (avail >= required ? 'OK' : 'SHORT');
+                        const hasTool = tooling.value.some(t => t.part_number === it.part_number && t.status === 'AVAILABLE');
+                        return { part_number: it.part_number, part_name: part.Part_Name, required,
+                            spec, available: avail === null ? '—' : avail,
+                            raw_material_status: rmStatus, tooling_status: hasTool ? 'READY' : 'MISSING' };
+                    });
+                }
+
+                async function decide(newStatus) {
+                    msg.value = '';
+                    const nm = approver.value.trim();
+                    if (!nm) { msg.value = 'Select an approver.'; return; }
+                    const rec = approverMap.value[nm.toUpperCase()];
+                    if (!rec) { msg.value = 'No PIN set for this approver.'; return; }
+                    if (pin.value.trim() !== rec.pin) { msg.value = 'Incorrect PIN.'; return; }
+                    if (newStatus === 'REJECTED' && !remark.value.trim()) { msg.value = 'A remark is required to reject.'; return; }
+
+                    busy.value = true;
+                    try {
+                        const now = new Date().toISOString();
+                        const rows = checks.value.map(c => ({
+                            so_id: current.value.id, so_number: current.value.so_number,
+                            part_number: c.part_number, part_name: c.part_name,
+                            raw_material_status: c.raw_material_status,
+                            raw_material_detail: { required: c.required, available: c.available, spec: c.spec },
+                            tooling_status: c.tooling_status,
+                            status: newStatus, approver_name: nm, approver_position: rec.position || null,
+                            approved_at: now, remarks: remark.value.trim() || null, created_at: now
+                        }));
+                        await api.post('/rest/v1/scm_validations', rows);
+                        await api.patch(`/rest/v1/SalesOrders?id=eq.${current.value.id}`,
+                            { status: newStatus === 'APPROVED' ? 'APPROVED' : 'REJECTED' });
+                        current.value = null;
+                        await load();
+                    } catch (e) {
+                        msg.value = 'Save failed: ' + (e.response?.data?.message || e.message);
+                    } finally { busy.value = false; }
+                }
+
+                load();
+                return { pending, itemsBySo, current, checks, approver, pin, remark, msg, busy, approvers, review, decide, load };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

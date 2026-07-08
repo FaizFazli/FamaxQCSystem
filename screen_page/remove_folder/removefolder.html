@@ -25,57 +25,36 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/assets/app-config.js"></script>
 
-  <style>
-    :root {
-      --primary: #0078d4;
-      --primary-soft: rgba(0, 120, 212, 0.1);
-      --bg-body: #f8fafc;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --glass-bg: rgba(255, 255, 255, 0.75);
-      --glass-border: rgba(255, 255, 255, 0.6);
-      --danger: #ef4444;
-      --danger-hover: #be123c;
-      --radius: 12px;
-    }
+  <!-- Shared design system (tokens + components) -->
+  <link rel="stylesheet" href="/assets/theme.css">
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+  <style>
+    /* Page-specific overrides only — tokens/reset come from theme.css */
 
     body {
-      font-family: 'Inter', sans-serif;
-      background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
-        radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
-        radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
-      background-color: var(--bg-body);
-      color: var(--text-main);
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      padding: 40px 20px;
+      padding: var(--space-10) var(--space-5);
     }
 
     .nav-top {
       width: 100%;
-      max-width: 550px;
-      margin-bottom: 25px;
+      max-width: 600px;
+      margin-bottom: var(--space-5);
     }
 
     .back-link {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 13px;
+      font-size: var(--fs-sm);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      transition: 0.3s;
+      gap: var(--space-2);
+      transition: color var(--transition), transform var(--transition);
       cursor: pointer;
     }
 
@@ -84,126 +63,101 @@
       transform: translateX(-3px);
     }
 
-    /* Glass Card Container */
+    /* Main card container (built on .panel) */
     .action-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       width: 100%;
-      max-width: 550px;
-      border-radius: 24px;
-      border: 1px solid var(--glass-border);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
-      overflow: hidden;
+      max-width: 600px;
     }
 
-    /* Header */
+    /* Dark header band */
     .card-header {
       background: #1e293b;
-      padding: 25px 35px;
-      color: white;
+      padding: var(--space-5) var(--space-6);
+      color: #fff;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: var(--space-4);
     }
 
     .card-header h1 {
       margin: 0;
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
+      font-size: var(--fs-lg);
+      font-weight: 700;
+      letter-spacing: -0.4px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--space-3);
     }
+    .card-header h1 svg { color: var(--primary); }
 
     .user-badge {
-      font-size: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 4px 12px;
-      border-radius: 8px;
+      font-size: var(--fs-xs);
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px var(--space-3);
+      border-radius: var(--radius-sm);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
+      white-space: nowrap;
     }
 
-    /* Card Body */
     .card-body {
-      padding: 35px;
+      padding: var(--space-8);
     }
 
     fieldset {
       border: none;
       padding: 0;
-      margin: 0 0 25px 0;
+      margin: 0 0 var(--space-6) 0;
     }
 
-    label {
-      display: block;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 10px;
-      margin-left: 4px;
-    }
-
-    /* Select2 Custom Overrides */
-    .select2-container {
-      width: 100% !important;
-    }
+    /* Select2 sizing/skin to match theme inputs */
+    .select2-container { width: 100% !important; }
 
     .select2-container .select2-selection--single {
-      height: 48px !important;
-      background-color: white !important;
-      border: 1px solid #e2e8f0 !important;
-      border-radius: 12px !important;
+      height: 44px !important;
+      background-color: var(--bg-card) !important;
+      border: 1px solid var(--border-strong) !important;
+      border-radius: var(--radius-sm) !important;
       display: flex !important;
       align-items: center !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__rendered {
-      padding-left: 15px !important;
+      padding-left: var(--space-3) !important;
       color: var(--text-main) !important;
-      font-size: 14px !important;
-      font-weight: 600 !important;
+      font-size: var(--fs-base) !important;
+      font-weight: 500 !important;
     }
 
     .select2-container--default .select2-selection--single .select2-selection__arrow {
-      height: 46px !important;
+      height: 42px !important;
       right: 10px !important;
     }
 
     .select2-container--default.select2-container--focus .select2-selection--single {
       border-color: var(--primary) !important;
-      box-shadow: 0 0 0 4px var(--primary-soft) !important;
+      box-shadow: 0 0 0 3px var(--primary-ring) !important;
     }
 
-    /* Details Box */
+    /* Details preview box (built on .card) */
     .details-box {
-      background-color: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+      margin-bottom: var(--space-6);
     }
 
     .detail-row {
       display: flex;
       justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #f1f5f9;
+      gap: var(--space-4);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--border);
     }
-
-    .detail-row:last-child {
-      border-bottom: none;
-    }
+    .detail-row:last-child { border-bottom: none; }
 
     .detail-label {
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: var(--fs-sm);
       font-weight: 600;
     }
 
@@ -211,151 +165,104 @@
       color: var(--text-main);
       font-weight: 700;
       text-align: right;
-      font-size: 13px;
+      font-size: var(--fs-sm);
     }
 
+    /* JS-generated chip — keep selector/visual */
     .process-tag {
       display: inline-block;
       background: var(--primary-soft);
       color: var(--primary);
       padding: 2px 10px;
-      border-radius: 6px;
-      font-size: 10px;
-      font-weight: 800;
+      border-radius: var(--radius-sm);
+      font-size: var(--fs-xs);
+      font-weight: 700;
       text-transform: uppercase;
       margin-left: 4px;
     }
 
-    /* Action Button */
-    .actions {
-      margin-top: 25px;
-    }
+    .actions { margin-top: var(--space-6); }
 
+    /* Delete button — full-width danger action */
     button#btnDelete {
       width: 100%;
-      height: 54px;
-      background-color: #1e293b;
-      color: white;
-      border: none;
-      border-radius: 16px;
-      font-size: 14px;
-      font-weight: 800;
+      height: 52px;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      cursor: pointer;
-      transition: 0.3s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      letter-spacing: 0.5px;
     }
-
-    button#btnDelete:hover:not([disabled]) {
-      background-color: var(--danger);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px rgba(239, 68, 68, 0.2);
-    }
-
     button#btnDelete:disabled {
-      background-color: #cbd5e1;
-      cursor: not-allowed;
+      background: var(--border-strong);
       box-shadow: none;
     }
 
-    /* Messages */
     .error-message {
       color: var(--danger);
-      font-size: 13px;
+      font-size: var(--fs-sm);
       font-weight: 600;
-      margin-top: 15px;
+      margin-top: var(--space-4);
       text-align: center;
     }
 
     .loader {
       text-align: center;
       color: var(--primary);
-      font-size: 13px;
+      font-size: var(--fs-sm);
       font-weight: 700;
-      padding: 15px;
+      padding: var(--space-4);
     }
 
-    /* Confirmation Modal - Modernized */
+    /* Confirmation modal (default hidden — JS toggles display) */
     .modal {
       display: none;
       position: fixed;
       inset: 0;
-      z-index: 1000;
-      background-color: rgba(15, 23, 42, 0.5);
-      backdrop-filter: blur(4px);
+      z-index: var(--z-modal);
+      background-color: rgba(15, 23, 42, 0.55);
+      -webkit-backdrop-filter: blur(3px);
+      backdrop-filter: blur(3px);
       align-items: center;
       justify-content: center;
+      padding: var(--space-4);
     }
 
     .modal-content {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(20px);
-      padding: 35px;
-      border-radius: 24px;
-      width: 90%;
+      background: var(--bg-card);
+      padding: var(--space-8);
+      border-radius: var(--radius-lg);
+      width: 100%;
       max-width: 420px;
-      border: 1px solid white;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      box-shadow: var(--shadow-lg);
     }
 
     .modal-title {
-      font-size: 20px;
-      font-weight: 800;
+      font-size: var(--fs-lg);
+      font-weight: 700;
       color: var(--danger);
-      margin-bottom: 15px;
-      letter-spacing: -0.5px;
+      margin: 0 0 var(--space-4);
+      letter-spacing: -0.4px;
     }
 
     .warning-text {
-      background: #ffe4e6;
-      color: #be123c;
-      padding: 15px;
-      border-radius: 12px;
-      font-size: 13px;
-      margin-bottom: 25px;
+      background: #fee2e2;
+      color: #b91c1c;
+      padding: var(--space-4);
+      border-radius: var(--radius-sm);
+      font-size: var(--fs-sm);
+      margin-bottom: var(--space-6);
       font-weight: 500;
       line-height: 1.5;
     }
 
     .modal-actions {
       display: flex;
-      gap: 12px;
+      gap: var(--space-3);
     }
 
-    .btn-cancel {
-      flex: 1;
-      background: #f1f5f9;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 700;
-      color: var(--text-muted);
-      transition: 0.2s;
-    }
-
+    .btn-cancel { flex: 1; }
     .btn-confirm {
       flex: 2;
-      background: var(--danger);
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: 800;
-      cursor: pointer;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      transition: 0.3s;
-    }
-
-    .btn-confirm:hover {
-      background: var(--danger-hover);
-      transform: scale(1.02);
     }
   </style>
 </head>
@@ -375,7 +282,7 @@
   </div>
 
   <!-- Main Card -->
-  <div class="action-card">
+  <div class="action-card panel">
     <div class="card-header">
       <h1>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -394,7 +301,7 @@
 
       <!-- Part Selection -->
       <fieldset>
-        <label for="part-select">Component Selection</label>
+        <label class="label" for="part-select">Component Selection</label>
         <select id="part-select" class="searchable-dropdown">
           <option value="">Search part identity...</option>
         </select>
@@ -406,7 +313,7 @@
       </div>
 
       <!-- Details Preview -->
-      <div id="detailsBox" class="details-box" style="display:none;">
+      <div id="detailsBox" class="details-box card" style="display:none;">
         <div class="detail-row">
           <span class="detail-label">Part Number</span>
           <span class="detail-value" id="d-number">-</span>
@@ -427,7 +334,7 @@
 
       <!-- Action Button -->
       <div class="actions">
-        <button type="button" id="btnDelete" disabled onclick="showModal()">
+        <button type="button" id="btnDelete" class="btn btn--danger" disabled onclick="showModal()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
             stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 6h18"></path>
@@ -454,8 +361,8 @@
         folders/files on the production server.
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" onclick="closeModal()">Abort</button>
-        <button class="btn-confirm" onclick="confirmDelete()">Execute Delete</button>
+        <button class="btn-cancel btn btn--secondary" onclick="closeModal()">Abort</button>
+        <button class="btn-confirm btn btn--danger" onclick="confirmDelete()">Execute Delete</button>
       </div>
     </div>
   </div>
@@ -645,6 +552,7 @@
       }
     }
   </script>
+  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

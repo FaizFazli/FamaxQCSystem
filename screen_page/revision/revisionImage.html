@@ -16,34 +16,23 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/assets/app-config.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific overrides (tokens live in theme.css) ---- */
         :root {
-            --primary: #0078d4;
-            --primary-dark: #005a9e;
-            --bg-body: #f3f4f6;
-            --bg-card: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --danger: #ef4444;
-            --success: #10b981;
-            --focus-ring: rgba(0, 120, 212, 0.25);
-            --radius: 8px;
-            --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            --primary-dark: var(--primary-hover);
+            --border-color: var(--border);
+            --focus-ring: var(--primary-ring);
+            --shadow-card: var(--shadow-lg);
         }
 
-        * { box-sizing: border-box; }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
+            padding: var(--space-5);
         }
 
         /* --- Main Card --- */
@@ -138,7 +127,7 @@
 
         .drop-zone:hover {
             border-color: var(--primary);
-            background-color: #eff6ff;
+            background-color: var(--primary-soft);
         }
 
         .drop-text { font-size: 13px; color: var(--text-muted); pointer-events: none; }

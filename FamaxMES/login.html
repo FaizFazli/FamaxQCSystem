@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-body); }
+        .login-card { width: 100%; max-width: 400px; }
+        .brand { text-align: center; margin-bottom: var(--space-6); }
+        .brand__title { font-size: var(--fs-xl); font-weight: 700; color: var(--text-main); }
+        .brand__title span { color: var(--primary); }
+        .brand__sub { margin-top: 4px; font-size: var(--fs-sm); color: var(--text-muted); }
+        .field { margin-bottom: var(--space-4); }
+        .msg { min-height: 1.2rem; margin-top: var(--space-2); font-size: var(--fs-sm); font-weight: 700; color: var(--danger); }
+        .btn-full { width: 100%; margin-top: var(--space-2); }
+        .back { display: block; text-align: center; margin-top: var(--space-5); font-size: var(--fs-sm); color: var(--text-muted); text-decoration: none; }
+        .back:hover { color: var(--primary); }
+    </style>
+</head>
+
+<body>
+    <div class="card login-card">
+        <div class="brand">
+            <div class="brand__title">FAMAX <span>MES</span></div>
+            <div class="brand__sub">Manufacturing Execution System</div>
+        </div>
+
+        <form id="form" onsubmit="event.preventDefault(); doLogin();">
+            <div class="field">
+                <label class="label" for="userId">User ID</label>
+                <input class="input" type="text" id="userId" autocomplete="username" placeholder="Enter your user ID" autofocus>
+            </div>
+            <div class="field">
+                <label class="label" for="password">Password</label>
+                <input class="input" type="password" id="password" autocomplete="current-password" placeholder="Enter your password">
+            </div>
+            <div id="msg" class="msg"></div>
+            <button type="submit" class="btn btn-full" id="submit">Login</button>
+        </form>
+        <a class="back" href="/index.html">← Back to home</a>
+    </div>
+
+    <script>
+        // Already logged in this tab? go straight in.
+        if (sessionStorage.getItem('isLoggedIn') === 'true' && sessionStorage.getItem('userId')) {
+            window.location.href = '/FamaxMES';
+        }
+
+        const api = axios.create({
+            baseURL: window.APP_CONFIG.url,
+            headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}` }
+        });
+
+        async function doLogin() {
+            const msg = document.getElementById('msg');
+            const btn = document.getElementById('submit');
+            const userId = document.getElementById('userId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            msg.textContent = '';
+            if (!userId || !password) { msg.textContent = 'Enter both user ID and password.'; return; }
+
+            btn.disabled = true; btn.textContent = 'Signing in…';
+            try {
+                const res = await api.get(`/rest/v1/AdminCredential?UserId=eq.${encodeURIComponent(userId)}&select=*`);
+                const rec = res.data[0];
+                if (!rec) { msg.textContent = 'User not found.'; return; }
+                if (rec.Password !== password) { msg.textContent = 'Invalid password.'; return; }
+
+                // Same session keys as the QC system, so the MES pages' guard passes.
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('userId', userId);
+                sessionStorage.setItem('userPassword', password);
+                window.location.href = '/FamaxMES';
+            } catch (e) {
+                msg.textContent = 'Login failed. Check connection.';
+                console.error(e);
+            } finally {
+                btn.disabled = false; btn.textContent = 'Login';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -35,6 +35,10 @@ app.get("/FamaxQCSystem", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.get("/FamaxMES", (req, res) => {
+    res.sendFile(path.join(__dirname, "FamaxMES", "index.html"));
+});
+
 app.listen(80, () => {
-    console.log("✅ Server running at http://192.168.2.196/FamaxQCSystem");
+    console.log("✅ Server running at http://192.168.2.195/FamaxQCSystem");
 });

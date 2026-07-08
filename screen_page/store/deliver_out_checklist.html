@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Packaging Checklist Form</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
     <!-- Google Fonts & Libraries -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -19,25 +19,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         :root {
-            --primary: #0078d4;
-            --primary-dark: #005a9e;
-            --bg-body: #f3f4f6;
-            --bg-card: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --focus-ring: rgba(0, 120, 212, 0.25);
-            --radius: 8px;
+            --border-color: var(--border);
+            --radius: var(--radius-sm);
         }
 
         body {
-            font-family: "Inter", sans-serif;
             background-color: var(--bg-body);
-            padding: 20px;
-            color: var(--text-main);
-            margin: 0;
+            padding: var(--space-8) var(--space-5);
         }
 
         /* --- Navigation --- */
@@ -72,30 +66,32 @@
             width: 100%;
             max-width: 900px;
             margin: 0 auto;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
             overflow: hidden;
         }
 
         .card-header {
             background: var(--primary);
-            padding: 20px 30px;
-            color: white;
+            padding: var(--space-6) var(--space-8);
+            color: var(--on-primary);
             text-align: center;
         }
 
         .card-body {
-            padding: 30px;
+            padding: var(--space-8);
         }
 
         .section-title {
-            font-size: 15px;
+            font-size: var(--fs-md);
             font-weight: 700;
-            background: #f3f4f6;
-            padding: 12px;
-            margin: 30px 0 15px 0;
+            color: var(--text-main);
+            background: var(--surface-muted);
+            padding: var(--space-3) var(--space-4);
+            margin: var(--space-8) 0 var(--space-4) 0;
             border-left: 4px solid var(--primary);
+            border-radius: var(--radius-sm);
         }
 
         .form-grid {
@@ -107,11 +103,12 @@
 
         .form-group label {
             display: block;
-            font-size: 12px;
+            font-size: var(--fs-sm);
             font-weight: 600;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
             text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
 
         /* Show More Button Style */
@@ -120,26 +117,16 @@
             justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin-bottom: 8px;
+            margin-bottom: var(--space-2);
         }
 
         .show-more-btn {
-            font-size: 11px;
+            font-size: var(--fs-xs);
             color: var(--primary);
             cursor: pointer;
             font-weight: 700;
             text-transform: uppercase;
             text-decoration: underline;
-        }
-
-        input[type="text"],
-        input[type="date"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            outline: none;
-            box-sizing: border-box;
         }
 
         .table-container {
@@ -157,20 +144,22 @@
         }
 
         th {
-            background: #f9fafb;
-            padding: 12px;
+            background: var(--surface-muted);
+            padding: var(--space-3);
             text-align: left;
-            border-bottom: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border);
             color: var(--text-muted);
             text-transform: uppercase;
-            font-size: 11px;
+            letter-spacing: 0.04em;
+            font-size: var(--fs-xs);
+            font-weight: 700;
         }
 
         td {
-            padding: 10px;
-            background: #fff;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
+            padding: var(--space-3);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
         }
 
         .col-item {
@@ -208,87 +197,76 @@
 
         .btn-submit {
             background: var(--primary);
-            color: white;
+            color: var(--on-primary);
             border: none;
-            padding: 18px 30px;
+            padding: var(--space-5) var(--space-8);
             border-radius: var(--radius);
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            font-size: 16px;
-            margin-top: 20px;
+            font-size: var(--fs-md);
+            margin-top: var(--space-5);
+            transition: background var(--transition), transform var(--transition);
         }
 
+        .btn-submit:hover { background: var(--primary-hover); }
+        .btn-submit:active { transform: translateY(1px); }
+
         .btn-secondary {
-            background-color: #fff;
+            background-color: var(--surface-muted);
             color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 8px 16px;
+            border: 1px solid var(--border);
+            padding: var(--space-2) var(--space-4);
             border-radius: var(--radius);
             font-weight: 600;
             cursor: pointer;
+            transition: background var(--transition);
         }
 
-        /* Modals */
+        .btn-secondary:hover { background-color: var(--border); }
+
+        /* Modals (jQuery .fadeIn/.fadeOut toggle display) */
         .modal {
             display: none;
             position: fixed;
-            z-index: 10000;
+            z-index: var(--z-modal);
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
+            background-color: rgba(15, 23, 42, 0.55);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
         }
 
         .modal-content {
-            background-color: #fff;
+            background-color: var(--bg-card);
             margin: 5% auto;
-            padding: 25px;
+            padding: var(--space-6);
             width: 90%;
             max-width: 900px;
-            border-radius: 12px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
             max-height: 85vh;
             overflow-y: auto;
         }
 
         .details-table th {
-            background: #4b5563;
-            color: white;
+            background: var(--text-main);
+            color: var(--on-primary);
         }
 
+        /* jQuery toggles display via .css('display','flex')/.hide() — keep hidden by default */
         #loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
+            inset: 0;
+            background: rgba(255, 255, 255, 0.85);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 99999;
+            z-index: var(--z-overlay);
             flex-direction: column;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            gap: var(--space-4);
         }
 
         .suggestions-list {
@@ -730,6 +708,7 @@
             });
         }
     </script>
+<div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

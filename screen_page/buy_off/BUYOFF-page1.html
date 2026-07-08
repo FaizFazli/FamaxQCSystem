@@ -14,70 +14,59 @@
     <script src="/assets/app-config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary-color: #1976D2;
-            --primary-dark: #1565C0;
-            --primary-light: #E3F2FD;
-            --bg-body: #F4F6F8;
-            --bg-card: #FFFFFF;
-            --text-main: #1A202C;
-            --text-secondary: #4A5568;
-            --text-muted: #718096;
-            --border-color: #E2E8F0;
-            --success: #48BB78;
-            --radius: 12px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* Legacy token aliases still referenced by page-specific rules */
+        :root {
+            --primary-color: var(--primary);
+            --primary-dark: var(--primary-hover);
+            --primary-light: var(--primary-soft);
+            --border-color: var(--border);
         }
 
         body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
             line-height: 1.5;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
         /* --- Header --- */
         header {
-            background: var(--bg-card);
-            height: 60px;
-            padding: 0 1rem;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: var(--z-header);
+            display: flex;
+            align-items: center;
+            height: 64px;
+            padding: 0 var(--space-6);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .header-title {
             font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--primary-color);
+            font-size: var(--fs-md);
+            letter-spacing: -0.2px;
+            color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--space-3);
         }
 
         .header-title::before {
             content: '';
             width: 4px;
             height: 20px;
-            background: var(--primary-color);
+            background: var(--primary);
             border-radius: 2px;
         }
 
         .main-wrapper {
-            padding: 1rem;
+            padding: var(--space-6) var(--space-4);
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
@@ -86,17 +75,17 @@
         /* --- Info Bar --- */
         .info-bar {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1.25rem;
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
             box-shadow: var(--shadow-sm);
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
+            margin-bottom: var(--space-4);
+            border: 1px solid var(--border);
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: var(--space-4);
         }
 
         .info-item {
@@ -105,7 +94,7 @@
         }
 
         .info-label {
-            font-size: 0.7rem;
+            font-size: var(--fs-xs);
             text-transform: uppercase;
             color: var(--text-muted);
             font-weight: 700;
@@ -114,24 +103,32 @@
         }
 
         .info-value {
-            font-size: 0.95rem;
+            font-size: var(--fs-base);
             font-weight: 600;
         }
 
         .header-input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            background: #fdfdfd;
+            padding: 10px var(--space-3);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: var(--fs-base);
+            background: var(--bg-card);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .header-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         /* --- Workspace --- */
         .workspace {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 1rem;
+            gap: var(--space-4);
         }
 
         @media (min-width: 1024px) {
@@ -146,9 +143,9 @@
 
         .visual-panel {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1rem;
-            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            border: 1px solid var(--border);
             text-align: center;
         }
 
@@ -158,7 +155,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #fcfcfc;
+            background: var(--surface-muted);
+            border-radius: var(--radius-sm);
         }
 
         .ipqc-image {
@@ -174,26 +172,26 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: 9999;
+            z-index: var(--z-overlay);
             background: rgba(0, 0, 0, 0.9);
             object-fit: contain;
             padding: 20px;
             cursor: zoom-out;
         }
 
-        /* --- Progress Circles (Exact IPQC Style) --- */
+        /* --- Progress Circles --- */
         .progress-card {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            margin-bottom: 1rem;
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            border: 1px solid var(--border);
+            margin-bottom: var(--space-4);
         }
 
         .progress-header {
             font-weight: 700;
-            font-size: 0.9rem;
-            margin-bottom: 12px;
+            font-size: var(--fs-sm);
+            margin-bottom: var(--space-3);
             color: var(--text-main);
         }
 
@@ -214,65 +212,66 @@
             flex: 0 0 35px;
             height: 35px;
             border-radius: 50%;
-            background: #ffffff;
-            border: 2px solid var(--border-color);
+            background: var(--bg-card);
+            border: 2px solid var(--border-strong);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
+            font-size: var(--fs-sm);
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition);
             color: var(--text-muted);
         }
 
         .progress-step.active {
-            border-color: var(--primary-color);
-            background: var(--primary-color);
-            color: white;
+            border-color: var(--primary);
+            background: var(--primary);
+            color: var(--on-primary);
             transform: scale(1.1);
-            box-shadow: 0 0 8px rgba(25, 118, 210, 0.4);
+            box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
         }
 
         .progress-step.completed {
-            border-color: #48BB78;
-            background: #C6F6D5;
-            color: #22543D;
+            border-color: var(--success);
+            background: #dcfce7;
+            color: #15803d;
         }
 
         /* --- Zone Card --- */
         .zone-card {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1.25rem;
-            border: 1px solid var(--border-color);
-            border-left: 5px solid var(--primary-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--primary);
+            box-shadow: var(--shadow-sm);
         }
 
         .zone-title {
-            font-size: 1.1rem;
+            font-size: var(--fs-md);
             font-weight: 800;
         }
 
         .spec-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-            background: var(--primary-light);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
+            gap: var(--space-3);
+            background: var(--primary-soft);
+            padding: var(--space-4);
+            border-radius: var(--radius-sm);
+            margin: var(--space-4) 0;
         }
 
         .spec-label {
-            font-size: 0.65rem;
+            font-size: var(--fs-xs);
             font-weight: 700;
-            color: var(--primary-dark);
+            color: var(--primary-hover);
             text-transform: uppercase;
         }
 
         .spec-val {
-            font-size: 0.9rem;
+            font-size: var(--fs-base);
             font-weight: 700;
         }
 
@@ -280,43 +279,199 @@
             width: 100%;
             padding: 12px;
             font-size: 16px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
+            border: 2px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-3);
+            font-family: inherit;
             font-weight: 600;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .reading-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         .button-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 1rem;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
         }
 
         .btn {
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
             font-weight: 700;
             border: none;
             text-transform: uppercase;
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
             cursor: pointer;
+            transition: background var(--transition), transform var(--transition);
         }
 
         .btn-primary {
-            background: var(--primary-color);
-            color: white;
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
         }
 
         .btn-primary:disabled {
-            background: var(--border-color);
+            background: var(--border-strong);
             cursor: not-allowed;
         }
 
         .btn-secondary {
-            background: white;
-            border: 2px solid var(--border-color);
+            background: var(--bg-card);
+            border: 2px solid var(--border-strong);
             color: var(--text-muted);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--surface-muted);
+        }
+
+        /* --- Inspector combobox (dropdown + typeable, pick-only) --- */
+        .combo {
+            position: relative;
+        }
+
+        .combo .header-input {
+            padding-right: 62px;
+        }
+
+        .combo-toggle,
+        .combo-clear {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .combo-toggle {
+            right: 0;
+            width: 34px;
+            font-size: 0.9rem;
+        }
+
+        .combo-clear {
+            right: 30px;
+            width: 26px;
+            font-size: 0.8rem;
+        }
+
+        .combo-clear:hover {
+            color: var(--danger);
+        }
+
+        .combo-list {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            z-index: 50;
+            max-height: 220px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow);
+        }
+
+        .combo-item {
+            padding: 10px var(--space-3);
+            cursor: pointer;
+            font-size: var(--fs-base);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .combo-item:last-child {
+            border-bottom: none;
+        }
+
+        .combo-item:hover {
+            background: var(--primary-soft);
+        }
+
+        .combo-item .combo-sub {
+            display: block;
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .combo-empty {
+            padding: 10px var(--space-3);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
+
+        /* --- Drawing unavailable placeholder --- */
+        .image-status {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: var(--space-5);
+            gap: 6px;
+            color: var(--text-muted);
+        }
+
+        .image-status-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+
+        .image-status-title {
+            font-weight: 800;
+            color: #b91c1c;
+            margin: 0;
+        }
+
+        .image-status-msg {
+            font-size: var(--fs-sm);
+            max-width: 340px;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        /* --- Live spec feedback (warn-only) --- */
+        .reading-input.in-spec {
+            border-color: var(--success);
+            background: #ecfdf5;
+        }
+
+        .reading-input.out-spec {
+            border-color: var(--danger);
+            background: #fef2f2;
+        }
+
+        .spec-hint {
+            display: block;
+            min-height: 1rem;
+            margin-top: 4px;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .spec-item.spec-item--min {
+            border-left: 3px solid var(--success);
+            padding-left: 8px;
+        }
+
+        .spec-item.spec-item--max {
+            border-left: 3px solid var(--danger);
+            padding-left: 8px;
         }
 
         .hidden {
@@ -325,15 +480,18 @@
 
         .footer {
             text-align: center;
-            padding: 20px;
-            color: var(--text-muted);
-            font-size: 12px;
+            padding: var(--space-5);
+            border-top: 1px solid var(--border);
+            color: var(--text-faint);
+            font-size: var(--fs-sm);
+            font-weight: 500;
             margin-top: auto;
         }
 
         .loading {
             text-align: center;
-            padding: 3rem;
+            padding: var(--space-10);
+            color: var(--text-muted);
         }
     </style>
 </head>
@@ -358,17 +516,26 @@
 
                 <!-- Added extra BUYOFF Header fields -->
                 <div class="info-item">
-                    <span class="info-label">Inspector Name</span>
-                    <input type="text" class="header-input" id="person-name" placeholder="Enter Name"
-                        autocomplete="off" />
-                </div>
-                <div class="info-item">
                     <span class="info-label">Role</span>
                     <select class="header-input" id="qc-technician">
                         <option value="">Select Role</option>
                         <option value="QC">QC</option>
                         <option value="Technician" selected>Technician</option>
                     </select>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Inspector Name</span>
+                    <div class="combo">
+                        <input type="text" class="header-input" id="person-name" placeholder="Select name..."
+                            autocomplete="off" />
+                        <button type="button" class="combo-clear hidden" id="checker-clear"
+                            aria-label="Clear name">✕</button>
+                        <button type="button" class="combo-toggle" id="checker-toggle"
+                            aria-label="Show list">▾</button>
+                        <div class="combo-list hidden" id="checker-list"></div>
+                    </div>
+                    <span class="badge-hint hidden" id="inspector-hint"
+                        style="font-size: var(--fs-xs); font-weight: 700; color: #b45309; margin-top: 4px;">Not found — contact HR</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Setting</span>
@@ -388,8 +555,17 @@
         <div id="content-area" class="workspace hidden">
             <!-- Left: Visual -->
             <div class="visual-panel">
-                <div class="image-container"><img id="ipqc-image" class="ipqc-image" /></div>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">Click image to Zoom</p>
+                <div class="image-container">
+                    <img id="ipqc-image" class="ipqc-image" />
+                    <div id="image-status" class="image-status hidden">
+                        <div class="image-status-icon">⚠️</div>
+                        <p class="image-status-title">Drawing image unavailable</p>
+                        <p class="image-status-msg">The reference drawing is missing or corrupted.
+                            You can still record measurements. Please contact <strong>IT Support</strong>.</p>
+                    </div>
+                </div>
+                <p id="zoom-hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px;">Click image to
+                    Zoom</p>
             </div>
 
             <!-- Right: Controls -->
@@ -410,7 +586,7 @@
         </div>
     </div>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd.</div>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -447,6 +623,125 @@
             const qcTechInput = document.getElementById('qc-technician');
             const settingInput = document.getElementById('setting-type');
 
+            // Inspector combobox (name sourced from EmployeeTable, by Role)
+            const comboList = document.getElementById('checker-list');
+            const comboToggle = document.getElementById('checker-toggle');
+            const comboClear = document.getElementById('checker-clear');
+            const inspectorHint = document.getElementById('inspector-hint');
+            let employeesArr = [];      // [{ name, empId, position }]
+            let employeeMap = {};       // { NAME_UPPER: true }
+
+            const pointNo = z => (parseInt(String(z.Point_DWG_Zone || '').replace(/\D/g, '')) || 0);
+
+            // Group points by instrument (fewer instrument swaps for the operator).
+            // Groups ordered by their lowest point number; within a group by point number;
+            // points with no instrument go last.
+            function orderByInstrument(rows) {
+                const firstPoint = {};
+                rows.forEach(z => {
+                    const k = (z.Measuring_Instrument || '').trim().toUpperCase();
+                    const p = pointNo(z);
+                    if (!(k in firstPoint) || p < firstPoint[k]) firstPoint[k] = p;
+                });
+                return rows.slice().sort((a, b) => {
+                    const ia = (a.Measuring_Instrument || '').trim(), ib = (b.Measuring_Instrument || '').trim();
+                    const ea = ia === '' ? 1 : 0, eb = ib === '' ? 1 : 0;
+                    if (ea !== eb) return ea - eb;            // no-instrument rows last
+                    const ka = ia.toUpperCase(), kb = ib.toUpperCase();
+                    if (ka !== kb) return (firstPoint[ka] - firstPoint[kb]) || (ka < kb ? -1 : 1);
+                    return pointNo(a) - pointNo(b);
+                });
+            }
+
+            // Fetch the employee list for the current Role segment.
+            // Technician (machine setter) → PRODUCTION technicians; QC/IPQC → QA/QC dept.
+            async function fetchEmployees() {
+                const role = qcTechInput.value;
+                employeesArr = []; employeeMap = {};
+                if (!role) { renderEmployeeList(''); return; }
+                try {
+                    let q = supabaseClient.from('EmployeeTable').select('name, empID, position');
+                    if (role === 'QC') {
+                        q = q.eq('department', 'QA/QC');
+                    } else {
+                        q = q.eq('department', 'PRODUCTION').ilike('position', '%TECHNICIAN%');
+                    }
+                    const { data, error } = await q.order('name', { ascending: true });
+                    if (error) { console.error('EmployeeTable fetch error:', error); return; }
+                    (data || []).forEach(c => {
+                        const rawName = c.name || c.Name;
+                        if (!rawName) return;
+                        const name = String(rawName).trim();
+                        employeeMap[name.toUpperCase()] = true;
+                        employeesArr.push({ name, empId: c.empID || c.empid || c.EmpID || '', position: c.position || c.Position || '' });
+                    });
+                } catch (e) { console.error(e); }
+                renderEmployeeList('');
+
+                // For the QC segment, default the inspector to Dipak Pokhrel when present.
+                if (role === 'QC' && personNameInput.value.trim() === '') {
+                    const def = employeesArr.find(c => c.name.toUpperCase() === 'DIPAK POKHREL');
+                    if (def) { personNameInput.value = def.name; updateInspectorHint(); revalidate(); }
+                }
+            }
+
+            function renderEmployeeList(filter) {
+                const f = (filter || '').trim().toUpperCase();
+                const matches = employeesArr.filter(c => c.name.toUpperCase().includes(f));
+                if (!matches.length) {
+                    comboList.innerHTML = '<div class="combo-empty">No match — registered ' +
+                        (qcTechInput.value === 'QC' ? 'QA/QC' : 'production technician') + ' staff only. Contact HR.</div>';
+                    return;
+                }
+                comboList.innerHTML = matches.map(c =>
+                    `<div class="combo-item" data-name="${c.name.replace(/"/g, '&quot;')}">${c.name}
+                        <span class="combo-sub">${c.empId || '—'} · ${c.position || '—'}</span>
+                     </div>`).join('');
+            }
+
+            const openList = () => { renderEmployeeList(personNameInput.value); comboList.classList.remove('hidden'); };
+            const closeList = () => comboList.classList.add('hidden');
+
+            // Is the typed name a registered employee in the current segment?
+            const personSelected = () => !!employeeMap[personNameInput.value.trim().toUpperCase()];
+
+            function updateInspectorHint() {
+                comboClear.classList.toggle('hidden', personNameInput.value.trim() === '');
+                const typed = personNameInput.value.trim();
+                inspectorHint.classList.toggle('hidden', typed === '' || personSelected());
+            }
+
+            // Central re-validation (name + role + setting + a reading entered).
+            function revalidate() {
+                const input = document.getElementById('reading-input-main');
+                if (input) currentItemReadings[currentZoneIndex] = input.value.trim();
+                const readingOk = input ? input.value.trim() !== '' : false;
+                nextButton.disabled = !(readingOk && checkHeaderValidation());
+            }
+
+            // Combobox wiring
+            personNameInput.addEventListener('input', function () { updateInspectorHint(); openList(); revalidate(); });
+            personNameInput.addEventListener('focus', openList);
+            comboToggle.addEventListener('click', function () {
+                if (comboList.classList.contains('hidden')) { personNameInput.focus(); openList(); } else { closeList(); }
+            });
+            comboClear.addEventListener('click', function () {
+                personNameInput.value = ''; updateInspectorHint(); closeList(); revalidate(); personNameInput.focus();
+            });
+            comboList.addEventListener('mousedown', function (e) {
+                const item = e.target.closest('.combo-item');
+                if (!item) return;
+                e.preventDefault();
+                personNameInput.value = item.dataset.name;
+                updateInspectorHint(); closeList(); revalidate();
+            });
+            document.addEventListener('click', function (e) { if (!e.target.closest('.combo')) closeList(); });
+            // Role change → reload the name list for that segment, reset selection.
+            qcTechInput.addEventListener('change', function () {
+                personNameInput.value = ''; updateInspectorHint(); fetchEmployees(); revalidate();
+            });
+            settingInput.addEventListener('change', revalidate);
+
             async function fetchbuyOffData() {
                 try {
                     const { data, error } = await supabaseClient
@@ -456,7 +751,7 @@
 
                     if (error || !data.length) return alert("No specs found!");
 
-                    buyOffData = data.sort((a, b) => (parseInt(a.Point_DWG_Zone.replace(/\D/g, '')) || 0) - (parseInt(b.Point_DWG_Zone.replace(/\D/g, '')) || 0));
+                    buyOffData = orderByInstrument(data);
 
                     currentItemReadings = new Array(buyOffData.length).fill('');
 
@@ -476,7 +771,7 @@
             }
 
             function checkHeaderValidation() {
-                return personNameInput.value.trim() !== "" &&
+                return personSelected() &&
                     qcTechInput.value !== "" &&
                     settingInput.value !== "";
             }
@@ -485,44 +780,70 @@
                 const zone = buyOffData[currentZoneIndex];
                 zoneContainer.innerHTML = `
         <div class="zone-card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="background:#2c3e50; color:white; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:bold;">
                     ACCEPTED ITEMS: ${acceptedItemCount} / 5
                 </span>
-                <span class="info-label">Point: ${zone.Point_DWG_Zone}</span>
+                <span class="info-label">Point ${currentZoneIndex + 1} of ${buyOffData.length} · ${zone.Point_DWG_Zone}</span>
             </div>
             <div class="spec-grid">
-                <div class="spec-item"><span class="spec-label">Instrument</span><br><span class="spec-val">${zone.Measuring_Instrument}</span></div>
-                <div class="spec-item"><span class="spec-label">Min / OK</span><br><span class="spec-val">${zone.LSL_OK}</span></div>
-                <div class="spec-item"><span class="spec-label">Max / NG</span><br><span class="spec-val">${zone.USL_NG}</span></div>
+                <div class="spec-item"><span class="spec-label">Instrument</span><br><span class="spec-val">${zone.Measuring_Instrument || 'N/A'}</span></div>
+                <div class="spec-item spec-item--min"><span class="spec-label">Min / OK</span><br><span class="spec-val">${zone.LSL_OK}</span></div>
+                <div class="spec-item spec-item--max"><span class="spec-label">Max / NG</span><br><span class="spec-val">${zone.USL_NG}</span></div>
             </div>
             <div class="reading-section">
                 <label class="info-label">Enter Measurement for Item ${acceptedItemCount + 1}</label>
                 <input type="text" id="reading-input-main" class="reading-input" value="${currentItemReadings[currentZoneIndex]}" />
+                <span class="spec-hint" id="spec-hint"></span>
             </div>
         </div>
     `;
                 const input = document.getElementById('reading-input-main');
+                const hint = document.getElementById('spec-hint');
                 input.focus();
 
-                // Validation check
-                const validateInput = () => {
-                    currentItemReadings[currentZoneIndex] = input.value.trim();
-                    nextButton.disabled = !(input.value.trim() !== "" && checkHeaderValidation());
+                // Live spec feedback (warn-only): green in-spec / red out-of-spec.
+                const paintSpec = () => {
+                    const val = input.value.trim();
+                    input.classList.remove('in-spec', 'out-spec');
+                    if (val === '') { hint.textContent = ''; return; }
+                    if (isNg(val, zone.LSL_OK, zone.USL_NG)) { input.classList.add('out-spec'); hint.textContent = 'Out of spec'; }
+                    else { input.classList.add('in-spec'); hint.textContent = ''; }
                 };
 
-                input.oninput = validateInput;
-                personNameInput.oninput = validateInput;
-                qcTechInput.onchange = validateInput;
-                settingInput.onchange = validateInput;
-
+                input.oninput = () => { revalidate(); paintSpec(); };
                 input.onkeydown = (e) => { if (e.key === 'Enter' && !nextButton.disabled) nextButton.click(); };
 
-                document.getElementById('ipqc-image').src = zone.Path.replace('http://localhost:8000', window.APP_CONFIG.url);
+                // Reference drawing is optional: show a placeholder if missing/corrupt, keep inputs usable.
+                const img = document.getElementById('ipqc-image');
+                if (!zone.Path) {
+                    showImageUnavailable();
+                } else {
+                    img.classList.remove('hidden');
+                    document.getElementById('image-status').classList.add('hidden');
+                    document.getElementById('zoom-hint').classList.remove('hidden');
+                    img.src = zone.Path.replace('http://localhost:8000', window.APP_CONFIG.url);
+                    img.onerror = showImageUnavailable;
+                }
+
                 backButton.disabled = currentZoneIndex === 0;
                 nextButton.textContent = (currentZoneIndex === buyOffData.length - 1) ? "Validate Item" : "Next Point";
 
-                validateInput(); // Initial check
+                revalidate();
+                paintSpec();
+            }
+
+            function showImageUnavailable() {
+                const img = document.getElementById('ipqc-image');
+                if (img) { img.classList.remove('zoomed'); img.classList.add('hidden'); }
+                document.getElementById('zoom-hint').classList.add('hidden');
+                document.getElementById('image-status').classList.remove('hidden');
+            }
+
+            function setupImageZoom() {
+                const img = document.getElementById('ipqc-image');
+                if (!img) return;
+                img.addEventListener('click', function () { this.classList.toggle('zoomed'); });
             }
 
             nextButton.onclick = async () => {
@@ -598,6 +919,9 @@
                     };
                 });
 
+                // Measured in instrument order; report/summary back in point-number order.
+                summaryFormat.sort((a, b) => pointNo(a) - pointNo(b));
+
                 localStorage.setItem('summaryData', JSON.stringify(summaryFormat));
                 localStorage.setItem('personName', personNameInput.value);
                 localStorage.setItem('qcTechnician', qcTechInput.value);
@@ -613,10 +937,21 @@
 
             function renderProgress() {
                 progressIndicator.innerHTML = '';
-                buyOffData.forEach((_, i) => {
+                buyOffData.forEach((z, i) => {
                     const step = document.createElement('div');
                     step.className = 'progress-step';
-                    step.textContent = i + 1;
+                    // Label by the drawing/system point zone (not the instrument-sorted position).
+                    step.textContent = pointNo(z) || (i + 1);
+                    step.title = 'Point ' + (z.Point_DWG_Zone || (i + 1));
+                    // Click to jump to that point (saving the current reading first).
+                    step.addEventListener('click', () => {
+                        const cur = document.getElementById('reading-input-main');
+                        if (cur) currentItemReadings[currentZoneIndex] = cur.value.trim();
+                        currentZoneIndex = i;
+                        showZone();
+                        updateProgressUI();
+                        step.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    });
                     progressIndicator.appendChild(step);
                 });
                 updateProgressUI();
@@ -638,6 +973,8 @@
                 }
             };
 
+            fetchEmployees();   // load names for the default Role segment
+            setupImageZoom();
             fetchbuyOffData();
         });
     </script>

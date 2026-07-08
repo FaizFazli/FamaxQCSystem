@@ -5,72 +5,81 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quality Inspection Report | Summary</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;900&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #f3f4f6;
-            padding: 40px;
+            font-family: var(--font-sans);
+            background: var(--bg-body);
+            padding: var(--space-10);
         }
 
         .report-page {
-            background: white;
+            background: var(--bg-card);
             width: 1000px;
             margin: 0 auto;
             padding: 50px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
         }
 
         .pdf-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
-            border-bottom: 5px solid #fbbf24;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            border-bottom: 4px solid var(--primary);
+            padding-bottom: var(--space-5);
+            margin-bottom: var(--space-8);
         }
 
         .pdf-title {
             font-size: 32px;
-            font-weight: 900;
+            font-weight: 800;
             text-transform: uppercase;
-            color: #000;
+            color: var(--text-main);
             letter-spacing: -1px;
         }
 
         .pdf-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 40px;
+            margin-bottom: var(--space-10);
         }
 
         .pdf-table th {
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 11px;
+            background: var(--surface-muted);
+            color: var(--text-muted);
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             padding: 15px 10px;
             text-align: left;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
         }
 
         .pdf-table td {
             padding: 18px 10px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 14px;
-            color: black;
+            border-bottom: 1px solid var(--border);
+            font-size: var(--fs-base);
+            color: var(--text-main);
         }
 
         .sig-box {
-            border-top: 2px solid #000;
-            padding-top: 10px;
-            font-size: 12px;
-            font-weight: 800;
+            border-top: 2px solid var(--text-main);
+            padding-top: var(--space-3);
+            font-size: var(--fs-sm);
+            font-weight: 700;
             text-transform: uppercase;
             margin-top: 60px;
         }
@@ -97,10 +106,10 @@
     <div id="app">
         <!-- Navigation Header -->
         <div class="max-w-[1000px] mx-auto mb-6 flex justify-between items-center no-print">
-            <a href="inspectionCheckerForm.html" class="text-sm font-bold text-gray-500 hover:text-black">← Back to New
+            <a href="inspectionCheckerForm.html" class="text-sm font-bold" style="color: var(--text-muted);">← Back to New
                 Entry</a>
             <button @click="downloadPDF"
-                class="bg-yellow-400 text-black px-6 py-2 rounded-lg font-black text-xs uppercase tracking-widest hover:bg-yellow-500 transition-colors">
+                class="btn text-xs uppercase tracking-widest">
                 Download PDF Report
             </button>
         </div>
@@ -278,6 +287,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

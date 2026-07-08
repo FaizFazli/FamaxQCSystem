@@ -5,123 +5,64 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Daily Output Entry | Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --border: #e2e8f0;
-            --radius: 12px;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --readonly-bg: #f1f5f9;
-        }
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        body { display: flex; flex-direction: column; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        .container { max-width: 900px; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-        }
-
-        header {
-            background: var(--bg-card);
-            height: 70px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        .card {
-            background: var(--bg-card);
-            padding: 2rem;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow);
-        }
+        .card { padding: var(--space-8); }
 
         .section-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: var(--space-8);
         }
 
         .section-header h2 {
-            color: var(--primary);
-            font-size: 1.75rem;
+            margin: 0 0 var(--space-2);
+            font-size: var(--fs-xl);
             font-weight: 700;
-            margin-bottom: 0.5rem;
+            letter-spacing: -0.4px;
+            color: var(--text-main);
         }
+
+        .section-header p { color: var(--text-muted); }
 
         .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-5);
         }
 
-        .full-width {
-            grid-column: span 2;
-        }
+        .full-width { grid-column: span 2; }
 
-        .form-group {
-            margin-bottom: 1rem;
-            position: relative;
-        }
+        .form-group { position: relative; }
 
+        /* Uppercase field labels (page convention) */
         label {
             display: block;
-            font-size: 0.8rem;
+            margin-bottom: var(--space-2);
+            font-size: var(--fs-sm);
             font-weight: 700;
-            margin-bottom: 0.4rem;
-            color: var(--text-sub);
             text-transform: uppercase;
             letter-spacing: 0.025em;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            outline: none;
-            transition: all 0.2s;
-            background: #fff;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            color: var(--text-muted);
         }
 
         input:read-only,
         input:disabled {
-            background: var(--readonly-bg);
-            cursor: not-allowed;
+            background: var(--surface-muted);
             color: #475569;
+            cursor: not-allowed;
         }
 
         .output-highlight {
@@ -131,80 +72,57 @@
             font-weight: 700;
         }
 
-        /* Custom Dropdown Styling */
+        /* Custom search dropdown */
         .dropdown-results {
             position: absolute;
             width: 100%;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 8px;
             margin-top: 4px;
             max-height: 250px;
             overflow-y: auto;
             z-index: 50;
-            box-shadow: var(--shadow);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
         }
 
         .result-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
             display: flex;
             flex-direction: column;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--surface-muted);
+            transition: background var(--transition);
         }
 
-        .result-item:hover {
-            background: #eff6ff;
-        }
+        .result-item:last-child { border-bottom: none; }
+        .result-item:hover { background: var(--primary-soft); }
 
         .result-item span {
-            font-size: 0.85rem;
-            color: var(--text-sub);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
         }
 
-        .result-item strong {
-            color: var(--primary);
-        }
+        .result-item strong { color: var(--primary); }
 
-        .btn {
-            width: 100%;
-            padding: 1rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 1.5rem;
-        }
-
-        .btn:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-            background: var(--text-sub);
-            transform: none;
-        }
+        /* Full-width submit, page-specific */
+        .btn { width: 100%; margin-top: var(--space-6); padding: 1rem; }
 
         .success-msg {
+            margin-top: var(--space-4);
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
             background: #dcfce7;
             color: #166534;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-top: 1rem;
-            font-weight: 600;
+            border-radius: var(--radius-sm);
         }
 
         .helper-text {
-            font-size: 0.75rem;
-            color: var(--primary);
             margin-top: 4px;
+            font-size: var(--fs-xs);
             font-weight: 500;
+            color: var(--primary);
         }
     </style>
 </head>
@@ -212,9 +130,9 @@
 <body>
 
     <div id="app">
-        <header>
-            <h1 style="font-size:1.25rem; font-weight:700; color: var(--primary);">FAMAX <span
-                    style="color:var(--text-main)">Production</span></h1>
+        <header class="topbar">
+            <div class="topbar__brand" style="color: var(--primary);">FAMAX <span
+                    style="color:var(--text-main)">Production</span></div>
         </header>
 
         <div class="container">
@@ -511,6 +429,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

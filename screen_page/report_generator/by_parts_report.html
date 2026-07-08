@@ -19,105 +19,90 @@
     <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        :root {
-            --primary: #1e293b;
-            --accent: #0078d4;
-            --bg-body: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --radius: 16px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: "Inter", sans-serif;
-            background-color: var(--bg-body);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: var(--space-5);
         }
 
         .report-card {
-            background: white;
+            background: var(--bg-card);
             width: 100%;
             max-width: 500px;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
         }
 
         .card-header {
-            background: var(--primary);
-            padding: 30px;
-            color: white;
+            background: #1e293b;
+            padding: var(--space-8);
+            color: #fff;
             text-align: center;
         }
 
         .card-header h1 {
-            font-size: 22px;
+            margin: 0;
+            font-size: var(--fs-xl);
             font-weight: 800;
             letter-spacing: -0.5px;
         }
 
         .card-body {
-            padding: 35px;
+            padding: var(--space-8);
         }
 
         label {
             display: block;
-            font-size: 11px;
+            font-size: var(--fs-xs);
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
+            letter-spacing: 0.06em;
+            margin-bottom: var(--space-3);
         }
 
-        .select2-container {
-            width: 100% !important;
-        }
-
+        .select2-container { width: 100% !important; }
         .select2-container--default .select2-selection--single {
             height: 54px !important;
-            border: 2px solid #e2e8f0 !important;
-            border-radius: 14px !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-sm) !important;
             display: flex !important;
             align-items: center !important;
             padding: 0 10px !important;
         }
 
         .info-box {
-            background: #eff6ff;
-            border-left: 4px solid var(--accent);
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 13px;
+            background: var(--primary-soft);
+            border-left: 4px solid var(--primary);
+            padding: var(--space-4);
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-sm);
             font-weight: 600;
-            color: #1e40af;
-            margin: 25px 0;
+            color: var(--primary-hover);
+            margin: var(--space-6) 0;
         }
 
         button#btnDownload {
             width: 100%;
             height: 56px;
-            background: var(--primary);
-            color: white;
+            background: #1e293b;
+            color: #fff;
             border: none;
-            border-radius: 16px;
-            font-size: 15px;
+            border-radius: var(--radius);
+            font-size: var(--fs-md);
             font-weight: 800;
             text-transform: uppercase;
             cursor: pointer;
-            transition: 0.3s;
+            transition: background var(--transition), transform var(--transition);
         }
 
         button#btnDownload:hover:not(:disabled) {
@@ -126,15 +111,15 @@
         }
 
         button#btnDownload:disabled {
-            background: #cbd5e1;
+            background: var(--border-strong);
             cursor: not-allowed;
         }
 
         #stats {
-            margin-top: 15px;
-            font-size: 12px;
+            margin-top: var(--space-4);
+            font-size: var(--fs-sm);
             font-weight: 700;
-            color: #059669;
+            color: var(--success);
             text-align: center;
         }
     </style>
@@ -430,6 +415,7 @@
             }
         }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

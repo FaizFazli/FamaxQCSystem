@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Status - Famax Finished Goods</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
 
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap"
@@ -16,8 +16,11 @@
     <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        /* --- THEME SYSTEM --- */
+        /* --- THEME SYSTEM (page tokens + JS-driven cyber-theme override) --- */
         :root {
             --primary: #0078d4;
             --primary-soft: rgba(0, 120, 212, 0.1);
@@ -27,15 +30,15 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --bg: #f8fafc;
-            --card-bg: rgba(255, 255, 255, 0.7);
+            --card-bg: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
-            --border: rgba(255, 255, 255, 0.6);
+            --border: #e2e8f0;
             --font-body: "Inter", sans-serif;
             --font-head: "Inter", sans-serif;
-            --radius: 20px;
+            --radius: 16px;
             --clip: none;
-            --shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+            --shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
             --bg-img: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
                 radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
@@ -230,12 +233,18 @@
         .search-input {
             flex: 1;
             padding: 10px 18px;
-            background: rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border);
+            background: var(--bg);
+            border: 1px solid var(--border-strong, #cbd5e1);
             border-radius: 12px;
             font-size: 14px;
             color: var(--text-main);
             outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.18);
         }
 
         body.cyber-theme .search-input {
@@ -1081,6 +1090,7 @@
             if (event.target.id === 'edit-modal-overlay') closeEditModal();
         });
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

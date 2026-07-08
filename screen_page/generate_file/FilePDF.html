@@ -19,31 +19,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
 
+  <!-- Shared design system (tokens + UI primitives) -->
+  <link rel="stylesheet" href="/assets/theme.css" />
+
   <style>
+    /* ---- Page/PDF-specific overrides (tokens live in theme.css).
+           Print/PDF sizing (mm, A4, page-break, .pdf-mode) is preserved below. ---- */
     :root {
-      --primary: #0078d4;
-      --primary-dark: #005a9e;
-      --bg-body: #f3f4f6;
-      --bg-card: #ffffff;
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
-      --border-color: #e5e7eb;
-      --radius: 8px;
+      --primary-dark: var(--primary-hover);
+      --border-color: var(--border);
       --input-height: 40px;
-      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      --shadow-card: var(--shadow-lg);
     }
 
     body {
-      font-family: "Inter", sans-serif;
-      background-color: var(--bg-body);
-      color: var(--text-main);
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
+      padding: var(--space-5);
     }
 
     /* --- Navigation --- */
@@ -465,9 +458,7 @@
     </button>
   </div>
 
-  <div class="footer">
-    © 2025 Famax Technology (M) System. All rights reserved.
-  </div>
+  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
   <!-- ... (Keep all CSS and HTML exactly as you have it) ... -->
   <script>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finished-Good Check | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">Finished-Good Check</div>
+        <a href="/FamaxMES" class="btn btn--secondary">← MES</a>
+    </header>
+
+    <div id="app" class="container">
+        <div class="page-head">
+            <h1 class="page-head__title">Finished-Good Availability</h1>
+            <p class="page-head__subtitle">Ordered vs on-hand finished goods vs quantity to produce.</p>
+        </div>
+
+        <div class="field" style="max-width:420px; margin-bottom: var(--space-6)">
+            <label class="label">Sales Order</label>
+            <select class="select" v-model="selectedSo" @change="loadItems">
+                <option value="">Select an order…</option>
+                <option v-for="so in orders" :key="so.id" :value="so.id">{{ so.so_number }} — {{ so.customer_name }} ({{ so.status }})</option>
+            </select>
+        </div>
+
+        <div class="panel" v-if="rows.length">
+            <table class="table">
+                <thead><tr><th>Part</th><th class="num">Ordered</th><th class="num">On hand (FG)</th><th class="num">To produce</th><th>Status</th></tr></thead>
+                <tbody>
+                    <tr v-for="r in rows" :key="r.part_number">
+                        <td>{{ r.part_number }}</td>
+                        <td class="num">{{ r.ordered }}</td>
+                        <td class="num">{{ r.onHand }}</td>
+                        <td class="num">{{ r.toProduce }}</td>
+                        <td><span class="badge" :class="r.toProduce > 0 ? 'badge--warning' : 'badge--success'">
+                            {{ r.toProduce > 0 ? 'Produce ' + r.toProduce : 'Covered by stock' }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div v-else-if="selectedSo" class="empty-state">No items on this order.</div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/FamaxMES/login.html';
+
+        const { createApp, ref } = Vue;
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: window.APP_CONFIG.url,
+                    headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}`, "Content-Type": "application/json" }
+                });
+
+                const orders = ref([]);
+                const selectedSo = ref('');
+                const rows = ref([]);
+
+                async function load() {
+                    const o = await api.get('/rest/v1/SalesOrders?select=id,so_number,customer_name,status&order=created_at.desc');
+                    orders.value = o.data;
+                }
+
+                // live FG on-hand for a part+customer (same lookup as sales_order_entry checkStock)
+                async function onHandFor(partNumber, customerName) {
+                    const prefix = (customerName || '').split(' ')[0];
+                    const res = await api.get(`/rest/v1/inventory?barcode=eq.${encodeURIComponent(partNumber)}&customer=ilike.*${encodeURIComponent(prefix)}*`);
+                    return res.data.length ? (Number(res.data[0].available_pcs) || 0) : 0;
+                }
+
+                async function loadItems() {
+                    rows.value = [];
+                    if (!selectedSo.value) return;
+                    const so = orders.value.find(o => o.id == selectedSo.value);
+                    const it = await api.get(`/rest/v1/SalesOrder_Items?so_id=eq.${selectedSo.value}&select=part_number,order_qty`);
+                    rows.value = await Promise.all(it.data.map(async i => {
+                        const ordered = Number(i.order_qty) || 0;
+                        const onHand = await onHandFor(i.part_number, so.customer_name);
+                        return { part_number: i.part_number, ordered, onHand, toProduce: Math.max(ordered - onHand, 0) };
+                    }));
+                }
+
+                load();
+                return { orders, selectedSo, rows, loadItems };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

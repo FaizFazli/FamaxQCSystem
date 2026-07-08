@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { margin: 0; }
+        .app-shell { min-height: 100vh; }
+
+        .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+        .sidebar__brand { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) var(--space-6); font-size: var(--fs-lg); font-weight: 700; color: var(--text-main); }
+        .sidebar__brand span { color: var(--primary); }
+        .sidebar__group-label { margin: var(--space-5) var(--space-3) var(--space-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
+        .sidebar__link svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .sidebar__link.is-active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+        .sidebar__link.is-locked { opacity: 0.45; pointer-events: none; }
+        .sidebar__spacer { flex: 1; }
+        .sidebar__user { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); margin-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-muted); }
+
+        .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .main__head { display: flex; align-items: flex-end; justify-content: space-between; padding: var(--space-8) var(--space-8) var(--space-5); }
+        .main__title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-main); }
+        .main__sub { margin: 4px 0 0; color: var(--text-muted); font-size: var(--fs-sm); }
+
+        /* KPI strip */
+        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-4); padding: 0 var(--space-8) var(--space-4); }
+        .kpi { padding: var(--space-4) var(--space-5); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+        .kpi__num { font-size: 28px; font-weight: 700; line-height: 1; color: var(--text-main); }
+        .kpi__num.warn { color: var(--warning); }
+        .kpi__num.bad { color: var(--danger); }
+        .kpi__label { margin-top: 6px; font-size: var(--fs-sm); color: var(--text-muted); }
+
+        /* Widgets */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-5); padding: var(--space-4) var(--space-8) var(--space-6); }
+        .widget { display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+        .widget__head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); }
+        .widget__title { font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .widget__body { flex: 1; }
+        .wrow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px var(--space-5); border-bottom: 1px solid var(--surface-muted); font-size: var(--fs-sm); }
+        .wrow:last-child { border-bottom: none; }
+        .wrow__main { min-width: 0; }
+        .wrow__t { font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wrow__s { font-size: var(--fs-xs); color: var(--text-muted); }
+        .wrow__r { flex-shrink: 0; text-align: right; }
+        .widget__foot { display: block; padding: 10px var(--space-5); font-size: var(--fs-sm); font-weight: 600; color: var(--primary); text-decoration: none; border-top: 1px solid var(--border); }
+        .widget__foot:hover { background: var(--primary-soft); }
+        .w-empty { padding: var(--space-6); text-align: center; color: var(--text-faint); font-size: var(--fs-sm); }
+        .num { font-variant-numeric: tabular-nums; }
+        .wrow--click { cursor: pointer; }
+        .wrow--click:hover { background: var(--surface-muted); }
+
+        .modal-overlay { display: none; }
+        .modal-overlay.show { display: flex; }
+        .modal { max-width: 560px; text-align: left; max-height: 85vh; overflow: auto; }
+        .modal__title { margin: 0 0 2px; font-size: var(--fs-lg); }
+        .modal__sub { margin: 0 0 var(--space-4); color: var(--text-muted); font-size: var(--fs-sm); }
+
+        @media (max-width: 720px) { .app-shell { flex-direction: column; } .sidebar { position: static; height: auto; width: 100%; } }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar__brand">FAMAX <span>MES</span></div>
+            <nav id="nav"></nav>
+            <div class="sidebar__spacer"></div>
+            <div class="sidebar__user">
+                <span id="whoami"></span>
+                <button class="btn btn--secondary" style="padding:6px 12px" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="main__head">
+                <div>
+                    <h1 class="main__title">Dashboard</h1>
+                    <p class="main__sub" id="sub">Loading live status…</p>
+                </div>
+                <button class="btn" onclick="loadDashboard()">Refresh</button>
+            </div>
+
+            <div class="kpis" id="kpis"></div>
+            <div class="grid" id="widgets"></div>
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </main>
+    </div>
+
+    <!-- Job order detail -->
+    <div class="modal-overlay" id="jo-modal" onclick="if(event.target.id==='jo-modal') closeJo()">
+        <div class="modal card">
+            <h3 class="modal__title" id="jo-title"></h3>
+            <p class="modal__sub" id="jo-sub"></p>
+            <table class="table">
+                <thead><tr><th>Process</th><th>Qty</th><th>Machine</th></tr></thead>
+                <tbody id="jo-rows"></tbody>
+            </table>
+            <button class="btn btn--secondary" style="margin-top:var(--space-4)" onclick="closeJo()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const userId = sessionStorage.getItem('userId');
+        if (sessionStorage.getItem('isLoggedIn') !== 'true' || !userId) {
+            window.location.href = '/FamaxMES/login.html';
+        }
+        document.getElementById('whoami').textContent = userId || '';
+
+        function logout() { sessionStorage.clear(); window.location.href = '/FamaxMES/login.html'; }
+
+        const H = { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}` };
+        const api = p => fetch(window.APP_CONFIG.url + p, { headers: H }).then(r => r.json());
+        const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+        const soOf = jo => String(jo || '').split('/').slice(0, 3).join('/');
+        const LOW_STOCK = 5;
+
+        // ---- Sidebar nav (role-gated) ----
+        const ICONS = {
+            sales: '<path d="M3 3h18v4H3zM5 7v14h14V7M9 11h6"/>', tooling: '<path d="M14 7l3 3-8 8-3 1 1-3 8-8zM3 21h6"/>',
+            scm: '<path d="M9 11l3 3 8-8M20 12v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9"/>', rmr: '<path d="M3 3h13l1 5H4zM4 8v11h14V8M9 13h4"/>',
+            board: '<path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>', fg: '<path d="M20 7l-8-4-8 4 8 4 8-4zM4 7v10l8 4 8-4V7"/>'
+        };
+        const NAV = [
+            { label: 'Order', items: [{ key: 'sales', title: 'Sales Order', href: '/screen_page/production_planning/sales_order_entry.html', roles: ['BUSINESSDEV'] }] },
+            { label: 'Validation (SCM)', items: [
+                { key: 'scm', title: 'SCM Validation', href: '/FamaxMES/scm_validation.html', roles: ['RESOURCE', 'SCM'] },
+                { key: 'rmr', title: 'Raw Material Request', href: '/FamaxMES/raw_material_request.html', roles: ['RESOURCE', 'SCM'] },
+                { key: 'tooling', title: 'Tooling Entry', href: '/FamaxMES/tooling_entry.html', roles: ['RESOURCE', 'SCM'] }] },
+            { label: 'Production', items: [
+                { key: 'board', title: 'Production Planning', href: '/FamaxMES/production_board.html', roles: ['PRODUCTION'] },
+                { key: 'fg', title: 'Finished-Good Check', href: '/FamaxMES/fg_check.html', roles: ['QUALITY', 'PRODUCTION'] }] },
+        ];
+        const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg>`;
+
+        function renderNav(access) {
+            const open = access === 'ALL' || access === 'MANAGEMENT';
+            const nav = document.getElementById('nav'); nav.innerHTML = '';
+            NAV.forEach(sec => {
+                const l = document.createElement('div'); l.className = 'sidebar__group-label'; l.textContent = sec.label; nav.appendChild(l);
+                sec.items.forEach(it => {
+                    const ok = open || it.roles.includes(access);
+                    const a = document.createElement('a');
+                    a.className = 'sidebar__link' + (ok ? '' : ' is-locked');
+                    a.href = ok ? it.href : 'javascript:void(0)';
+                    a.innerHTML = svg(it.key) + `<span>${it.title}</span>`;
+                    nav.appendChild(a);
+                });
+            });
+        }
+
+        // ---- Widgets ----
+        // Group per-process JobOrder rows into one entry per JO_Number.
+        let joGroups = {};   // JO_Number -> { JO_Number, Part_Name, processes: [{Process, Quantity, machine_id}] }
+        function groupJobs(list) {
+            const g = {};
+            (list || []).forEach(j => {
+                const k = j.JO_Number || '(none)';
+                if (!g[k]) g[k] = { JO_Number: k, Part_Name: j.Part_Name, processes: [] };
+                g[k].processes.push({ Process: j.Process, Quantity: j.Quantity, machine_id: j.machine_id });
+            });
+            return g;
+        }
+
+        function openJo(no) {
+            const g = joGroups[no]; if (!g) return;
+            document.getElementById('jo-title').textContent = g.JO_Number;
+            document.getElementById('jo-sub').textContent = g.Part_Name || '';
+            document.getElementById('jo-rows').innerHTML = g.processes.map(p =>
+                `<tr><td>${esc(p.Process)}</td><td class="num">${esc(p.Quantity)}</td><td>${p.machine_id ? esc(p.machine_id) : '<span class="badge">unassigned</span>'}</td></tr>`).join('');
+            document.getElementById('jo-modal').classList.add('show');
+        }
+        function closeJo() { document.getElementById('jo-modal').classList.remove('show'); }
+
+        function widget(title, count, countClass, rows, footText, footHref) {
+            const body = rows.length
+                ? rows.map(r => `<div class="wrow ${r.jo ? 'wrow--click' : ''}" ${r.jo ? `data-jo="${esc(r.jo)}"` : ''}><div class="wrow__main"><div class="wrow__t">${esc(r.t)}</div><div class="wrow__s">${esc(r.s)}</div></div><div class="wrow__r">${r.r || ''}</div></div>`).join('')
+                : '<div class="w-empty">Nothing to show 👍</div>';
+            return `<div class="widget">
+                <div class="widget__head"><span class="widget__title">${title}</span><span class="badge ${countClass}">${count}</span></div>
+                <div class="widget__body">${body}</div>
+                <a class="widget__foot" href="${footHref}">${footText} →</a>
+            </div>`;
+        }
+
+        async function loadDashboard() {
+            document.getElementById('sub').textContent = 'Loading live status…';
+            const today = new Date().toISOString().slice(0, 10);
+            const [jobs, orders, tooling, stock, items] = await Promise.all([
+                api('/rest/v1/JobOrder?Status=eq.active&select=JO_Number,Part_Name,Process,Quantity,machine_id&order=created_at.desc'),
+                api('/rest/v1/SalesOrders?select=so_number,etd,status,customer_name'),
+                api('/rest/v1/Tooling?status=neq.AVAILABLE&select=part_number,part_name,tooling_name,status'),
+                api(`/rest/v1/RawMaterialStock?qty_pcs=lte.${LOW_STOCK}&select=material_type,grade,size_dimensions,qty_pcs,area&order=qty_pcs.asc`),
+                api('/rest/v1/SalesOrder_Items?produce_qty=gt.0&select=part_number,produce_qty,so_id')
+            ]);
+
+            const etdBySo = {}; (orders || []).forEach(o => { etdBySo[o.so_number] = o; });
+
+            // Group per-process rows into one entry per job order.
+            joGroups = groupJobs(jobs);
+            const jobList = Object.values(joGroups);
+
+            // Active job orders — one row per JO_Number, click to see processes
+            const jobRows = jobList.slice(0, 6).map(g => {
+                const assigned = g.processes.filter(p => p.machine_id).length;
+                return { t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
+                    r: `<span class="badge ${assigned === g.processes.length ? 'badge--success' : 'badge--primary'}">${assigned}/${g.processes.length} on machine</span>` };
+            });
+
+            // Behind schedule: JO whose owning SO etd is before today (one row per JO)
+            const behindList = jobList.filter(g => { const o = etdBySo[soOf(g.JO_Number)]; return o && o.etd && o.etd < today; });
+            const behindRows = behindList.slice(0, 6).map(g => { const o = etdBySo[soOf(g.JO_Number)]; return {
+                t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
+                r: `<span class="num" style="color:var(--danger);font-weight:700">ETD ${esc(o.etd)}</span>` }; });
+
+            // Tooling needing attention
+            const toolRows = (tooling || []).slice(0, 6).map(t => ({
+                t: t.tooling_name || t.part_name || t.part_number, s: t.part_number || '',
+                r: `<span class="badge ${t.status === 'MISSING' ? 'badge--danger' : 'badge--warning'}">${esc(t.status)}</span>` }));
+
+            // Low raw material
+            const stockRows = (stock || []).slice(0, 6).map(s => ({
+                t: [s.grade, s.size_dimensions].filter(Boolean).join(' ') || s.material_type, s: s.area || '',
+                r: `<span class="num" style="color:var(--danger);font-weight:700">${s.qty_pcs} pcs</span>` }));
+
+            // Finished goods to produce (produce_qty>0 already computed at order entry)
+            const fgRows = (items || []).slice(0, 6).map(i => ({
+                t: i.part_number, s: (etdBySo_byId[i.so_id]?.so_number) || '', r: `<span class="num">${i.produce_qty} to make</span>` }));
+
+            document.getElementById('kpis').innerHTML = [
+                `<div class="kpi"><div class="kpi__num">${jobList.length}</div><div class="kpi__label">Active job orders</div></div>`,
+                `<div class="kpi"><div class="kpi__num ${behindList.length ? 'bad' : ''}">${behindList.length}</div><div class="kpi__label">Behind schedule</div></div>`,
+                `<div class="kpi"><div class="kpi__num ${(tooling || []).length ? 'warn' : ''}">${(tooling || []).length}</div><div class="kpi__label">Tooling to check</div></div>`,
+                `<div class="kpi"><div class="kpi__num ${(stock || []).length ? 'bad' : ''}">${(stock || []).length}</div><div class="kpi__label">Low raw material</div></div>`,
+                `<div class="kpi"><div class="kpi__num">${(items || []).length}</div><div class="kpi__label">FG lines to produce</div></div>`
+            ].join('');
+
+            document.getElementById('widgets').innerHTML = [
+                widget('Current Job Orders', jobList.length, 'badge--primary', jobRows, 'Open production board', '/FamaxMES/production_board.html'),
+                widget('Behind Schedule', behindList.length, behindList.length ? 'badge--danger' : '', behindRows, 'Open production board', '/FamaxMES/production_board.html'),
+                widget('Tooling Needs Attention', (tooling || []).length, (tooling || []).length ? 'badge--warning' : '', toolRows, 'Manage tooling', '/FamaxMES/tooling_entry.html'),
+                widget('Low Raw Material', (stock || []).length, (stock || []).length ? 'badge--danger' : '', stockRows, 'Raw material requests', '/FamaxMES/raw_material_request.html'),
+                widget('Finished Goods to Produce', (items || []).length, 'badge--primary', fgRows, 'Finished-good check', '/FamaxMES/fg_check.html')
+            ].join('');
+
+            document.getElementById('sub').textContent = `Live as of ${new Date().toLocaleString('en-GB')}`;
+        }
+
+        // map so_id -> order (for FG widget); filled during loadDashboard via a second lookup
+        let etdBySo_byId = {};
+
+        (async function () {
+            // role for nav gating
+            let access = '';
+            try {
+                const rows = await api(`/rest/v1/AdminCredential?UserId=eq.${encodeURIComponent(userId)}&select=Access`);
+                access = (rows[0] && rows[0].Access ? String(rows[0].Access) : '').toUpperCase();
+            } catch (e) { console.error(e); }
+            renderNav(access);
+
+            // so_id -> so_number map for the FG widget
+            try {
+                const os = await api('/rest/v1/SalesOrders?select=id,so_number');
+                os.forEach(o => { etdBySo_byId[o.id] = o; });
+            } catch (e) { console.error(e); }
+
+            document.getElementById('widgets').addEventListener('click', e => {
+                const row = e.target.closest('.wrow--click');
+                if (row && row.dataset.jo) openJo(row.dataset.jo);
+            });
+
+            loadDashboard().catch(e => { console.error(e); document.getElementById('sub').textContent = 'Failed to load. Check connection.'; });
+        })();
+    </script>
+</body>
+
+</html>

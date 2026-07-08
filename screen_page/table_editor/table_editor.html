@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IPQC Management - Famax</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -14,227 +14,125 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
 
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* Page-specific tokens not in the design system */
         :root {
-            --primary: #0078d4;
-            --primary-soft: rgba(0, 120, 212, 0.1);
-            --success: #10b981;
-            --danger: #ef4444;
-            --bg: #f8fafc;
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-dark: var(--text-main);
             --special-bg: #fffbeb;
         }
 
-        body {
-            font-family: "Inter", sans-serif;
-            background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
-                radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
-                radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
-            background-color: var(--bg);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 30px;
-            min-height: 100vh;
-        }
+        body { padding: 0; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1400px; }
 
-        /* Glass Cards Styling */
+        /* Part Cards (main accordions) — reuse .panel surface, keep .glass-card hook */
         .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
-        }
-
-        .header-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .header-nav h2 {
-            margin: 0;
-            font-weight: 800;
-            font-size: 28px;
-            letter-spacing: -0.5px;
-        }
-
-        /* Date Filter Styling */
-        .filter-group {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            padding: 10px 20px;
-            border-radius: 16px;
-            border: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        #date-filter {
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            background: #fff;
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-weight: 700;
-            color: var(--primary);
-            outline: none;
-            cursor: pointer;
-            transition: 0.3s;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
         }
 
-        #date-filter:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--primary-soft);
-        }
-
-        /* Part Cards (Main Accordions) */
         .part-card {
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
             overflow: hidden;
-            border-radius: 20px;
         }
 
         .part-header {
             background: #1e293b;
-            color: white;
-            padding: 18px 25px;
+            color: #fff;
+            padding: var(--space-5) var(--space-6);
             font-weight: 800;
             text-transform: uppercase;
-            font-size: 14px;
+            font-size: var(--fs-base);
+            letter-spacing: 0.02em;
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: var(--space-5);
             cursor: pointer;
-            transition: 0.3s;
+            transition: background var(--transition);
         }
 
-        .part-header:hover {
-            background: #000;
-        }
+        .part-header:hover { background: #0f172a; }
 
         .part-content {
             display: none;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.4);
+            padding: var(--space-5);
+            background: var(--surface-muted);
         }
 
-        /* Session Groups */
+        /* Session groups */
         .session-group {
-            background: #fff;
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            margin-bottom: 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: var(--space-4);
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            box-shadow: var(--shadow-sm);
         }
 
         .session-header {
-            background: #f8fafc;
-            padding: 14px 20px;
+            background: var(--surface-muted);
+            padding: var(--space-4) var(--space-5);
             display: flex;
-            gap: 15px;
+            gap: var(--space-4);
             align-items: center;
             cursor: pointer;
             font-weight: 700;
-            font-size: 13px;
+            font-size: var(--fs-sm);
             border-bottom: 1px solid var(--border);
-            transition: 0.2s;
+            transition: background var(--transition);
         }
 
-        .session-header:hover {
-            background: #f1f5f9;
-        }
+        .session-header:hover { background: var(--border); }
 
         .session-content {
             display: none;
-            padding: 25px;
+            padding: var(--space-6);
         }
 
-        /* Metadata Grid */
+        /* Metadata grid */
         .session-meta-grid {
             display: grid;
             grid-template-columns: 200px 200px 1fr;
-            gap: 30px;
-            margin-bottom: 25px;
-            padding-bottom: 25px;
-            border-bottom: 1px solid var(--bg);
+            gap: var(--space-8);
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-6);
+            border-bottom: 1px solid var(--border);
             align-items: end;
         }
 
         .meta-item label {
-            font-size: 10px;
+            font-size: var(--fs-xs);
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            letter-spacing: 0.04em;
+            margin-bottom: var(--space-2);
             display: block;
         }
 
         .meta-item span {
-            font-size: 15px;
+            font-size: var(--fs-md);
             font-weight: 700;
-            color: var(--text-dark);
+            color: var(--text-main);
         }
 
-        input[type="text"] {
-            height: 42px;
-            padding: 0 15px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            font-size: 13px;
+        .meta-item input[type="text"] {
             font-weight: 600;
-            transition: 0.3s;
         }
 
-        input[type="text"]:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--primary-soft);
-        }
-
-        /* Table Styling */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th {
-            text-align: left;
-            padding: 12px;
-            color: var(--text-muted);
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #f1f5f9;
-        }
-
-        td {
-            padding: 14px 12px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
+        /* Reading inputs (data grid cells) — keep .reading-input hook */
         .reading-input {
             width: 100% !important;
             max-width: 120px;
-            background: #fff;
+            background: var(--bg-card);
             font-weight: 700;
-            border: 1px solid var(--border);
-            color: var(--text-dark);
-            height: 36px !important;
+            border: 1px solid var(--border-strong);
+            color: var(--text-main);
+            padding: 8px 10px;
         }
 
         .reading-input:focus {
@@ -242,7 +140,7 @@
             border-color: var(--primary);
         }
 
-        /* Special States */
+        /* Special states — JS toggles these classes at runtime */
         .row-special-accepted {
             background-color: var(--special-bg) !important;
         }
@@ -257,8 +155,8 @@
         .chevron::before {
             content: '→';
             display: inline-block;
-            margin-right: 12px;
-            transition: 0.3s;
+            margin-right: var(--space-3);
+            transition: transform var(--transition);
             font-weight: bold;
         }
 
@@ -266,30 +164,17 @@
             transform: rotate(90deg);
         }
 
-        /* Loader */
+        /* Loader overlay — JS toggles display on #overlay */
         #overlay {
             position: fixed;
             inset: 0;
             background: rgba(255, 255, 255, 0.7);
+            -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
+            z-index: var(--z-overlay);
         }
     </style>
 </head>
@@ -564,6 +449,7 @@
             else Toastify({ text: "Reading Saved", background: "var(--success)" }).showToast();
         }
     </script>
+<div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

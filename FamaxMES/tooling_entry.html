@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tooling Entry | Famax MES</title>
+    <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+        .form-group { position: relative; display: flex; flex-direction: column; gap: var(--space-2); }
+        .dropdown-results {
+            position: absolute; top: 100%; width: 100%; margin-top: 4px; z-index: 50;
+            max-height: 250px; overflow-y: auto; background: var(--bg-card);
+            border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+        }
+        .result-item { display: flex; flex-direction: column; padding: 0.6rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--surface-muted); }
+        .result-item:hover { background: var(--primary-soft); }
+        .result-item strong { color: var(--primary); }
+        .result-item span { font-size: var(--fs-sm); color: var(--text-muted); }
+        .msg { margin-top: var(--space-3); font-weight: 600; }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">Tooling Entry</div>
+        <a href="/FamaxMES" class="btn btn--secondary">← MES</a>
+    </header>
+
+    <div id="app" class="container">
+        <div class="page-head">
+            <h1 class="page-head__title">Tooling</h1>
+            <p class="page-head__subtitle">Record tooling per part so SCM can verify readiness before production.</p>
+        </div>
+
+        <div class="card" style="margin-bottom: var(--space-8)">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="label">Part</label>
+                    <input class="input" v-model="form.part_input" @input="onPartInput" @focus="showParts = true"
+                        placeholder="Search part name or number…">
+                    <div v-if="showParts && filteredParts.length" class="dropdown-results">
+                        <div v-for="p in filteredParts" :key="p.Part_Number" class="result-item" @click="selectPart(p)">
+                            <strong>{{ p.Part_Name }}</strong><span>PN: {{ p.Part_Number }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group"><label class="label">Tooling Name</label>
+                    <input class="input" v-model="form.tooling_name" placeholder="e.g. Fixture A"></div>
+                <div class="form-group"><label class="label">Tooling Type</label>
+                    <input class="input" v-model="form.tooling_type" placeholder="e.g. Jig / Mold / Cutter"></div>
+                <div class="form-group"><label class="label">Cavity</label>
+                    <input class="input" type="number" min="0" v-model.number="form.cavity" placeholder="0"></div>
+                <div class="form-group"><label class="label">Location</label>
+                    <input class="input" v-model="form.location" placeholder="e.g. Rack T-2"></div>
+                <div class="form-group"><label class="label">Revision</label>
+                    <input class="input" v-model="form.revision" placeholder="e.g. 0 / A"></div>
+                <div class="form-group"><label class="label">Status</label>
+                    <select class="select" v-model="form.status">
+                        <option>AVAILABLE</option><option>IN_USE</option><option>MISSING</option>
+                    </select></div>
+                <div class="form-group" style="grid-column: 1 / -1"><label class="label">Remarks</label>
+                    <input class="input" v-model="form.remarks" placeholder="Optional"></div>
+            </div>
+            <button class="btn" style="margin-top: var(--space-5)" @click="save" :disabled="saving || !isValid">
+                {{ saving ? 'Saving…' : (editingId ? 'Update Tooling' : 'Save Tooling') }}
+            </button>
+            <button v-if="editingId" class="btn btn--secondary" style="margin-top: var(--space-5); margin-left: var(--space-2)" @click="resetForm">Cancel</button>
+            <div v-if="msg" class="msg" :style="{color: msgOk ? 'var(--success)' : 'var(--danger)'}">{{ msg }}</div>
+        </div>
+
+        <div class="panel">
+            <div class="panel__head">
+                <h2 class="panel__title">Recorded Tooling</h2>
+                <input class="input" style="max-width:280px" v-model="search" placeholder="Search part / tooling…">
+            </div>
+            <table class="table">
+                <thead><tr><th>Part</th><th>Tooling</th><th>Type</th><th>Cavity</th><th>Location</th><th>Rev</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    <tr v-for="t in filteredTooling" :key="t.id">
+                        <td>{{ t.part_name || t.part_number }}</td>
+                        <td>{{ t.tooling_name }}</td>
+                        <td>{{ t.tooling_type }}</td>
+                        <td>{{ t.cavity }}</td>
+                        <td>{{ t.location }}</td>
+                        <td>{{ t.revision }}</td>
+                        <td><span class="badge" :class="badgeClass(t.status)">{{ t.status }}</span></td>
+                        <td><button class="btn btn--secondary" @click="edit(t)">Edit</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div v-if="!filteredTooling.length" class="empty-state">No tooling recorded yet.</div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/FamaxMES/login.html';
+
+        const { createApp, ref, computed, onMounted } = Vue;
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: window.APP_CONFIG.url,
+                    headers: { apikey: window.APP_CONFIG.key, Authorization: `Bearer ${window.APP_CONFIG.key}`, "Content-Type": "application/json" }
+                });
+
+                const parts = ref([]);
+                const tooling = ref([]);
+                const showParts = ref(false);
+                const saving = ref(false);
+                const msg = ref(''); const msgOk = ref(false);
+                const search = ref('');
+                const editingId = ref(null);
+
+                const blank = () => ({ part_input: '', part_number: '', part_name: '', tooling_name: '', tooling_type: '', cavity: null, location: '', revision: '', status: 'AVAILABLE', remarks: '' });
+                const form = ref(blank());
+
+                const norm = v => (v || '').toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+                onMounted(async () => {
+                    const [p, t] = await Promise.all([
+                        api.get('/rest/v1/Parts?select=Part_Name,Part_Number'),
+                        api.get('/rest/v1/Tooling?select=*&order=created_at.desc')
+                    ]);
+                    parts.value = p.data; tooling.value = t.data;
+                    window.addEventListener('click', e => { if (!e.target.closest('.form-group')) showParts.value = false; });
+                });
+
+                const filteredParts = computed(() => {
+                    const q = norm(form.value.part_input);
+                    if (!q) return parts.value.slice(0, 10);
+                    return parts.value.filter(p => norm(p.Part_Name).includes(q) || norm(p.Part_Number).includes(q)).slice(0, 10);
+                });
+                function onPartInput() { form.value.part_input = form.value.part_input.toUpperCase(); showParts.value = true; form.value.part_number = ''; }
+                function selectPart(p) { form.value.part_number = p.Part_Number; form.value.part_name = p.Part_Name; form.value.part_input = `${p.Part_Name} (${p.Part_Number})`; showParts.value = false; }
+
+                const filteredTooling = computed(() => {
+                    const q = norm(search.value);
+                    if (!q) return tooling.value;
+                    return tooling.value.filter(t => norm(t.part_name).includes(q) || norm(t.part_number).includes(q) || norm(t.tooling_name).includes(q));
+                });
+                function badgeClass(s) { return s === 'AVAILABLE' ? 'badge--success' : s === 'MISSING' ? 'badge--danger' : 'badge--warning'; }
+
+                const isValid = computed(() => form.value.part_number && form.value.tooling_name.trim());
+
+                function resetForm() { form.value = blank(); editingId.value = null; }
+                function edit(t) {
+                    editingId.value = t.id;
+                    form.value = { part_input: `${t.part_name || ''} (${t.part_number || ''})`, part_number: t.part_number, part_name: t.part_name,
+                        tooling_name: t.tooling_name, tooling_type: t.tooling_type, cavity: t.cavity, location: t.location, revision: t.revision, status: t.status, remarks: t.remarks };
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                async function save() {
+                    saving.value = true; msg.value = '';
+                    const payload = {
+                        part_number: form.value.part_number, part_name: form.value.part_name,
+                        tooling_name: form.value.tooling_name.trim(), tooling_type: form.value.tooling_type,
+                        cavity: form.value.cavity, location: form.value.location, revision: form.value.revision,
+                        status: form.value.status, remarks: form.value.remarks,
+                        created_by: sessionStorage.getItem('userId')
+                    };
+                    try {
+                        if (editingId.value) await api.patch(`/rest/v1/Tooling?id=eq.${editingId.value}`, payload);
+                        else await api.post('/rest/v1/Tooling', payload);
+                        const t = await api.get('/rest/v1/Tooling?select=*&order=created_at.desc');
+                        tooling.value = t.data;
+                        msgOk.value = true; msg.value = 'Saved.'; resetForm();
+                        setTimeout(() => msg.value = '', 3000);
+                    } catch (e) {
+                        msgOk.value = false; msg.value = 'Save failed: ' + (e.response?.data?.message || e.message);
+                    } finally { saving.value = false; }
+                }
+
+                return { form, parts, tooling, showParts, saving, msg, msgOk, search, editingId,
+                    filteredParts, filteredTooling, onPartInput, selectPart, badgeClass, isValid, resetForm, edit, save };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

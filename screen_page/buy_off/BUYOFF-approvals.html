@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buy-Off Approvals</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body { display: flex; flex-direction: column; min-height: 100vh; }
+
+        header {
+            position: sticky; top: 0; z-index: var(--z-header);
+            display: flex; align-items: center; justify-content: space-between;
+            height: 64px; padding: 0 var(--space-6);
+            background: var(--bg-card); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm);
+        }
+        .header-title { font-weight: 700; font-size: var(--fs-md); color: var(--text-main); }
+
+        .wrap { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+        .toolbar h2 { margin: 0; font-size: var(--fs-lg); }
+
+        .seg-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 700; }
+        .seg-tech { background: #fef3c7; color: #b45309; }
+        .seg-qc { background: var(--primary-soft); color: var(--primary); }
+
+        .empty { padding: var(--space-10); text-align: center; color: var(--text-faint); }
+
+        /* modal (theme provides .modal-overlay/.modal base; keep hidden default) */
+        .modal-overlay { display: none; }
+        .modal-overlay.show { display: flex; }
+        .modal { max-width: 720px; text-align: left; max-height: 90vh; overflow-y: auto; }
+        .modal h3 { margin: 0 0 var(--space-2); }
+        .spec-mini { font-size: var(--fs-xs); color: var(--text-muted); }
+        .ng-cell { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+        .approve-form { margin-top: var(--space-5); padding-top: var(--space-5); border-top: 1px solid var(--border); display: grid; gap: var(--space-3); }
+        .approve-form label { font-size: var(--fs-sm); font-weight: 600; color: var(--text-muted); }
+        .msg { min-height: 1.1rem; font-size: var(--fs-sm); font-weight: 700; }
+        .row-actions { display: flex; gap: var(--space-2); }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-title">Buy-Off Pending Approvals</div>
+        <a href="../../quality-hub.html" class="btn btn--secondary">← Hub</a>
+    </header>
+
+    <div class="wrap">
+        <div class="toolbar">
+            <h2>Awaiting sign-off</h2>
+            <button id="refresh-btn" class="btn">Refresh</button>
+        </div>
+        <div class="panel">
+            <table class="table" id="tbl">
+                <thead>
+                    <tr><th>Segment</th><th>Part</th><th>JO / Machine</th><th>Process</th><th>Done by</th><th>Submitted</th><th></th></tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <div id="empty" class="empty hidden">No buy-offs awaiting approval. 🎉</div>
+        </div>
+    </div>
+
+    <!-- Review + approve modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3 id="m-title">Review Buy-Off</h3>
+            <div id="m-meta" class="spec-mini"></div>
+            <table class="table" style="margin-top: var(--space-4)">
+                <thead>
+                    <tr><th>Point</th><th>Instrument</th><th>Spec</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr>
+                </thead>
+                <tbody id="m-readings"></tbody>
+            </table>
+
+            <div class="approve-form">
+                <div>
+                    <label for="m-approver">Approver</label>
+                    <select id="m-approver" class="input"><option value="">Select approver...</option></select>
+                </div>
+                <div>
+                    <label for="m-pin">PIN</label>
+                    <input type="password" id="m-pin" class="input" inputmode="numeric" autocomplete="off" placeholder="Enter PIN" />
+                </div>
+                <div>
+                    <label for="m-remark">Remark (optional / required to reject)</label>
+                    <input type="text" id="m-remark" class="input" placeholder="Reason / note" />
+                </div>
+                <div id="m-msg" class="msg"></div>
+                <div class="row-actions">
+                    <button id="m-approve" class="btn">Approve</button>
+                    <button id="m-reject" class="btn btn--danger">Reject</button>
+                    <button id="m-close" class="btn btn--secondary">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+
+    <script>
+        const supabaseClient = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+
+        let current = null;        // the approval row under review
+        let approverMap = {};      // { NAME_UPPER: { pin, position } }
+
+        function isNg(val, min, max) {
+            if (val === null || val === undefined || val === "") return false;
+            if (String(min).toLowerCase() === 'ok') return !['OK', 'GO'].includes(String(val).toUpperCase());
+            if (String(max).toLowerCase() === 'ng') return ['NG', 'NOGO'].includes(String(val).toUpperCase());
+            const v = parseFloat(val), l = parseFloat(min), u = parseFloat(max);
+            return isNaN(v) || v < l || v > u;
+        }
+
+        async function loadPending() {
+            const tbody = document.getElementById('tbody');
+            const empty = document.getElementById('empty');
+            tbody.innerHTML = '<tr><td colspan="7" class="spec-mini">Loading…</td></tr>';
+            const { data, error } = await supabaseClient
+                .from('buyoff_approvals')
+                .select('*')
+                .eq('status', 'PENDING')
+                .order('created_at', { ascending: true });
+            if (error) { tbody.innerHTML = `<tr><td colspan="7" style="color:var(--danger)">${error.message}</td></tr>`; return; }
+
+            tbody.innerHTML = '';
+            empty.classList.toggle('hidden', (data || []).length > 0);
+            (data || []).forEach(r => {
+                const seg = r.segment === 'QC' ? 'qc' : 'tech';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="seg-badge seg-${seg}">${r.segment === 'QC' ? 'QC / IPQC' : 'Technician'}</span></td>
+                    <td>${r.part_name || '-'}</td>
+                    <td>${(r.jo_number || '-') + ' / ' + (r.machine || '-')}</td>
+                    <td>${r.process || '-'}</td>
+                    <td>${r.person || '-'}</td>
+                    <td class="spec-mini">${r.created_at ? new Date(r.created_at).toLocaleString('en-GB') : '-'}</td>
+                    <td><button class="btn">Review</button></td>`;
+                tr.querySelector('button').onclick = () => openReview(r);
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function openReview(row) {
+            current = row;
+            document.getElementById('m-title').textContent =
+                (row.segment === 'QC' ? 'QC / IPQC segment — HOD of QA approval' : 'Technician segment — Supervisor approval');
+            document.getElementById('m-meta').textContent =
+                `${row.part_name} · JO ${row.jo_number} · MC ${row.machine} · ${row.process} · by ${row.person}`;
+            document.getElementById('m-msg').textContent = '';
+            document.getElementById('m-pin').value = '';
+            document.getElementById('m-remark').value = '';
+
+            // readings
+            const rd = document.getElementById('m-readings');
+            rd.innerHTML = '<tr><td colspan="8" class="spec-mini">Loading readings…</td></tr>';
+            const { data: pts } = await supabaseClient
+                .from('Data_BUYOFF').select('*').eq('Attempt_Group', row.attempt_group).order('Point_DWG_Zone', { ascending: true });
+            rd.innerHTML = '';
+            (pts || []).forEach(z => {
+                const cells = [z.Reading_1, z.Reading_2, z.Reading_3, z.Reading_4, z.Reading_5]
+                    .map(v => `<td class="${isNg(v, z.LSL_OK, z.USL_NG) ? 'ng-cell' : ''}">${v ?? '-'}</td>`).join('');
+                rd.insertAdjacentHTML('beforeend',
+                    `<tr><td>${z.Point_DWG_Zone}</td><td>${z.Measuring_Instrument || '-'}</td><td class="spec-mini">${z.LSL_OK} ~ ${z.USL_NG}</td>${cells}</tr>`);
+            });
+
+            // approvers = anyone with a PIN set in EmployeeTable
+            const select = document.getElementById('m-approver');
+            select.innerHTML = '<option value="">Select approver...</option>';
+            approverMap = {};
+            const { data: emps } = await supabaseClient
+                .from('EmployeeTable').select('name, position, pin')
+                .not('pin', 'is', null).order('name', { ascending: true });
+            (emps || []).forEach(e => {
+                const nm = (e.name || e.Name || '').trim();
+                const pin = String(e.pin || e.PIN || '').trim();
+                if (!nm || !pin) return;
+                const position = e.position || e.Position || '';
+                approverMap[nm.toUpperCase()] = { pin, position };
+                const opt = document.createElement('option');
+                opt.value = nm; opt.textContent = nm + (position ? ` (${position})` : '');
+                select.appendChild(opt);
+            });
+
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.remove('show'); current = null; }
+
+        async function decide(newStatus) {
+            const msg = document.getElementById('m-msg');
+            msg.style.color = 'var(--danger)';
+            const name = document.getElementById('m-approver').value.trim();
+            const pin = document.getElementById('m-pin').value.trim();
+            const remark = document.getElementById('m-remark').value.trim();
+            if (!name) { msg.textContent = 'Select an approver.'; return; }
+            const rec = approverMap[name.toUpperCase()];
+            if (!rec || !rec.pin) { msg.textContent = 'No PIN set for this approver — contact HR.'; return; }
+            if (pin !== rec.pin) { msg.textContent = 'Incorrect PIN.'; return; }
+            if (newStatus === 'REJECTED' && !remark) { msg.textContent = 'A remark is required to reject.'; return; }
+
+            const { error } = await supabaseClient.from('buyoff_approvals').update({
+                status: newStatus,
+                approver_name: name,
+                approver_position: rec.position || null,
+                approved_at: new Date().toISOString(),
+                remarks: remark || null
+            }).eq('attempt_group', current.attempt_group).eq('segment', current.segment);
+
+            if (error) { msg.textContent = 'Save failed: ' + error.message; return; }
+            closeModal();
+            loadPending();
+        }
+
+        document.getElementById('m-approve').onclick = () => decide('APPROVED');
+        document.getElementById('m-reject').onclick = () => decide('REJECTED');
+        document.getElementById('m-close').onclick = closeModal;
+        document.getElementById('refresh-btn').onclick = loadPending;
+        document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+        loadPending();
+    </script>
+</body>
+
+</html>

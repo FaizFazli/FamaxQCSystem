@@ -17,58 +17,45 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
         rel="stylesheet" />
 
-    <style>
-        :root {
-            --primary-color: #1976d2;
-            --primary-dark: #1565c0;
-            --text-muted: #6b7280;
-            --bg-body: #f4f6f8;
-            --bg-card: #ffffff;
-            --text-main: #1a202c;
-            --text-secondary: #718096;
-            --border-color: #e2e8f0;
-            --success: #48bb78;
-            --error: #f56565;
-            --error-bg: #fff5f5;
-            --radius: 12px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+    <style>
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* Legacy token aliases still referenced by page-specific rules */
+        :root {
+            --primary-color: var(--primary);
+            --border-color: var(--border);
+            --text-secondary: var(--text-muted);
+            --error: var(--danger);
         }
 
         body {
-            font-family: "Inter", sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
         header {
-            background-color: var(--bg-card);
-            height: 64px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            box-shadow: var(--shadow-sm);
             position: sticky;
             top: 0;
-            z-index: 100;
-            border-bottom: 1px solid var(--border-color);
+            z-index: var(--z-header);
+            display: flex;
+            align-items: center;
+            height: 64px;
+            padding: 0 var(--space-8);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         .header-title {
             font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--primary-color);
+            font-size: var(--fs-md);
+            letter-spacing: -0.2px;
+            color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .header-title::before {
@@ -76,150 +63,171 @@
             display: block;
             width: 4px;
             height: 24px;
-            background: var(--primary-color);
+            background: var(--primary);
             border-radius: 2px;
         }
 
         .container {
             flex: 1;
-            padding: 1.5rem 2rem;
+            padding: var(--space-6) var(--space-8);
             max-width: 1200px;
             width: 100%;
             margin: 0 auto;
         }
 
         .section-title {
-            font-size: 1.5rem;
+            font-size: var(--fs-xl);
             font-weight: 700;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border-color);
+            letter-spacing: -0.4px;
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-2);
+            border-bottom: 2px solid var(--border);
         }
 
         .info-card {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
             box-shadow: var(--shadow-sm);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border-color);
+            margin-bottom: var(--space-8);
+            border: 1px solid var(--border);
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1.5rem;
+            gap: var(--space-6);
         }
 
         .info-label {
-            font-size: 0.7rem;
+            font-size: var(--fs-xs);
             text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
+            color: var(--text-muted);
+            margin-bottom: var(--space-1);
             font-weight: 600;
+            letter-spacing: 0.04em;
         }
 
         .info-value {
-            font-size: 0.95rem;
+            font-size: var(--fs-base);
             font-weight: 600;
         }
 
         #summary-container {
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: var(--space-5);
         }
 
         .zone-card {
             background: var(--bg-card);
-            border-radius: var(--radius);
-            padding: 1.2rem;
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
             box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
             break-inside: avoid;
         }
 
         .zone-card h3 {
-            font-size: 1rem;
+            font-size: var(--fs-md);
             font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.8rem;
+            color: var(--text-main);
+            margin-bottom: var(--space-3);
         }
 
         .detail-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: var(--fs-sm);
         }
 
         .detail-table th,
         .detail-table td {
             padding: 10px;
             text-align: center;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
         }
 
         .detail-table th {
-            background-color: #f8fafc;
-            color: var(--text-secondary);
-            font-weight: 600;
+            background: var(--surface-muted);
+            color: var(--text-muted);
+            font-weight: 700;
             text-transform: uppercase;
-            font-size: 0.7rem;
+            font-size: var(--fs-xs);
+            letter-spacing: 0.04em;
         }
 
         .ng-cell {
-            background-color: var(--error) !important;
-            color: white !important;
+            background-color: var(--danger) !important;
+            color: #fff !important;
             font-weight: 700;
         }
 
         .remark-container {
-            margin-top: 2rem;
+            margin-top: var(--space-8);
             background: var(--bg-card);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            border: 1px solid var(--border-color);
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
         }
 
         .remark-input {
             width: 100%;
             padding: 12px;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border: 2px solid var(--border-strong);
+            border-radius: var(--radius-sm);
             min-height: 80px;
             font-family: inherit;
+            font-size: var(--fs-base);
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .remark-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         /* Static Remark Div for PDF */
         #temp-remark-text {
             white-space: pre-wrap;
-            background: #fafafa;
+            background: var(--surface-muted);
         }
 
         .btn {
-            padding: 10px 24px;
-            font-size: 0.95rem;
+            padding: 12px var(--space-6);
+            font-family: inherit;
+            font-size: var(--fs-base);
             font-weight: 700;
             border: none;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             width: auto;
             text-transform: uppercase;
-            margin-top: 1.5rem;
-            background-color: #1976d2;
-            color: white;
-            transition: background-color 0.2s;
+            margin-top: var(--space-6);
+            background: var(--primary);
+            color: var(--on-primary);
+            transition: background var(--transition), transform var(--transition);
         }
 
         .btn:hover {
-            background-color: #1565c0;
+            background: var(--primary-hover);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .button-container {
             display: flex;
             justify-content: flex-end;
-            margin-top: 2rem;
-            margin-bottom: 4rem;
+            margin-top: var(--space-8);
+            margin-bottom: var(--space-10);
         }
 
         @media print {
@@ -297,7 +305,103 @@
         <div class="button-container">
             <button id="finish-btn" class="btn btn-primary">Finish Report</button>
         </div>
+
     </div>
+
+    <!-- Segment approval modal (pops up after the report is saved) -->
+    <div id="approval-overlay" class="appr-overlay hidden">
+        <div class="appr-modal">
+            <h3 id="approval-title">Segment Approval</h3>
+            <p id="approval-sub">Ask the approver to sign off now, or finish and let them approve later from the
+                dashboard.</p>
+            <label class="approval-label" for="approver-name">Approver</label>
+            <select id="approver-name" class="approval-input">
+                <option value="">Select approver...</option>
+            </select>
+            <label class="approval-label" for="approver-pin">PIN</label>
+            <input type="password" id="approver-pin" class="approval-input" inputmode="numeric" autocomplete="off"
+                placeholder="Enter PIN" />
+            <div id="approval-msg" class="approval-msg"></div>
+            <div class="approval-actions">
+                <button id="approve-btn" class="btn btn-primary">Approve &amp; Finish</button>
+                <button id="skip-approval-btn" class="btn btn-secondary">Finish without approval</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .appr-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.55);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+
+        .appr-overlay.hidden { display: none; }
+
+        .appr-modal {
+            width: 100%;
+            max-width: 460px;
+            padding: 1.5rem;
+            border-radius: 14px;
+            background: var(--bg-card, #fff);
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+        }
+
+        .appr-modal h3 {
+            margin: 0 0 4px;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .appr-modal #approval-sub {
+            margin: 0 0 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted, #64748b);
+        }
+
+        .approval-label {
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted, #64748b);
+            margin: 0.5rem 0 4px;
+        }
+
+        .approval-input {
+            width: 100%;
+            height: 44px;
+            box-sizing: border-box;
+            padding: 0 12px;
+            border: 1px solid var(--border-strong, #cbd5e1);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .approval-msg {
+            min-height: 1.1rem;
+            margin: 8px 0;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .approval-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+    </style>
+
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
     <script>
         const store = {
@@ -425,6 +529,23 @@
                 const { error } = await supabaseClient.from('Data_BUYOFF').insert(payload);
                 if (error) throw error;
 
+                // 1b. Create the pending approval record for this segment (Supervisor or HOD-QA).
+                //     Non-fatal: if it fails the buy-off is still saved.
+                try {
+                    await supabaseClient.from('buyoff_approvals').insert([{
+                        attempt_group: store.attemptId,
+                        segment: store.tech,
+                        part_name: store.part,
+                        jo_number: store.jo,
+                        machine: store.machine,
+                        process: store.process,
+                        person: store.person,
+                        status: 'PENDING'
+                    }]);
+                } catch (apErr) {
+                    console.error('Could not create approval record:', apErr);
+                }
+
                 // 2. Alert if NG (Note: Based on Page 1 logic, this should usually be empty now)
                 if (ngList.length > 0) {
                     btn.textContent = "SENDING ALERTS...";
@@ -468,11 +589,9 @@
                     console.error("Server upload fail", serverErr);
                 }
 
-                // 6. Complete
-                btn.textContent = "DONE!";
-                alert("Success! 5 Good items saved and report generated.");
-                localStorage.clear();
-                window.location.href = "../../index.html";
+                // 6. Complete → ask for segment approval (or finish without it).
+                btn.textContent = "SAVED ✓";
+                showApprovalPanel();
 
             } catch (err) {
                 alert("Error: " + err.message);
@@ -481,6 +600,88 @@
                 if (tempDiv) tempDiv.remove();
                 btn.disabled = false;
                 btn.textContent = "FINISH REPORT";
+            }
+        };
+
+        // --- Segment approval (name + PIN) ---
+        let approverMap = {}; // { NAME_UPPER: { pin, position } }
+
+        function finishAndExit() {
+            localStorage.clear();
+            window.location.href = "../../index.html";
+        }
+
+        async function showApprovalPanel() {
+            const panel = document.getElementById('approval-overlay');
+            const title = document.getElementById('approval-title');
+            const select = document.getElementById('approver-name');
+            title.textContent = store.tech === 'QC'
+                ? 'QC Segment — HOD of QA Approval'
+                : 'Technician Segment — Supervisor Approval';
+            select.innerHTML = '<option value="">Select approver...</option>';
+
+            try {
+                // Anyone with a PIN set in EmployeeTable is an eligible approver.
+                const { data, error } = await supabaseClient
+                    .from('EmployeeTable')
+                    .select('name, position, pin')
+                    .not('pin', 'is', null)
+                    .order('name', { ascending: true });
+                if (error) throw error;
+                approverMap = {};
+                (data || []).forEach(e => {
+                    const nm = (e.name || e.Name || '').trim();
+                    const pin = String(e.pin || e.PIN || '').trim();
+                    if (!nm || !pin) return;
+                    const position = e.position || e.Position || '';
+                    approverMap[nm.toUpperCase()] = { pin, position };
+                    const opt = document.createElement('option');
+                    opt.value = nm; opt.textContent = nm + (position ? ` (${position})` : '');
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Failed to load approvers:', e);
+            }
+            panel.classList.remove('hidden');
+        }
+
+        document.getElementById('skip-approval-btn').onclick = function () {
+            alert('Report saved. Approval left as PENDING — approve it later from the Buy-Off Approvals dashboard.');
+            finishAndExit();
+        };
+
+        document.getElementById('approve-btn').onclick = async function () {
+            const msg = document.getElementById('approval-msg');
+            const name = document.getElementById('approver-name').value.trim();
+            const pin = document.getElementById('approver-pin').value.trim();
+            msg.style.color = 'var(--danger, #ef4444)';
+
+            if (!name) { msg.textContent = 'Select an approver.'; return; }
+            const rec = approverMap[name.toUpperCase()];
+            if (!rec || !rec.pin) { msg.textContent = 'No PIN set for this approver — contact HR.'; return; }
+            if (pin !== rec.pin) { msg.textContent = 'Incorrect PIN.'; return; }
+
+            const btn = this;
+            btn.disabled = true; btn.textContent = 'Approving...';
+            try {
+                const { error } = await supabaseClient
+                    .from('buyoff_approvals')
+                    .update({
+                        status: 'APPROVED',
+                        approver_name: name,
+                        approver_position: rec.position || null,
+                        approved_at: new Date().toISOString()
+                    })
+                    .eq('attempt_group', store.attemptId)
+                    .eq('segment', store.tech);
+                if (error) throw error;
+                msg.style.color = 'var(--success, #10b981)';
+                msg.textContent = 'Approved by ' + name + '.';
+                setTimeout(finishAndExit, 900);
+            } catch (e) {
+                console.error(e);
+                btn.disabled = false; btn.textContent = 'Approve & Finish';
+                msg.textContent = 'Could not save approval: ' + e.message;
             }
         };
 

@@ -20,84 +20,69 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
-        :root {
-            --primary: #0078d4;
-            --primary-soft: rgba(0, 120, 212, 0.1);
-            --bg-body: #f8fafc;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.6);
-            --danger: #ef4444;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: "Inter", sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: var(--space-10) var(--space-5);
         }
 
         .report-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
+            background: var(--bg-card);
             width: 100%;
             max-width: 550px;
-            border-radius: 24px;
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
             overflow: hidden;
         }
 
         .card-header {
             background: #1e293b;
-            padding: 25px 35px;
-            color: white;
+            padding: var(--space-6) var(--space-8);
+            color: #fff;
         }
 
         .card-header h1 {
             margin: 0;
-            font-size: 20px;
+            font-size: var(--fs-lg);
             font-weight: 800;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-3);
         }
 
         .card-body {
-            padding: 35px;
+            padding: var(--space-8);
         }
 
         fieldset {
             border: none;
-            margin-bottom: 25px;
+            margin: 0 0 var(--space-6);
+            padding: 0;
         }
 
         label {
             display: block;
-            font-size: 11px;
+            font-size: var(--fs-xs);
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
-            margin-bottom: 10px;
+            letter-spacing: 0.04em;
+            margin-bottom: var(--space-2);
         }
 
         .label-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: var(--space-2);
         }
 
         .btn-link-small {
@@ -108,46 +93,43 @@
             font-weight: 800;
             cursor: pointer;
             padding: 4px 10px;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             text-transform: uppercase;
         }
 
         input[type="date"] {
-            width: 100%;
             height: 48px;
-            padding: 0 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
             font-weight: 600;
-            outline: none;
         }
 
+        .select2-container { width: 100% !important; }
         .select2-container--default .select2-selection--single {
             height: 48px !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 12px !important;
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius-sm) !important;
             display: flex !important;
             align-items: center !important;
         }
 
         .divider {
             height: 1px;
-            background-color: rgba(0, 0, 0, 0.05);
-            margin: 25px 0;
+            background-color: var(--border);
+            margin: var(--space-6) 0;
         }
 
+        /* Primary action button — page-specific dark style */
         button#btnDownload {
             width: 100%;
             height: 54px;
             background-color: #1e293b;
-            color: white;
+            color: #fff;
             border: none;
-            border-radius: 16px;
-            font-size: 14px;
+            border-radius: var(--radius);
+            font-size: var(--fs-base);
             font-weight: 800;
             text-transform: uppercase;
             cursor: pointer;
-            transition: 0.3s;
+            transition: background var(--transition), transform var(--transition);
         }
 
         button#btnDownload:hover:not(:disabled) {
@@ -156,20 +138,21 @@
         }
 
         button#btnDownload:disabled {
-            background-color: #cbd5e1;
+            background-color: var(--border-strong);
             cursor: not-allowed;
         }
 
-        /* MODAL STYLES */
+        /* MODAL — page-specific (uses .open toggle, not theme default) */
         .modal-overlay {
             position: fixed;
             inset: 0;
             background-color: rgba(15, 23, 42, 0.5);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
+            z-index: var(--z-overlay);
         }
 
         .modal-overlay.open {
@@ -177,34 +160,34 @@
         }
 
         .modal-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
+            background: var(--bg-card);
             width: 90%;
             max-width: 420px;
-            border-radius: 24px;
+            border-radius: var(--radius-xl);
             display: flex;
             flex-direction: column;
             max-height: 80vh;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: var(--shadow-lg);
         }
 
         .modal-header {
-            padding: 25px 30px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: var(--space-6) var(--space-6);
+            border-bottom: 1px solid var(--border);
         }
 
         .active-part-item {
             display: block;
             padding: 14px 18px;
-            margin-bottom: 8px;
-            background-color: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            margin-bottom: var(--space-2);
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             width: 100%;
             text-align: left;
             font-weight: 600;
-            font-size: 13px;
+            font-size: var(--fs-sm);
             cursor: pointer;
+            transition: border-color var(--transition), background var(--transition), color var(--transition);
         }
 
         .active-part-item:hover {
@@ -215,8 +198,8 @@
 
         .status-msg {
             text-align: center;
-            margin-top: 15px;
-            font-size: 13px;
+            margin-top: var(--space-4);
+            font-size: var(--fs-sm);
             font-weight: 600;
         }
     </style>
@@ -385,17 +368,19 @@
                 const fetchStart = new Date(selectedDate.getTime() - (16 * 60 * 60 * 1000));
                 const fetchEnd = addDays(selectedDate, 1);
 
-                // Fetch from BOTH tables
-                const [resAccepted, resLogs, resMeta] = await Promise.all([
+                // Fetch from BOTH tables (+ approved sign-offs)
+                const [resAccepted, resLogs, resMeta, resApprovals] = await Promise.all([
                     api.get(`/rest/v1/Data_BUYOFF?Part_Name=eq.${partVal}&created_at=gte.${fetchStart.toISOString()}&created_at=lt.${fetchEnd.toISOString()}&order=created_at.asc`),
                     api.get(`/rest/v1/data_buyoff_logs?part_name=eq.${partVal}&created_at=gte.${fetchStart.toISOString()}&created_at=lt.${fetchEnd.toISOString()}&order=created_at.asc`),
-                    api.get(`/rest/v1/Parts?Part_Name=eq.${partVal}&select=*`)
+                    api.get(`/rest/v1/Parts?Part_Name=eq.${partVal}&select=*`),
+                    // Approved segment sign-offs (may 404/empty if the table isn't set up yet)
+                    api.get(`/rest/v1/buyoff_approvals?part_name=eq.${partVal}&status=eq.APPROVED&select=attempt_group,segment,approver_name,approved_at`).catch(() => ({ data: [] }))
                 ]);
 
                 if (resAccepted.data.length === 0 && resLogs.data.length === 0) throw new Error("No records found.");
 
                 status.textContent = "Building Excel...";
-                await buildExcel(resAccepted.data, resLogs.data, resMeta.data[0] || {}, dateVal, selectedDate);
+                await buildExcel(resAccepted.data, resLogs.data, resMeta.data[0] || {}, dateVal, selectedDate, resApprovals.data || []);
 
                 status.textContent = "Download Successful!";
                 status.style.color = "green";
@@ -405,7 +390,10 @@
             }
         });
 
-        async function buildExcel(acceptedRows, logRows, meta, dateStr, selectedDateObj) {
+        async function buildExcel(acceptedRows, logRows, meta, dateStr, selectedDateObj, approvals) {
+            // Approved sign-offs keyed by "<attempt_group>|<segment>"
+            const approvalMap = {};
+            (approvals || []).forEach(a => { approvalMap[`${a.attempt_group}|${a.segment}`] = a; });
             const resp = await fetch(TEMPLATE_URL);
             const arrayBuffer = await resp.arrayBuffer();
             const workbook = new ExcelJS.Workbook();
@@ -442,7 +430,7 @@
                     else pointsMap[pKey].tech = r;
                 });
 
-                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "ACCEPTED");
+                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "ACCEPTED", approvalMap);
                 break;
             }
 
@@ -515,7 +503,7 @@
                     });
                 }
 
-                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "UNACCEPTED (NG)");
+                drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, "UNACCEPTED (NG)", approvalMap);
             }
 
             if (!sheetCreated) throw new Error("No activity found for selected day.");
@@ -530,7 +518,8 @@
         }
 
         // THE UNIFIED DRAWING FUNCTION
-        function drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, titleSuffix) {
+        function drawSheet(ws, templateSheet, pointsMap, meta, records, logoFamax, logoConfidential, titleSuffix, approvalMap) {
+            approvalMap = approvalMap || {};
             const sortedPointKeys = Object.keys(pointsMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
             const pointsPerTable = 12;
             const totalTablesNeeded = Math.ceil(sortedPointKeys.length / pointsPerTable);
@@ -584,6 +573,32 @@
                     ws.getCell(11 + rowOffset, 9).value = d.toLocaleString('en-GB', dTO).replace(',', '');
                     ws.getCell(45 + rowOffset, 17).value = qcRec.Person;
                     ws.getCell(46 + rowOffset, 18).value = d.toLocaleDateString('en-GB');
+                }
+
+                // Approval sign-offs ("Verified By"): Supervisor for the Technician segment (O45/O46),
+                // HOD-QA for the QC segment (S45/T46). Stamped only when an APPROVED record exists.
+                const techGroup = techRec && (techRec.Attempt_Group || techRec.attempt_group);
+                const supApp = techGroup && approvalMap[`${techGroup}|Technician`];
+                if (supApp) {
+                    ws.getCell(45 + rowOffset, 15).value = supApp.approver_name || '';               // O45 name
+                    ws.getCell(46 + rowOffset, 15).value = new Date(supApp.approved_at).toLocaleDateString('en-GB'); // O46 date
+                }
+                const qcGroup = qcRec && (qcRec.Attempt_Group || qcRec.attempt_group);
+                const hodApp = qcGroup && approvalMap[`${qcGroup}|QC`];
+                if (hodApp) {
+                    ws.getCell(45 + rowOffset, 19).value = hodApp.approver_name || '';                // S45 name
+                    ws.getCell(46 + rowOffset, 20).value = new Date(hodApp.approved_at).toLocaleDateString('en-GB'); // T46 date
+                }
+
+                // Setting type: New Setting → L10, Resetting → L11
+                const settingVal = String((techRec && (techRec.Setting || techRec.setting)) || firstRef.Setting || firstRef.setting || '').trim().toLowerCase();
+                if (settingVal === 'new setting') ws.getCell(10 + rowOffset, 12).value = '✓';
+                else if (settingVal === 'resetting') ws.getCell(11 + rowOffset, 12).value = '✓';
+
+                // Shift from the technician "Buyoff Time FROM": before 19:00 → Morning (P10), else Night (P11)
+                if (techRec && techRec.created_at) {
+                    const hr = new Date(techRec.created_at).getHours();
+                    ws.getCell((hr < 19 ? 10 : 11) + rowOffset, 16).value = '✓';
                 }
 
                 // Points Mapping
@@ -668,6 +683,7 @@
             }
         }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

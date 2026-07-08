@@ -12,28 +12,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific styles (built on shared tokens in theme.css) ---- */
         :root {
-            --primary: #0078d4;
-            --primary-soft: rgba(0, 120, 212, 0.1);
-            --success: #10b981;
-            --bg: #f8fafc;
-            --border: #e2e8f0;
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --glass-border: rgba(255, 255, 255, 0.6);
+            /* Legacy alias used throughout this page */
+            --text-dark: var(--text-main);
+            --glass-bg: var(--bg-card);
+            --glass-border: var(--border);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
             background: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
                 radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
-            background-color: var(--bg);
-            margin: 0;
-            padding: 40px 20px;
-            color: var(--text-dark);
+            background-color: var(--bg-body);
+            padding: var(--space-10) var(--space-5);
             min-height: 100vh;
         }
 
@@ -47,22 +44,24 @@
             background: var(--glass-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-            padding: 35px;
-            margin-bottom: 25px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            padding: var(--space-8);
+            margin-bottom: var(--space-6);
         }
 
         .header {
             display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-4);
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: var(--space-8);
         }
 
         .header h2 {
-            font-size: 24px;
+            font-size: var(--fs-xl);
             font-weight: 800;
             letter-spacing: -0.5px;
             margin: 0;
@@ -71,23 +70,23 @@
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: var(--space-5);
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--space-5);
             position: relative;
         }
 
         label {
             display: block;
-            font-size: 10px;
+            font-size: var(--fs-xs);
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            margin-left: 4px;
+            margin-bottom: var(--space-2);
+            margin-left: var(--space-1);
         }
 
         input,
@@ -95,20 +94,20 @@
         textarea {
             width: 100%;
             padding: 12px 16px;
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            font-size: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius);
+            font-size: var(--fs-base);
             font-weight: 500;
             box-sizing: border-box;
             outline: none;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
 
         input:focus,
         select:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 4px var(--primary-soft);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         input[readonly] {
@@ -119,82 +118,84 @@
 
         /* Consistent Primary Button */
         .btn-update {
-            background: #1e293b;
+            background: var(--text-dark);
             color: white;
             border: none;
             padding: 16px;
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             font-weight: 800;
             width: 100%;
             cursor: pointer;
-            font-size: 14px;
+            font-size: var(--fs-base);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            transition: all 0.3s;
-            margin-top: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            margin-top: var(--space-3);
+            box-shadow: var(--shadow);
         }
 
         .btn-update:hover {
             background: #000;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
         }
+
+        .btn-update:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
         /* Clear Button (Secondary Style) */
         .btn-clear {
-            background: white;
+            background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            font-size: 10px;
+            font-size: var(--fs-xs);
             font-weight: 700;
             padding: 6px 12px;
             color: var(--text-muted);
             text-transform: uppercase;
-            transition: 0.2s;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
         }
 
         .btn-clear:hover {
-            background: #f8fafc;
+            background: var(--surface-muted);
             border-color: var(--text-dark);
             color: var(--text-dark);
         }
 
         /* Calculation Box */
         .calc-box {
-            background: rgba(0, 120, 212, 0.03);
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px dashed rgba(0, 120, 212, 0.2);
-            margin-top: 10px;
-            margin-bottom: 20px;
+            background: var(--primary-soft);
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            border: 1px dashed var(--primary-ring);
+            margin-top: var(--space-3);
+            margin-bottom: var(--space-5);
         }
 
         /* Autocomplete List */
         .autocomplete-items {
             position: absolute;
             border: 1px solid var(--border);
-            background: white;
+            background: var(--bg-card);
             z-index: 99;
             width: 100%;
             max-height: 200px;
             overflow-y: auto;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            margin-top: 4px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            margin-top: var(--space-1);
         }
 
         .autocomplete-items div {
             padding: 12px 16px;
             cursor: pointer;
-            border-bottom: 1px solid #f8fafc;
-            font-size: 13px;
+            border-bottom: 1px solid var(--surface-muted);
+            font-size: var(--fs-sm);
             font-weight: 500;
         }
 
         .autocomplete-items div:hover {
-            background: #f1f5f9;
+            background: var(--surface-muted);
             color: var(--primary);
         }
 
@@ -709,6 +710,7 @@
             $('#total_weight').val("0.000 KG");
         }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

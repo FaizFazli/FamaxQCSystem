@@ -5,10 +5,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Inspection Entry | Quality Hub</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"></script>
     <script src="/assets/app-config.js"></script>
@@ -18,13 +18,17 @@
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
     <style>
+        /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
-            color: #1a1a1a;
-            padding: 2rem;
-            background-image: radial-gradient(circle at 0% 0%, rgba(251, 191, 36, 0.08) 0%, transparent 25%), radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 25%);
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: var(--space-8);
+            background-image: radial-gradient(circle at 0% 0%, var(--primary-soft) 0%, transparent 25%), radial-gradient(circle at 100% 100%, rgba(0, 120, 212, 0.05) 0%, transparent 25%);
         }
 
         @media (min-width: 768px) {
@@ -34,14 +38,14 @@
         }
 
         .app-header {
-            background: #ffffff;
+            background: var(--bg-card);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
             border-radius: 2.5rem;
             padding: 2rem;
             margin-bottom: 2.5rem;
-            color: #1a1a1a;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+            color: var(--text-main);
+            box-shadow: var(--shadow);
             position: relative;
             overflow: visible;
             display: flex;
@@ -62,9 +66,9 @@
         .header-accent-bar {
             width: 0.75rem;
             height: 2.5rem;
-            background-color: #fbbf24;
+            background-color: var(--primary);
             border-radius: 9999px;
-            box-shadow: 0 4px 10px rgba(251, 191, 36, 0.3);
+            box-shadow: 0 4px 10px var(--primary-ring);
         }
 
         .header-title {
@@ -74,7 +78,7 @@
             text-transform: uppercase;
             font-style: italic;
             text-align: left;
-            color: #000;
+            color: var(--text-main);
         }
 
         .nav-button-wrap {
@@ -95,30 +99,30 @@
         }
 
         .nav-link-home {
-            background: #f3f4f6;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            color: #4b5563;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
         }
 
         .nav-link-sched {
-            background: #000;
-            color: white;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background: var(--primary);
+            color: var(--on-primary);
+            box-shadow: 0 10px 15px -3px var(--primary-ring);
         }
 
         .inspection-card {
-            background: #ffffff;
+            background: var(--bg-card);
             border-radius: 2.5rem;
-            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
             margin-bottom: 2.5rem;
             position: relative;
         }
 
         .card-header {
             padding: 1.5rem 2.5rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            background-color: #fafafa;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--surface-muted);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -129,8 +133,8 @@
         .card-id-badge {
             width: 2.5rem;
             height: 2.5rem;
-            background: #fbbf24;
-            color: #000;
+            background: var(--primary);
+            color: var(--on-primary);
             border-radius: 0.75rem;
             display: flex;
             align-items: center;
@@ -143,7 +147,7 @@
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #6b7280;
+            color: var(--text-muted);
             margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
@@ -154,12 +158,12 @@
             width: 100%;
             height: 3.5rem;
             padding: 0 1.5rem;
-            background-color: #ffffff;
-            border: 1px solid #e5e7eb;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 1rem;
             font-weight: 600;
-            color: #1a1a1a;
-            transition: border-color 0.2s;
+            color: var(--text-main);
+            transition: border-color var(--transition);
             padding-right: 3rem !important;
         }
 
@@ -211,8 +215,8 @@
 
         .form-input:focus {
             outline: none;
-            border-color: #fbbf24;
-            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
         .dropdown-list {
@@ -220,15 +224,15 @@
             top: 100%;
             left: 0;
             right: 0;
-            background: #ffffff;
+            background: var(--bg-card);
             border-radius: 1.25rem;
             z-index: 200;
             max-height: 250px;
             overflow-y: auto;
-            border: 1px solid #fbbf24;
+            border: 1px solid var(--primary);
             padding: 0.5rem;
             margin-top: 5px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow-lg);
         }
 
         .dropdown-item {
@@ -237,19 +241,19 @@
             font-size: 0.875rem;
             font-weight: 600;
             border-radius: 0.75rem;
-            color: #374151;
+            color: var(--text-main);
         }
 
         .dropdown-item:hover {
-            background-color: #fbbf24;
-            color: #000;
+            background-color: var(--primary);
+            color: var(--on-primary);
         }
 
         .qty-container {
-            background-color: #f9fafb;
+            background-color: var(--surface-muted);
             padding: 2rem;
             border-radius: 2rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
         }
 
         .qty-input {
@@ -258,8 +262,8 @@
             /* Reduced font size slightly to fit 7 digits (1,000,000) */
             font-size: 1.15rem;
             font-weight: 900;
-            background-color: #ffffff;
-            border-color: #e5e7eb;
+            background-color: var(--bg-card);
+            border-color: var(--border);
 
             /* OVERRIDE the padding from .form-input to provide more space for numbers */
             padding-left: 0.25rem !important;
@@ -271,55 +275,55 @@
         }
 
         .qty-readonly {
-            background-color: #f3f4f6 !important;
+            background-color: var(--surface-muted) !important;
             opacity: 0.8;
             border-color: transparent;
         }
 
         .btn-lock-locked {
-            background-color: #fbbf24;
-            color: #000;
+            background-color: var(--primary);
+            color: var(--on-primary);
         }
 
         .btn-lock-unlocked {
-            background-color: #000;
-            border: 1px solid #000;
-            color: #fbbf24;
+            background-color: var(--text-main);
+            border: 1px solid var(--text-main);
+            color: var(--on-primary);
         }
 
         .btn-add-form {
             width: 100%;
             padding: 2.5rem;
-            border: 2px dashed #d1d5db;
-            background: #ffffff;
+            border: 2px dashed var(--border-strong);
+            background: var(--bg-card);
             border-radius: 3rem;
-            color: #9ca3af;
+            color: var(--text-faint);
             font-size: 1.25rem;
             font-weight: 900;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.75rem;
-            transition: all 0.2s;
+            transition: all var(--transition);
         }
 
         .btn-add-form:hover {
-            border-color: #fbbf24;
-            color: #fbbf24;
-            background: #fffdf5;
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-soft);
         }
 
         .btn-submit-all {
             width: 100%;
             padding: 1.5rem;
-            background-color: #fbbf24;
-            color: black;
+            background-color: var(--primary);
+            color: var(--on-primary);
             border-radius: 2.5rem;
             font-size: 1.5rem;
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            box-shadow: 0 10px 20px rgba(251, 191, 36, 0.2);
+            box-shadow: 0 10px 20px var(--primary-soft);
         }
 
         .btn-submit-all:disabled {
@@ -330,16 +334,16 @@
         }
 
         .badge-rework {
-            background: #000 !important;
-            color: #fbbf24 !important;
+            background: var(--text-main) !important;
+            color: var(--on-primary) !important;
         }
 
         .type-toggle {
             display: flex;
-            background: #f3f4f6;
+            background: var(--surface-muted);
             padding: 4px;
             border-radius: 0.75rem;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
         }
 
         .type-btn {
@@ -349,17 +353,17 @@
             border-radius: 0.5rem;
             cursor: pointer;
             transition: all 0.2s;
-            color: #6b7280;
+            color: var(--text-muted);
         }
 
         .type-btn.active-initial {
-            background: #fbbf24;
-            color: black;
+            background: var(--primary);
+            color: var(--on-primary);
         }
 
         .type-btn.active-rework {
-            background: #000;
-            color: white;
+            background: var(--text-main);
+            color: var(--on-primary);
         }
     </style>
 </head>
@@ -371,7 +375,7 @@
             <div class="relative z-10">
                 <div class="flex items-center gap-4">
                     <div class="header-accent-bar"></div>
-                    <h1 class="header-title">New <span class="text-yellow-500">Inspection</span></h1>
+                    <h1 class="header-title">New <span style="color: var(--primary);">Inspection</span></h1>
                 </div>
             </div>
             <div class="nav-button-wrap">
@@ -395,7 +399,7 @@
                                 @click="!form.isLocked && (form.inspection_type = 'Re-Inspection')">Re-Inspection</div>
                         </div>
                         <h2 class="font-black uppercase text-xl italic tracking-tighter">
-                            <span class="text-yellow-500">Quality</span> <span class="text-black">ENTRY</span>
+                            <span style="color: var(--primary);">Quality</span> <span style="color: var(--text-main);">ENTRY</span>
                         </h2>
                     </div>
                     <button v-if="forms.length > 1 && !form.isLocked" @click="removeForm(index)"
@@ -525,11 +529,12 @@
                                 <!-- SECTION 1: Scheduled Parameters (Related to Part/JO) -->
                                 <div v-if="form.relevantParams.length > 0">
                                     <div
-                                        class="px-3 py-1 text-[10px] font-bold text-yellow-600 bg-yellow-50 uppercase tracking-widest">
+                                        class="px-3 py-1 text-[10px] font-bold uppercase tracking-widest"
+                                        style="color: var(--primary); background: var(--primary-soft);">
                                         Scheduled for this JO</div>
                                     <div v-for="p in filterList(form.relevantParams, form.parameter)" :key="'rel-'+p"
                                         @mousedown="selectParam(p, index)" class="dropdown-item font-bold">
-                                        <i class="fa fa-calendar-check mr-2 text-yellow-500"></i> {{ p }}
+                                        <i class="fa fa-calendar-check mr-2" style="color: var(--primary);"></i> {{ p }}
                                     </div>
                                 </div>
 
@@ -545,7 +550,8 @@
 
                                 <!-- Add New Button -->
                                 <div @mousedown="openParamModal(index)"
-                                    class="dropdown-item border-t border-yellow-200 text-yellow-600 font-bold sticky bottom-0 bg-white">
+                                    class="dropdown-item font-bold sticky bottom-0"
+                                    style="border-top: 1px solid var(--border); color: var(--primary); background: var(--bg-card);">
                                     <i class="fa fa-plus-circle mr-2"></i>+ Add New Parameter
                                 </div>
                             </div>
@@ -729,7 +735,8 @@
                                     <h3 class="text-xs font-black uppercase tracking-widest text-gray-400">Defect
                                         Details</h3>
                                     <button @click="addDefectRow(index)" :disabled="form.isLocked"
-                                        class="text-[10px] font-black bg-black text-yellow-400 px-4 py-2 rounded-full">+
+                                        class="text-[10px] font-black px-4 py-2 rounded-full"
+                                        style="background: var(--primary); color: var(--on-primary);">+
                                         ADD</button>
                                 </div>
 
@@ -756,7 +763,7 @@
                             <!-- Lock Button -->
                             <div class="flex justify-end mt-4">
                                 <button @click="toggleLock(index)"
-                                    :class="form.isLocked ? 'bg-yellow-400 text-black' : 'bg-black text-yellow-400'"
+                                    :class="form.isLocked ? 'btn-lock-locked' : 'btn-lock-unlocked'"
                                     class="h-[4rem] px-14 rounded-2xl font-black flex items-center gap-3 transition-all hover:scale-105 shadow-xl">
                                     <i :class="form.isLocked ? 'fa fa-unlock' : 'fa fa-lock'"></i>
                                     <span>{{ form.isLocked ? 'UNLOCK' : 'LOCK ENTRY' }}</span>
@@ -779,9 +786,9 @@
         <div v-if="showParamModal" class="fixed inset-0 z-[500] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeParamModal"></div>
             <div class="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden">
-                <div class="bg-yellow-400 p-6 flex justify-between items-center">
+                <div class="p-6 flex justify-between items-center" style="background: var(--primary); color: var(--on-primary);">
                     <h3 class="font-black uppercase italic text-xl tracking-tighter">Add Master Specification</h3>
-                    <button @click="closeParamModal" class="text-black/50 hover:text-black"><i
+                    <button @click="closeParamModal" style="color: rgba(255,255,255,0.7);"><i
                             class="fa fa-times text-xl"></i></button>
                 </div>
                 <div class="p-8 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
@@ -810,41 +817,13 @@
                         <button @click="closeParamModal"
                             class="flex-1 h-14 rounded-2xl font-bold bg-gray-100 text-gray-600">CANCEL</button>
                         <button @click="submitNewParam"
-                            class="flex-1 h-14 rounded-2xl font-black bg-black text-yellow-400">SAVE SPEC</button>
+                            class="flex-1 h-14 rounded-2xl font-black" style="background: var(--primary); color: var(--on-primary);">SAVE SPEC</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- NEW: CHECKER MODAL -->
-        <div v-if="showCheckerModal" class="fixed inset-0 z-[500] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeCheckerModal"></div>
-            <div class="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden">
-                <div class="bg-yellow-400 p-6 flex justify-between items-center">
-                    <h3 class="font-black uppercase italic text-xl tracking-tighter">Add Checker</h3>
-                    <button @click="closeCheckerModal" class="text-black/50 hover:text-black"><i
-                            class="fa fa-times text-xl"></i></button>
-                </div>
-                <div class="p-8 flex flex-col gap-5">
-                    <div><label class="section-label">Name</label><input type="text" v-model="newChecker.name"
-                            placeholder="Enter Full Name" class="form-input uppercase placeholder:normal-case"></div>
-                    <div><label class="section-label">Emp ID</label><input type="text" v-model="newChecker.empId"
-                            placeholder="Enter Employee ID" class="form-input uppercase placeholder:normal-case"></div>
-                    <div><label class="section-label">Position</label>
-                        <select v-model="newChecker.position" class="form-input bg-white">
-                            <option value="" disabled>Select Position</option>
-                            <option v-for="pos in positionOptions" :key="pos" :value="pos">{{ pos }}</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-3 mt-4">
-                        <button @click="closeCheckerModal"
-                            class="flex-1 h-14 rounded-2xl font-bold bg-gray-100">CANCEL</button>
-                        <button @click="submitNewChecker"
-                            class="flex-1 h-14 rounded-2xl font-black bg-black text-yellow-400">SAVE</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Add-Checker modal removed: inspection staff are maintained by HR in EmployeeTable -->
     </div>
 
     <script>
@@ -869,12 +848,8 @@
 
                 // Modal States
                 const showParamModal = ref(false);
-                const showCheckerModal = ref(false);
                 const currentFormIdx = ref(null);
-                const currentTargetField = ref('');
                 const newParameterName = ref('');
-                const newChecker = ref({ name: '', empId: '', position: '' });
-                const positionOptions = ["PRODUCTION OPERATOR", "QA ASSISTANT", "QA ENGINEER", "ASSISTANT ENGINEER", "QA TECHNICIAN"];
                 const newParameterDetails = ref('');
                 const newProcess = ref('');
                 const newCycleTime = ref('0');
@@ -967,7 +942,8 @@
                             api.get('/Parts?select=Part_Name'),
                             // 1. Updated: Fetch both 'id' and 'Parameter'
                             api.get('/InspectionGuide?select=id,Parameter'),
-                            api.get('/InspectionChecker?select=CheckerName,Position&order=id.asc'),
+                            // Inspection staff now come from the HR-owned EmployeeTable, QA/QC department only
+                            api.get('/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc'),
                             api.get('/InspectionCategory?select=id,Category&order=id.asc')
                         ]);
                         distinctParts.value = [...new Set(pRes.data.map(i => i.Part_Name || i.part_name))].filter(Boolean).sort();
@@ -976,8 +952,10 @@
                         allGuideRecords.value = gRes.data;
                         guideParams.value = gRes.data.map(i => i.Parameter || i.parameter).filter(Boolean).sort();
 
-                        operators.value = cRes.data.filter(c => c.Position === 'PRODUCTION OPERATOR').map(c => c.CheckerName || c.checkername);
-                        supervisors.value = cRes.data.filter(c => c.Position !== 'PRODUCTION OPERATOR').map(c => c.CheckerName || c.checkername);
+                        // All QA/QC staff are eligible for both Inspector and Supervisor.
+                        const qaNames = [...new Set(cRes.data.map(c => c.name || c.Name).filter(Boolean))].sort();
+                        operators.value = qaNames;
+                        supervisors.value = qaNames;
                         inspectionCategories.value = catRes.data.map(i => i.Category || i.category).filter(Boolean);
                     } catch (err) { console.error(err); }
                 };
@@ -1022,7 +1000,7 @@
 
                         // --- STEP 1: Handle InspectionGuide (Master Table) ---
                         // Find if parameter already exists in our pre-fetched allGuideRecords
-                        const existingSpec = allGuideRecords.value.find(g => g.Parameter.toUpperCase() === paramUpper);
+                        const existingSpec = allGuideRecords.value.find(g => g.Parameter && g.Parameter.trim().toUpperCase() === paramUpper);
 
                         if (existingSpec) {
                             parameterId = existingSpec.id;
@@ -1094,20 +1072,7 @@
                     }
                 };
 
-                const openCheckerModal = (idx, field) => { currentFormIdx.value = idx; currentTargetField.value = field; newChecker.value = { name: '', empId: '', position: '' }; showCheckerModal.value = true; };
-                const closeCheckerModal = () => { showCheckerModal.value = false; };
-                const submitNewChecker = async () => {
-                    const { name, empId, position } = newChecker.value;
-                    if (!name || !empId || !position) return;
-                    const formattedName = name.trim().toUpperCase();
-                    try {
-                        await api.post('/InspectionChecker', { CheckerName: formattedName, EmpID: empId.trim().toUpperCase(), Position: position });
-                        if (position === 'PRODUCTION OPERATOR') { operators.value.push(formattedName); operators.value.sort(); }
-                        else { supervisors.value.push(formattedName); supervisors.value.sort(); }
-                        forms.value[currentFormIdx.value][currentTargetField.value] = formattedName;
-                        closeCheckerModal();
-                    } catch (e) { console.error(e); }
-                };
+                // Add-Checker handlers removed: inspection staff are maintained by HR in EmployeeTable.
 
                 const filterList = (list, search) => !search ? list : list.filter(i => String(i).toLowerCase().includes(search.toLowerCase()));
 
@@ -1537,13 +1502,14 @@
                     selectParam, selectChecker, closeDropdown, updateQty, toggleLock, addNewForm, selectCategory,
                     // selectProcess, selectMachine,
                     removeForm, allLocked, submitAll, clearIfZero, calculateDefectTotal, addDefectRow,
-                    showParamModal, showCheckerModal, newParameterName, newChecker, positionOptions, clearField,
-                    openParamModal, closeParamModal, submitNewParam, openCheckerModal, closeCheckerModal, submitNewChecker,
+                    showParamModal, newParameterName, clearField,
+                    openParamModal, closeParamModal, submitNewParam,
                     isOverdue,
                 };
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

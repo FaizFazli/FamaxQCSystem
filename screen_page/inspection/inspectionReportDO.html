@@ -11,23 +11,56 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8fafc;
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
         }
 
         .glass-nav {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.85);
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
 
         [v-cloak] {
             display: none;
         }
+
+        .brand-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            color: var(--on-primary);
+            background: var(--primary);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .field-inline {
+            padding-right: var(--space-4);
+            border-right: 1px solid var(--border);
+        }
+        .date-bare {
+            width: auto;
+            padding: 2px 0;
+            font-weight: 700;
+            color: var(--primary);
+            background: transparent;
+            border: none;
+            border-radius: 0;
+        }
+        .date-bare:focus { box-shadow: none; }
+        .btn--icon { width: 40px; height: 40px; padding: 0; }
     </style>
 </head>
 
@@ -37,9 +70,9 @@
         <!-- HEADER -->
         <nav class="sticky top-0 z-50 glass-nav px-6 py-4">
             <div class="max-w-7xl mx-auto flex justify-between items-center">
-                <div class="flex items-center gap-4">
-                    <div class="bg-indigo-600 p-2.5 rounded-2xl shadow-lg shadow-indigo-200">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="topbar__brand">
+                    <div class="brand-icon">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
                             </path>
@@ -47,25 +80,22 @@
                     </div>
                     <div>
                         <h1 class="text-xl font-extrabold tracking-tight">OQC & IQC <span
-                                class="text-indigo-600">HUB</span></h1>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quality Delivery
+                                style="color: var(--primary);">HUB</span></h1>
+                        <p class="text-[10px] font-bold uppercase tracking-widest" style="color: var(--text-muted);">Quality Delivery
                             Management</p>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <div class="hidden md:flex flex-col items-end px-4 border-r border-slate-200">
-                        <span class="text-[9px] font-black text-slate-400 uppercase">Inspection Date</span>
-                        <input type="date" v-model="filterDate"
-                            class="bg-transparent font-bold text-sm text-indigo-600 outline-none">
+                    <div class="hidden md:flex flex-col items-end field-inline">
+                        <span class="text-[9px] font-black uppercase" style="color: var(--text-muted);">Inspection Date</span>
+                        <input type="date" v-model="filterDate" class="date-bare">
                     </div>
-                    <button @click="fetchData"
-                        class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-xl transition-all">
-                        <i class="fa fa-sync text-slate-400" :class="{'fa-spin text-indigo-500': loading}"></i>
+                    <button @click="fetchData" class="btn btn--secondary btn--icon">
+                        <i class="fa fa-sync" :class="{'fa-spin': loading}"></i>
                     </button>
-                    <button @click="goBack()"
-                        class="w-10 h-10 bg-slate-100 flex items-center justify-center hover:bg-slate-200 rounded-xl transition-all">
-                        <i class="fa fa-home text-slate-600"></i>
+                    <button @click="goBack()" class="btn btn--secondary btn--icon">
+                        <i class="fa fa-home"></i>
                     </button>
                 </div>
             </div>
@@ -75,53 +105,47 @@
 
             <!-- QUICK STATS -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div v-for="(val, label) in statsMap" :key="label"
-                    class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                <div v-for="(val, label) in statsMap" :key="label" class="card">
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-[10px] font-black uppercase tracking-wider" :class="val.color">{{ label
                             }}</span>
                         <i :class="val.icon" class="opacity-20"></i>
                     </div>
-                    <h2 class="text-3xl font-black text-slate-800">{{ val.count }}</h2>
+                    <h2 class="text-3xl font-black" style="color: var(--text-main);">{{ val.count }}</h2>
                 </div>
             </div>
 
             <!-- TABLE AREA -->
-            <div
-                class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100">
+            <div class="panel">
 
                 <!-- FILTERS -->
-                <div
-                    class="px-8 py-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/30">
-                    <div class="flex p-1 bg-slate-200/50 rounded-2xl w-fit">
+                <div class="panel__head" style="flex-wrap: wrap;">
+                    <div class="tabs" style="margin-bottom: 0; border-bottom: none;">
                         <button v-for="cat in ['ALL', 'OQC', 'IQC']" :key="cat" @click="selectedCategory = cat"
-                            :class="selectedCategory === cat ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-                            class="px-6 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-tighter">{{
+                            :class="selectedCategory === cat ? 'tab is-active' : 'tab'">{{
                             cat }}</button>
                     </div>
-                    <div class="relative group">
+                    <div class="relative group" style="flex: 0 1 320px;">
                         <i
-                            class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500"></i>
+                            class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2" style="color: var(--text-faint);"></i>
                         <input type="text" v-model="searchQuery" placeholder="Search Part, DO or No..."
-                            class="pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:ring-4 focus:ring-indigo-50 outline-none w-full md:w-80">
+                            class="w-full" style="padding-left: 40px;">
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="table">
                         <thead>
-                            <tr
-                                class="text-[10px] uppercase font-black text-slate-400 tracking-widest border-b border-slate-50">
-                                <th class="px-8 py-5">Origin / Inspection Date</th>
-                                <th class="px-8 py-5">Delivery Order</th>
-                                <th class="px-8 py-5">Item & Defect Details</th>
-                                <th class="px-8 py-5 text-center">Quantity</th>
-                                <th class="px-8 py-5 text-right">Actions</th>
+                            <tr>
+                                <th>Origin / Inspection Date</th>
+                                <th>Delivery Order</th>
+                                <th>Item & Defect Details</th>
+                                <th class="text-center">Quantity</th>
+                                <th class="text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            <tr v-for="row in filteredRows" :key="row.id"
-                                class="group hover:bg-slate-50/80 transition-all">
+                        <tbody>
+                            <tr v-for="row in filteredRows" :key="row.id" class="group">
 
                                 <!-- Category & Date/Time -->
                                 <td class="px-8 py-6">
@@ -153,8 +177,7 @@
                                 <!-- Delivery Order -->
                                 <td class="px-8 py-6">
                                     <div v-if="editingId === row.id">
-                                        <input type="text" v-model="editForm.DO_Number"
-                                            class="w-full bg-white border-2 border-indigo-500 rounded-xl px-4 py-2 text-sm font-bold shadow-lg outline-none">
+                                        <input type="text" v-model="editForm.DO_Number" class="w-full">
                                     </div>
                                     <div v-else>
                                         <span v-if="row.DO_Number"
@@ -192,10 +215,10 @@
                                 <td class="px-8 py-6">
                                     <div v-if="editingId === row.id" class="flex items-center justify-center gap-2">
                                         <input type="number" v-model.number="editForm.AcceptQty"
-                                            class="w-14 border rounded-lg text-center p-1 text-xs">
-                                        <span class="text-slate-300">/</span>
+                                            class="text-center text-xs" style="width: 56px; padding: 4px;">
+                                        <span style="color: var(--text-faint);">/</span>
                                         <input type="number" v-model.number="editForm.TotalCheck"
-                                            class="w-14 border rounded-lg text-center p-1 text-xs">
+                                            class="text-center text-xs" style="width: 56px; padding: 4px;">
                                     </div>
                                     <div v-else class="flex items-center justify-center gap-4">
                                         <div class="text-center">
@@ -220,15 +243,12 @@
                                 <!-- Actions -->
                                 <td class="px-8 py-6 text-right">
                                     <div v-if="editingId === row.id" class="flex justify-end gap-2">
-                                        <button @click="saveEdit"
-                                            class="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 shadow-lg"><i
+                                        <button @click="saveEdit" class="btn btn--icon"><i
                                                 class="fa fa-save"></i></button>
-                                        <button @click="editingId = null"
-                                            class="bg-slate-100 text-slate-500 p-2.5 rounded-xl hover:bg-slate-200"><i
+                                        <button @click="editingId = null" class="btn btn--secondary btn--icon"><i
                                                 class="fa fa-times"></i></button>
                                     </div>
-                                    <button v-else @click="startEdit(row)"
-                                        class="w-10 h-10 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                                    <button v-else @click="startEdit(row)" class="btn btn--secondary btn--icon">
                                         <i class="fa fa-edit"></i>
                                     </button>
                                 </td>
@@ -238,8 +258,7 @@
                 </div>
 
                 <!-- EMPTY STATE -->
-                <div v-if="filteredRows.length === 0"
-                    class="py-20 flex flex-col items-center justify-center text-slate-300">
+                <div v-if="filteredRows.length === 0" class="empty-state flex flex-col items-center justify-center">
                     <i class="fa fa-folder-open text-6xl mb-4 opacity-20"></i>
                     <p class="font-bold text-sm uppercase tracking-widest">No matching records found</p>
                 </div>
@@ -348,6 +367,7 @@
             }
         }).mount('#app');
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>
