@@ -40,5 +40,5 @@ app.get("/FamaxMES", (req, res) => {
 });
 
 app.listen(80, () => {
-    console.log("✅ Server running at http://192.168.2.195/FamaxQCSystem");
+    console.log("✅ Server running at http://192.168.0.5/FamaxQCSystem");
 });
