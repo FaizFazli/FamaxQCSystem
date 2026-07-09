@@ -579,6 +579,97 @@
     tr:last-child .btn-down {
       visibility: hidden;
     }
+
+    /* ------------------------------------------------------------------ */
+    /* UI polish — consistency w/ sibling forms, interactivity, friendly  */
+    /* ------------------------------------------------------------------ */
+
+    /* Card entrance */
+    .card { animation: cardIn 0.4s ease both; }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* Richer header w/ subtitle, tokenized spacing */
+    .card-header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      padding: var(--space-6) var(--space-8);
+      gap: var(--space-4);
+    }
+    .card-header h1 {
+      font-size: var(--fs-lg);
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .card-header h1 svg {
+      background: rgba(255, 255, 255, 0.18);
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      box-sizing: content-box;
+    }
+    .header-subtitle {
+      margin: 5px 0 0;
+      font-size: var(--fs-sm);
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Section titles — clean underline (house style) */
+    .section-title {
+      font-size: var(--fs-md);
+      padding-bottom: 10px;
+      margin: 4px 0 18px;
+    }
+
+    /* Inputs: hover feedback + softer placeholder */
+    input[type="text"]:hover:not(:focus),
+    .table-input:hover:not(:focus),
+    .table-select:hover:not(:focus) {
+      border-color: var(--border-strong);
+    }
+    input[type="text"]::placeholder { color: var(--text-faint); }
+    .table-input:focus,
+    .table-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
+
+    /* Required-field marker */
+    label.required::after {
+      content: " *";
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    /* Row hover */
+    table tbody tr { transition: background 0.15s ease; }
+    table tbody tr:hover { background: #f1f7ff; }
+
+    /* Button micro-interactions */
+    .btn-submit, .btn-processFlow, .btn-add, .btn-secondary {
+      transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-submit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px -6px var(--primary-ring);
+    }
+    .btn-processFlow:hover {
+      background-color: #dc2626;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 16px -6px rgba(239, 68, 68, 0.4);
+    }
+    .btn-add:hover { transform: translateY(-1px); }
+    .btn-submit:active, .btn-processFlow:active, .btn-add:active { transform: translateY(0); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .actions-row { flex-direction: column; align-items: stretch; gap: 12px; }
+      .right-group { flex-direction: column; }
+      .card-header { flex-direction: column; align-items: flex-start; }
+    }
   </style>
 </head>
 
@@ -622,13 +713,16 @@
 
   <div class="card">
     <div class="card-header">
-      <h1 id="formTitle">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-        Generate New File
-      </h1>
+      <div class="header-text">
+        <h1 id="formTitle">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          Generate New File
+        </h1>
+        <p class="header-subtitle">Register part details and define the process flow to generate quality documents.</p>
+      </div>
       <button id="resetBtn" class="btn-remove" style="display: none" onclick="resetForm()">
         Cancel Edit
       </button>
@@ -639,11 +733,11 @@
       <div class="section-title">Part Information</div>
       <div class="form-grid">
         <div class="form-group">
-          <label>Part Description</label>
+          <label class="required">Part Description</label>
           <input type="text" id="partDescription" placeholder="e.g. Housing Bracket" />
         </div>
         <div class="form-group">
-          <label>Part No</label>
+          <label class="required">Part No</label>
           <input type="text" id="partNo" placeholder="e.g. A-12345" />
         </div>
         <div class="form-group">
@@ -659,7 +753,7 @@
           <input type="text" id="revNumber" placeholder="e.g. 01" />
         </div>
         <div class="form-group">
-          <label>Raw Material</label>
+          <label class="required">Raw Material</label>
           <input type="text" id="rawMaterial" placeholder="e.g. Aluminum" />
         </div>
         <div class="form-group" style="grid-column: span 2">
