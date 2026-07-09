@@ -3,7 +3,7 @@
 // identical on every machine — no per-machine edits, no merge conflicts.
 // (Assumes Supabase :8000 and the web server :80 run on the same host as the app.)
 (function () {
-  var IP = window.location.hostname || "localhost";   // e.g. 192.168.2.195, localhost
+  var IP = window.location.hostname || "192.168.0.5";   // e.g. 192.168.2.195, localhost
 
   window.APP_CONFIG = {
     // Supabase REST/storage base (port 8000)
