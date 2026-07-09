@@ -26,6 +26,10 @@
             background-color: var(--bg-body);
         }
 
+        /* Keep this page's header (title + search + plan-form button) visible even
+           when the page is embedded in the inspection dashboard iframe. */
+        .is-framed header.app-header { display: flex !important; }
+
         .app-header {
             background: var(--bg-card);
             border: 1px solid var(--border);
