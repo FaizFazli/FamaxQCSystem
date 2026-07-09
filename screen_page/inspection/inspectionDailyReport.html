@@ -355,18 +355,29 @@
                 // };
 
                 const getScheduleMatch = (row) => {
+                    const norm = v => (v ?? '').toString().trim().toLowerCase();
+
+                    // Identity: same job order, part, and parameter.
                     const candidates = scheduleRecords.value.filter(s =>
-                        s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
-                        s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
-                        s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase() &&
-                        s.Parameter?.trim().toLowerCase() === row.Parameter?.trim().toLowerCase()
+                        norm(s.JO_Number) === norm(row.JO_Number) &&
+                        norm(s.Part_Name) === norm(row.Part_Name) &&
+                        norm(s.Parameter) === norm(row.Parameter)
                     );
 
                     if (candidates.length === 0) return null;
                     if (candidates.length === 1) return candidates[0];
 
+                    // Tiebreaker 1: prefer the schedule whose assignee OR replacement actually inspected.
+                    const byInspector = candidates.filter(s =>
+                        norm(s.AssignTo) === norm(row.InspectBy) ||
+                        norm(s.Replacement) === norm(row.InspectBy)
+                    );
+                    if (byInspector.length === 1) return byInspector[0];
+                    const pool = byInspector.length > 0 ? byInspector : candidates;
+
+                    // Tiebreaker 2: closest actual finish time, rejected if the nearest is >48h away (stale).
                     const rowTime = new Date(row.actual_finished || row.created_at).getTime();
-                    const scored = candidates.map(s => ({
+                    const scored = pool.map(s => ({
                         s,
                         diff: Math.abs(new Date(s.actual_finished_time).getTime() - rowTime)
                     }));
