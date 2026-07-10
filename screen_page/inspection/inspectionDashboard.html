@@ -482,6 +482,17 @@
                     </span>
                 </button>
 
+                <!-- 8b. PART NAME INSPECTION SUMMARY -->
+                <button @click="goTo('inspectionPartSummary.html')" title="Part Name Inspection Summary"
+                    :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+                    class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all" style="color: var(--primary);">
+                    <i class="fa-solid fa-cubes text-xl flex-shrink-0"></i>
+                    <span v-if="isSidebarOpen"
+                        class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                        Part Summary
+                    </span>
+                </button>
+
                 <!-- 9. INSPECTION PLAN LIST -->
                 <button @click="goTo('inspectionGuideList.html')" title="Inspection Guide List"
                     :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
