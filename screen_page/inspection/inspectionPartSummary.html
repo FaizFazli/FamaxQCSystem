@@ -4,23 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Part Name Inspection Summary | Famax Quality Hub</title>
-    <link
-      rel="icon"
-      type="png"
-      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
-    />
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/assets/app-config.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/theme.css" />
     <style>
       body {
@@ -30,10 +23,7 @@
         margin: 0;
         padding: var(--space-4);
       }
-      .page {
-        max-width: 1500px;
-        margin: 0 auto;
-      }
+      .page { max-width: 1500px; margin: 0 auto; }
       .card {
         background: var(--bg-card);
         border: 1px solid var(--border);
@@ -57,9 +47,7 @@
         text-transform: uppercase;
         letter-spacing: -0.3px;
       }
-      .title span {
-        color: var(--primary);
-      }
+      .title span { color: var(--primary); }
       .toolbar {
         display: flex;
         flex-wrap: wrap;
@@ -70,8 +58,8 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-1);
-        min-width: 260px;
-        flex: 1;
+        min-width: 280px;
+        flex: 1.6;
       }
       .field label {
         font-size: var(--fs-xs);
@@ -80,22 +68,42 @@
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
-      select,
+      .select2-container { width: 100% !important; }
+      .select2-container--default .select2-selection--single {
+        height: 42px !important;
+        border: 1px solid var(--border) !important;
+        border-radius: var(--radius-sm) !important;
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 8px !important;
+        background: #fff !important;
+      }
+      .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 40px !important;
+        padding-left: 4px !important;
+        color: var(--text-main) !important;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 40px !important;
+      }
+      .select2-dropdown {
+        border-color: var(--border) !important;
+        border-radius: var(--radius-sm) !important;
+        box-shadow: var(--shadow);
+      }
+      .select2-results__option { font-size: 13px; padding: 8px 12px; }
+      .select2-results__option--highlighted[aria-selected] {
+        background: var(--primary) !important;
+      }
       .btn {
         height: 42px;
-        border-radius: var(--radius-sm);
-        font-family: inherit;
-      }
-      select {
-        border: 1px solid var(--border);
-        padding: 0 12px;
-        background: #fff;
-        color: var(--text-main);
-      }
-      .btn {
         border: none;
+        border-radius: var(--radius-sm);
         padding: 0 18px;
         font-weight: 700;
+        font-family: inherit;
         cursor: pointer;
         background: var(--primary);
         color: #fff;
@@ -103,59 +111,74 @@
         align-items: center;
         gap: 8px;
       }
-      .btn:hover:not(:disabled) {
-        background: var(--primary-hover);
-      }
-      .btn:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-      }
-      .btn-success {
-        background: var(--success);
-      }
-      .btn-success:hover:not(:disabled) {
-        background: #059669;
-      }
+      .btn:hover:not(:disabled) { background: var(--primary-hover); }
+      .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      .btn-success { background: var(--success); }
+      .btn-success:hover:not(:disabled) { background: #059669; }
       .btn-home {
-        width: 40px;
-        height: 40px;
-        border-radius: 999px;
-        border: none;
-        background: var(--surface-muted);
-        cursor: pointer;
+        width: 40px; height: 40px; border-radius: 999px;
+        border: none; background: var(--surface-muted); cursor: pointer;
       }
       .stats {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
         gap: var(--space-3);
         margin-bottom: var(--space-5);
       }
       .stat {
-        background: var(--surface-muted);
+        background: linear-gradient(180deg, #fff 0%, var(--surface-muted) 100%);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         padding: var(--space-3) var(--space-4);
       }
       .stat .label {
-        font-size: var(--fs-xs);
+        font-size: 10px;
         font-weight: 700;
         color: var(--text-muted);
         text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
       .stat .value {
-        font-size: var(--fs-lg);
+        font-size: 1.35rem;
         font-weight: 800;
         margin-top: 4px;
+        font-variant-numeric: tabular-nums;
       }
-      /* H + V scroll same box so H-bar is always reachable without page-bottom scroll. */
+      .list-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .list-meta .part-chip {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--primary);
+        background: var(--primary-soft);
+        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        padding: 4px 10px;
+        border-radius: 999px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .list-meta .hint {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
       .table-wrap {
         width: 100%;
-        max-height: min(70vh, calc(100vh - 320px));
+        max-height: min(70vh, calc(100vh - 340px));
         overflow: auto;
         overscroll-behavior: contain;
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
         -webkit-overflow-scrolling: touch;
+        background: #fff;
       }
       table.rec {
         width: max-content;
@@ -167,22 +190,75 @@
         position: sticky;
         top: 0;
         z-index: 2;
-        background: var(--surface-muted);
-        color: var(--text-muted);
-        font-size: var(--fs-xs);
+        background: #0f172a;
+        color: #e2e8f0;
+        font-size: 10px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        padding: 10px 8px;
+        letter-spacing: 0.05em;
+        padding: 11px 12px;
         text-align: left;
-        border-bottom: 1px solid var(--border);
+        border-bottom: 1px solid #1e293b;
         white-space: nowrap;
       }
+      table.rec th.num,
+      table.rec td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
       table.rec td {
-        padding: 10px 8px;
+        padding: 10px 12px;
         border-bottom: 1px solid var(--border);
-        font-size: var(--fs-sm);
-        vertical-align: top;
+        font-size: 12.5px;
+        vertical-align: middle;
+        color: #1e293b;
+      }
+      table.rec tbody tr:nth-child(even) td { background: #f8fafc; }
+      table.rec tbody tr:hover td { background: var(--primary-soft); }
+      .dt {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        white-space: nowrap;
+      }
+      .dt .d { font-weight: 700; font-size: 12px; }
+      .dt .t { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        background: #e2e8f0;
+        color: #334155;
+      }
+      .pill-type { background: #dbeafe; color: #1d4ed8; }
+      .pill-cat { background: #fef3c7; color: #b45309; }
+      .qty {
+        display: inline-block;
+        min-width: 28px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .qty-ok { background: #dcfce7; color: #15803d; }
+      .qty-bad { background: #fee2e2; color: #b91c1c; }
+      .qty-muted { background: #f1f5f9; color: #475569; }
+      .remark {
+        max-width: 220px;
+        white-space: normal;
+        line-height: 1.35;
+        color: #475569;
+        font-size: 11.5px;
       }
       .empty {
         text-align: center;
@@ -190,19 +266,9 @@
         padding: var(--space-10);
         font-weight: 600;
       }
-      .err {
-        color: #b91c1c;
-        font-weight: 600;
-        margin-top: var(--space-3);
-      }
-      .ok {
-        color: #059669;
-        font-weight: 700;
-      }
-      .bad {
-        color: #dc2626;
-        font-weight: 700;
-      }
+      .err { color: #b91c1c; font-weight: 600; margin-top: var(--space-3); }
+      .ok { color: #059669; font-weight: 700; }
+      .bad { color: #dc2626; font-weight: 700; }
     </style>
   </head>
 
@@ -211,94 +277,51 @@
       <div class="card">
         <div class="header-row">
           <h1 class="title">Part Name <span>Inspection Summary</span></h1>
-          <button
-            class="btn-home"
-            type="button"
-            title="Dashboard"
-            @click="goHome"
-          >
+          <button class="btn-home" type="button" title="Dashboard" @click="goHome">
             <i class="fa fa-home"></i>
           </button>
         </div>
 
         <div class="toolbar">
           <div class="field">
-            <label for="partSelect">Part Name (from Parts)</label>
-            <select
-              id="partSelect"
-              v-model="selectedPart"
-              @change="loadRecords"
-            >
-              <option value="">— Select part name —</option>
-              <option v-for="p in partNames" :key="p" :value="p">
-                {{ p }}
-              </option>
+            <label for="partSelect">Search part name</label>
+            <select id="partSelect" class="searchable-dropdown">
+              <option value=""></option>
             </select>
           </div>
-          <button
-            class="btn"
-            type="button"
-            @click="loadRecords"
-            :disabled="!selectedPart || loading"
-          >
+          <button class="btn" type="button" @click="loadRecords" :disabled="!selectedPart || loading">
             <i class="fa fa-sync"></i> Refresh
           </button>
-          <button
-            class="btn btn-success"
-            type="button"
-            @click="exportExcel"
-            :disabled="!rows.length"
-          >
+          <button class="btn btn-success" type="button" @click="exportExcel" :disabled="!rows.length">
             <i class="fa fa-file-excel"></i> Export Excel
           </button>
         </div>
         <p v-if="error" class="err">{{ error }}</p>
-        <p
-          v-if="loading"
-          style="margin-top: 12px; font-weight: 600; color: var(--text-muted)"
-        >
-          Loading…
-        </p>
+        <p v-if="loading" style="margin-top: 12px; font-weight: 600; color: var(--text-muted)">Loading…</p>
       </div>
 
       <div class="card" v-if="selectedPart">
-        <div class="stats">
-          <div class="stat">
-            <div class="label">Records</div>
-            <div class="value">{{ stats.count }}</div>
-          </div>
-          <div class="stat">
-            <div class="label">Total Check</div>
-            <div class="value">{{ stats.total }}</div>
-          </div>
-          <div class="stat">
-            <div class="label">Accept</div>
-            <div class="value ok">{{ stats.accept }}</div>
-          </div>
-          <div class="stat">
-            <div class="label">Reject</div>
-            <div class="value bad">{{ stats.reject }}</div>
-          </div>
-          <div class="stat">
-            <div class="label">Rework</div>
-            <div class="value">{{ stats.rework }}</div>
-          </div>
-          <div class="stat">
-            <div class="label">Scrap</div>
-            <div class="value">{{ stats.scrap }}</div>
-          </div>
+        <div class="list-meta">
+          <span class="part-chip" :title="selectedPart">{{ selectedPart }}</span>
+          <span class="hint">{{ stats.count }} record{{ stats.count === 1 ? '' : 's' }} · newest first</span>
         </div>
 
-        <div v-if="!loading && !rows.length" class="empty">
-          No inspection records for this part.
+        <div class="stats">
+          <div class="stat"><div class="label">Records</div><div class="value">{{ stats.count }}</div></div>
+          <div class="stat"><div class="label">Total Check</div><div class="value">{{ stats.total }}</div></div>
+          <div class="stat"><div class="label">Accept</div><div class="value ok">{{ stats.accept }}</div></div>
+          <div class="stat"><div class="label">Reject</div><div class="value bad">{{ stats.reject }}</div></div>
+          <div class="stat"><div class="label">Rework</div><div class="value">{{ stats.rework }}</div></div>
+          <div class="stat"><div class="label">Scrap</div><div class="value">{{ stats.scrap }}</div></div>
         </div>
+
+        <div v-if="!loading && !rows.length" class="empty">No inspection records for this part.</div>
 
         <div v-else class="table-wrap">
           <table class="rec">
             <thead>
               <tr>
                 <th>Date / Time</th>
-                <th>Part Name</th>
                 <th>Part No</th>
                 <th>Process</th>
                 <th>JO</th>
@@ -308,38 +331,39 @@
                 <th>Parameter</th>
                 <th>Inspect By</th>
                 <th>Finalize By</th>
-                <th>Total</th>
-                <th>Reject</th>
-                <th>Rework</th>
-                <th>Accept</th>
-                <th>Scrap</th>
+                <th class="num">Total</th>
+                <th class="num">Reject</th>
+                <th class="num">Rework</th>
+                <th class="num">Accept</th>
+                <th class="num">Scrap</th>
                 <th>Remark</th>
                 <th>Remark Finished</th>
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="r in rows"
-                :key="r.id || (r.created_at + r.JO_Number + r.Parameter)"
-              >
-                <td>{{ formatDateTime(r.actual_finished || r.created_at) }}</td>
-                <td>{{ r.Part_Name || '-' }}</td>
-                <td>{{ r.part_no || '-' }}</td>
-                <td>{{ r.process || '-' }}</td>
-                <td>{{ r.JO_Number || '-' }}</td>
-                <td>{{ r.DO_Number || '-' }}</td>
-                <td>{{ r.Inspection_Type || '-' }}</td>
-                <td>{{ r.Category || '-' }}</td>
-                <td>{{ r.Parameter || '-' }}</td>
-                <td>{{ r.InspectBy || '-' }}</td>
-                <td>{{ r.FinalizeBy || '-' }}</td>
-                <td><strong>{{ num(r.TotalCheck) }}</strong></td>
-                <td class="bad">{{ num(r.RejectQty) }}</td>
-                <td>{{ num(r.ReworkQty) }}</td>
-                <td class="ok">{{ num(r.AcceptQty) }}</td>
-                <td>{{ num(r.ScrapQty) }}</td>
-                <td>{{ formatRemark(r.Remark) }}</td>
-                <td>{{ r.remark_finished || '-' }}</td>
+              <tr v-for="r in rows" :key="r.id || (r.created_at + r.JO_Number + r.Parameter)">
+                <td>
+                  <div class="dt">
+                    <span class="d">{{ formatDateOnly(r.actual_finished || r.created_at) }}</span>
+                    <span class="t">{{ formatTimeOnly(r.actual_finished || r.created_at) }}</span>
+                  </div>
+                </td>
+                <td class="mono">{{ r.part_no || '–' }}</td>
+                <td><strong>{{ r.process || '–' }}</strong></td>
+                <td class="mono">{{ r.JO_Number || '–' }}</td>
+                <td class="mono">{{ r.DO_Number || '–' }}</td>
+                <td><span class="pill pill-type">{{ r.Inspection_Type || '–' }}</span></td>
+                <td><span class="pill pill-cat">{{ r.Category || '–' }}</span></td>
+                <td>{{ r.Parameter || '–' }}</td>
+                <td>{{ r.InspectBy || '–' }}</td>
+                <td>{{ r.FinalizeBy || '–' }}</td>
+                <td class="num"><span class="qty qty-muted">{{ num(r.TotalCheck) }}</span></td>
+                <td class="num"><span class="qty qty-bad">{{ num(r.RejectQty) }}</span></td>
+                <td class="num"><span class="qty qty-muted">{{ num(r.ReworkQty) }}</span></td>
+                <td class="num"><span class="qty qty-ok">{{ num(r.AcceptQty) }}</span></td>
+                <td class="num"><span class="qty qty-muted">{{ num(r.ScrapQty) }}</span></td>
+                <td class="remark">{{ formatRemark(r.Remark) }}</td>
+                <td class="remark">{{ r.remark_finished || '–' }}</td>
               </tr>
             </tbody>
           </table>
@@ -347,44 +371,41 @@
       </div>
 
       <div class="card" v-else>
-        <div class="empty">
-          Select a part name to load full inspection history.
-        </div>
+        <div class="empty">Search and select a part name to load full inspection history.</div>
       </div>
     </div>
 
     <script>
-      const { createApp, ref, computed, onMounted } = Vue;
+      const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
       function formatRemark(remark) {
-        if (remark == null || remark === "") return "-";
+        if (remark == null || remark === "") return "–";
         if (typeof remark === "string") {
-          try {
-            remark = JSON.parse(remark);
-          } catch (_) {
-            return remark || "-";
-          }
+          try { remark = JSON.parse(remark); } catch (_) { return remark || "–"; }
         }
         if (!Array.isArray(remark)) return String(remark);
-        if (!remark.length) return "-";
+        if (!remark.length) return "–";
         return (
           remark
             .map((d) => {
               const desc = (d && (d.description || d.Description)) || "";
               const qty = d && (d.quantity != null ? d.quantity : d.Quantity);
-              return desc
-                ? `${String(desc).toUpperCase()}:${Number(qty) || 0}`
-                : "";
+              return desc ? `${String(desc).toUpperCase()}:${Number(qty) || 0}` : "";
             })
             .filter(Boolean)
-            .join("; ") || "-"
+            .join("; ") || "–"
         );
       }
 
-      function formatDateTime(iso) {
-        if (!iso) return "-";
+      function parseDate(iso) {
+        if (!iso) return null;
         const d = new Date(iso);
-        if (isNaN(d.getTime())) return String(iso);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function formatDateTime(iso) {
+        const d = parseDate(iso);
+        if (!d) return iso ? String(iso) : "–";
         return (
           d.toLocaleDateString("en-GB") +
           " " +
@@ -392,14 +413,20 @@
         );
       }
 
-      function num(v) {
-        return Number(v) || 0;
+      function formatDateOnly(iso) {
+        const d = parseDate(iso);
+        return d ? d.toLocaleDateString("en-GB") : "–";
       }
 
+      function formatTimeOnly(iso) {
+        const d = parseDate(iso);
+        return d ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+      }
+
+      function num(v) { return Number(v) || 0; }
+
       function safeFilePart(name) {
-        return String(name || "part")
-          .replace(/[\\/:*?"<>|]+/g, "_")
-          .slice(0, 80);
+        return String(name || "part").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 80);
       }
 
       createApp({
@@ -412,14 +439,13 @@
             },
           });
 
-          const partNames = ref([]);
           const selectedPart = ref("");
           const rows = ref([]);
           const loading = ref(false);
           const error = ref("");
 
-          const stats = computed(() => {
-            return rows.value.reduce(
+          const stats = computed(() =>
+            rows.value.reduce(
               (acc, r) => {
                 acc.count += 1;
                 acc.total += num(r.TotalCheck);
@@ -430,23 +456,41 @@
                 return acc;
               },
               { count: 0, total: 0, accept: 0, reject: 0, rework: 0, scrap: 0 },
-            );
-          });
+            ),
+          );
+
+          const initSelect2 = (names) => {
+            const $sel = $("#partSelect");
+            if ($sel.hasClass("select2-hidden-accessible")) {
+              $sel.off("change.partSummary");
+              $sel.select2("destroy");
+            }
+            $sel.empty().append(new Option("", "", true, true));
+            names.forEach((p) => $sel.append(new Option(p, p, false, false)));
+            $sel.select2({
+              placeholder: "Type to search part name…",
+              allowClear: true,
+              width: "100%",
+            });
+            $sel.on("change.partSummary", () => {
+              selectedPart.value = $sel.val() || "";
+              loadRecords();
+            });
+          };
 
           const loadParts = async () => {
             error.value = "";
             try {
               const res = await api.get("/Parts?select=Part_Name");
-              const list = (res.data || [])
-                .map((r) => r.Part_Name)
-                .filter(Boolean);
-              partNames.value = [...new Set(list)].sort((a, b) =>
-                a.localeCompare(b),
-              );
+              const list = (res.data || []).map((r) => r.Part_Name).filter(Boolean);
+              const names = [...new Set(list)].sort((a, b) => a.localeCompare(b));
+              await nextTick();
+              initSelect2(names);
             } catch (e) {
               console.error(e);
               error.value = "Failed to load part names from Parts.";
-              partNames.value = [];
+              await nextTick();
+              initSelect2([]);
             }
           };
 
@@ -469,9 +513,7 @@
               let data = await fetchRecordsForPart(selectedPart.value);
               if (!data.length) {
                 const upper = selectedPart.value.toUpperCase();
-                if (upper !== selectedPart.value) {
-                  data = await fetchRecordsForPart(upper);
-                }
+                if (upper !== selectedPart.value) data = await fetchRecordsForPart(upper);
               }
               rows.value = data;
             } catch (e) {
@@ -509,10 +551,7 @@
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Inspection");
             const day = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(
-              wb,
-              `Inspection_${safeFilePart(selectedPart.value)}_${day}.xlsx`,
-            );
+            XLSX.writeFile(wb, `Inspection_${safeFilePart(selectedPart.value)}_${day}.xlsx`);
           };
 
           const goHome = () => {
@@ -522,18 +561,9 @@
           onMounted(loadParts);
 
           return {
-            partNames,
-            selectedPart,
-            rows,
-            loading,
-            error,
-            stats,
-            loadRecords,
-            exportExcel,
-            goHome,
-            formatDateTime,
-            formatRemark,
-            num,
+            selectedPart, rows, loading, error, stats,
+            loadRecords, exportExcel, goHome,
+            formatDateTime, formatDateOnly, formatTimeOnly, formatRemark, num,
           };
         },
       }).mount("#app");

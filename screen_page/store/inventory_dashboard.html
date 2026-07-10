@@ -397,6 +397,38 @@
             align-items: center;
         }
 
+        /* Transaction-edit modal sits above the stock modal */
+        #txn-edit-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 10001;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        #txn-edit-modal-overlay .modal-card {
+            max-width: 720px;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        #txn-edit-modal-overlay select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            outline: none;
+        }
+
         /* --- 2. THE MODAL CARD (The White Box) --- */
         .modal-card {
             background: #ffffff !important;
@@ -674,6 +706,7 @@
                                 <th style="padding: 12px;">Job Number</th>
                                 <th style="padding: 12px;">Quantity</th>
                                 <th style="padding: 12px;">Staff Name</th>
+                                <th style="padding: 12px;">Manage</th>
                             </tr>
                         </thead>
                         <tbody id="item-history-body">
@@ -689,6 +722,105 @@
                 <button class="btn-save" onclick="updateStock()"
                     style="height: 55px; width: 250px; font-size: 18px; background: #0078d4; color: white; font-weight: 800; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,120,212,0.3);">CONFIRM
                     & SAVE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT TRANSACTION MODAL -->
+    <div id="txn-edit-modal-overlay">
+        <div class="modal-card">
+            <h3 style="margin-top:0;">✏️ Edit Transaction</h3>
+            <input type="hidden" id="txn-id">
+
+            <div class="form-group">
+                <label>Part / Barcode</label>
+                <input type="text" id="txn-part">
+                <small style="color:var(--text-muted);font-size:11px;">Changing this moves the transaction (and its stock) to that item.</small>
+            </div>
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>Transaction Type</label>
+                    <select id="txn-type" class="txn-calc">
+                        <option value="IN">IN</option>
+                        <option value="OUT">OUT</option>
+                        <option value="RESERVATION">RESERVATION</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="txn-date">
+                </div>
+            </div>
+
+            <div class="form-row-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label>Qty / Carton</label>
+                    <input type="number" id="txn-std" class="txn-calc" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Cartons</label>
+                    <input type="number" id="txn-ctn" class="txn-calc" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Loose Pcs</label>
+                    <input type="number" id="txn-loose" class="txn-calc" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Total Quantity (PCS)</label>
+                <input type="number" id="txn-total" readonly style="font-weight:800;">
+            </div>
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>Job Number</label>
+                    <input type="text" id="txn-jo">
+                </div>
+                <div class="form-group">
+                    <label>Customer (OUT / RES)</label>
+                    <input type="text" id="txn-customer">
+                </div>
+            </div>
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>Item Location</label>
+                    <input type="text" id="txn-location">
+                </div>
+                <div class="form-group">
+                    <label>Staff Name (PIC)</label>
+                    <input type="text" id="txn-pic">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;text-transform:none;">
+                    <input type="checkbox" id="txn-return-qa" style="width:auto;"> Return to QA
+                </label>
+            </div>
+
+            <div class="form-row-grid">
+                <div class="form-group">
+                    <label>SCM Remark</label>
+                    <input type="text" id="txn-remark-bd">
+                </div>
+                <div class="form-group">
+                    <label>Transaction Remark</label>
+                    <input type="text" id="txn-remark-io">
+                </div>
+            </div>
+
+            <p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;">Saving adjusts stock by the difference automatically.</p>
+
+            <div class="modal-footer" style="justify-content:space-between;">
+                <button class="btn-cancel" style="background:#dc2626;color:#fff;"
+                    onclick="deleteTxn(document.getElementById('txn-id').value)">Delete</button>
+                <div style="display:flex;gap:10px;">
+                    <button class="btn-cancel" onclick="closeTxnEdit()">Cancel</button>
+                    <button class="btn-save" onclick="saveTxnEdit()">Save Changes</button>
+                </div>
             </div>
         </div>
     </div>
@@ -910,7 +1042,11 @@
         });
 
         // 2. Updated Modal Opening Function
+        let currentInvItem = null;   // inventory row currently open in the stock modal
+        let currentTxns = [];        // its storeRecords transactions (with ids)
+
         async function openEditModal(item) {
+            currentInvItem = item;
             $('#edit-id').val(item.id);
             $('#edit-display-name').text(`${item.barcode} - ${item.product_name}`);
             $('#edit-units-per').val(item.units_per_carton || 0);
@@ -919,22 +1055,25 @@
             $('#edit-total').val(item.available_pcs || 0);
 
             $('#edit-modal-overlay').css('display', 'flex').hide().fadeIn(200);
+            loadItemHistory();
+        }
 
-            // Initial loading state
-            $('#item-history-body').html('<tr><td colspan="5" align="center" style="padding:20px;">Fetching records...</td></tr>');
-
+        async function loadItemHistory() {
+            if (!currentInvItem) return;
+            $('#item-history-body').html('<tr><td colspan="6" align="center" style="padding:20px;">Fetching records...</td></tr>');
             try {
                 const { data, error } = await _supabase
                     .from('storeRecords')
-                    .select('manu_date, out_date, entry_type, quantity, pic_name, jo_number')
-                    .eq('part_name', item.barcode)
+                    .select('id, entry_type, part_name, quantity, customer_name, jo_number, pic_name, manu_date, out_date, carton_info, item_location, is_return_qa, remarkBD, remark_in_out, created_at')
+                    .eq('part_name', currentInvItem.barcode)
                     .order('created_at', { ascending: false }); // Latest transactions at the top
 
                 if (error) throw error;
+                currentTxns = data || [];
 
                 let historyHtml = "";
-                if (data && data.length > 0) {
-                    data.forEach(rec => {
+                if (currentTxns.length > 0) {
+                    currentTxns.forEach(rec => {
                         const date = rec.manu_date || rec.out_date || '-';
                         const typeClass = rec.entry_type === 'IN' ? 'badge-success' : 'badge-danger';
                         const jobNo = rec.jo_number || '-';
@@ -945,23 +1084,213 @@
                         <td style="padding: 10px;"><span class="badge ${typeClass}" style="font-size:8px;">${rec.entry_type}</span></td>
                         <td style="padding: 10px; font-weight:600; color:var(--primary);">${jobNo}</td>
                         <td style="padding: 10px; font-weight:800;">${Number(rec.quantity).toLocaleString()}</td>
-                        <td style="padding: 10px;">${rec.pic_name}</td>
+                        <td style="padding: 10px;">${rec.pic_name || '-'}</td>
+                        <td style="padding: 10px; white-space:nowrap;">
+                            <button onclick="openTxnEdit(${rec.id})" style="background:#0078d4;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;margin-right:4px;">Edit</button>
+                            <button onclick="deleteTxn(${rec.id})" style="background:#dc2626;color:#fff;border:none;border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer;">Del</button>
+                        </td>
                     </tr>
                 `;
                     });
                 } else {
-                    historyHtml = '<tr><td colspan="5" align="center" style="padding:20px; color:var(--text-muted);">No records found.</td></tr>';
+                    historyHtml = '<tr><td colspan="6" align="center" style="padding:20px; color:var(--text-muted);">No records found.</td></tr>';
                 }
                 $('#item-history-body').html(historyHtml);
 
             } catch (err) {
                 console.error("History Fetch Error:", err);
-                $('#item-history-body').html('<tr><td colspan="5" align="center" style="color:var(--danger); padding:20px;">Error loading history.</td></tr>');
+                $('#item-history-body').html('<tr><td colspan="6" align="center" style="color:var(--danger); padding:20px;">Error loading history.</td></tr>');
             }
         }
 
         function closeEditModal() {
             $('#edit-modal-overlay').fadeOut(200);
+        }
+
+        // ---- Transaction edit / delete (auto-adjusts inventory stock by the delta) ----
+        function closeTxnEdit() { $('#txn-edit-modal-overlay').fadeOut(150); }
+
+        function recalcTxnTotal() {
+            const std = parseInt($('#txn-std').val()) || 0;
+            const ctn = parseInt($('#txn-ctn').val()) || 0;
+            const loose = parseInt($('#txn-loose').val()) || 0;
+            $('#txn-total').val((std * ctn) + loose);
+        }
+        $(document).on('input change', '.txn-calc', recalcTxnTotal);
+
+        function openTxnEdit(id) {
+            const rec = currentTxns.find(r => r.id == id);
+            if (!rec) return;
+            const std = parseInt(currentInvItem && currentInvItem.units_per_carton) || 1;
+            const qty = Number(rec.quantity) || 0;
+            $('#txn-id').val(rec.id);
+            $('#txn-part').val(rec.part_name || '');
+            $('#txn-type').val(rec.entry_type || 'IN');
+            const d = rec.manu_date || rec.out_date || '';
+            $('#txn-date').val(d ? String(d).slice(0, 10) : '');
+            $('#txn-std').val(std);
+            $('#txn-ctn').val(Math.floor(qty / std));
+            $('#txn-loose').val(qty % std);
+            recalcTxnTotal();
+            $('#txn-jo').val(rec.jo_number || '');
+            $('#txn-customer').val(rec.customer_name || '');
+            $('#txn-location').val(Array.isArray(rec.item_location) ? rec.item_location.join(', ') : (rec.item_location || ''));
+            $('#txn-pic').val(rec.pic_name || '');
+            $('#txn-return-qa').prop('checked', Number(rec.is_return_qa) === 1);
+            $('#txn-remark-bd').val(rec.remarkBD || '');
+            $('#txn-remark-io').val(rec.remark_in_out || '');
+            $('#txn-edit-modal-overlay').css('display', 'flex').hide().fadeIn(150);
+        }
+
+        async function freshInv() {
+            const { data, error } = await _supabase.from('inventory').select('*').eq('id', currentInvItem.id).single();
+            if (error) throw error;
+            return data;
+        }
+
+        // New inventory stock after removing oldTxn and applying newTxn (either may be null).
+        // Mirrors the IN=+qty / OUT|RES=-qty model used when transactions are first saved.
+        function computeStock(inv, oldTxn, newTxn) {
+            const std = parseInt(inv.units_per_carton) || 1;
+            const signed = t => t ? ((t.entry_type === 'IN' ? 1 : -1) * (Number(t.quantity) || 0)) : 0;
+            const inQaOld = (oldTxn && oldTxn.entry_type === 'IN') ? (Number(oldTxn.quantity) || 0) : 0;
+            const inQaNew = (newTxn && newTxn.entry_type === 'IN') ? (Number(newTxn.quantity) || 0) : 0;
+            const outOld = (oldTxn && oldTxn.entry_type !== 'IN') ? (Number(oldTxn.quantity) || 0) : 0;
+            const outNew = (newTxn && newTxn.entry_type !== 'IN') ? (Number(newTxn.quantity) || 0) : 0;
+            const pcs = (Number(inv.available_pcs) || 0) - signed(oldTxn) + signed(newTxn);
+            return {
+                available_pcs: pcs,
+                ready_to_ship_pcs: pcs,
+                available_cartons: Math.floor(pcs / std),
+                loose_remainder: ((pcs % std) + std) % std,
+                in_qa_pass_pcs: (Number(inv.in_qa_pass_pcs) || 0) - inQaOld + inQaNew,
+                out_shipped_pcs: (Number(inv.out_shipped_pcs) || 0) - outOld + outNew,
+                updated_at: new Date().toISOString()
+            };
+        }
+
+        async function refreshAfterTxnChange() {
+            try {
+                const inv = await freshInv();
+                currentInvItem = inv;
+                $('#edit-units-per').val(inv.units_per_carton || 0);
+                $('#edit-ctns').val(inv.available_cartons || 0);
+                $('#edit-loose').val(inv.loose_remainder || 0);
+                $('#edit-total').val(inv.available_pcs || 0);
+            } catch (e) { /* stock fields stay as-is */ }
+            await loadItemHistory();
+            fetchStock();
+        }
+
+        async function saveTxnEdit() {
+            const id = $('#txn-id').val();
+            const rec = currentTxns.find(r => r.id == id);
+            if (!rec) return;
+
+            const type = $('#txn-type').val();
+            const std = parseInt($('#txn-std').val()) || 1;
+            const ctn = parseInt($('#txn-ctn').val()) || 0;
+            const loose = parseInt($('#txn-loose').val()) || 0;
+            const qty = (std * ctn) + loose;
+            const dateVal = $('#txn-date').val();
+
+            if (qty <= 0) { alert('Total quantity must be greater than 0.'); return; }
+            if (!$('#txn-pic').val().trim()) { alert('Staff Name (PIC) is required.'); return; }
+            if ((type === 'IN' || type === 'OUT') && !dateVal) { alert('Please select a date.'); return; }
+
+            const parts = [];
+            if (ctn > 0) parts.push(`${ctn} CTN X ${std}`);
+            if (loose > 0) parts.push(`${loose} PCS (LOOSE)`);
+            const cartonInfo = (parts.join(' + ') || `${qty} PCS`).toUpperCase();
+
+            const newPart = ($('#txn-part').val() || '').toUpperCase().trim();
+            if (!newPart) { alert('Part / Barcode is required.'); return; }
+            const oldPart = String(rec.part_name || '').toUpperCase().trim();
+            const moved = newPart !== oldPart;
+
+            const payload = {
+                part_name: newPart,
+                entry_type: type,
+                quantity: qty,
+                jo_number: ($('#txn-jo').val() || '').toUpperCase(),
+                customer_name: (type !== 'IN') ? (($('#txn-customer').val() || '').toUpperCase() || null) : null,
+                pic_name: ($('#txn-pic').val() || '').toUpperCase(),
+                manu_date: type === 'IN' ? dateVal : null,
+                out_date: type === 'OUT' ? dateVal : null,
+                carton_info: cartonInfo,
+                item_location: ($('#txn-location').val() || '').toUpperCase(),
+                is_return_qa: $('#txn-return-qa').is(':checked') ? 1 : 0,
+                remarkBD: ($('#txn-remark-bd').val() || '').toUpperCase(),
+                remark_in_out: ($('#txn-remark-io').val() || '').toUpperCase()
+            };
+
+            try {
+                $('#overlay').css('display', 'flex');
+                const oldInv = await freshInv(); // item that currently owns this transaction
+                const oldTxn = { entry_type: rec.entry_type, quantity: rec.quantity };
+                const newTxn = { entry_type: type, quantity: qty };
+
+                if (!moved) {
+                    // Same item: apply the delta in place.
+                    const stock = computeStock(oldInv, oldTxn, newTxn);
+                    if (stock.available_pcs < 0 && !confirm('This makes stock negative (' + stock.available_pcs + ' pcs). Continue anyway?')) {
+                        $('#overlay').hide(); return;
+                    }
+                    let { error: e1 } = await _supabase.from('storeRecords').update(payload).eq('id', id);
+                    if (e1) throw e1;
+                    let { error: e2 } = await _supabase.from('inventory').update(stock).eq('id', oldInv.id);
+                    if (e2) throw e2;
+                } else {
+                    // Moved to a different part: reverse on old item, apply on new item.
+                    const { data: destRows, error: de } = await _supabase
+                        .from('inventory').select('*').eq('barcode', newPart).limit(1);
+                    if (de) throw de;
+                    if (!destRows || destRows.length === 0) {
+                        $('#overlay').hide();
+                        alert('No inventory item found with barcode "' + newPart + '". Create that item first, then move the transaction.');
+                        return;
+                    }
+                    const newInv = destRows[0];
+                    const reverse = computeStock(oldInv, oldTxn, null);
+                    const apply = computeStock(newInv, null, newTxn);
+                    if (apply.available_pcs < 0 && !confirm('This makes stock of "' + newPart + '" negative (' + apply.available_pcs + ' pcs). Continue anyway?')) {
+                        $('#overlay').hide(); return;
+                    }
+                    let { error: e1 } = await _supabase.from('storeRecords').update(payload).eq('id', id);
+                    if (e1) throw e1;
+                    let { error: e2 } = await _supabase.from('inventory').update(reverse).eq('id', oldInv.id);
+                    if (e2) throw e2;
+                    let { error: e3 } = await _supabase.from('inventory').update(apply).eq('id', newInv.id);
+                    if (e3) throw e3;
+                }
+                $('#overlay').hide();
+                closeTxnEdit();
+                await refreshAfterTxnChange();
+            } catch (err) {
+                $('#overlay').hide();
+                alert('Error saving transaction: ' + err.message);
+            }
+        }
+
+        async function deleteTxn(id) {
+            const rec = currentTxns.find(r => r.id == id);
+            if (!rec) return;
+            if (!confirm('Delete this transaction and reverse its stock effect?')) return;
+            try {
+                $('#overlay').css('display', 'flex');
+                const inv = await freshInv();
+                const stock = computeStock(inv, { entry_type: rec.entry_type, quantity: rec.quantity }, null);
+                const { error: e1 } = await _supabase.from('storeRecords').delete().eq('id', id);
+                if (e1) throw e1;
+                const { error: e2 } = await _supabase.from('inventory').update(stock).eq('id', inv.id);
+                if (e2) throw e2;
+                $('#overlay').hide();
+                closeTxnEdit();
+                await refreshAfterTxnChange();
+            } catch (err) {
+                $('#overlay').hide();
+                alert('Error deleting transaction: ' + err.message);
+            }
         }
 
         async function updateStock() {
@@ -1088,6 +1417,7 @@
         $(window).on('click', function (event) {
             if (event.target.id === 'modal-overlay') closeModal();
             if (event.target.id === 'edit-modal-overlay') closeEditModal();
+            if (event.target.id === 'txn-edit-modal-overlay') closeTxnEdit();
         });
     </script>
     <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
