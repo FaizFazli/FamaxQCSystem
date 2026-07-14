@@ -270,78 +270,79 @@
 
             <!-- Main Data Table -->
             <div class="table-scroll">
-            <table class="report-table w-full border-collapse">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th rowspan="2">Date</th>
-                        <th rowspan="2">Job Order No</th>
-                        <th rowspan="2">Item Name / Part no</th>
-                        <th rowspan="2">Machine No</th>
-                        <th rowspan="2">Process</th>
-                        <th rowspan="2">Defect Description</th>
-                        <th rowspan="2">Inspected By</th>
-                        <th rowspan="2">Production Record By</th>
-                        <th rowspan="2">Affected Qty</th>
-                        <th rowspan="2">Sorted OK</th>
-                        <th rowspan="2">Return to Vendor</th>
-                        <th rowspan="2">Scraped Qty</th>
-                        <th rowspan="2">Re-Work Acc Qty</th>
-                        <th rowspan="2">Approved By</th>
-                        <th colspan="3">Re-Inspection</th>
-                    </tr>
-                    <tr class="bg-gray-100">
-                        <th>Date</th>
-                        <th>By</th>
-                        <th>Qty</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="row in reportRows" :key="row.id">
-                        <td>{{ formatDate(row.created_at) }}</td>
-                        <td>{{ row.JO_Number }}</td>
-                        <td>{{ row.Part_Name }}</td>
-                        <td>{{ row.Machine_No || '-' }}</td>
-                        <td>{{ row.Parameter }}</td>
-                        <td class="p-0">
-                            <div class="sub-row-container">
-                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item text-left-item">
-                                    {{ item.description || '-' }}
+                <table class="report-table w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th rowspan="2">Date</th>
+                            <th rowspan="2">Job Order No</th>
+                            <th rowspan="2">Item Name / Part no</th>
+                            <th rowspan="2">Machine No</th>
+                            <th rowspan="2">Process</th>
+                            <th rowspan="2">Defect Description</th>
+                            <th rowspan="2">Inspected By</th>
+                            <th rowspan="2">Production Record By</th>
+                            <th rowspan="2">Affected Qty</th>
+                            <th rowspan="2">Sorted OK</th>
+                            <th rowspan="2">Return to Vendor</th>
+                            <th rowspan="2">Scraped Qty</th>
+                            <th rowspan="2">Re-Work Acc Qty</th>
+                            <th rowspan="2">Approved By</th>
+                            <th colspan="3">Re-Inspection</th>
+                        </tr>
+                        <tr class="bg-gray-100">
+                            <th>Date</th>
+                            <th>By</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in reportRows" :key="row.id">
+                            <td>{{ formatDate(row.created_at) }}</td>
+                            <td>{{ row.JO_Number }}</td>
+                            <td>{{ row.Part_Name }}</td>
+                            <td>{{ row.Machine_No || '-' }}</td>
+                            <td>{{ row.Parameter }}</td>
+                            <td class="p-0">
+                                <div class="sub-row-container">
+                                    <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item text-left-item">
+                                        {{ item.description || '-' }}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td>{{ row.InspectBy }}</td>
-                        <td>{{ row.ProductionBy || '-' }}</td>
-                        <td class="p-0">
-                            <div class="sub-row-container">
-                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ item.quantity }}
+                            </td>
+                            <td>{{ row.InspectBy }}</td>
+                            <td>{{ row.ProductionBy || '-' }}</td>
+                            <td class="p-0">
+                                <div class="sub-row-container">
+                                    <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ item.quantity
+                                        }}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td>{{ row.AcceptQty }}</td>
-                        <td>{{ row.ReturnVendor || '-' }}</td>
-                        <td>{{ row.ScrapQty }}</td>
-                        <td>{{ row.ReworkQty || 0 }}</td>
-                        <td>{{ row.FinalizeBy }}</td>
-                        <td class="bg-yellow-50/50">{{ row.reInDate || '-' }}</td>
-                        <td class="p-0 bg-yellow-50/50">
-                            <div class="sub-row-container">
-                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ row.reInBy }}
+                            </td>
+                            <td>{{ row.AcceptQty }}</td>
+                            <td>{{ row.ReturnVendor || '-' }}</td>
+                            <td>{{ row.ScrapQty }}</td>
+                            <td>{{ row.ReworkQty || 0 }}</td>
+                            <td>{{ row.FinalizeBy }}</td>
+                            <td class="bg-yellow-50/50">{{ row.reInDate || '-' }}</td>
+                            <td class="p-0 bg-yellow-50/50">
+                                <div class="sub-row-container">
+                                    <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ row.reInBy }}
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="p-0 bg-yellow-50/50 font-bold">
-                            <div class="sub-row-container">
-                                <div v-for="(item, i) in row.reInBreakdown" :key="i" class="sub-row-item">{{
-                                    item.quantity }}</div>
-                            </div>
-                        </td>
-                    </tr>
-                    <!-- Empty rows to fill the paper -->
-                    <tr v-for="i in Math.max(0, 15 - reportRows.length)" :key="'empty-'+i">
-                        <td v-for="n in 17" class="h-10">&nbsp;</td>
-                    </tr>
-                </tbody>
-            </table>
+                            </td>
+                            <td class="p-0 bg-yellow-50/50 font-bold">
+                                <div class="sub-row-container">
+                                    <div v-for="(item, i) in row.reInBreakdown" :key="i" class="sub-row-item">{{
+                                        item.quantity }}</div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- Empty rows to fill the paper -->
+                        <tr v-for="i in Math.max(0, 15 - reportRows.length)" :key="'empty-'+i">
+                            <td v-for="n in 17" class="h-10">&nbsp;</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div> <!-- PRINTABLE END -->
 
@@ -389,7 +390,11 @@
                         const res = await api.get(`/InspectionRecord`, {
                             params: {
                                 select: '*',
-                                created_at: `gte.${startOfMonth},lt.${endOfMonth}`,
+                                // Passing an array tells Axios to repeat the key: ?created_at=gte...&created_at=lt...
+                                created_at: [
+                                    `gte.${startOfMonth}`,
+                                    `lt.${endOfMonth}`
+                                ],
                                 order: 'created_at.asc'
                             }
                         });

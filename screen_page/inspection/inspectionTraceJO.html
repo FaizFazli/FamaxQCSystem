@@ -8,77 +8,191 @@
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="/assets/app-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/theme.css">
     <style>
-        body { margin: 0; background: var(--bg-body); font-family: var(--font-sans); color: var(--text-main); }
-        header {
-            position: sticky; top: 0; z-index: 10;
-            display: flex; align-items: center; justify-content: space-between; gap: 12px;
-            min-height: 56px; padding: 10px 16px;
-            background: var(--bg-card); border-bottom: 1px solid var(--border);
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            font-family: var(--font-sans);
+            color: var(--text-main);
         }
-        .title { font-weight: 800; font-size: 1rem; }
-        .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
-        .search-bar {
-            display: flex; flex-wrap: wrap; gap: 10px; align-items: end;
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px; margin-bottom: 16px;
+
+        /* 1. FIX OVERFLOW: Prevent the Panel from cutting off the dropdown */
+        .panel,
+        .panel__body {
+            overflow: visible !important;
         }
-        .field { flex: 1 1 220px; min-width: 0; }
-        .field label { display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
-        .field input {
-            width: 100%; box-sizing: border-box; height: 44px; padding: 0 12px;
-            border: 1px solid var(--border-strong); border-radius: 8px; font-size: 16px;
+
+        /* 2. CUSTOM DROPDOWN UI */
+        .dropdown-container {
+            position: relative;
+            width: 100%;
         }
-        .btn {
-            height: 44px; padding: 0 18px; border: 0; border-radius: 8px;
-            background: var(--primary); color: #fff; font-weight: 700; cursor: pointer;
+
+        .custom-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+            z-index: 9999;
+            /* Ensure it stays above everything */
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 5px;
+            display: none;
         }
-        .btn:disabled { opacity: .6; cursor: not-allowed; }
-        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.15s ease;
+        }
+
+        .dropdown-item:hover {
+            background: #f0f7ff;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-title {
+            display: block;
+            color: #006adc;
+            /* High contrast blue */
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .item-subtitle {
+            display: block;
+            color: #64748b;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Results & KPI Styling */
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
         .kpi {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
         }
-        .kpi .l { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-        .kpi .v { font-size: 1.35rem; font-weight: 800; margin-top: 4px; }
+
+        .kpi .l {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .kpi .v {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 4px;
+            color: var(--primary);
+        }
+
         .section {
-            background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-            margin-bottom: 14px; overflow: hidden;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 20px;
+            overflow: hidden;
         }
+
         .section h2 {
-            margin: 0; padding: 12px 14px; font-size: 0.9rem; font-weight: 800;
-            border-bottom: 1px solid var(--border); background: var(--surface-muted);
+            margin: 0;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-muted);
         }
-        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 520px; }
-        th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-        th { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); background: #fafafa; }
-        .empty { padding: 14px; color: var(--text-muted); font-size: 0.9rem; }
-        .msg { color: var(--danger); font-weight: 700; margin: 8px 0; }
-        .hint { color: var(--text-muted); font-size: 0.8rem; margin-bottom: 12px; }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            min-width: 800px;
+        }
+
+        th,
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            background: #fafafa;
+            color: var(--text-muted);
+        }
+
         @media print {
-            header .btn, .search-bar .btn { display: none; }
-            .section { break-inside: avoid; }
+
+            .topbar,
+            .panel,
+            .page-head__subtitle {
+                display: none !important;
+            }
         }
     </style>
 </head>
 
 <body>
-    <header>
-        <div class="title">Trace by JO — ISO packet (read-only)</div>
-        <button class="btn" type="button" onclick="window.print()">Print</button>
+    <header class="topbar">
+        <div class="topbar__brand">
+            <i class="fas fa-search"></i>
+            <span>Trace by JO — ISO packet</span>
+        </div>
+        <button class="btn btn--secondary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
     </header>
 
-    <div class="wrap">
-        <p class="hint">Soft-key search on <strong>JO_Number</strong> across existing tables. Does not alter any save/key-in flow. Empty sections mean no matching rows.</p>
-        <div class="search-bar">
-            <div class="field">
-                <label for="jo">Job Order</label>
-                <input id="jo" type="text" placeholder="e.g. JO-12345" autocomplete="off" />
+    <div class="container">
+        <div class="panel mb-8">
+            <div class="panel__body">
+                <div class="toolbar">
+                    <!-- SEARCH CONTAINER -->
+                    <div class="field dropdown-container" style="flex: 1; min-width: 280px;">
+                        <label class="label">Job Order Number</label>
+                        <input id="jo" class="input" placeholder="Click to see list or type to search..."
+                            autocomplete="off">
+                        <!-- CUSTOM FLOATING MENU -->
+                        <div id="custom-menu" class="custom-dropdown"></div>
+                    </div>
+
+                    <button class="btn" id="btn-search" style="align-self: flex-end; min-width: 120px;">
+                        <i class="fas fa-search mr-2"></i> Search
+                    </button>
+                </div>
+                <div id="msg" style="color: var(--danger); font-size: var(--fs-sm); font-weight: 600; margin-top: 8px;"
+                    hidden></div>
             </div>
-            <button class="btn" id="btn-search" type="button">Search</button>
         </div>
-        <div id="msg" class="msg" hidden></div>
+
         <div id="kpis" class="kpis" hidden></div>
         <div id="results"></div>
     </div>
@@ -87,83 +201,93 @@
         (function () {
             const sb = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
             const joInput = document.getElementById('jo');
+            const menu = document.getElementById('custom-menu');
             const btn = document.getElementById('btn-search');
-            const msg = document.getElementById('msg');
-            const kpis = document.getElementById('kpis');
             const results = document.getElementById('results');
+            const kpis = document.getElementById('kpis');
 
-            const params = new URLSearchParams(location.search);
-            if (params.get('jo')) joInput.value = params.get('jo');
+            let allJOData = [];
 
-            function esc(v) {
-                return String(v ?? '')
-                    .replace(/&/g, '\u0026amp;')
-                    .replace(/</g, '\u0026lt;')
-                    .replace(/>/g, '\u0026gt;')
-                    .replace(/"/g, '\u0026quot;');
+            function esc(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+            function fmtDate(iso) { if (!iso) return '-'; try { return new Date(iso).toLocaleString('en-GB'); } catch { return iso; } }
+
+            // Load JO Master List
+            async function loadJOList() {
+                const { data, error } = await sb.from('JobOrder').select('JO_Number, Part_Name').order('created_at', { ascending: false }).limit(500);
+                if (!error) allJOData = data;
             }
-            function fmtDate(iso) {
-                if (!iso) return '-';
-                try { return new Date(iso).toLocaleString('en-GB'); } catch { return iso; }
+
+            // --- RENDER DROPDOWN ---
+            function renderDropdown(filterText = "") {
+                const query = filterText.toLowerCase().trim();
+
+                // If filter is empty, show all (recent 100), else filter
+                const filtered = query === ""
+                    ? allJOData.slice(0, 100)
+                    : allJOData.filter(item =>
+                        item.JO_Number.toLowerCase().includes(query) ||
+                        (item.Part_Name || "").toLowerCase().includes(query)
+                    ).slice(0, 100);
+
+                if (filtered.length > 0) {
+                    menu.innerHTML = filtered.map(item => `
+                        <div class="dropdown-item" data-value="${esc(item.JO_Number)}">
+                            <span class="item-title">${esc(item.JO_Number)}</span>
+                            <span class="item-subtitle">PN: ${esc(item.Part_Name || 'N/A')}</span>
+                        </div>
+                    `).join('');
+                    menu.style.display = 'block';
+                } else {
+                    menu.innerHTML = '<div class="padding-4 text-center text-muted text-xs">No matching JO found</div>';
+                    menu.style.display = 'block';
+                }
             }
-            function eq(jo) {
-                return encodeURIComponent(jo);
-            }
+
+            // SHOW ON CLICK (FOCUS)
+            joInput.addEventListener('focus', () => renderDropdown(joInput.value));
+
+            // FILTER ON TYPE
+            joInput.addEventListener('input', (e) => renderDropdown(e.target.value));
+
+            // HANDLE SELECTION
+            menu.addEventListener('mousedown', (e) => {
+                const item = e.target.closest('.dropdown-item');
+                if (item) {
+                    joInput.value = item.dataset.value;
+                    menu.style.display = 'none';
+                    search(); // Auto search
+                }
+            });
+
+            // CLOSE WHEN CLICKING OUTSIDE
+            document.addEventListener('mousedown', (e) => {
+                if (!e.target.closest('.dropdown-container')) menu.style.display = 'none';
+            });
 
             async function get(table, filter) {
                 try {
                     const { data, error } = await sb.from(table).select('*').eq(filter.col, filter.val).limit(200);
-                    if (error) {
-                        console.warn(table, error);
-                        return [];
-                    }
-                    return data || [];
-                } catch (e) {
-                    console.warn(table, e);
-                    return [];
-                }
-            }
-
-            function section(title, headers, rows, mapRow) {
-                if (!rows.length) {
-                    return `<div class="section"><h2>${esc(title)} (0)</h2><div class="empty">No rows</div></div>`;
-                }
-                const body = rows.map(r => `<tr>${mapRow(r).map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
-                return `<div class="section"><h2>${esc(title)} (${rows.length})</h2>
-          <div class="table-scroll"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-          <tbody>${body}</tbody></table></div></div>`;
+                    return error ? [] : data;
+                } catch { return []; }
             }
 
             async function search() {
                 const jo = joInput.value.trim();
-                msg.hidden = true;
+                if (!jo) return;
+
+                menu.style.display = 'none';
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading...';
                 results.innerHTML = '';
                 kpis.hidden = true;
-                if (!jo) {
-                    msg.hidden = false;
-                    msg.textContent = 'Enter a Job Order number.';
-                    return;
-                }
-                btn.disabled = true;
-                btn.textContent = 'Loading...';
+
                 try {
-                    const [
-                        jobOrders,
-                        dataIpqc,
-                        dataBuyoff,
-                        buyoffLogs,
-                        buyoffAppr,
-                        inspRec,
-                        inspSch,
-                        storeRec
-                    ] = await Promise.all([
+                    const [jobOrders, dataIpqc, dataBuyoff, buyoffLogs, inspRec, storeRec] = await Promise.all([
                         get('JobOrder', { col: 'JO_Number', val: jo }),
                         get('Data_IPQC', { col: 'JO_Number', val: jo }),
                         get('Data_BUYOFF', { col: 'JO_Number', val: jo }),
                         get('data_buyoff_logs', { col: 'jo_number', val: jo }),
-                        get('buyoff_approvals', { col: 'jo_number', val: jo }),
                         get('InspectionRecord', { col: 'JO_Number', val: jo }),
-                        get('InspectionSchedule', { col: 'JO_Number', val: jo }),
                         get('storeRecords', { col: 'jo_number', val: jo })
                     ]);
 
@@ -174,55 +298,36 @@
 
                     kpis.hidden = false;
                     kpis.innerHTML = `
-            <div class="kpi"><div class="l">IPQC rows</div><div class="v">${dataIpqc.length}</div></div>
-            <div class="kpi"><div class="l">Buy-off rows</div><div class="v">${dataBuyoff.length}</div></div>
-            <div class="kpi"><div class="l">Buy-off OOS (logs)</div><div class="v">${oos}</div></div>
-            <div class="kpi"><div class="l">Buy-off OK logs</div><div class="v">${okLog}</div></div>
-            <div class="kpi"><div class="l">Lot Accept qty</div><div class="v">${accept}</div></div>
-            <div class="kpi"><div class="l">Lot Reject qty</div><div class="v">${reject}</div></div>
-            <div class="kpi"><div class="l">Approvals</div><div class="v">${buyoffAppr.length}</div></div>
-            <div class="kpi"><div class="l">Store moves</div><div class="v">${storeRec.length}</div></div>
-          `;
+                        <div class="kpi"><div class="l">IPQC Rows</div><div class="v">${dataIpqc.length}</div></div>
+                        <div class="kpi"><div class="l">Buy-Off Rows</div><div class="v">${dataBuyoff.length}</div></div>
+                        <div class="kpi"><div class="l">OOS Points</div><div class="v" style="color:var(--danger)">${oos}</div></div>
+                        <div class="kpi"><div class="l">Lot Accept</div><div class="v">${accept}</div></div>
+                        <div class="kpi"><div class="l">Lot Reject</div><div class="v" style="color:var(--danger)">${reject}</div></div>
+                    `;
+
+                    function section(title, headers, rows, mapRow) {
+                        if (!rows.length) return `<div class="section"><h2>${esc(title)} (0)</h2><div class="empty">No records found.</div></div>`;
+                        const body = rows.map(r => `<tr>${mapRow(r).map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+                        return `<div class="section"><h2>${esc(title)} (${rows.length})</h2><div class="table-scroll"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+                    }
 
                     results.innerHTML = [
-                        section('Job Order', ['JO', 'Part', 'Process', 'Qty', 'Status', 'Created'], jobOrders, r => [
-                            esc(r.JO_Number), esc(r.Part_Name), esc(r.Process), esc(r.Quantity), esc(r.Status), esc(fmtDate(r.created_at))
-                        ]),
-                        section('Data_IPQC (dimensional)', ['When', 'Part', 'Process', 'Point', 'R1', 'R2', 'R3', 'Person', 'Machine', 'Remarks'], dataIpqc, r => [
-                            esc(fmtDate(r.created_at)), esc(r.Part_Name), esc(r.Process), esc(r.Point_DWG_Zone),
-                            esc(r.Reading_1), esc(r.Reading_2), esc(r.Reading_3), esc(r.Person), esc(r.Machine), esc(r.Remarks)
-                        ]),
-                        section('Data_BUYOFF (accepted)', ['When', 'Part', 'Process', 'Point', 'R1–R5', 'Person', 'Technician', 'Remarks', 'Attempt'], dataBuyoff, r => [
-                            esc(fmtDate(r.created_at)), esc(r.Part_Name), esc(r.Process), esc(r.Point_DWG_Zone),
-                            esc([r.Reading_1, r.Reading_2, r.Reading_3, r.Reading_4, r.Reading_5].join(' / ')),
-                            esc(r.Person), esc(r.QC_Technician), esc(r.Remarks), esc(r.Attempt_Group)
-                        ]),
-                        section('data_buyoff_logs (attempts / OOS)', ['When', 'Point', 'Value', 'Status', 'Person', 'Attempt'], buyoffLogs, r => [
-                            esc(fmtDate(r.created_at)), esc(r.point_dwg_zone), esc(r.reading_value), esc(r.status), esc(r.person), esc(r.attempt_group)
-                        ]),
-                        section('buyoff_approvals', ['Status', 'Segment', 'Part', 'Person', 'Approver', 'Approved at'], buyoffAppr, r => [
-                            esc(r.status), esc(r.segment), esc(r.part_name), esc(r.person), esc(r.approver_name), esc(fmtDate(r.approved_at))
-                        ]),
-                        section('InspectionRecord (lot)', ['When', 'Type', 'Category', 'Part', 'Param', 'Accept', 'Reject', 'Scrap', 'By'], inspRec, r => [
-                            esc(fmtDate(r.created_at)), esc(r.Inspection_Type), esc(r.Category), esc(r.Part_Name), esc(r.Parameter),
-                            esc(r.AcceptQty), esc(r.RejectQty), esc(r.ScrapQty), esc(r.InspectBy)
-                        ]),
-                        section('InspectionSchedule', ['Status', 'Part', 'Param', 'Assign', 'Qty', 'Remaining', 'Est finish'], inspSch, r => [
-                            esc(r.Status), esc(r.Part_Name), esc(r.Parameter), esc(r.AssignTo), esc(r.quantity), esc(r.remaining_qty), esc(fmtDate(r.EstFinished))
-                        ]),
-                        section('storeRecords', ['When', 'Part', 'Type', 'Qty', 'PIC', 'Customer'], storeRec, r => [
-                            esc(fmtDate(r.created_at || r.out_date || r.manu_date)), esc(r.part_name), esc(r.entry_type || r.remark_in_out), esc(r.quantity), esc(r.pic_name), esc(r.customer_name)
-                        ])
+                        section('Job Order Details', ['JO', 'Part', 'Process', 'Qty', 'Status'], jobOrders, r => [esc(r.JO_Number), esc(r.Part_Name), esc(r.Process), esc(r.Quantity), esc(r.Status)]),
+                        section('IPQC Measurements', ['When', 'Process', 'Point', 'R1', 'R2', 'R3', 'User'], dataIpqc, r => [esc(fmtDate(r.created_at)), esc(r.Process), esc(r.Point_DWG_Zone), esc(r.Reading_1), esc(r.Reading_2), esc(r.Reading_3), esc(r.Person)]),
+                        section('Inspection Record', ['When', 'Type', 'Accept', 'Reject', 'By'], inspRec, r => [esc(fmtDate(r.created_at)), esc(r.Inspection_Type), esc(r.AcceptQty), esc(r.RejectQty), esc(r.InspectBy)]),
+                        section('Store History', ['Date', 'Part', 'Type', 'Qty', 'Customer'], storeRec, r => [esc(fmtDate(r.created_at || r.out_date)), esc(r.part_name), esc(r.entry_type || r.remark_in_out), esc(r.quantity), esc(r.customer_name)])
                     ].join('');
+
                 } finally {
                     btn.disabled = false;
-                    btn.textContent = 'Search';
+                    btn.innerHTML = '<i class="fas fa-search mr-2"></i> Search';
                 }
             }
 
             btn.addEventListener('click', search);
             joInput.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
-            if (joInput.value.trim()) search();
+
+            loadJOList();
         })();
     </script>
 </body>
