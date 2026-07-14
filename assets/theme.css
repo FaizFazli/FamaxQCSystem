@@ -232,6 +232,10 @@ input:focus, select:focus, textarea:focus {
 
 /* ----------------------------------------------------------------------- */
 /* 7. MODAL                                                                 */
+/* Two supported patterns (both cover the full viewport with a scrim):
+   A) .modal-overlay > .modal          (preferred)
+   B) .modal > .modal-content          (legacy pages)
+   Never put max-width on a scrim — only friction on the inner panel.      */
 /* ----------------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -240,12 +244,57 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
   padding: var(--space-4);
+  box-sizing: border-box;
   background: rgba(15, 23, 42, 0.55);
   -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
 }
-.modal {
+
+/* Pattern A — dialog card inside overlay */
+.modal-overlay > .modal {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  max-width: 420px;
+  margin: 0;
+  padding: var(--space-8);
+  text-align: center;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  box-sizing: border-box;
+}
+
+/* Pattern B — .modal is the full-page scrim (contains .modal-content).
+   Do NOT force display here — each page toggles visibility. */
+.modal:has(> .modal-content) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: var(--z-modal);
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: var(--space-4) !important;
+  box-sizing: border-box;
+  text-align: left;
+  background: rgba(15, 23, 42, 0.55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Fallback bare .modal (no .modal-content child) — small dialog card only */
+.modal:not(:has(> .modal-content)) {
   width: 100%;
   max-width: 420px;
   padding: var(--space-8);
@@ -253,6 +302,23 @@ input:focus, select:focus, textarea:focus {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  box-sizing: border-box;
+}
+
+/* Inner panel used by pattern B (and some overlay pages) */
+.modal-content {
+  width: 100%;
+  max-width: min(720px, 100%);
+  max-height: min(90vh, 100%);
+  overflow: auto;
+  margin: 0 auto;
+  padding: var(--space-6);
+  text-align: left;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  box-sizing: border-box;
+  position: relative;
 }
 
 /* ----------------------------------------------------------------------- */

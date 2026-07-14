@@ -141,7 +141,10 @@
 <body class="p-4 md:p-8">
     <div id="app" class="max-w-[1400px] mx-auto">
         <!-- ... (Keep Header section same) ... -->
-        <header class="panel mb-8 no-print">
+       
+        <!-- PREVIEW AREA -->
+        <div id="printableReport" class="bg-white p-8 shadow-2xl rounded-sm min-h-[800px]">
+             <header class="panel mb-8 no-print">
             <div class="panel__head">
                 <h1 class="panel__title">Report Generator</h1>
             </div>
@@ -181,8 +184,6 @@
             </div>
         </header>
 
-        <!-- PREVIEW AREA -->
-        <div id="printableReport" class="bg-white p-8 shadow-2xl rounded-sm min-h-[800px]">
             <!-- Form Header & Category Checkboxes (Keep same as your current code) -->
             <div class="flex justify-between items-start mb-4">
                 <div class="flex items-center gap-3">
@@ -328,152 +329,152 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+       const { createApp, ref, computed, onMounted, watch } = Vue; // Added watch
 
-        createApp({
-            setup() {
-                const api = axios.create({
-                    baseURL: `${window.APP_CONFIG.url}/rest/v1`,
-                    headers: {
-                        'apikey': window.APP_CONFIG.key,
-                        'Authorization': `Bearer ${window.APP_CONFIG.key}`
+createApp({
+    setup() {
+        const api = axios.create({
+            baseURL: `${window.APP_CONFIG.url}/rest/v1`,
+            headers: {
+                'apikey': window.APP_CONFIG.key,
+                'Authorization': `Bearer ${window.APP_CONFIG.key}`
+            }
+        });
+
+        const allRecords = ref([]);
+        const isLoading = ref(false); // Added loading state
+        const filterMonth = ref(new Date().toISOString().slice(0, 7));
+        const selectedCategory = ref('');
+
+        const categories = ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC', "Customer Sample"];
+
+        const categoryMapping = {
+            'Buy-Off': 'Buy-Off',
+            'Incoming QC': 'IQC',
+            'Customer Return': 'Customer Return',
+            'Inprocess QC': 'IPQC',
+            'Outgoing QC': 'OQC'
+        };
+
+        // Improved Fetch Data: Only gets data for the selected month
+        const fetchData = async () => {
+            if (!filterMonth.value) return;
+            
+            isLoading.value = true;
+            try {
+                // Calculate start and end of month for the API query
+                const startOfMonth = `${filterMonth.value}-01T00:00:00Z`;
+                const [year, month] = filterMonth.value.split('-');
+                const endOfMonth = new Date(year, month, 1).toISOString();
+
+                // Fetch only relevant records (Initial + Re-Inspection for that month)
+                const res = await api.get(`/InspectionRecord`, {
+                    params: {
+                        select: '*',
+                        created_at: `gte.${startOfMonth},lt.${endOfMonth}`,
+                        order: 'created_at.asc'
                     }
                 });
+                allRecords.value = res.data;
+            } catch (err) { 
+                console.error("Fetch error:", err); 
+            } finally {
+                isLoading.value = false;
+            }
+        };
 
-                const allRecords = ref([]);
-                const filterMonth = ref(new Date().toISOString().slice(0, 7));
-                const selectedCategory = ref('');
+        // Watch for month changes and trigger a search automatically
+        watch(filterMonth, () => {
+            fetchData();
+        });
 
-                // 1. Define the UI Labels
-                const categories = ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC', 'Customer Return', "Customer Sample"];
+        const reportRows = computed(() => {
+            const dbCategoryValue = categoryMapping[selectedCategory.value];
+            
+            // 1. Get Primary (Initial) Inspections for this month
+            // (Note: Database is already filtered by month, but we still filter by category here)
+            const primaryInspections = allRecords.value.filter(r => {
+                const catMatch = !selectedCategory.value || (r.Category || "").toUpperCase() === (dbCategoryValue || "").toUpperCase();
+                const typeMatch = (r.Inspection_Type || "").toUpperCase() !== 'RE-INSPECTION';
+                return catMatch && typeMatch && Number(r.RejectQty) !== 0;
+            });
 
-                // 2. Define the Mapping to Database Values
-                const categoryMapping = {
-                    'Buy-Off': 'Buy-Off',
-                    'Incoming QC': 'IQC',
-                    'Customer Return': 'Customer Return',
-                    'Inprocess QC': 'IPQC',
-                    'Outgoing QC': 'OQC'
-                };
+            // 2. Prepare Re-Inspections list
+            let reInspections = allRecords.value
+                .filter(r => (r.Inspection_Type || "").toUpperCase() === 'RE-INSPECTION')
+                .map(r => ({ ...r, remaining: Number(r.AcceptQty || 0) }));
 
-                const fetchData = async () => {
-                    try {
-                        const res = await api.get('/InspectionRecord?select=*');
-                        allRecords.value = res.data;
-                    } catch (err) { console.error(err); }
-                };
+            const normalize = (str) => (str || "").trim().replace(/\s+/g, ' ').toUpperCase();
 
-                const reportRows = computed(() => {
-                    const dbCategoryValue = categoryMapping[selectedCategory.value];
-                    // 1. Get Primary (Initial) Inspections
-                    const primaryInspections = allRecords.value.filter(r => {
-                        const dateMatch = (r.created_at || "").startsWith(filterMonth.value);
-                        const catMatch = !selectedCategory.value || (r.Category || "").toUpperCase() === (dbCategoryValue || "").toUpperCase();
-                        const typeMatch = (r.Inspection_Type || "").toUpperCase() !== 'RE-INSPECTION';
-                        return dateMatch && catMatch && typeMatch && Number(r.RejectQty) !== 0;
-                    });
+            const rowResults = primaryInspections.map(p => ({
+                id: p.id,
+                target: Number(p.ReworkQty || 0),
+                reject: Number(p.RejectQty || 0),
+                key: `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`,
+                finalQty: 0,
+                latestDate: null,
+                latestBy: null
+            }));
 
-                    primaryInspections.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            // Match Re-Inspections to Primary Rows
+            rowResults.forEach(row => {
+                reInspections.forEach(ri => {
+                    if (row.finalQty >= row.target || row.target === 0) return;
+                    
+                    const riKey = `${normalize(ri.JO_Number)}|${normalize(ri.Part_Name)}|${normalize(ri.Parameter)}`;
+                    const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
 
-                    // 2. Prepare Re-Inspections list with a "remaining" tracker
-                    let reInspections = allRecords.value
-                        .filter(r => (r.Inspection_Type || "").toUpperCase() === 'RE-INSPECTION')
-                        .map(r => ({ ...r, remaining: Number(r.AcceptQty || 0) }));
+                    if (riKey === row.key && isAfter && ri.remaining > 0) {
+                        const needed = row.target - row.finalQty;
+                        const take = Math.min(needed, ri.remaining);
+                        row.finalQty += take;
+                        ri.remaining -= take;
 
-                    const normalize = (str) => (str || "").trim().replace(/\s+/g, ' ').toUpperCase();
-
-                    // Initialize tracking objects for our primary rows
-                    const rowResults = primaryInspections.map(p => ({
-                        id: p.id,
-                        target: Number(p.ReworkQty || 0), // Use Rework Qty as the cap
-                        reject: Number(p.RejectQty || 0),
-                        key: `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`,
-                        finalQty: 0,
-                        latestDate: null,
-                        latestBy: null
-                    }));
-
-                    // STEP A: PRIORITY MATCHING (Exact Qty matches)
-                    // If a Re-Inspection Qty matches an Initial Reject Qty exactly, they likely belong together.
-                    rowResults.forEach(row => {
-                        const riMatch = reInspections.find(ri => {
-                            const riKey = `${normalize(ri.JO_Number)}|${normalize(ri.Part_Name)}|${normalize(ri.Parameter)}`;
-                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
-                            return riKey === row.key && isAfter && (ri.remaining === row.reject || ri.remaining === row.target) && ri.remaining > 0;
-                        });
-
-                        if (riMatch) {
-                            const take = Math.min(row.target, riMatch.remaining);
-                            row.finalQty = take;
-                            row.latestDate = riMatch.created_at;
-                            row.latestBy = riMatch.InspectBy;
-                            riMatch.remaining -= riMatch.remaining; // Mark this specific RI record as fully consumed for matching
+                        if (!row.latestDate || new Date(ri.created_at) > new Date(row.latestDate)) {
+                            row.latestDate = ri.created_at;
+                            row.latestBy = ri.InspectBy;
                         }
-                    });
-
-                    // STEP B: FILL REMAINING (Chronological Pool consumption)
-                    // For rows not matched exactly, take what's left in the pool for that JO/Part/Process
-                    rowResults.forEach(row => {
-                        if (row.finalQty > 0 || row.target === 0) return;
-
-                        reInspections.forEach(ri => {
-                            if (row.finalQty >= row.target) return;
-                            const riKey = `${ri.JO_Number}|${ri.Part_Name}|${ri.Parameter}`.toUpperCase();
-                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
-
-                            if (riKey === row.key && isAfter && ri.remaining > 0) {
-                                const needed = row.target - row.finalQty;
-                                const take = Math.min(needed, ri.remaining);
-                                row.finalQty += take;
-                                ri.remaining -= take;
-
-                                if (!row.latestDate || new Date(ri.created_at) > new Date(row.latestDate)) {
-                                    row.latestDate = ri.created_at;
-                                    row.latestBy = ri.InspectBy;
-                                }
-                            }
-                        });
-                    });
-
-                    // 3. Final mapping to visual rows
-                    return primaryInspections.map(primary => {
-                        const result = rowResults.find(res => res.id === primary.id);
-                        let remarks = [];
-                        try {
-                            remarks = Array.isArray(primary.Remark) ? primary.Remark : JSON.parse(primary.Remark || "[]");
-                        } catch (e) { remarks = []; }
-
-                        return {
-                            ...primary,
-                            Remark: remarks,
-                            reInDate: result.latestDate ? formatDate(result.latestDate) : '-',
-                            reInBy: result.latestBy || '-',
-                            reInBreakdown: remarks.map((defect, i) => ({
-                                description: defect.description,
-                                // Assign the total found quantity to the first defect description line
-                                quantity: i === 0 && result.finalQty > 0 ? result.finalQty : '-'
-                            }))
-                        };
-                    });
+                    }
                 });
+            });
 
-
-                const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB') : '';
-                const formatMonthDisplay = (val) => {
-                    if (!val) return '......../........';
-                    const [y, m] = val.split('-');
-                    return `${m} / ${y}`;
-                };
-
-                onMounted(fetchData);
+            return primaryInspections.map(primary => {
+                const result = rowResults.find(res => res.id === primary.id);
+                let remarks = [];
+                try {
+                    remarks = Array.isArray(primary.Remark) ? primary.Remark : JSON.parse(primary.Remark || "[]");
+                } catch (e) { remarks = []; }
 
                 return {
-                    filterMonth, selectedCategory, categories, reportRows,
-                    fetchData, formatDate, formatMonthDisplay,
-                    printReport: () => window.print()
-                }
-            }
-        }).mount('#app');
+                    ...primary,
+                    Remark: remarks,
+                    reInDate: result.latestDate ? formatDate(result.latestDate) : '-',
+                    reInBy: result.latestBy || '-',
+                    reInBreakdown: remarks.map((defect, i) => ({
+                        description: defect.description,
+                        quantity: i === 0 && result.finalQty > 0 ? result.finalQty : '-'
+                    }))
+                };
+            });
+        });
+
+        const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB') : '';
+        const formatMonthDisplay = (val) => {
+            if (!val) return '......../........';
+            const [y, m] = val.split('-');
+            const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            return `${months[parseInt(m)-1]} / ${y}`;
+        };
+
+        onMounted(fetchData);
+
+        return {
+            filterMonth, selectedCategory, categories, reportRows, isLoading,
+            fetchData, formatDate, formatMonthDisplay,
+            printReport: () => window.print()
+        }
+    }
+}).mount('#app');
     </script>
     <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>

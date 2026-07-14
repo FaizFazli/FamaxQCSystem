@@ -286,19 +286,8 @@
                             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                         </svg>
                     </div>
-                    <span class="card-title">Add Part</span>
-                    <span class="card-desc">Register new part numbers and specifications.</span>
-                </div>
-
-                <div id="revisionBtn" class="dashboard-card" onclick="navigateTo('screen_page/revision/revision.html')">
-                    <div class="icon-box bg-purple">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Revision</span>
-                    <span class="card-desc">Manage drawing revisions and history updates.</span>
+                    <span class="card-title">Register/Revise Part</span>
+                    <span class="card-desc">Upload WI, process images, and customer drawing for a part revision.</span>
                 </div>
             </div>
         </section>
@@ -556,7 +545,7 @@
         function setButtonAccess(accessLevel) {
             // List of all possible button IDs
             const allButtons = [
-                'generateFileBtn', 'addPartBtn', 'revisionBtn', 'updateJOBtn',
+                'generateFileBtn', 'addPartBtn', 'updateJOBtn',
                 'usersBtn', 'removeFolderBtn', 'generateReport', 'dataEditor',
                 'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
                 'btn-packing-list-form', 'btn-do-report', 'btn-dms', 'btn-gv', 'btn-sales-order-form'
@@ -591,7 +580,7 @@
                     break;
 
                 case 'REGISTER':
-                    enable(['addPartBtn', 'revisionBtn', 'generateReport', 'notifyEmailBtn', 'btn-dms']);
+                    enable(['addPartBtn', 'generateReport', 'notifyEmailBtn', 'btn-dms']);
                     break;
 
                 case 'RESOURCE':
@@ -607,7 +596,7 @@
                         'notifyEmailBtn', 'btn-do-report', 'btn-gv']);
                     break;
                 case 'MANAGEMENT':
-                    enable(['generateFileBtn', 'addPartBtn', 'revisionBtn', 'updateJOBtn',
+                    enable(['generateFileBtn', 'addPartBtn', 'updateJOBtn',
                         'removeFolderBtn', 'generateReport', 'dataEditor',
                         'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
                         'btn-packing-list-form', 'btn-do-report', 'btn-dms']);
