@@ -70,6 +70,8 @@
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         /* --- Info Bar --- */
@@ -127,13 +129,13 @@
         /* --- Workspace --- */
         .workspace {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
             gap: var(--space-4);
         }
 
         @media (min-width: 1024px) {
             .workspace {
-                grid-template-columns: 1fr 400px;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
             }
 
             .info-grid {
@@ -151,12 +153,14 @@
 
         .image-container {
             width: 100%;
-            height: 300px;
+            height: min(42vh, 320px);
+            min-height: 160px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: var(--surface-muted);
             border-radius: var(--radius-sm);
+            overflow: hidden;
         }
 
         .ipqc-image {
@@ -164,19 +168,113 @@
             max-height: 100%;
             object-fit: contain;
             cursor: zoom-in;
+            touch-action: manipulation;
         }
 
-        .zoomed {
+        /* Fullscreen lightbox — outside layout flow so nothing clips it */
+        .img-lightbox {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: var(--z-overlay);
-            background: rgba(0, 0, 0, 0.9);
-            object-fit: contain;
-            padding: 20px;
-            cursor: zoom-out;
+            inset: 0;
+            z-index: 100000;
+            background: rgba(0, 0, 0, 0.94);
+            display: none;
+            flex-direction: column;
+            touch-action: none;
+        }
+
+        .img-lightbox.is-open {
+            display: flex;
+        }
+
+        .img-lightbox-tools {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+            color: #fff;
+        }
+
+        .img-lightbox-tools button {
+            min-width: 44px;
+            min-height: 44px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .img-lightbox-tools .tool-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .img-lightbox-stage {
+            flex: 1 1 auto;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+            cursor: grab;
+        }
+
+        .img-lightbox-stage.is-dragging {
+            cursor: grabbing;
+        }
+
+        .img-lightbox-stage img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            max-width: none;
+            max-height: none;
+            width: auto;
+            height: auto;
+            transform-origin: center center;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        .img-lightbox-hint {
+            flex: 0 0 auto;
+            margin: 0;
+            padding: 8px 12px max(12px, env(safe-area-inset-bottom));
+            text-align: center;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.75rem;
+        }
+
+        body.lightbox-open {
+            overflow: hidden !important;
+        }
+
+        @media (max-width: 640px) {
+            .main-wrapper {
+                padding: 12px 10px;
+            }
+
+            .image-container {
+                height: min(36vh, 240px);
+            }
+
+            .progress-step {
+                flex: 0 0 32px;
+                height: 32px;
+                font-size: 0.75rem;
+            }
+
+            .button-container {
+                position: sticky;
+                bottom: 0;
+                background: var(--bg-body);
+                padding-top: 8px;
+                padding-bottom: env(safe-area-inset-bottom);
+                z-index: 20;
+            }
         }
 
         /* --- Progress Circles --- */
@@ -186,6 +284,8 @@
             padding: var(--space-4);
             border: 1px solid var(--border);
             margin-bottom: var(--space-4);
+            min-width: 0;
+            max-width: 100%;
         }
 
         .progress-header {
@@ -197,19 +297,32 @@
 
         .progress-indicator {
             display: flex;
+            flex-wrap: nowrap;
             gap: 10px;
+            width: 100%;
+            max-width: 100%;
             overflow-x: auto;
-            padding: 10px 5px;
-            scrollbar-width: none;
+            overflow-y: hidden;
+            padding: 10px 5px 14px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-strong) transparent;
             -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x;
         }
 
         .progress-indicator::-webkit-scrollbar {
-            display: none;
+            height: 8px;
+        }
+
+        .progress-indicator::-webkit-scrollbar-thumb {
+            background: var(--border-strong);
+            border-radius: 999px;
         }
 
         .progress-step {
             flex: 0 0 35px;
+            width: 35px;
             height: 35px;
             border-radius: 50%;
             background: var(--bg-card);
@@ -222,6 +335,12 @@
             cursor: pointer;
             transition: all var(--transition);
             color: var(--text-muted);
+            user-select: none;
+        }
+
+        .control-panel {
+            min-width: 0;
+            max-width: 100%;
         }
 
         .progress-step.active {
@@ -232,7 +351,7 @@
             box-shadow: 0 0 8px rgba(0, 120, 212, 0.4);
         }
 
-        .progress-step.completed {
+        .progress-step.completed:not(.active) {
             border-color: var(--success);
             background: #dcfce7;
             color: #15803d;
@@ -588,6 +707,22 @@
 
     <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
+    <!-- Lightweight image viewer (body-level so fixed is never clipped) -->
+    <div id="img-lightbox" class="img-lightbox" aria-hidden="true">
+        <div class="img-lightbox-tools">
+            <div class="tool-group">
+                <button type="button" id="lb-zoom-out" aria-label="Zoom out">−</button>
+                <button type="button" id="lb-zoom-in" aria-label="Zoom in">+</button>
+                <button type="button" id="lb-zoom-reset" aria-label="Reset zoom">1:1</button>
+            </div>
+            <button type="button" id="lb-close" aria-label="Close">✕</button>
+        </div>
+        <div class="img-lightbox-stage" id="lb-stage">
+            <img id="lb-img" alt="Drawing full view" />
+        </div>
+        <p class="img-lightbox-hint">Pinch / scroll to zoom · drag to pan · ESC or X to close</p>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const urlParams = new URLSearchParams(window.location.search);
@@ -610,6 +745,7 @@
             let buyOffData = [];
             let currentZoneIndex = 0;
             let acceptedItemCount = 0;
+            let oosItemCount = 0;
             let currentItemReadings = [];
             let finalAcceptedData = [];
 
@@ -631,26 +767,11 @@
             let employeesArr = [];      // [{ name, empId, position }]
             let employeeMap = {};       // { NAME_UPPER: true }
 
+            // Order points by drawing/system point number only.
             const pointNo = z => (parseInt(String(z.Point_DWG_Zone || '').replace(/\D/g, '')) || 0);
 
-            // Group points by instrument (fewer instrument swaps for the operator).
-            // Groups ordered by their lowest point number; within a group by point number;
-            // points with no instrument go last.
-            function orderByInstrument(rows) {
-                const firstPoint = {};
-                rows.forEach(z => {
-                    const k = (z.Measuring_Instrument || '').trim().toUpperCase();
-                    const p = pointNo(z);
-                    if (!(k in firstPoint) || p < firstPoint[k]) firstPoint[k] = p;
-                });
-                return rows.slice().sort((a, b) => {
-                    const ia = (a.Measuring_Instrument || '').trim(), ib = (b.Measuring_Instrument || '').trim();
-                    const ea = ia === '' ? 1 : 0, eb = ib === '' ? 1 : 0;
-                    if (ea !== eb) return ea - eb;            // no-instrument rows last
-                    const ka = ia.toUpperCase(), kb = ib.toUpperCase();
-                    if (ka !== kb) return (firstPoint[ka] - firstPoint[kb]) || (ka < kb ? -1 : 1);
-                    return pointNo(a) - pointNo(b);
-                });
+            function orderByPoint(rows) {
+                return rows.slice().sort((a, b) => pointNo(a) - pointNo(b) || String(a.Point_DWG_Zone || '').localeCompare(String(b.Point_DWG_Zone || '')));
             }
 
             // Fetch the employee list for the current Role segment.
@@ -717,6 +838,12 @@
                 if (input) currentItemReadings[currentZoneIndex] = input.value.trim();
                 const readingOk = input ? input.value.trim() !== '' : false;
                 nextButton.disabled = !(readingOk && checkHeaderValidation());
+                updateProgressUI();
+            }
+
+            function saveCurrentReading() {
+                const input = document.getElementById('reading-input-main');
+                if (input) currentItemReadings[currentZoneIndex] = input.value.trim();
             }
 
             // Combobox wiring
@@ -751,7 +878,7 @@
 
                     if (error || !data.length) return alert("No specs found!");
 
-                    buyOffData = orderByInstrument(data);
+                    buyOffData = orderByPoint(data);
 
                     currentItemReadings = new Array(buyOffData.length).fill('');
 
@@ -782,7 +909,7 @@
         <div class="zone-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <span style="background:#2c3e50; color:white; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:bold;">
-                    ACCEPTED ITEMS: ${acceptedItemCount} / 5
+                    ACCEPTED: ${acceptedItemCount} / 5 · OOS: ${oosItemCount} · CHECKS: ${acceptedItemCount + oosItemCount}
                 </span>
                 <span class="info-label">Point ${currentZoneIndex + 1} of ${buyOffData.length} · ${zone.Point_DWG_Zone}</span>
             </div>
@@ -835,18 +962,136 @@
 
             function showImageUnavailable() {
                 const img = document.getElementById('ipqc-image');
-                if (img) { img.classList.remove('zoomed'); img.classList.add('hidden'); }
+                if (img) img.classList.add('hidden');
                 document.getElementById('zoom-hint').classList.add('hidden');
                 document.getElementById('image-status').classList.remove('hidden');
+                closeLightbox();
+            }
+
+            // --- Image lightbox: pan + pinch/wheel zoom (fixes clipped fullscreen) ---
+            const lb = document.getElementById('img-lightbox');
+            const lbStage = document.getElementById('lb-stage');
+            const lbImg = document.getElementById('lb-img');
+            let lbScale = 1, lbX = 0, lbY = 0;
+            let drag = null, pinch = null;
+
+            function applyLbTransform() {
+                lbImg.style.transform = `translate(-50%, -50%) translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+            }
+
+            function fitLbImage() {
+                const sw = lbStage.clientWidth || window.innerWidth;
+                const sh = lbStage.clientHeight || window.innerHeight;
+                const iw = lbImg.naturalWidth || sw;
+                const ih = lbImg.naturalHeight || sh;
+                const fit = Math.min(sw / iw, sh / ih, 1);
+                lbScale = Math.max(fit, 0.2);
+                lbX = 0; lbY = 0;
+                lbImg.style.width = iw + 'px';
+                lbImg.style.height = ih + 'px';
+                applyLbTransform();
+            }
+
+            function openLightbox(src) {
+                if (!src) return;
+                lbImg.onload = fitLbImage;
+                lbImg.src = src;
+                lb.classList.add('is-open');
+                lb.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('lightbox-open');
+                if (lbImg.complete) fitLbImage();
+            }
+
+            function closeLightbox() {
+                lb.classList.remove('is-open');
+                lb.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('lightbox-open');
+                drag = null; pinch = null;
+            }
+
+            function zoomBy(factor, cx, cy) {
+                const prev = lbScale;
+                lbScale = Math.min(8, Math.max(0.2, lbScale * factor));
+                if (cx != null && cy != null) {
+                    const rect = lbStage.getBoundingClientRect();
+                    const px = cx - rect.left - rect.width / 2;
+                    const py = cy - rect.top - rect.height / 2;
+                    lbX = px - (px - lbX) * (lbScale / prev);
+                    lbY = py - (py - lbY) * (lbScale / prev);
+                }
+                applyLbTransform();
             }
 
             function setupImageZoom() {
                 const img = document.getElementById('ipqc-image');
                 if (!img) return;
-                img.addEventListener('click', function () { this.classList.toggle('zoomed'); });
+                img.addEventListener('click', () => {
+                    if (!img.classList.contains('hidden') && img.src) openLightbox(img.src);
+                });
+                document.getElementById('lb-close').onclick = closeLightbox;
+                document.getElementById('lb-zoom-in').onclick = () => zoomBy(1.25);
+                document.getElementById('lb-zoom-out').onclick = () => zoomBy(1 / 1.25);
+                document.getElementById('lb-zoom-reset').onclick = fitLbImage;
+                lb.addEventListener('click', (e) => { if (e.target === lb) closeLightbox(); });
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && lb.classList.contains('is-open')) closeLightbox();
+                });
+                lbStage.addEventListener('wheel', (e) => {
+                    if (!lb.classList.contains('is-open')) return;
+                    e.preventDefault();
+                    zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY);
+                }, { passive: false });
+                lbStage.addEventListener('pointerdown', (e) => {
+                    if (!lb.classList.contains('is-open')) return;
+                    lbStage.setPointerCapture(e.pointerId);
+                    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: lbX, oy: lbY };
+                    lbStage.classList.add('is-dragging');
+                });
+                lbStage.addEventListener('pointermove', (e) => {
+                    if (!drag || drag.id !== e.pointerId) return;
+                    lbX = drag.ox + (e.clientX - drag.x);
+                    lbY = drag.oy + (e.clientY - drag.y);
+                    applyLbTransform();
+                });
+                const endDrag = (e) => {
+                    if (drag && drag.id === e.pointerId) {
+                        drag = null;
+                        lbStage.classList.remove('is-dragging');
+                    }
+                };
+                lbStage.addEventListener('pointerup', endDrag);
+                lbStage.addEventListener('pointercancel', endDrag);
+                lbStage.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 2) {
+                        const [a, b] = e.touches;
+                        const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                        pinch = { dist, scale: lbScale };
+                        drag = null;
+                    }
+                }, { passive: true });
+                lbStage.addEventListener('touchmove', (e) => {
+                    if (e.touches.length === 2 && pinch) {
+                        e.preventDefault();
+                        const [a, b] = e.touches;
+                        const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                        const midX = (a.clientX + b.clientX) / 2;
+                        const midY = (a.clientY + b.clientY) / 2;
+                        const next = Math.min(8, Math.max(0.2, pinch.scale * (dist / pinch.dist)));
+                        const factor = next / lbScale;
+                        lbScale = next;
+                        const rect = lbStage.getBoundingClientRect();
+                        const px = midX - rect.left - rect.width / 2;
+                        const py = midY - rect.top - rect.height / 2;
+                        lbX = px - (px - lbX) * factor;
+                        lbY = py - (py - lbY) * factor;
+                        applyLbTransform();
+                    }
+                }, { passive: false });
+                lbStage.addEventListener('touchend', () => { pinch = null; });
             }
 
             nextButton.onclick = async () => {
+                saveCurrentReading();
                 if (currentZoneIndex < buyOffData.length - 1) {
                     currentZoneIndex++;
                     showZone();
@@ -885,7 +1130,8 @@
                 await supabaseClient.from('data_buyoff_logs').insert(logPayload);
 
                 if (itemHasNg) {
-                    alert("🚨 ITEM NG! Recording failed attempt. Please adjust and re-measure a NEW item.");
+                    oosItemCount++;
+                    alert(`🚨 ITEM NG! OOS count: ${oosItemCount}. Please adjust and re-measure a NEW item.`);
                     currentItemReadings = new Array(buyOffData.length).fill('');
                     currentZoneIndex = 0;
                     showZone();
@@ -895,7 +1141,7 @@
                     acceptedItemCount++;
 
                     if (acceptedItemCount < 5) {
-                        alert(`✅ Item ${acceptedItemCount} Accepted! Please measure Item ${acceptedItemCount + 1}.`);
+                        alert(`✅ Item ${acceptedItemCount} Accepted! (OOS so far: ${oosItemCount}) Measure Item ${acceptedItemCount + 1}.`);
                         currentItemReadings = new Array(buyOffData.length).fill('');
                         currentZoneIndex = 0;
                         showZone();
@@ -931,6 +1177,9 @@
                 localStorage.setItem('joNumber', joNumber);
                 localStorage.setItem('machineNumber', machineNumber);
                 localStorage.setItem('lastAttemptGroup', lastId);
+                localStorage.setItem('oosItemCount', String(oosItemCount));
+                localStorage.setItem('acceptedItemCount', String(acceptedItemCount));
+                localStorage.setItem('totalCheckCount', String(acceptedItemCount + oosItemCount));
 
                 window.location.href = 'BUYOFF-page2.html';
             }
@@ -967,6 +1216,7 @@
 
             backButton.onclick = () => {
                 if (currentZoneIndex > 0) {
+                    saveCurrentReading();
                     currentZoneIndex--;
                     showZone();
                     updateProgressUI();

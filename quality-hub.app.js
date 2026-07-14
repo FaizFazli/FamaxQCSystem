@@ -931,6 +931,7 @@
         ];
         const mod = (title, desc, icon, iconBg, iconColor, tag, tagColor, tagBg, go, active) => ({ title, desc, icon, iconBg, iconColor, tag, tagColor, tagBg, go: active ? go : (() => {}), cursor: active ? 'pointer' : 'default', opacity: active ? '1' : '.58' });
         const modules = [
+          mod('Trace by JO', 'ISO soft-key packet: IPQC, Buy-off, logs, lot, store for one JO.', ICONS.reports, '#EEF0FF', '#4338CA', 'Read-only', '#16A34A', '#E7F6EC', () => { window.open('screen_page/inspection/inspectionTraceJO.html', '_blank'); }, true),
           mod('Quality Hub', 'Live inspection overview, schedule adherence & NG tracking.', ICONS.quality, '#EEF0FF', '#4338CA', 'Active', '#16A34A', '#E7F6EC', () => this.go('quality'), true),
           mod('Daily Output', 'Real-time machine part-counts from the MTLinki feed.', ICONS.output, '#E7F6EC', '#16A34A', 'Live', '#16A34A', '#E7F6EC', () => this.go('output'), true),
           mod('Inspection Key-in', 'IPQC, Buy-off, IQC & OQC measurement entry by JO.', ICONS.inspect, '#FCF1DE', '#B45309', 'Form', '#4338CA', '#EEF0FF', () => this.go('inspect'), true),

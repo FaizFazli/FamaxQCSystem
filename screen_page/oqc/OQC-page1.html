@@ -315,9 +315,27 @@
         .hidden { display: none !important; }
 
         @media (max-width: 768px) {
-            header { padding: 0 var(--space-5); }
-            .container { padding: var(--space-5) var(--space-4); }
-            .info-grid { grid-template-columns: 1fr 1fr; }
+            header { padding: 0 12px; height: auto; min-height: 52px; }
+            .container { padding: 12px 10px; }
+            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .detail-table { min-width: 520px; }
+            .table-scroll,
+            .zone-info {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            input, select, textarea, .person-name-input, .reading-input { font-size: 16px !important; }
+            .button-container {
+                flex-direction: column-reverse;
+                position: sticky;
+                bottom: 0;
+                background: var(--bg-body);
+                padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+                z-index: 20;
+            }
+            .button-container .btn { width: 100%; min-height: 48px; }
         }
     </style>
 </head>

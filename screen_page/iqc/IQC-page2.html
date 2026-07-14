@@ -203,6 +203,29 @@
             border: 1px solid var(--border);
         }
 
+        @media (max-width: 768px) {
+            header { padding: 0 12px; height: auto; min-height: 52px; }
+            .container { padding: 12px 10px; }
+            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .detail-table { min-width: 480px; }
+            .table-scroll,
+            #summary-container > div {
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            input, select, textarea, .remark-input { font-size: 16px !important; }
+            .button-container {
+                flex-direction: column;
+                position: sticky;
+                bottom: 0;
+                background: var(--bg-body);
+                padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+            }
+            .button-container .btn { width: 100%; min-height: 48px; }
+        }
+
         @media print {
             body {
                 width: 210mm;

@@ -143,6 +143,35 @@
           transform: none;
         }
       }
+
+      /* Mobile shell */
+      @media (max-width: 768px) {
+        #app > div {
+          overflow-x: hidden;
+        }
+        aside {
+          transform: translateX(-100%);
+        }
+        aside.is-mobile-open {
+          transform: translateX(0) !important;
+          width: min(86vw, 280px) !important;
+        }
+        [style*="margin-left"] {
+          margin-left: 0 !important;
+        }
+        table {
+          display: block;
+          max-width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        .qh-table-wrap,
+        .table-wrap {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          max-width: 100%;
+        }
+      }
     </style>
   </head>
   <body>

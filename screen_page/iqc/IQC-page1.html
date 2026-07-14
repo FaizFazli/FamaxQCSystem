@@ -252,6 +252,32 @@
             margin-top: var(--space-8);
         }
 
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0 12px; height: auto; min-height: 52px; }
+            .container { padding: 12px 10px; }
+            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .detail-table { min-width: 520px; }
+            .detail-table th, .detail-table td { padding: 8px 6px; font-size: 0.8rem; }
+            .zone-info, .table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            input, select, textarea, .person-name-input, .reading-input { font-size: 16px !important; }
+            .button-container {
+                flex-direction: column-reverse;
+                position: sticky;
+                bottom: 0;
+                background: var(--bg-body);
+                padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+                z-index: 20;
+            }
+            .button-container .btn { width: 100%; min-height: 48px; }
+        }
+
         /* Map legacy button classes onto shared .btn primitive */
         .btn-primary { color: var(--on-primary); background: var(--primary); }
         .btn-primary:hover { background: var(--primary-hover); }

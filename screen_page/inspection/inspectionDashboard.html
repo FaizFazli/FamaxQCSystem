@@ -411,7 +411,7 @@
 
 <body class="antialiased">
     <!-- Change h-screen to min-h-screen -->
-    <div id="app" v-cloak class="flex min-h-screen w-screen overflow-hidden bg-[#f8f9fa]">
+    <div id="app" v-cloak class="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#f8f9fa]">
         <!-- MOBILE OVERLAY -->
         <div v-if="isSidebarOpen && isMobile" @click="isSidebarOpen = false"
             class="fixed inset-0 bg-black/50 z-[90] lg:hidden"></div>
@@ -419,7 +419,8 @@
         <!-- --- SIDE NAVIGATION --- -->
         <aside :class="[
     isSidebarOpen ? 'w-64' : 'w-20',
-    'layout-transition flex flex-col h-full bg-white border-r border-black/5 z-[100] flex-shrink-0 relative py-8 px-2 overflow-hidden'
+    isMobile ? (isSidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0' : 'fixed inset-y-0 left-0 -translate-x-full') : 'relative',
+    'layout-transition flex flex-col h-full bg-white border-r border-black/5 z-[100] flex-shrink-0 py-8 px-2 overflow-hidden'
 ]">
             <!-- Sidebar Content -->
             <!-- </aside> -->
@@ -522,6 +523,18 @@
                     <span v-if="isSidebarOpen"
                         class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
                         Reject Report
+                    </span>
+                </button>
+
+                <!-- 7b. TRACE BY JO (ISO packet, read-only) -->
+                <button @click="goTo('inspectionTraceJO.html')" title="Trace by JO"
+                    :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+                    class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
+                    style="color: var(--primary);">
+                    <i class="fa-solid fa-fingerprint text-xl flex-shrink-0"></i>
+                    <span v-if="isSidebarOpen"
+                        class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+                        Trace by JO
                     </span>
                 </button>
 

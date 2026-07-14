@@ -139,6 +139,49 @@
             justify-content: flex-start;
             padding-left: 5px;
         }
+
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px !important;
+            }
+
+            .report-table {
+                min-width: 960px;
+            }
+
+            .report-table th,
+            .report-table td {
+                font-size: 9px;
+                padding: 3px;
+            }
+
+            .grid.grid-cols-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 6px;
+            }
+
+            .btn {
+                min-height: 44px;
+            }
+
+            .report-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .report-toolbar .field {
+                flex: 1 1 auto;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -146,8 +189,8 @@
     <!-- APP START -->
     <div id="app" class="max-w-[1400px] mx-auto">
 
-        <!-- HEADER / TOOLBAR -->
-        <header class="panel mb-8 no-print">
+        <!-- TOOLBAR: use div not header — theme.css hides body>header when iframe-framed -->
+        <div class="panel mb-8 no-print">
             <div class="panel__head">
                 <h1 class="panel__title">Report Generator</h1>
             </div>
@@ -185,7 +228,7 @@
                     </div>
                 </div>
             </div>
-        </header>
+        </div>
 
         <!-- PRINTABLE REPORT AREA -->
         <div id="printableReport" class="bg-white p-4 md:p-8 shadow-2xl rounded-sm">
@@ -226,6 +269,7 @@
             </div>
 
             <!-- Main Data Table -->
+            <div class="table-scroll">
             <table class="report-table w-full border-collapse">
                 <thead>
                     <tr class="bg-gray-100">
@@ -298,6 +342,7 @@
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div> <!-- PRINTABLE END -->
 
         <div class="footer mt-8 no-print text-center text-xs text-gray-400">
@@ -385,6 +430,12 @@
                     return primary.map(p => {
                         let remarks = [];
                         try { remarks = Array.isArray(p.Remark) ? p.Remark : JSON.parse(p.Remark || "[]"); } catch (e) { remarks = []; }
+                        if (!Array.isArray(remarks)) remarks = [];
+                        // normalize defect rows so description/qty always line up in UI
+                        remarks = remarks.map(d => ({
+                            description: (d && d.description != null) ? d.description : (typeof d === 'string' ? d : '-'),
+                            quantity: Number(d && d.quantity != null ? d.quantity : 0) || 0
+                        }));
 
                         const key = `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`;
                         const target = Number(p.ReworkQty || 0);
@@ -404,14 +455,24 @@
                             }
                         });
 
+                        // Re-Inspection Qty per defect line must match defect description quantities
+                        // when rein qty covers them; otherwise fill lines in order up to each line's qty.
+                        const defectSum = remarks.reduce((s, d) => s + d.quantity, 0);
+                        let left = totalFound;
+                        const reInBreakdown = remarks.map((d) => {
+                            if (totalFound <= 0) return { quantity: '-' };
+                            if (defectSum > 0 && totalFound >= defectSum) return { quantity: d.quantity };
+                            const take = Math.min(d.quantity, left);
+                            left -= take;
+                            return { quantity: take > 0 ? take : '-' };
+                        });
+
                         return {
                             ...p,
                             Remark: remarks,
                             reInDate: latestDate ? new Date(latestDate).toLocaleDateString('en-GB') : '-',
                             reInBy: latestBy,
-                            reInBreakdown: remarks.map((d, i) => ({
-                                quantity: (i === 0 && totalFound > 0) ? totalFound : '-'
-                            }))
+                            reInBreakdown
                         };
                     });
                 });

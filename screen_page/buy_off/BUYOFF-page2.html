@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
@@ -33,6 +35,7 @@
         body {
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         header {
@@ -41,8 +44,9 @@
             z-index: var(--z-header);
             display: flex;
             align-items: center;
-            height: 64px;
-            padding: 0 var(--space-8);
+            min-height: 52px;
+            height: auto;
+            padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
             background: var(--bg-card);
             border-bottom: 1px solid var(--border);
             box-shadow: var(--shadow-sm);
@@ -56,30 +60,34 @@
             display: flex;
             align-items: center;
             gap: var(--space-3);
+            line-height: 1.2;
         }
 
         .header-title::before {
             content: "";
             display: block;
             width: 4px;
-            height: 24px;
+            height: 20px;
+            flex-shrink: 0;
             background: var(--primary);
             border-radius: 2px;
         }
 
         .container {
             flex: 1;
-            padding: var(--space-6) var(--space-8);
+            padding: var(--space-4) max(12px, env(safe-area-inset-right)) var(--space-4) max(12px, env(safe-area-inset-left));
             max-width: 1200px;
             width: 100%;
             margin: 0 auto;
+            box-sizing: border-box;
+            min-width: 0;
         }
 
         .section-title {
-            font-size: var(--fs-xl);
+            font-size: 1.15rem;
             font-weight: 700;
             letter-spacing: -0.4px;
-            margin-bottom: var(--space-6);
+            margin-bottom: var(--space-4);
             padding-bottom: var(--space-2);
             border-bottom: 2px solid var(--border);
         }
@@ -87,16 +95,20 @@
         .info-card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: var(--space-6);
+            padding: var(--space-4);
             box-shadow: var(--shadow-sm);
-            margin-bottom: var(--space-8);
+            margin-bottom: var(--space-4);
             border: 1px solid var(--border);
         }
 
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: var(--space-6);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-3) var(--space-4);
+        }
+
+        .info-item {
+            min-width: 0;
         }
 
         .info-label {
@@ -111,41 +123,105 @@
         .info-value {
             font-size: var(--fs-base);
             font-weight: 600;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .oos-banner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin: 0 0 var(--space-4);
+            padding: 12px 14px;
+            border-radius: var(--radius-lg);
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .oos-banner.is-zero {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .oos-banner .stat {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
         }
 
         #summary-container {
             display: flex;
             flex-direction: column;
-            gap: var(--space-5);
+            gap: var(--space-3);
         }
 
         .zone-card {
             background: var(--bg-card);
             border-radius: var(--radius-lg);
-            padding: var(--space-5);
+            padding: var(--space-4);
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border);
             break-inside: avoid;
+            min-width: 0;
         }
 
         .zone-card h3 {
-            font-size: var(--fs-md);
+            font-size: 0.95rem;
             font-weight: 700;
             color: var(--text-main);
+            margin: 0 0 var(--space-2);
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .zone-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
             margin-bottom: var(--space-3);
+        }
+
+        .zone-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: var(--surface-muted);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+            border-radius: var(--radius-sm);
         }
 
         .detail-table {
             width: 100%;
+            min-width: 280px;
             border-collapse: collapse;
             font-size: var(--fs-sm);
         }
 
         .detail-table th,
         .detail-table td {
-            padding: 10px;
+            padding: 10px 8px;
             text-align: center;
             border: 1px solid var(--border);
+            white-space: nowrap;
         }
 
         .detail-table th {
@@ -163,27 +239,122 @@
             font-weight: 700;
         }
 
+        .readings-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 6px;
+        }
+
+        .reading-cell {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface-muted);
+            padding: 8px 4px;
+            text-align: center;
+            min-width: 0;
+        }
+
+        .reading-cell .r-label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 2px;
+        }
+
+        .reading-cell .r-val {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
+        .reading-cell.is-ng {
+            background: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .reading-cell.is-ng .r-label,
+        .reading-cell.is-ng .r-val {
+            color: #fff;
+        }
+
         .remark-container {
-            margin-top: var(--space-8);
+            margin-top: var(--space-5);
             background: var(--bg-card);
-            padding: var(--space-6);
+            padding: var(--space-4);
             border-radius: var(--radius-lg);
             border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .remark-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .remark-detail-input,
+        .remark-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 16px;
+            border: 2px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 16px;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            background: #fafafa;
+        }
+
+        .remark-detail-input {
+            margin-top: 0.75rem;
         }
 
         .remark-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid var(--border-strong);
-            border-radius: var(--radius-sm);
-            min-height: 80px;
-            font-family: inherit;
-            font-size: var(--fs-base);
-            transition: border-color var(--transition), box-shadow var(--transition);
+            min-height: 100px;
+            resize: vertical;
+            white-space: pre-wrap;
         }
 
+        .remark-detail-input:focus,
         .remark-input:focus {
             outline: none;
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+
+        .remark-container .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            background: #fafafa;
+            border: 2px solid var(--border-strong);
+            border-radius: 8px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: var(--text-main);
+            padding-left: 12px;
+            font-size: 1rem;
+            line-height: 42px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 44px;
+        }
+
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-ring);
         }
@@ -195,7 +366,7 @@
         }
 
         .btn {
-            padding: 12px var(--space-6);
+            padding: 14px var(--space-6);
             font-family: inherit;
             font-size: var(--fs-base);
             font-weight: 700;
@@ -203,8 +374,9 @@
             border-radius: var(--radius-sm);
             cursor: pointer;
             width: auto;
+            min-height: 48px;
             text-transform: uppercase;
-            margin-top: var(--space-6);
+            margin-top: 0;
             background: var(--primary);
             color: var(--on-primary);
             transition: background var(--transition), transform var(--transition);
@@ -223,17 +395,85 @@
             cursor: not-allowed;
         }
 
+        .btn-secondary {
+            background: var(--surface-muted);
+            color: var(--text-main);
+            border: 1px solid var(--border-strong);
+        }
+
         .button-container {
             display: flex;
-            justify-content: flex-end;
-            margin-top: var(--space-8);
-            margin-bottom: var(--space-10);
+            justify-content: stretch;
+            margin-top: var(--space-5);
+            margin-bottom: max(var(--space-6), env(safe-area-inset-bottom));
+        }
+
+        .button-container .btn {
+            width: 100%;
+        }
+
+        .actions-bar {
+            position: sticky;
+            bottom: 0;
+            z-index: 30;
+            background: linear-gradient(to top, var(--bg-body) 70%, transparent);
+            padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+        }
+
+        .actions-bar .button-container {
+            margin: 0;
+        }
+
+        @media (min-width: 640px) {
+            .info-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: var(--space-5);
+            }
+
+            .section-title {
+                font-size: var(--fs-xl);
+            }
+
+            .container {
+                padding: var(--space-6) var(--space-6);
+            }
+
+            .button-container {
+                justify-content: flex-end;
+            }
+
+            .button-container .btn {
+                width: auto;
+                min-width: 200px;
+            }
+        }
+
+        @media (min-width: 900px) {
+            .info-grid {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+
+            header {
+                height: 64px;
+                padding: 0 var(--space-8);
+            }
+
+            .container {
+                padding: var(--space-6) var(--space-8);
+            }
+
+            .actions-bar {
+                position: static;
+                background: none;
+                padding: 0;
+            }
         }
 
         @media print {
 
             header,
-            .btn {
+            .btn,
+            .actions-bar {
                 display: none !important;
             }
 
@@ -292,16 +532,40 @@
                 </div>
             </div>
 
+            <div id="oos-banner" class="oos-banner is-zero" hidden>
+                <span id="oos-banner-text">OUT of spec count: 0</span>
+                <span class="stat" id="oos-stat-accepted">In-spec: 5</span>
+                <span class="stat" id="oos-stat-total">Total checks: 5</span>
+            </div>
+
             <div id="summary-container"></div>
 
             <div class="remark-container">
-                <label class="info-label">Inspector Remarks</label>
-                <textarea id="remarks" class="remark-input" placeholder="Add any final observations..."></textarea>
+                <label for="remark-category" class="remark-label">Remark</label>
+                <select id="remark-category" class="remark-select">
+                    <option value="">— No remark / select category —</option>
+                    <option value="Following tooling / jig">Following tooling / jig</option>
+                    <option value="Following customer drawing">Following customer drawing</option>
+                    <option value="Following max / min limit">Following max / min limit</option>
+                    <option value="Out of spec – accepted (next process / customer accept)">Out of spec – accepted (next process / customer accept)</option>
+                    <option value="Dimension out of spec (reject / rework)">Dimension out of spec (reject / rework)</option>
+                    <option value="Surface defect (dent / burr / line / vibration / off-center)">Surface defect (dent / burr / line / vibration / off-center)</option>
+                    <option value="Drawing needs improvement">Drawing needs improvement</option>
+                    <option value="Machine problem / stop">Machine problem / stop</option>
+                    <option value="Tooling problem / broken">Tooling problem / broken</option>
+                    <option value="Setting / new setting / offset">Setting / new setting / offset</option>
+                    <option value="Waiting (material / operator / next process)">Waiting (material / operator / next process)</option>
+                    <option value="Production start / stop">Production start / stop</option>
+                    <option value="Quantity complete">Quantity complete</option>
+                    <option value="Other">Other (free text)</option>
+                </select>
+                <input type="text" id="remark-detail" class="remark-detail-input"
+                    placeholder="Optional detail: point no, value, time (e.g. POINT 8 66.553)" />
             </div>
         </div>
     </div>
 
-    <div class="container">
+    <div class="container actions-bar">
         <div class="button-container">
             <button id="finish-btn" class="btn btn-primary">Finish Report</button>
         </div>
@@ -395,9 +659,20 @@
 
         .approval-actions {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px;
             margin-top: 8px;
+        }
+
+        .approval-actions .btn {
+            width: 100%;
+            margin-top: 0;
+        }
+
+        @media (min-width: 480px) {
+            .approval-actions {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 
@@ -412,10 +687,14 @@
             person: localStorage.getItem('personName'),
             tech: localStorage.getItem('qcTechnician'),
             setting: localStorage.getItem('settingType'),
-            // NEW: Get the Attempt ID from Page 1
             attemptId: localStorage.getItem('lastAttemptGroup'),
+            oosCount: Number(localStorage.getItem('oosItemCount') || 0),
+            acceptedCount: Number(localStorage.getItem('acceptedItemCount') || 5),
+            totalChecks: Number(localStorage.getItem('totalCheckCount') || 0),
             data: JSON.parse(localStorage.getItem('summaryData') || '[]')
         };
+
+        if (!store.totalChecks) store.totalChecks = store.acceptedCount + store.oosCount;
 
         const supabaseClient = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
 
@@ -427,8 +706,55 @@
             document.getElementById('val-tech').textContent = store.tech || "-";
             document.getElementById('val-setting').textContent = store.setting || "-";
 
-            const remarkInput = document.getElementById("remarks");
-            remarkInput.addEventListener("keydown", function (e) {
+            // OOS summary: 10 checks = 5 in-spec shown + 5 OOS count
+            const oosBanner = document.getElementById('oos-banner');
+            const oosText = document.getElementById('oos-banner-text');
+            oosBanner.hidden = false;
+            oosText.textContent = `OUT of spec count: ${store.oosCount}`;
+            document.getElementById('oos-stat-accepted').textContent = `In-spec: ${store.acceptedCount}`;
+            document.getElementById('oos-stat-total').textContent = `Total checks: ${store.totalChecks}`;
+            oosBanner.classList.toggle('is-zero', store.oosCount === 0);
+
+            // Prefill remark detail with OOS count when there were failed items
+            if (store.oosCount > 0) {
+                const detailEl = document.getElementById('remark-detail');
+                if (detailEl && !detailEl.value.trim()) {
+                    detailEl.value = `OUT of spec count: ${store.oosCount}`;
+                }
+            }
+
+            async function initRemarkSelect() {
+                try {
+                    // ponytail: full column scan; add date cap if Data_BUYOFF is huge
+                    const { data, error } = await supabaseClient.from("Data_BUYOFF").select("Remarks");
+                    if (error) {
+                        console.error("Remark frequency fetch error:", error);
+                    } else if (data) {
+                        const freq = {};
+                        data.forEach(r => {
+                            const cat = String(r.Remarks || r.remarks || "").split("|")[0].trim();
+                            if (cat) freq[cat] = (freq[cat] || 0) + 1;
+                        });
+                        const select = document.getElementById("remark-category");
+                        const opts = Array.from(select.options);
+                        const middle = opts
+                            .filter(o => o.value !== "" && o.value !== "Other")
+                            .sort((a, b) => (freq[b.value] || 0) - (freq[a.value] || 0));
+                        const other = opts.find(o => o.value === "Other");
+                        middle.forEach(o => select.appendChild(o));
+                        if (other) select.appendChild(other);
+                    }
+                } catch (e) {
+                    console.error("Remark frequency sort failed:", e);
+                }
+                $("#remark-category").select2({
+                    width: "100%",
+                    placeholder: "— No remark / select category —"
+                });
+            }
+            initRemarkSelect();
+
+            document.getElementById('remark-detail').addEventListener("keydown", function (e) {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     document.getElementById("finish-btn").click();
@@ -437,7 +763,9 @@
 
             document.addEventListener("keydown", function (e) {
                 if ((e.key === "Enter" || e.code === "NumpadEnter") && !e.shiftKey) {
-                    if (document.activeElement.id !== "remarks") {
+                    const active = document.activeElement;
+                    const inRemark = active && (active.id === "remark-detail" || active.classList.contains("select2-search__field"));
+                    if (!inRemark) {
                         e.preventDefault();
                         document.getElementById("finish-btn").click();
                     }
@@ -446,6 +774,21 @@
 
             renderZones();
         });
+
+        function buildRemarkValue() {
+            const remarkCategory = document.getElementById("remark-category").value;
+            const remarkDetail = document.getElementById("remark-detail").value.trim();
+            const oosLine = `OUT of spec count: ${store.oosCount}`;
+
+            let base;
+            if (remarkCategory === "Other") base = remarkDetail;
+            else base = remarkDetail ? `${remarkCategory} | ${remarkDetail}` : remarkCategory;
+
+            // Always attach OOS count token if missing (even when 0)
+            if (!base) return oosLine;
+            if (base.toUpperCase().includes('OUT OF SPEC COUNT')) return base;
+            return `${base} | ${oosLine}`;
+        }
 
         function isNg(val, min, max) {
             if (val === null || val === undefined || val === "") return false;
@@ -461,21 +804,18 @@
                 const card = document.createElement('div');
                 card.className = 'zone-card';
                 const readings = [z.Reading_1, z.Reading_2, z.Reading_3, z.Reading_4, z.Reading_5];
-                const cells = readings.map(r => {
-                    const ngClass = isNg(r, z.LSL_OK, z.USL_NG) ? 'ng-cell' : '';
-                    return `<td class="${ngClass}">${r ?? '-'}</td>`;
+                const cells = readings.map((r, i) => {
+                    const ng = isNg(r, z.LSL_OK, z.USL_NG);
+                    return `<div class="reading-cell${ng ? ' is-ng' : ''}"><span class="r-label">R${i + 1}</span><span class="r-val">${r ?? '-'}</span></div>`;
                 }).join('');
 
                 card.innerHTML = `
-                <h3>Zone: ${z.Point_DWG_Zone} (Spec: ${z.LSL_OK} ~ ${z.USL_NG})</h3>
-                <table class="detail-table">
-                    <thead>
-                        <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr>${cells}</tr>
-                    </tbody>
-                </table>
+                <h3>Point ${z.Point_DWG_Zone || (idx + 1)}</h3>
+                <div class="zone-meta">
+                    <span class="zone-chip">Spec ${z.LSL_OK ?? '-'} ~ ${z.USL_NG ?? '-'}</span>
+                    ${z.Measuring_Instrument ? `<span class="zone-chip">${z.Measuring_Instrument}</span>` : ''}
+                </div>
+                <div class="readings-grid">${cells}</div>
             `;
                 container.appendChild(card);
             });
@@ -484,8 +824,8 @@
         document.getElementById('finish-btn').onclick = async function () {
             const btn = this;
             const element = document.getElementById("print-area");
-            const remarkInput = document.getElementById('remarks');
-            const remarkValue = remarkInput.value.trim();
+            const remarkContainer = document.querySelector(".remark-container");
+            const remarkValue = buildRemarkValue();
 
             btn.disabled = true;
             btn.textContent = "PROCESSING...";
@@ -552,17 +892,19 @@
                     await sendTelegramAlert(ngList, remarkValue);
                 }
 
-                // 3. Prepare UI for PDF
+                // 3. Prepare UI for PDF (category/detail like IPQC)
                 btn.textContent = "SAVING TO SERVER...";
-                remarkInput.style.display = "none";
+                const select2 = remarkContainer.querySelector(".select2-container");
+                if (select2) select2.style.display = "none";
+                document.getElementById("remark-detail").style.display = "none";
                 let staticRemark = document.getElementById("temp-remark-text");
                 if (!staticRemark) {
                     staticRemark = document.createElement("div");
                     staticRemark.className = "remark-input";
                     staticRemark.id = "temp-remark-text";
-                    remarkInput.parentNode.appendChild(staticRemark);
+                    remarkContainer.appendChild(staticRemark);
                 }
-                staticRemark.innerText = remarkValue || "No remarks provided.";
+                staticRemark.textContent = remarkValue || "No remarks.";
 
                 // 4. PDF Configuration
                 const pdfOptions = {
@@ -595,11 +937,13 @@
 
             } catch (err) {
                 alert("Error: " + err.message);
-                remarkInput.style.display = "block";
+                const select2 = remarkContainer.querySelector(".select2-container");
+                if (select2) select2.style.display = "";
+                document.getElementById("remark-detail").style.display = "";
                 const tempDiv = document.getElementById("temp-remark-text");
                 if (tempDiv) tempDiv.remove();
                 btn.disabled = false;
-                btn.textContent = "FINISH REPORT";
+                btn.textContent = "Finish Report";
             }
         };
 
