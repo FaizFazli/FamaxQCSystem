@@ -219,6 +219,8 @@
             overflow: hidden;
             min-height: 0;
             cursor: grab;
+            /* Ensure no blending modes are active */
+            background: transparent;
         }
 
         .img-lightbox-stage.is-dragging {
@@ -231,8 +233,10 @@
             left: 50%;
             max-width: none;
             max-height: none;
-            width: auto;
-            height: auto;
+            /* Added white background for contrast */
+            background-color: #ffffff;
+            /* Optional: adds a slight "paper" shadow to make it look better */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             transform-origin: center center;
             user-select: none;
             -webkit-user-drag: none;
@@ -545,6 +549,23 @@
             color: var(--text-muted);
         }
 
+        .status-pill {
+            background: #2c3e50;
+            color: white;
+            padding: 2px 8px;
+            /* Very thin padding */
+            border-radius: 6px;
+            /* Squarer corners look smaller than round pills */
+            font-size: 9px;
+            /* Tiny font */
+            font-weight: 800;
+            white-space: nowrap;
+            /* Prevents text from jumping to a second line */
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+        }
+
         .image-status-icon {
             font-size: 2.5rem;
             line-height: 1;
@@ -649,12 +670,12 @@
                             autocomplete="off" />
                         <button type="button" class="combo-clear hidden" id="checker-clear"
                             aria-label="Clear name">✕</button>
-                        <button type="button" class="combo-toggle" id="checker-toggle"
-                            aria-label="Show list">▾</button>
+                        <button type="button" class="combo-toggle" id="checker-toggle" aria-label="Show list">▾</button>
                         <div class="combo-list hidden" id="checker-list"></div>
                     </div>
                     <span class="badge-hint hidden" id="inspector-hint"
-                        style="font-size: var(--fs-xs); font-weight: 700; color: #b45309; margin-top: 4px;">Not found — contact HR</span>
+                        style="font-size: var(--fs-xs); font-weight: 700; color: #b45309; margin-top: 4px;">Not found —
+                        contact HR</span>
                 </div>
                 <div class="info-item">
                     <span class="info-label">Setting</span>
@@ -907,11 +928,18 @@
                 const zone = buyOffData[currentZoneIndex];
                 zoneContainer.innerHTML = `
         <div class="zone-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="background:#2c3e50; color:white; padding:4px 12px; border-radius:20px; font-size:0.8rem; font-weight:bold;">
-                    ACCEPTED: ${acceptedItemCount} / 5 · OOS: ${oosItemCount} · CHECKS: ${acceptedItemCount + oosItemCount}
-                </span>
-                <span class="info-label">Point ${currentZoneIndex + 1} of ${buyOffData.length} · ${zone.Point_DWG_Zone}</span>
+            <!-- Header Row: Keeps elements separated and small -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap: 10px;">
+                
+                <!-- The Small Status Bubble -->
+                <div class="status-pill">
+                    ACC: ${acceptedItemCount}/5 · OOS: ${oosItemCount}
+                </div>
+
+                <!-- Point indicator -->
+                <div style="font-size: 9px; font-weight: 700; color: #94a3b8; text-transform: uppercase; white-space: nowrap;">
+                    Point ${currentZoneIndex + 1} of ${buyOffData.length}
+                </div>
             </div>
             <div class="spec-grid">
                 <div class="spec-item"><span class="spec-label">Instrument</span><br><span class="spec-val">${zone.Measuring_Instrument || 'N/A'}</span></div>
@@ -1037,25 +1065,54 @@
             }
 
             function openLightbox(src) {
-                const url = resolveMediaUrl(src);
-                if (!url) return;
-                lbImg.onerror = function () {
-                    console.error('Lightbox image failed:', url);
-                };
-                lbImg.onload = function () {
-                    requestAnimationFrame(function () { requestAnimationFrame(fitLbImage); });
-                };
-                // force reload if same URL so onload always fires after open
-                if (lbImg.getAttribute('src') === url) {
-                    lbImg.removeAttribute('src');
-                }
-                lbImg.src = url;
+                if (!src) return;
+
+                // Show the lightbox first so dimensions can be measured
                 lb.classList.add('is-open');
                 lb.setAttribute('aria-hidden', 'false');
                 document.body.classList.add('lightbox-open');
-                requestAnimationFrame(function () {
-                    if (lbImg.complete && lbImg.naturalWidth) fitLbImage();
-                });
+
+                // Set source and wait for load
+                lbImg.onload = function () {
+                    // Double requestAnimationFrame ensures the browser has rendered the flex container
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            fitLbImage();
+                        });
+                    });
+                };
+
+                lbImg.src = src;
+
+                // If image was already cached
+                if (lbImg.complete && lbImg.naturalWidth) {
+                    fitLbImage();
+                }
+            }
+
+            function fitLbImage() {
+                const iw = lbImg.naturalWidth;
+                const ih = lbImg.naturalHeight;
+
+                if (!iw || !ih) return;
+
+                // Use window dimensions if stage isn't reporting correctly
+                const sw = lbStage.clientWidth || window.innerWidth;
+                const sh = lbStage.clientHeight || window.innerHeight;
+
+                // Calculate fit scale (with 5% padding)
+                const padding = 0.95;
+                const fitScale = Math.min(sw / iw, sh / ih) * padding;
+
+                lbScale = fitScale;
+                lbX = 0;
+                lbY = 0;
+
+                // Apply exact dimensions to image
+                lbImg.style.width = iw + 'px';
+                lbImg.style.height = ih + 'px';
+
+                applyLbTransform();
             }
 
             function closeLightbox() {
