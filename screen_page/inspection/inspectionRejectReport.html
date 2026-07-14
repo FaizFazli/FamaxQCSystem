@@ -11,67 +11,84 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <!-- Shared design system (tokens + UI primitives) -->
     <link rel="stylesheet" href="/assets/theme.css">
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* 1. FORCE VISIBILITY IN IFRAME */
+        html,
         body {
-            font-family: var(--font-sans);
+            height: auto !important;
+            min-height: 100% !important;
             background-color: var(--bg-body);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 0;
+            display: block !important;
+            visibility: visible !important;
         }
 
-        .glass-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow);
+        #app {
+            width: 100%;
+            display: block !important;
+            visibility: visible !important;
         }
 
-        /* On-screen chrome wrapper (themed; excluded from print) */
         .report-toolbar {
             display: flex;
             flex-wrap: wrap;
             align-items: flex-end;
-            gap: var(--space-4);
+            gap: 1rem;
         }
-        .report-toolbar .field { flex: 1 1 220px; }
-        .report-toolbar__actions {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-        }
-        .btn--icon { padding: 10px; width: 44px; height: 44px; }
 
-        /* Print Styles to match PDF Form */
+        .report-toolbar .field {
+            flex: 1 1 200px;
+        }
+
+        /* 2. BETTER PRINT LOGIC (Safer than visibility:hidden) */
         @media print {
-            body * {
-                visibility: hidden;
+
+            .no-print,
+            header,
+            .footer,
+            .btn,
+            .panel {
+                display: none !important;
             }
 
-            #printableReport,
-            #printableReport * {
-                visibility: visible;
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
 
             #printableReport {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
-
-            .no-print {
-                display: none !important;
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                box-shadow: none !important;
+                padding: 0 !important;
             }
 
             @page {
                 size: landscape;
                 margin: 1cm;
             }
+        }
+
+        /* 3. SEARCH INDICATOR STYLE */
+        .search-indicator {
+            background: #dbeafe !important;
+            /* Light blue */
+            border-left: 5px solid #2563eb !important;
+            padding: 12px !important;
+            margin-bottom: 20px !important;
+            display: block !important;
+            color: #1e3a8a !important;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 12px;
         }
 
         .report-table th,
@@ -83,7 +100,7 @@
         }
 
         .checkbox-box {
-            width: 40px;
+            width: 35px;
             height: 15px;
             border: 1px solid black;
             display: inline-block;
@@ -91,16 +108,11 @@
             margin-right: 5px;
         }
 
-        /* Ensure the table cell allows its children to fill 100% height */
         .report-table td.p-0 {
             padding: 0 !important;
-            vertical-align: stretch;
-            /* Crucial for height matching */
             height: 1px;
-            /* Hack to make h-full work in table cells */
         }
 
-        /* The container for the sub-rows */
         .sub-row-container {
             display: flex;
             flex-direction: column;
@@ -108,23 +120,15 @@
             width: 100%;
         }
 
-        /* Each individual line item */
         .sub-row-item {
             flex: 1;
-            /* This forces all boxes to share the available height equally */
             display: flex;
             align-items: center;
-            /* Vertically center the text */
             justify-content: center;
-            /* Horizontally center */
             border-bottom: 1px solid #000;
-            padding: 4px 2px;
-            box-sizing: border-box;
+            padding: 2px;
             min-height: 25px;
-            /* Minimum height for empty lines */
             line-height: 1.2;
-            word-break: break-word;
-            /* Prevents long text from overlapping */
         }
 
         .sub-row-item:last-child {
@@ -138,41 +142,43 @@
     </style>
 </head>
 
-<body class="p-4 md:p-8">
+<body class="p-2 md:p-8">
+    <!-- APP START -->
     <div id="app" class="max-w-[1400px] mx-auto">
-        <!-- ... (Keep Header section same) ... -->
+
+        <!-- HEADER / TOOLBAR -->
         <header class="panel mb-8 no-print">
             <div class="panel__head">
                 <h1 class="panel__title">Report Generator</h1>
             </div>
             <div class="panel__body">
-                <!-- Filters -->
                 <div class="report-toolbar">
                     <div class="field">
                         <label class="label">Report Month/Year</label>
-                        <input type="month" v-model="filterMonth">
+                        <input type="month" v-model="filterMonth" class="input">
                     </div>
+
+                    <div class="field">
+                        <label class="label">Search JO / Part / Machine</label>
+                        <div class="relative">
+                            <input type="text" v-model="searchQuery" placeholder="Type to search..."
+                                class="input pl-10">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+
                     <div class="field">
                         <label class="label">Category Filter</label>
-                        <select v-model="selectedCategory">
+                        <select v-model="selectedCategory" class="select">
                             <option value="">All Categories</option>
                             <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
                         </select>
                     </div>
-                    <div class="report-toolbar__actions">
-                        <!-- Generate Preview -->
-                        <button @click="fetchData" class="btn">
-                            <i class="fa fa-sync"></i>
-                            <span>Generate Preview</span>
-                        </button>
 
-                        <!-- Print PDF -->
-                        <button @click="printReport" class="btn btn--secondary">
-                            <i class="fa fa-print"></i>
-                            <span>Print PDF</span>
-                        </button>
-
-                        <!-- Home Icon -->
+                    <div class="flex gap-2">
+                        <button @click="fetchData" class="btn"><i class="fa fa-sync mr-2"></i>Refresh</button>
+                        <button @click="printReport" class="btn btn--secondary"><i
+                                class="fa fa-print mr-2"></i>Print</button>
                         <button @click="window.location.href='../../index.html'" class="btn btn--secondary btn--icon">
                             <i class="fa fa-home"></i>
                         </button>
@@ -181,60 +187,48 @@
             </div>
         </header>
 
-        <!-- PREVIEW AREA -->
-        <div id="printableReport" class="bg-white p-8 shadow-2xl rounded-sm min-h-[800px]">
-            <!-- Form Header & Category Checkboxes (Keep same as your current code) -->
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex items-center gap-3">
-                    <!-- <div
-                        class="w-12 h-12 bg-blue-900 flex items-center justify-center text-white font-bold italic rounded">
-                        famax</div> -->
+        <!-- PRINTABLE REPORT AREA -->
+        <div id="printableReport" class="bg-white p-4 md:p-8 shadow-2xl rounded-sm">
 
-                    <img src="/FamaxQCSystem/assets/Famax Logo R V2 Square.png" alt="famax logo"
-                        class="w-12 h-12 object-contain rounded">
+            <!-- SEARCH HEADER (THIS IS WHAT YOU WERE LOOKING FOR) -->
+            <div v-if="searchQuery" class="search-indicator no-print">
+                <i class="fa fa-filter mr-2"></i> SEARCHING FOR: "{{ searchQuery }}"
+                <span class="ml-4 text-xs font-normal opacity-70">({{ reportRows.length }} Records Found)</span>
+            </div>
+
+            <!-- Form Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-4">
+                    <img src="/FamaxQCSystem/assets/Famax Logo R V2 Square.png" alt="logo" class="w-12 h-12">
                     <div>
-                        <h2 class="text-lg font-bold leading-none">FAMAX TECHNOLOGY (M) SDN. BHD.</h2>
-                        <p class="text-[10px]">200601028954 (748710-K)</p>
-                        <h3 class="text-md font-bold underline mt-1">REJECTED PRODUCT RECORD</h3>
+                        <h2 class="text-lg font-bold">FAMAX TECHNOLOGY (M) SDN. BHD.</h2>
+                        <p class="text-[9px]">200601028954 (748710-K)</p>
+                        <h3 class="text-md font-black underline uppercase">Rejected Product Record</h3>
                     </div>
                 </div>
                 <div class="text-right">
-                    <div class="border border-black px-2 py-1 text-[8px] font-bold mb-2">INTERNAL USE ONLY</div>
-                    <div class="text-[10px] font-bold">FOR MONTH /YEAR : <span
-                            class="border-b border-dotted border-black px-4">{{ formatMonthDisplay(filterMonth)
-                            }}</span></div>
+                    <div class="border border-black px-2 py-1 text-[8px] font-bold mb-2 uppercase">Internal Use Only
+                    </div>
+                    <div class="text-[10px] font-bold uppercase">For Month/Year:
+                        <span class="border-b-2 border-black px-4">{{ formatMonthDisplay(filterMonth) }}</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-y-2 text-[10px] font-bold mb-4">
+            <!-- Category Selection Checkboxes -->
+            <div class="grid grid-cols-4 gap-y-2 text-[10px] font-bold mb-6">
                 <div>Category : </div>
-                <div class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === 'Buy-Off'}"></div> Buy-Off
+                <div v-for="cat in ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC']"
+                    :key="cat" class="flex items-center">
+                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === cat}"></div> {{ cat }}
                 </div>
-                <div class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === 'Incoming QC'}"></div> Incoming
-                    QC
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === 'Customer Return'}"></div>
-                    Customer Return
-                </div>
-                <div></div>
-                <div class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === 'Inprocess QC'}"></div>
-                    Inprocess QC
-                </div>
-                <div class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === 'Outgoing QC'}"></div> Outgoing
-                    QC
-                </div>
-                <div class="flex items-center">Other ................</div>
+                <div>Other ................</div>
             </div>
 
-            <!-- Table -->
+            <!-- Main Data Table -->
             <table class="report-table w-full border-collapse">
                 <thead>
-                    <tr class="bg-gray-50">
+                    <tr class="bg-gray-100">
                         <th rowspan="2">Date</th>
                         <th rowspan="2">Job Order No</th>
                         <th rowspan="2">Item Name / Part no</th>
@@ -251,7 +245,7 @@
                         <th rowspan="2">Approved By</th>
                         <th colspan="3">Re-Inspection</th>
                     </tr>
-                    <tr class="bg-gray-50">
+                    <tr class="bg-gray-100">
                         <th>Date</th>
                         <th>By</th>
                         <th>Qty</th>
@@ -264,8 +258,6 @@
                         <td>{{ row.Part_Name }}</td>
                         <td>{{ row.Machine_No || '-' }}</td>
                         <td>{{ row.Parameter }}</td>
-
-                        <!-- 1. DEFECT DESCRIPTION -->
                         <td class="p-0">
                             <div class="sub-row-container">
                                 <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item text-left-item">
@@ -273,62 +265,49 @@
                                 </div>
                             </div>
                         </td>
-
                         <td>{{ row.InspectBy }}</td>
                         <td>{{ row.ProductionBy || '-' }}</td>
-
-                        <!-- 2. AFFECTED QTY (Now syncs height with Description) -->
                         <td class="p-0">
                             <div class="sub-row-container">
-                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">
-                                    {{ item.quantity }}
+                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ item.quantity }}
                                 </div>
                             </div>
                         </td>
-
                         <td>{{ row.AcceptQty }}</td>
                         <td>{{ row.ReturnVendor || '-' }}</td>
                         <td>{{ row.ScrapQty }}</td>
                         <td>{{ row.ReworkQty || 0 }}</td>
                         <td>{{ row.FinalizeBy }}</td>
-
-                        <!-- 3. RE-INSPECTION DATE -->
-                        <td class="bg-yellow-50/30">
-                            {{ row.reInDate || '-' }}
-                        </td>
-
-                        <!-- 4. RE-INSPECTION BY -->
-                        <td class="p-0 bg-yellow-50/30">
+                        <td class="bg-yellow-50/50">{{ row.reInDate || '-' }}</td>
+                        <td class="p-0 bg-yellow-50/50">
                             <div class="sub-row-container">
-                                <!-- We repeat the name for every defect line -->
-                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">
-                                    {{ row.reInBy }}
+                                <div v-for="(item, i) in row.Remark" :key="i" class="sub-row-item">{{ row.reInBy }}
                                 </div>
                             </div>
                         </td>
-
-                        <!-- 5. RE-INSPECTION QTY -->
-                        <td class="p-0 bg-yellow-50/30 font-bold">
+                        <td class="p-0 bg-yellow-50/50 font-bold">
                             <div class="sub-row-container">
-                                <!-- Use reInBreakdown to show the matched or fallback quantity -->
-                                <div v-for="(item, i) in row.reInBreakdown" :key="i" class="sub-row-item">
-                                    {{ item.quantity }}
-                                </div>
+                                <div v-for="(item, i) in row.reInBreakdown" :key="i" class="sub-row-item">{{
+                                    item.quantity }}</div>
                             </div>
                         </td>
                     </tr>
-                    <!-- Fill empty rows -->
+                    <!-- Empty rows to fill the paper -->
                     <tr v-for="i in Math.max(0, 15 - reportRows.length)" :key="'empty-'+i">
-                        <td v-for="n in 17" class="py-4">&nbsp;</td>
+                        <td v-for="n in 17" class="h-10">&nbsp;</td>
                     </tr>
                 </tbody>
             </table>
-            <!-- ... Footer Section same ... -->
+        </div> <!-- PRINTABLE END -->
+
+        <div class="footer mt-8 no-print text-center text-xs text-gray-400">
+            © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
         </div>
-    </div>
+
+    </div> <!-- APP END -->
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, watch } = Vue;
 
         createApp({
             setup() {
@@ -343,11 +322,8 @@
                 const allRecords = ref([]);
                 const filterMonth = ref(new Date().toISOString().slice(0, 7));
                 const selectedCategory = ref('');
+                const searchQuery = ref('');
 
-                // 1. Define the UI Labels
-                const categories = ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC', 'Customer Return', "Customer Sample"];
-
-                // 2. Define the Mapping to Database Values
                 const categoryMapping = {
                     'Buy-Off': 'Buy-Off',
                     'Incoming QC': 'IQC',
@@ -358,124 +334,91 @@
 
                 const fetchData = async () => {
                     try {
-                        const res = await api.get('/InspectionRecord?select=*');
+                        const res = await api.get('/InspectionRecord?select=*&order=created_at.asc');
                         allRecords.value = res.data;
-                    } catch (err) { console.error(err); }
+                    } catch (err) { console.error("API Error:", err); }
                 };
 
+                // Watch for month changes
+                watch(filterMonth, fetchData);
+
                 const reportRows = computed(() => {
-                    const dbCategoryValue = categoryMapping[selectedCategory.value];
-                    // 1. Get Primary (Initial) Inspections
-                    const primaryInspections = allRecords.value.filter(r => {
+                    const dbCat = categoryMapping[selectedCategory.value];
+                    const query = searchQuery.value.toLowerCase().trim();
+
+                    const primary = allRecords.value.filter(r => {
                         const dateMatch = (r.created_at || "").startsWith(filterMonth.value);
-                        const catMatch = !selectedCategory.value || (r.Category || "").toUpperCase() === (dbCategoryValue || "").toUpperCase();
+                        const catMatch = !selectedCategory.value || (r.Category || "").toUpperCase() === (dbCat || "").toUpperCase();
                         const typeMatch = (r.Inspection_Type || "").toUpperCase() !== 'RE-INSPECTION';
-                        return dateMatch && catMatch && typeMatch && Number(r.RejectQty) !== 0;
+                        const hasReject = Number(r.RejectQty) !== 0;
+                        const searchMatch = !query ||
+                            (r.JO_Number || "").toLowerCase().includes(query) ||
+                            (r.Part_Name || "").toLowerCase().includes(query) ||
+                            (r.Machine_No || "").toLowerCase().includes(query) ||
+                            (r.Parameter || "").toLowerCase().includes(query);
+
+                        return dateMatch && catMatch && typeMatch && hasReject && searchMatch;
                     });
 
-                    primaryInspections.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-                    // 2. Prepare Re-Inspections list with a "remaining" tracker
-                    let reInspections = allRecords.value
+                    const reInspections = allRecords.value
                         .filter(r => (r.Inspection_Type || "").toUpperCase() === 'RE-INSPECTION')
                         .map(r => ({ ...r, remaining: Number(r.AcceptQty || 0) }));
 
                     const normalize = (str) => (str || "").trim().replace(/\s+/g, ' ').toUpperCase();
 
-                    // Initialize tracking objects for our primary rows
-                    const rowResults = primaryInspections.map(p => ({
-                        id: p.id,
-                        target: Number(p.ReworkQty || 0), // Use Rework Qty as the cap
-                        reject: Number(p.RejectQty || 0),
-                        key: `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`,
-                        finalQty: 0,
-                        latestDate: null,
-                        latestBy: null
-                    }));
+                    return primary.map(p => {
+                        let remarks = [];
+                        try { remarks = Array.isArray(p.Remark) ? p.Remark : JSON.parse(p.Remark || "[]"); } catch (e) { remarks = []; }
 
-                    // STEP A: PRIORITY MATCHING (Exact Qty matches)
-                    // If a Re-Inspection Qty matches an Initial Reject Qty exactly, they likely belong together.
-                    rowResults.forEach(row => {
-                        const riMatch = reInspections.find(ri => {
-                            const riKey = `${normalize(ri.JO_Number)}|${normalize(ri.Part_Name)}|${normalize(ri.Parameter)}`;
-                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
-                            return riKey === row.key && isAfter && (ri.remaining === row.reject || ri.remaining === row.target) && ri.remaining > 0;
-                        });
+                        const key = `${normalize(p.JO_Number)}|${normalize(p.Part_Name)}|${normalize(p.Parameter)}`;
+                        const target = Number(p.ReworkQty || 0);
 
-                        if (riMatch) {
-                            const take = Math.min(row.target, riMatch.remaining);
-                            row.finalQty = take;
-                            row.latestDate = riMatch.created_at;
-                            row.latestBy = riMatch.InspectBy;
-                            riMatch.remaining -= riMatch.remaining; // Mark this specific RI record as fully consumed for matching
-                        }
-                    });
-
-                    // STEP B: FILL REMAINING (Chronological Pool consumption)
-                    // For rows not matched exactly, take what's left in the pool for that JO/Part/Process
-                    rowResults.forEach(row => {
-                        if (row.finalQty > 0 || row.target === 0) return;
+                        let totalFound = 0;
+                        let latestDate = null;
+                        let latestBy = '-';
 
                         reInspections.forEach(ri => {
-                            if (row.finalQty >= row.target) return;
-                            const riKey = `${ri.JO_Number}|${ri.Part_Name}|${ri.Parameter}`.toUpperCase();
-                            const isAfter = new Date(ri.created_at) > new Date(allRecords.value.find(r => r.id === row.id).created_at);
-
-                            if (riKey === row.key && isAfter && ri.remaining > 0) {
-                                const needed = row.target - row.finalQty;
-                                const take = Math.min(needed, ri.remaining);
-                                row.finalQty += take;
+                            const riKey = `${normalize(ri.JO_Number)}|${normalize(ri.Part_Name)}|${normalize(ri.Parameter)}`;
+                            if (riKey === key && new Date(ri.created_at) > new Date(p.created_at) && ri.remaining > 0 && totalFound < target) {
+                                const take = Math.min(target - totalFound, ri.remaining);
+                                totalFound += take;
                                 ri.remaining -= take;
-
-                                if (!row.latestDate || new Date(ri.created_at) > new Date(row.latestDate)) {
-                                    row.latestDate = ri.created_at;
-                                    row.latestBy = ri.InspectBy;
-                                }
+                                latestDate = ri.created_at;
+                                latestBy = ri.InspectBy;
                             }
                         });
-                    });
-
-                    // 3. Final mapping to visual rows
-                    return primaryInspections.map(primary => {
-                        const result = rowResults.find(res => res.id === primary.id);
-                        let remarks = [];
-                        try {
-                            remarks = Array.isArray(primary.Remark) ? primary.Remark : JSON.parse(primary.Remark || "[]");
-                        } catch (e) { remarks = []; }
 
                         return {
-                            ...primary,
+                            ...p,
                             Remark: remarks,
-                            reInDate: result.latestDate ? formatDate(result.latestDate) : '-',
-                            reInBy: result.latestBy || '-',
-                            reInBreakdown: remarks.map((defect, i) => ({
-                                description: defect.description,
-                                // Assign the total found quantity to the first defect description line
-                                quantity: i === 0 && result.finalQty > 0 ? result.finalQty : '-'
+                            reInDate: latestDate ? new Date(latestDate).toLocaleDateString('en-GB') : '-',
+                            reInBy: latestBy,
+                            reInBreakdown: remarks.map((d, i) => ({
+                                quantity: (i === 0 && totalFound > 0) ? totalFound : '-'
                             }))
                         };
                     });
                 });
 
-
                 const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-GB') : '';
                 const formatMonthDisplay = (val) => {
-                    if (!val) return '......../........';
+                    if (!val) return '... / ...';
                     const [y, m] = val.split('-');
-                    return `${m} / ${y}`;
+                    const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+                    return `${months[parseInt(m) - 1]} / ${y}`;
                 };
 
                 onMounted(fetchData);
 
                 return {
-                    filterMonth, selectedCategory, categories, reportRows,
+                    filterMonth, selectedCategory, searchQuery,
+                    categories: Object.keys(categoryMapping), reportRows,
                     fetchData, formatDate, formatMonthDisplay,
                     printReport: () => window.print()
-                }
+                };
             }
         }).mount('#app');
     </script>
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

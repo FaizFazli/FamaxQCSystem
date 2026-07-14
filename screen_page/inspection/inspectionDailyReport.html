@@ -90,8 +90,13 @@
         }
 
         /* Row interaction states (slate + primary, replaces old yellow) */
-        .row-hover:hover { background: var(--primary-soft); }
-        .row-editing { background: var(--primary-soft) !important; }
+        .row-hover:hover {
+            background: var(--primary-soft);
+        }
+
+        .row-editing {
+            background: var(--primary-soft) !important;
+        }
     </style>
 </head>
 
@@ -109,8 +114,8 @@
                 </div>
                 <button @click="window.location.href='../../inspectionDashboard.html'"
                     class="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors"
-                    style="background: var(--surface-muted);"
-                    onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface-muted)'">
+                    style="background: var(--surface-muted);" onmouseover="this.style.background='var(--border)'"
+                    onmouseout="this.style.background='var(--surface-muted)'">
                     <i class="fa fa-home text-sm md:text-base"></i>
                 </button>
             </div>
@@ -141,12 +146,13 @@
                         <i class="fa fa-sync mr-2"></i> Refresh
                     </button>
                     <button @click="exportToExcel" class="btn" style="background: var(--success);"
-                        onmouseover="this.style.background='#059669'" onmouseout="this.style.background='var(--success)'">
+                        onmouseover="this.style.background='#059669'"
+                        onmouseout="this.style.background='var(--success)'">
                         <i class="fa fa-file-excel mr-2"></i> Export
                     </button>
                     <button @click="printReport" class="btn btn--secondary"
-                        style="background: var(--text-main); color: #fff;"
-                        onmouseover="this.style.background='#0f172a'" onmouseout="this.style.background='var(--text-main)'">
+                        style="background: var(--text-main); color: #fff;" onmouseover="this.style.background='#0f172a'"
+                        onmouseout="this.style.background='var(--text-main)'">
                         <i class="fa fa-print mr-2"></i> Print
                     </button>
                 </div>
@@ -230,10 +236,10 @@
                             <!-- Output Calculation -->
                             <td class="font-bold" style="background: var(--primary-soft); color: var(--primary);">
                                 <div v-if="editingId === row.id" class="flex flex-col gap-1 no-print">
-                                    <button @click.stop="saveEdit"
-                                        class="text-white text-[10px] py-1 px-2 rounded" style="background: var(--success);">SAVE</button>
-                                    <button @click.stop="cancelEdit"
-                                        class="text-white text-[10px] py-1 px-2 rounded" style="background: var(--text-muted);">CANCEL</button>
+                                    <button @click.stop="saveEdit" class="text-white text-[10px] py-1 px-2 rounded"
+                                        style="background: var(--success);">SAVE</button>
+                                    <button @click.stop="cancelEdit" class="text-white text-[10px] py-1 px-2 rounded"
+                                        style="background: var(--text-muted);">CANCEL</button>
                                 </div>
                                 <span v-else>{{ calculateOutputPerHour(row) }}</span>
                             </td>
@@ -357,39 +363,43 @@
                 const getScheduleMatch = (row) => {
                     const norm = v => (v ?? '').toString().trim().toLowerCase();
 
-                    // Identity: same job order, part, and parameter.
+                    // 1. Identify the Parameter from the record (check both possible fields)
+                    const recordParam = row.Parameter || row.Inspection_Type || "";
+
+                    // 2. Find candidates based on JO, Part, and Parameter
                     const candidates = scheduleRecords.value.filter(s =>
                         norm(s.JO_Number) === norm(row.JO_Number) &&
                         norm(s.Part_Name) === norm(row.Part_Name) &&
-                        norm(s.Parameter) === norm(row.Parameter)
+                        norm(s.Parameter) === norm(recordParam)
                     );
 
                     if (candidates.length === 0) return null;
+
+                    // 3. If there's exactly one clear match, return it immediately 
+                    // (Don't apply the 48-hour rule to single matches)
                     if (candidates.length === 1) return candidates[0];
 
-                    // Tiebreaker 1: prefer the schedule whose assignee OR replacement actually inspected.
+                    // 4. If there are multiple schedules, find the one with the right inspector
                     const byInspector = candidates.filter(s =>
                         norm(s.AssignTo) === norm(row.InspectBy) ||
                         norm(s.Replacement) === norm(row.InspectBy)
                     );
-                    if (byInspector.length === 1) return byInspector[0];
+
                     const pool = byInspector.length > 0 ? byInspector : candidates;
 
-                    // Tiebreaker 2: closest actual finish time, rejected if the nearest is >48h away (stale).
+                    // 5. Tiebreaker: Closest time
                     const rowTime = new Date(row.actual_finished || row.created_at).getTime();
                     const scored = pool.map(s => ({
                         s,
-                        diff: Math.abs(new Date(s.actual_finished_time).getTime() - rowTime)
+                        diff: Math.abs(new Date(s.actual_finished_time || s.EstFinished).getTime() - rowTime)
                     }));
+
                     const best = scored.reduce((a, b) => (a.diff < b.diff ? a : b));
 
-                    // Guard rail: if even the closest candidate is more than 48h away from
-                    // this inspection, it's almost certainly a stale/unrelated row — better
-                    // to show "No Schedule Found" than a wrong one.
-                    const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
-                    return best.diff <= FORTY_EIGHT_HOURS ? best.s : null;
+                    // 6. Increased Guard Rail (120 hours = 5 days) to cover weekends/holidays
+                    const FIVE_DAYS = 120 * 60 * 60 * 1000;
+                    return best.diff <= FIVE_DAYS ? best.s : null;
                 };
-
                 const isOverdue = (schedule, row) => {
                     // 1. Get the finish time from the record (row) instead of the schedule
                     const recordFinishTime = row.actual_finished || row.created_at;
