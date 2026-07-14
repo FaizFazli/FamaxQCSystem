@@ -949,7 +949,7 @@
                     img.classList.remove('hidden');
                     document.getElementById('image-status').classList.add('hidden');
                     document.getElementById('zoom-hint').classList.remove('hidden');
-                    img.src = zone.Path.replace('http://localhost:8000', window.APP_CONFIG.url);
+                    img.src = resolveMediaUrl(zone.Path);
                     img.onerror = showImageUnavailable;
                 }
 
@@ -975,17 +975,61 @@
             let lbScale = 1, lbX = 0, lbY = 0;
             let drag = null, pinch = null;
 
+            // Rewrite storage/docs URLs for whatever host the dev server is on
+            // (Path column often stores http://localhost:8000 or a plant IP forever).
+            function resolveMediaUrl(raw) {
+                if (!raw) return '';
+                let p = String(raw).trim();
+                if (!p) return '';
+                const base = (window.APP_CONFIG && window.APP_CONFIG.url) || '';
+                const host = (window.APP_CONFIG && window.APP_CONFIG.host) || (location.protocol + '//' + location.host);
+                // absolute URL whose path is /storage... or /rest/v1/object — re-host to APP_CONFIG.url
+                try {
+                    if (/^https?:\/\//i.test(p)) {
+                        const u = new URL(p);
+                        if (/^\/storage(\/|$)/i.test(u.pathname) || /\/object\/public\//i.test(u.pathname)) {
+                            return base.replace(/\/$/, '') + u.pathname + u.search + u.hash;
+                        }
+                        // same path, only host/port wrong (common: localhost vs LAN IP)
+                        if (u.port === '8000' || /:8000$/i.test(u.host)) {
+                            return base.replace(/\/$/, '') + u.pathname + u.search + u.hash;
+                        }
+                        // docs served by express :80
+                        if (/^\/docs(\/|$)/i.test(u.pathname) || /^\/dms-docs(\/|$)/i.test(u.pathname)) {
+                            return host.replace(/\/$/, '') + u.pathname + u.search + u.hash;
+                        }
+                        return p;
+                    }
+                } catch (e) { /* fall through */ }
+                if (p.startsWith('//')) return location.protocol + p.slice(2);
+                if (p.startsWith('/storage') || p.startsWith('/object')) return base.replace(/\/$/, '') + p;
+                if (p.startsWith('/docs') || p.startsWith('/dms-docs')) return host.replace(/\/$/, '') + p;
+                if (p.startsWith('/')) return host.replace(/\/$/, '') + p;
+                // bare relative file name
+                return p;
+            }
+
             function applyLbTransform() {
-                lbImg.style.transform = `translate(-50%, -50%) translate(${lbX}px, ${lbY}px) scale(${lbScale})`;
+                lbImg.style.transform = 'translate(-50%, -50%) translate(' + lbX + 'px, ' + lbY + 'px) scale(' + lbScale + ')';
             }
 
             function fitLbImage() {
-                const sw = lbStage.clientWidth || window.innerWidth;
-                const sh = lbStage.clientHeight || window.innerHeight;
+                // Measure only after lightbox is shown/laid out (display:none → flex needs a frame)
+                const sw = Math.max(lbStage.clientWidth || 0, window.innerWidth || 1);
+                const sh = Math.max(lbStage.clientHeight || 0, Math.floor((window.innerHeight || 1) * 0.85));
                 const iw = lbImg.naturalWidth || sw;
                 const ih = lbImg.naturalHeight || sh;
-                const fit = Math.min(sw / iw, sh / ih, 1);
-                lbScale = Math.max(fit, 0.2);
+                if (!lbImg.naturalWidth) {
+                    // failed decode still leave a visible box
+                    lbImg.style.width = 'min(90vw, 480px)';
+                    lbImg.style.height = 'auto';
+                    lbScale = 1; lbX = 0; lbY = 0;
+                    applyLbTransform();
+                    return;
+                }
+                // Fit entire image into stage (allow upscale so small drawings still fill view)
+                const fit = Math.min(sw / iw, sh / ih);
+                lbScale = Math.max(fit, 0.05);
                 lbX = 0; lbY = 0;
                 lbImg.style.width = iw + 'px';
                 lbImg.style.height = ih + 'px';
@@ -993,13 +1037,25 @@
             }
 
             function openLightbox(src) {
-                if (!src) return;
-                lbImg.onload = fitLbImage;
-                lbImg.src = src;
+                const url = resolveMediaUrl(src);
+                if (!url) return;
+                lbImg.onerror = function () {
+                    console.error('Lightbox image failed:', url);
+                };
+                lbImg.onload = function () {
+                    requestAnimationFrame(function () { requestAnimationFrame(fitLbImage); });
+                };
+                // force reload if same URL so onload always fires after open
+                if (lbImg.getAttribute('src') === url) {
+                    lbImg.removeAttribute('src');
+                }
+                lbImg.src = url;
                 lb.classList.add('is-open');
                 lb.setAttribute('aria-hidden', 'false');
                 document.body.classList.add('lightbox-open');
-                if (lbImg.complete) fitLbImage();
+                requestAnimationFrame(function () {
+                    if (lbImg.complete && lbImg.naturalWidth) fitLbImage();
+                });
             }
 
             function closeLightbox() {
@@ -1011,7 +1067,7 @@
 
             function zoomBy(factor, cx, cy) {
                 const prev = lbScale;
-                lbScale = Math.min(8, Math.max(0.2, lbScale * factor));
+                lbScale = Math.min(8, Math.max(0.05, lbScale * factor));
                 if (cx != null && cy != null) {
                     const rect = lbStage.getBoundingClientRect();
                     const px = cx - rect.left - rect.width / 2;
@@ -1026,13 +1082,16 @@
                 const img = document.getElementById('ipqc-image');
                 if (!img) return;
                 img.addEventListener('click', () => {
-                    if (!img.classList.contains('hidden') && img.src) openLightbox(img.src);
+                    if (img.classList.contains('hidden')) return;
+                    const src = img.currentSrc || img.getAttribute('src') || img.src;
+                    if (!src || src === location.href) return;
+                    openLightbox(src);
                 });
                 document.getElementById('lb-close').onclick = closeLightbox;
                 document.getElementById('lb-zoom-in').onclick = () => zoomBy(1.25);
                 document.getElementById('lb-zoom-out').onclick = () => zoomBy(1 / 1.25);
                 document.getElementById('lb-zoom-reset').onclick = fitLbImage;
-                lb.addEventListener('click', (e) => { if (e.target === lb) closeLightbox(); });
+                lb.addEventListener('click', (e) => { if (e.target === lb || e.target === lbStage) closeLightbox(); });
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape' && lb.classList.contains('is-open')) closeLightbox();
                 });
@@ -1043,6 +1102,7 @@
                 }, { passive: false });
                 lbStage.addEventListener('pointerdown', (e) => {
                     if (!lb.classList.contains('is-open')) return;
+                    if (e.target.closest && e.target.closest('.img-lightbox-tools')) return;
                     lbStage.setPointerCapture(e.pointerId);
                     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, ox: lbX, oy: lbY };
                     lbStage.classList.add('is-dragging');
@@ -1076,7 +1136,7 @@
                         const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                         const midX = (a.clientX + b.clientX) / 2;
                         const midY = (a.clientY + b.clientY) / 2;
-                        const next = Math.min(8, Math.max(0.2, pinch.scale * (dist / pinch.dist)));
+                        const next = Math.min(8, Math.max(0.05, pinch.scale * (dist / pinch.dist)));
                         const factor = next / lbScale;
                         lbScale = next;
                         const rect = lbStage.getBoundingClientRect();
