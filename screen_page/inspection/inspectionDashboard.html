@@ -708,6 +708,7 @@
           class="w-full h-full bg-white animate-in"
         >
           <iframe
+            :key="frameKey"
             :src="frameSrc"
             class="w-full h-screen"
             style="border: 0"
@@ -1578,6 +1579,9 @@
           const isSidebarOpen = ref(window.innerWidth >= 1024);
           const currentView = ref("dashboard");
           const frameSrc = ref("");
+          // Bumped on every goTo so the iframe re-mounts and reloads even when
+          // the target URL is unchanged (e.g. the iframe navigated internally).
+          const frameKey = ref(0);
           const loading = ref(false);
 
           const schedule = ref([]);
@@ -2360,6 +2364,7 @@
             isMobile,
             currentView,
             frameSrc,
+            frameKey,
             loading,
             schedule,
             records,
@@ -2419,6 +2424,7 @@
               i.EstFinished && new Date() > new Date(i.EstFinished),
             goTo: (url) => {
               frameSrc.value = url;
+              frameKey.value++;
               currentView.value = "frame";
               if (isMobile.value) isSidebarOpen.value = false;
             },

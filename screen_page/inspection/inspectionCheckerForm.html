@@ -379,7 +379,8 @@
                 </div>
             </div>
             <div class="nav-button-wrap">
-                <a href="inspectionDashboard.html" class="nav-link nav-link-home"><i class="fa fa-th-large"></i>
+                <a href="inspectionDashboard.html" target="_parent" class="nav-link nav-link-home"><i
+                        class="fa fa-th-large"></i>
                     Dashboard</a>
                 <a href="inspectionSchedule.html" class="nav-link nav-link-sched"><i class="fa fa-calendar-alt"></i>
                     View Schedule</a>
@@ -1450,7 +1451,15 @@
                             style: { background: "#fbbf24", color: "#000" }
                         }).showToast();
 
-                        setTimeout(() => { window.location.href = 'inspectionDashboard.html'; }, 1500);
+                        setTimeout(() => {
+                            // This form usually runs inside the dashboard's content
+                            // iframe (Dashboard → Task Manager → New Inspection). Navigate
+                            // the PARENT frame back to the dashboard instead of loading a
+                            // whole dashboard inside the iframe (which shows two sidebars).
+                            const dashUrl = new URL('inspectionDashboard.html', window.location.href).href;
+                            const target = (window.parent && window.parent !== window) ? window.parent : window;
+                            target.location.href = dashUrl;
+                        }, 1500);
 
                     } catch (err) {
                         console.error("Update Error:", err);
