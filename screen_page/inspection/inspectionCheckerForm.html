@@ -859,6 +859,7 @@
                 const addNewForm = () => {
                     forms.value.push({
                         inspection_type: 'Initial',
+                        sched_id: null,
                         part_name: '',
                         job_order_no: '',
                         do_number: '',
@@ -1247,9 +1248,66 @@
                 const removeForm = (idx) => forms.value.splice(idx, 1);
                 const allLocked = computed(() => forms.value.length > 0 && forms.value.every(f => f.isLocked));
 
+                // Resolve which InspectionSchedule row a form belongs to.
+                // Forms opened from a schedule already carry sched_id (unambiguous).
+                // For manually-added forms we match on Part + JO, then narrow by
+                // Parameter -> inspector -> still-open qty -> latest StartDate on or
+                // before the finish time, mirroring the daily-report matching rule.
+                const resolveScheduleId = async (f) => {
+                    try {
+                        const norm = (v) => (v ?? '').toString().trim().toLowerCase();
+                        const q = `/InspectionSchedule?Part_Name=eq.${encodeURIComponent(f.part_name)}&JO_Number=eq.${encodeURIComponent(f.job_order_no)}&select=*`;
+                        const res = await api.get(q);
+                        let list = res.data || [];
+                        if (list.length === 0) return null;
+                        if (list.length === 1) return list[0].id;
+
+                        const param = norm(f.parameter);
+                        if (param) {
+                            const byParam = list.filter(s => norm(s.Parameter) === param);
+                            if (byParam.length) list = byParam;
+                        }
+                        if (list.length === 1) return list[0].id;
+
+                        const insp = norm(f.inspect_by);
+                        if (insp) {
+                            const byInsp = list.filter(s => norm(s.AssignTo) === insp || norm(s.Replacement) === insp);
+                            if (byInsp.length) list = byInsp;
+                        }
+                        if (list.length === 1) return list[0].id;
+
+                        const open = list.filter(s => Number(s.remaining_qty ?? s.remaining_quantity ?? s.quantity ?? 0) > 0);
+                        if (open.length) list = open;
+
+                        const finishTs = new Date(f.actual_finished || Date.now()).getTime();
+                        const started = list
+                            .filter(s => s.StartDate && new Date(s.StartDate).getTime() <= finishTs)
+                            .sort((a, b) => new Date(b.StartDate).getTime() - new Date(a.StartDate).getTime());
+                        if (started.length) return started[0].id;
+
+                        const byStart = list
+                            .filter(s => s.StartDate)
+                            .sort((a, b) => new Date(b.StartDate).getTime() - new Date(a.StartDate).getTime());
+                        return (byStart[0] || list[0]).id;
+                    } catch (e) {
+                        console.error('resolveScheduleId failed:', e);
+                        return null;
+                    }
+                };
+
                 const submitAll = async () => {
                     try {
-                        const payload = forms.value.map(f => {
+                        // Resolve the owning schedule id for every form up front so we can
+                        // stamp it onto the InspectionRecord AND reuse it when updating the
+                        // schedule below (no second lookup, no re-guessing).
+                        const resolvedIds = [];
+                        for (const f of forms.value) {
+                            let targetId = (f.sched_id && f.sched_id !== 'null') ? f.sched_id : null;
+                            if (!targetId) targetId = await resolveScheduleId(f);
+                            resolvedIds.push(targetId || null);
+                        }
+
+                        const payload = forms.value.map((f, i) => {
 
                             // --- NEW: EXTRACTION LOGIC ---
                             const fullPartName = f.part_name; // e.g., "BAGUE DE VERROUILLAGE (778-078)"
@@ -1284,6 +1342,10 @@
                                 ScrapQty: Number(f.scrap_qty) || 0,
                                 AcceptQty: Number(f.accept_qty) || 0,
                                 remark_finished: (f.remark_finished || "").toUpperCase(),
+                                // Hard link to the owning schedule row (see resolvedIds above).
+                                // Lets the daily report map record -> schedule directly
+                                // instead of guessing when a JO has multiple schedules.
+                                schedule_id: resolvedIds[i],
                                 created_at: new Date().toISOString()
                             };
                         });
@@ -1343,16 +1405,10 @@
                         //     }
                         // }
 
-                        // 2. Update the Schedule Table
-                        for (const f of forms.value) {
-                            let targetId = f.sched_id;
-
-                            if (!targetId || targetId === 'null') {
-                                const searchRes = await api.get(`/InspectionSchedule?Part_Name=eq.${encodeURIComponent(f.part_name)}&JO_Number=eq.${encodeURIComponent(f.job_order_no)}&select=id`);
-                                if (searchRes.data && searchRes.data.length > 0) {
-                                    targetId = searchRes.data[0].id;
-                                }
-                            }
+                        // 2. Update the Schedule Table (reuse the ids resolved above)
+                        for (let i = 0; i < forms.value.length; i++) {
+                            const f = forms.value[i];
+                            const targetId = resolvedIds[i];
 
                             if (targetId) {
                                 const { data: schedData } = await api.get(`/InspectionSchedule?id=eq.${targetId}`);

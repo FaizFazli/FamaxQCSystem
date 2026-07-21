@@ -402,6 +402,16 @@
         const getScheduleMatch = (row) => {
           const norm = (v) => (v ?? "").toString().trim().toLowerCase();
 
+          // 0. Fast path: records created by the checker form carry an explicit
+          //    schedule_id link. Use it directly — no guessing. Older records
+          //    without the link fall through to the heuristic below.
+          if (row.schedule_id != null && row.schedule_id !== "") {
+            const linked = scheduleRecords.value.find(
+              (s) => String(s.id) === String(row.schedule_id),
+            );
+            if (linked) return linked;
+          }
+
           // 1. Identify the Parameter from the record (check both possible fields)
           const recordParam = row.Parameter || row.Inspection_Type || "";
 
@@ -428,23 +438,43 @@
 
           const pool = byInspector.length > 0 ? byInspector : candidates;
 
-          // 5. Tiebreaker: Closest time
+          // 5. Disambiguate by the schedule "run" the record belongs to.
+          //    Several schedules can share the same JO + Part + Parameter (one
+          //    job split across operators / re-scheduled batches). The correct
+          //    one is the run the operator was on when they finished: the
+          //    schedule whose StartDate is the LATEST that is still on/before
+          //    the record's finish time.
+          //    StartDate is set once at scheduling and never written back from
+          //    records, so it is a stable key — unlike actual_finished_time,
+          //    which saveEdit syncs FROM records and therefore drifts (that
+          //    circularity was the source of the false OVERDUE flag).
           const rowTime = new Date(
             row.actual_finished || row.created_at,
           ).getTime();
-          const scored = pool.map((s) => ({
-            s,
-            diff: Math.abs(
-              new Date(s.actual_finished_time || s.EstFinished).getTime() -
-              rowTime,
-            ),
-          }));
 
-          const best = scored.reduce((a, b) => (a.diff < b.diff ? a : b));
+          const started = pool
+            .filter(
+              (s) => s.StartDate && new Date(s.StartDate).getTime() <= rowTime,
+            )
+            .sort(
+              (a, b) =>
+                new Date(b.StartDate).getTime() - new Date(a.StartDate).getTime(),
+            );
 
-          // 6. Increased Guard Rail (120 hours = 5 days) to cover weekends/holidays
-          const FIVE_DAYS = 120 * 60 * 60 * 1000;
-          return best.diff <= FIVE_DAYS ? best.s : null;
+          if (started.length > 0) return started[0];
+
+          // 6. Fallback: no schedule had started yet by the finish time
+          //    (e.g. a back-dated entry). Pick the schedule whose StartDate is
+          //    closest to the finish time so we still map to a real run.
+          const byStart = pool
+            .filter((s) => s.StartDate)
+            .sort(
+              (a, b) =>
+                Math.abs(new Date(a.StartDate).getTime() - rowTime) -
+                Math.abs(new Date(b.StartDate).getTime() - rowTime),
+            );
+
+          return byStart[0] || pool[0] || null;
         };
 
         const isOverdue = (schedule, row) => {
