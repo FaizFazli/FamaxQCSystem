@@ -508,6 +508,15 @@
       .sidebar-dark .nav-item.active-side i {
         color: var(--on-primary);
       }
+
+      .sidebar-dark .side-group-label {
+        margin: 16px 14px 6px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.32);
+      }
     </style>
   </head>
 
@@ -584,112 +593,32 @@
             class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Master Records</span>
         </button>  -->
 
-          <div class="h-px bg-white/10 my-4 mx-4"></div>
-
-          <!-- 4. TASK MANAGER -->
-          <button
-            @click="goTo('inspectionSchedule.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa fa-tasks text-xl flex-shrink-0"></i>
-            <span
+          <!-- GROUPED TOOL PAGES (open in the content iframe; active highlights) -->
+          <template v-for="grp in navGroups" :key="grp.label">
+            <div
               v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Task Manager</span
+              class="side-group-label"
             >
-          </button>
+              {{ grp.label }}
+            </div>
+            <div v-else class="h-px bg-white/10 my-3 mx-4"></div>
 
-          <!-- 5. NEW INSPECTION -->
-          <button
-            @click="goTo('inspectionCheckerForm.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-square-plus text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >New Inspection</span
+            <button
+              v-for="link in grp.items"
+              :key="link.url"
+              @click="goTo(link.url)"
+              :class="[isFrame(link.url) ? 'active-side' : 'hover:bg-white/10', isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto']"
+              :style="isFrame(link.url) ? '' : 'color: var(--primary)'"
+              class="nav-item flex items-center"
             >
-          </button>
-
-          <!-- 6. INSPECTION GUIDE FORM -->
-          <button
-            @click="goTo('inspectionGuide.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-brands fa-wpforms text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Plan Form</span
-            >
-          </button>
-
-          <!-- 7. REJECT REPORT -->
-          <button
-            @click="goTo('inspectionRejectReport.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-file-lines text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Reject Report</span
-            >
-          </button>
-
-          <!-- 8. DAILY REPORT -->
-          <button
-            @click="goTo('inspectionDailyReport.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-calendar-check text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Daily Report</span
-            >
-          </button>
-
-          <!-- 9. PART SUMMARY -->
-          <button
-            @click="goTo('inspectionPartSummary.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-solid fa-cubes text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Part Summary</span
-            >
-          </button>
-
-          <!-- 10. PLAN LIST -->
-          <button
-            @click="goTo('inspectionGuideList.html')"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-white/10"
-            style="color: var(--primary)"
-          >
-            <i class="fa-solid fa-magnifying-glass text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-              >Plan List</span
-            >
-          </button>
+              <i :class="link.icon" class="text-xl flex-shrink-0"></i>
+              <span
+                v-if="isSidebarOpen"
+                class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
+                >{{ link.label }}</span
+              >
+            </button>
+          </template>
         </nav>
 
         <button
@@ -808,9 +737,11 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-start">
               <!-- LEFT COLUMN: overview + tiles + trend -->
               <div class="lg:col-span-2 space-y-4 lg:space-y-5">
-                <!-- HERO -->
+                <!-- HERO (click → full performance report) -->
             <div
-              class="hero-card rounded-[1.5rem] lg:rounded-[2rem] p-5 lg:p-7"
+              @click="goTo('inspectionPerformanceReport.html')"
+              title="Open full performance report"
+              class="hero-card rounded-[1.5rem] lg:rounded-[2rem] p-5 lg:p-7 cursor-pointer group hover:shadow-xl transition-shadow"
             >
               <div class="hero-grid">
                 <!-- Pass-rate donut -->
@@ -834,9 +765,15 @@
                 <!-- Headline + pills -->
                 <div class="min-w-0">
                   <p
-                    class="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-400 mb-2"
+                    class="text-[10px] font-black uppercase tracking-[0.25em] text-neutral-400 mb-2 flex items-center gap-2 flex-wrap"
                   >
-                    Overview · {{ todayLabel }}
+                    <span>Overview · {{ todayLabel }}</span>
+                    <span
+                      class="inline-flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity"
+                      style="color: var(--primary)"
+                    >
+                      <i class="fa fa-arrow-right-long"></i> Full report
+                    </span>
                   </p>
                   <div class="flex items-end gap-3 flex-wrap">
                     <span
@@ -2428,6 +2365,29 @@
               currentView.value = "frame";
               if (isMobile.value) isSidebarOpen.value = false;
             },
+            // Which iframe tool page is currently open (for sidebar highlight).
+            isFrame: (u) =>
+              currentView.value === "frame" && frameSrc.value === u,
+            navGroups: [
+              {
+                label: "Inspection",
+                items: [
+                  { url: "inspectionSchedule.html", icon: "fa fa-tasks", label: "Task Manager" },
+                  { url: "inspectionCheckerForm.html", icon: "fa-regular fa-square-plus", label: "New Inspection" },
+                  { url: "inspectionGuide.html", icon: "fa-brands fa-wpforms", label: "Plan Form" },
+                  { url: "inspectionGuideList.html", icon: "fa-solid fa-magnifying-glass", label: "Plan List" },
+                ],
+              },
+              {
+                label: "Reports",
+                items: [
+                  { url: "inspectionPerformanceReport.html", icon: "fa-solid fa-chart-column", label: "Performance Report" },
+                  { url: "inspectionPartSummary.html", icon: "fa-solid fa-cubes", label: "Part Summary" },
+                  { url: "inspectionRejectReport.html", icon: "fa-regular fa-file-lines", label: "Reject Report" },
+                  { url: "inspectionDailyReport.html", icon: "fa-regular fa-calendar-check", label: "Daily Report" },
+                ],
+              },
+            ],
             toggleSidebar: () => {
               isSidebarOpen.value = !isSidebarOpen.value;
               setTimeout(() => {

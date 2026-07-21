@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QA Performance Report | Famax Quality Hub</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/theme.css" />
+
+    <style>
+      body {
+        font-family: var(--font-sans);
+        background: var(--bg-body);
+        color: var(--text-main);
+      }
+      [v-cloak] {
+        display: none;
+      }
+
+      .rep-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Controls bar */
+      .controls {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        background: #0f172a;
+        color: #fff;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .controls .ctrl-field {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 5px 12px;
+      }
+      .controls .ctrl-field label {
+        font-size: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      .controls .ctrl-field input {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        color-scheme: dark;
+        padding: 0;
+      }
+      .btn-ctrl {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 16px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--primary-hover);
+      }
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.12);
+      }
+      .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      /* Report canvas */
+      .report {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+      }
+
+      /* KPI */
+      .kpi {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--bg-card);
+        padding: 16px 18px;
+      }
+      .kpi .v {
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1;
+      }
+      .kpi .l {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-top: 8px;
+      }
+
+      /* Tables */
+      .rtable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .rtable thead th {
+        position: sticky;
+        top: 0;
+        background: var(--surface-muted);
+        color: var(--text-muted);
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 11px 12px;
+        text-align: right;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--border);
+      }
+      .rtable thead th.tl {
+        text-align: left;
+      }
+      .rtable tbody td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border);
+        text-align: right;
+        white-space: nowrap;
+      }
+      .rtable tbody td.tl {
+        text-align: left;
+        white-space: normal;
+      }
+      .rtable tbody tr:hover {
+        background: var(--surface-muted);
+      }
+      .rtable tfoot td {
+        padding: 12px;
+        text-align: right;
+        font-weight: 900;
+        background: var(--surface-muted);
+        border-top: 2px solid var(--border-strong);
+      }
+      .rtable tfoot td.tl {
+        text-align: left;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      .pos {
+        color: #15803d;
+        font-weight: 800;
+      }
+      .neg {
+        color: #b91c1c;
+        font-weight: 800;
+      }
+      .muted {
+        color: var(--text-faint);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 9px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+      }
+      .pill-green {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .pill-amber {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .pill-red {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .pill-blue {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      .detail-row td {
+        background: #f8fafc;
+        padding: 0 !important;
+      }
+      .avatar-sm {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 800;
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+
+      /* Print */
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        .report {
+          padding: 0;
+          max-width: none;
+        }
+        .rep-card {
+          box-shadow: none;
+          border: 1px solid #ccc;
+          break-inside: avoid;
+        }
+        .rtable thead th {
+          position: static;
+        }
+        body {
+          background: #fff;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="antialiased">
+    <div id="app" v-cloak>
+      <!-- CONTROLS -->
+      <div class="controls no-print">
+        <div class="flex items-center gap-3 mr-auto">
+          <div
+            class="w-9 h-9 rounded-xl flex items-center justify-center"
+            style="background: var(--primary)"
+          >
+            <i class="fa fa-chart-column text-white"></i>
+          </div>
+          <div class="leading-none">
+            <div class="font-black uppercase italic tracking-tight text-sm">
+              QA Performance Report
+            </div>
+            <div
+              class="text-[9px] font-bold uppercase tracking-[0.2em] text-white/40 mt-1"
+            >
+              Month to date · management view
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-field">
+          <label>Report Month</label>
+          <input type="month" v-model="month" />
+        </div>
+        <button class="btn-ctrl btn-ghost" @click="fetchData">
+          <i class="fa fa-sync-alt" :class="{ 'fa-spin': loading }"></i> Refresh
+        </button>
+        <button class="btn-ctrl btn-ghost" @click="printReport">
+          <i class="fa fa-print"></i> Print
+        </button>
+        <button class="btn-ctrl btn-primary" @click="exportExcel">
+          <i class="fa fa-file-excel"></i> Export
+        </button>
+      </div>
+
+      <div class="report">
+        <!-- REPORT BANNER -->
+        <div class="rep-card p-6 mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <img
+              src="/FamaxQCSystem/assets/LogoRound.png?v=2"
+              class="h-12 w-12"
+              alt="Famax"
+            />
+            <div>
+              <h1
+                class="text-lg lg:text-xl font-black uppercase tracking-tight text-slate-900"
+              >
+                QA Inspection Performance Report
+              </h1>
+              <p class="text-xs font-semibold text-slate-500 mt-0.5">
+                Reporting period:
+                <span class="text-slate-800 font-bold">{{ monthLabel }}</span>
+                · Data through
+                <span class="text-slate-800 font-bold">{{ dataThrough }}</span>
+              </p>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Generated
+            </div>
+            <div class="text-sm font-bold text-slate-700">{{ generatedAt }}</div>
+          </div>
+        </div>
+
+        <!-- LOADING / EMPTY -->
+        <div v-if="loading" class="rep-card p-16 text-center text-slate-400">
+          <i class="fa fa-spinner fa-spin text-2xl mb-3 block"></i>
+          Loading report…
+        </div>
+        <div
+          v-else-if="!filteredRecords.length"
+          class="rep-card p-16 text-center text-slate-400"
+        >
+          <i class="fa fa-inbox text-3xl mb-3 block text-slate-300"></i>
+          No inspection records for {{ monthLabel }}.
+        </div>
+
+        <template v-else>
+          <!-- MONTH KPIS -->
+          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+            <div class="kpi">
+              <div class="v text-slate-900">{{ month_.total.toLocaleString() }}</div>
+              <div class="l">Total Checked</div>
+            </div>
+            <div class="kpi">
+              <div class="v text-emerald-600">{{ month_.accept.toLocaleString() }}</div>
+              <div class="l">Accepted</div>
+            </div>
+            <div class="kpi">
+              <div class="v text-rose-600">{{ month_.reject.toLocaleString() }}</div>
+              <div class="l">Rejected</div>
+            </div>
+            <div class="kpi">
+              <div class="v text-amber-600">{{ month_.scrap.toLocaleString() }}</div>
+              <div class="l">Scrap</div>
+            </div>
+            <div class="kpi">
+              <div class="v text-emerald-600">{{ pct(month_.accept, month_.total) }}</div>
+              <div class="l">Accept Rate</div>
+            </div>
+            <div class="kpi">
+              <div class="v text-rose-600">{{ pct(month_.reject, month_.total) }}</div>
+              <div class="l">Reject Rate</div>
+            </div>
+          </div>
+
+          <!-- QUALITY PERFORMANCE -->
+          <div class="rep-card mb-6 overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm font-black uppercase tracking-tight text-slate-900">
+                  <i class="fa fa-boxes-stacked mr-2" style="color: var(--primary)"></i>
+                  Quality Performance
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                  Grouped by part number &amp; job order · accumulated to last check date
+                </p>
+              </div>
+              <span class="pill pill-blue">{{ qualityRows.length }} groups</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="rtable">
+                <thead>
+                  <tr>
+                    <th class="tl">Part No</th>
+                    <th class="tl">Part Name</th>
+                    <th class="tl">Job Order</th>
+                    <th>Total Check</th>
+                    <th>Accept</th>
+                    <th>Reject</th>
+                    <th>Scrap</th>
+                    <th>Accept %</th>
+                    <th>Reject %</th>
+                    <th class="tl">Last Check</th>
+                    <th class="no-print"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="r in qualityRows" :key="r.key">
+                    <tr class="cursor-pointer" @click="toggleQ(r.key)">
+                      <td class="tl font-bold text-slate-900">{{ r.partNo || '—' }}</td>
+                      <td class="tl text-slate-600">{{ r.part }}</td>
+                      <td class="tl">{{ r.jo || '—' }}</td>
+                      <td class="num font-bold">{{ r.total.toLocaleString() }}</td>
+                      <td class="num pos">{{ r.accept.toLocaleString() }}</td>
+                      <td class="num neg">{{ r.reject.toLocaleString() }}</td>
+                      <td class="num text-amber-600 font-bold">{{ r.scrap.toLocaleString() }}</td>
+                      <td class="num">{{ pct(r.accept, r.total) }}</td>
+                      <td class="num" :class="rejClass(r.reject, r.total)">{{ pct(r.reject, r.total) }}</td>
+                      <td class="tl muted">{{ r.lastCheck }}</td>
+                      <td class="no-print text-slate-400">
+                        <i class="fa" :class="qExpanded.has(r.key) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                      </td>
+                    </tr>
+                    <tr v-if="qExpanded.has(r.key)" class="detail-row">
+                      <td colspan="11">
+                        <div class="p-4">
+                          <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                            Checks for {{ r.partNo || r.part }} · {{ r.jo || '—' }} ({{ r.details.length }})
+                          </div>
+                          <table class="rtable" style="font-size: 12px">
+                            <thead>
+                              <tr>
+                                <th class="tl">Parameter</th>
+                                <th class="tl">Process</th>
+                                <th class="tl">Inspector</th>
+                                <th>Checked</th>
+                                <th>Accept</th>
+                                <th>Reject</th>
+                                <th>Accept %</th>
+                                <th>Reject %</th>
+                                <th class="tl">When</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="(d, i) in r.details" :key="i">
+                                <td class="tl font-semibold text-slate-800">{{ d.parameter }}</td>
+                                <td class="tl text-slate-600">{{ d.process }}</td>
+                                <td class="tl text-slate-600">{{ d.inspector }}</td>
+                                <td class="num">{{ d.checks.toLocaleString() }}</td>
+                                <td class="num pos">{{ d.accept.toLocaleString() }}</td>
+                                <td class="num neg">{{ d.reject.toLocaleString() }}</td>
+                                <td class="num">{{ pct(d.accept, d.checks) }}</td>
+                                <td class="num" :class="rejClass(d.reject, d.checks)">{{ pct(d.reject, d.checks) }}</td>
+                                <td class="tl muted">{{ d.whenLabel }}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="tl" colspan="3">GRAND TOTAL</td>
+                    <td class="num">{{ qTotals.total.toLocaleString() }}</td>
+                    <td class="num pos">{{ qTotals.accept.toLocaleString() }}</td>
+                    <td class="num neg">{{ qTotals.reject.toLocaleString() }}</td>
+                    <td class="num text-amber-600">{{ qTotals.scrap.toLocaleString() }}</td>
+                    <td class="num">{{ pct(qTotals.accept, qTotals.total) }}</td>
+                    <td class="num">{{ pct(qTotals.reject, qTotals.total) }}</td>
+                    <td></td>
+                    <td class="no-print"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- INSPECTOR PERFORMANCE -->
+          <div class="rep-card overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h2 class="text-sm font-black uppercase tracking-tight text-slate-900">
+                  <i class="fa fa-user-shield mr-2" style="color: var(--primary)"></i>
+                  Inspector Performance
+                </h2>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                  Punctuality &amp; output per inspector · click a row for part-level rates
+                </p>
+              </div>
+              <span class="pill pill-blue">{{ inspectorRows.length }} inspectors</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="rtable">
+                <thead>
+                  <tr>
+                    <th class="tl">Inspector</th>
+                    <th>Total</th>
+                    <th>On-Time</th>
+                    <th>Late</th>
+                    <th>Open</th>
+                    <th>On-Time %</th>
+                    <th>Checked</th>
+                    <th>Accept</th>
+                    <th>Reject</th>
+                    <th>Accept %</th>
+                    <th>Reject %</th>
+                    <th class="no-print"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template v-for="r in inspectorRows" :key="r.name">
+                    <tr class="cursor-pointer" @click="toggle(r.name)">
+                      <td class="tl">
+                        <div class="flex items-center gap-2.5">
+                          <span class="avatar-sm" :style="{ background: color(r.name) }">{{ initials(r.name) }}</span>
+                          <span class="font-bold text-slate-900">{{ r.name }}</span>
+                        </div>
+                      </td>
+                      <td class="num font-bold">{{ r.total }}</td>
+                      <td class="num pos">{{ r.onTime }}</td>
+                      <td class="num neg">{{ r.late }}</td>
+                      <td class="num text-amber-600 font-bold">{{ r.open }}</td>
+                      <td class="num">
+                        <span class="pill" :class="otClass(r.onTimeRate)">{{ r.onTimeRate === null ? '—' : r.onTimeRate + '%' }}</span>
+                      </td>
+                      <td class="num font-bold">{{ r.checks.toLocaleString() }}</td>
+                      <td class="num pos">{{ r.accept.toLocaleString() }}</td>
+                      <td class="num neg">{{ r.reject.toLocaleString() }}</td>
+                      <td class="num">{{ pct(r.accept, r.checks) }}</td>
+                      <td class="num" :class="rejClass(r.reject, r.checks)">{{ pct(r.reject, r.checks) }}</td>
+                      <td class="no-print text-slate-400">
+                        <i class="fa" :class="expanded.has(r.name) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                      </td>
+                    </tr>
+                    <tr v-if="expanded.has(r.name)" class="detail-row">
+                      <td colspan="12">
+                        <div class="p-4">
+                          <div class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                            Parts checked by {{ r.name }}
+                          </div>
+                          <table class="rtable" style="font-size: 12px">
+                            <thead>
+                              <tr>
+                                <th class="tl">Part No</th>
+                                <th class="tl">Part Name</th>
+                                <th>Checked</th>
+                                <th>Accept</th>
+                                <th>Reject</th>
+                                <th>Accept %</th>
+                                <th>Reject %</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr v-for="p in r.parts" :key="p.partNo + p.part">
+                                <td class="tl font-bold text-slate-800">{{ p.partNo || '—' }}</td>
+                                <td class="tl text-slate-500">{{ p.part }}</td>
+                                <td class="num">{{ p.checks.toLocaleString() }}</td>
+                                <td class="num pos">{{ p.accept.toLocaleString() }}</td>
+                                <td class="num neg">{{ p.reject.toLocaleString() }}</td>
+                                <td class="num">{{ pct(p.accept, p.checks) }}</td>
+                                <td class="num" :class="rejClass(p.reject, p.checks)">{{ pct(p.reject, p.checks) }}</td>
+                              </tr>
+                            </tbody>
+                            <tfoot>
+                              <tr>
+                                <td class="tl" colspan="2">OVERALL ({{ monthLabel }})</td>
+                                <td class="num">{{ r.checks.toLocaleString() }}</td>
+                                <td class="num pos">{{ r.accept.toLocaleString() }}</td>
+                                <td class="num neg">{{ r.reject.toLocaleString() }}</td>
+                                <td class="num">{{ pct(r.accept, r.checks) }}</td>
+                                <td class="num">{{ pct(r.reject, r.checks) }}</td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="tl">ALL INSPECTORS</td>
+                    <td class="num">{{ iTotals.total }}</td>
+                    <td class="num pos">{{ iTotals.onTime }}</td>
+                    <td class="num neg">{{ iTotals.late }}</td>
+                    <td class="num text-amber-600">{{ iTotals.open }}</td>
+                    <td class="num">{{ iTotals.onTimeRate === null ? '—' : iTotals.onTimeRate + '%' }}</td>
+                    <td class="num">{{ iTotals.checks.toLocaleString() }}</td>
+                    <td class="num pos">{{ iTotals.accept.toLocaleString() }}</td>
+                    <td class="num neg">{{ iTotals.reject.toLocaleString() }}</td>
+                    <td class="num">{{ pct(iTotals.accept, iTotals.checks) }}</td>
+                    <td class="num">{{ pct(iTotals.reject, iTotals.checks) }}</td>
+                    <td class="no-print"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-slate-400 mt-4 leading-relaxed">
+            On-Time % is measured against completed inspections (on-time ÷ [on-time + late]).
+            "Open" counts scheduled jobs still in progress past their estimated finish.
+            Accept/Reject % are of total pieces checked. Late is determined by comparing each
+            record's finish time against its schedule's estimated finish.
+          </p>
+        </template>
+      </div>
+    </div>
+
+    <script>
+      const { createApp, ref, computed, onMounted, watch } = Vue;
+
+      createApp({
+        setup() {
+          const CFG = window.APP_CONFIG || {};
+          const api = axios.create({
+            baseURL: `${CFG.url || "http://192.168.0.5:8000"}/rest/v1`,
+            headers: { apikey: CFG.key, Authorization: `Bearer ${CFG.key}` },
+          });
+
+          const records = ref([]);
+          const schedules = ref([]);
+          const loading = ref(false);
+          const month = ref(new Date().toISOString().slice(0, 7)); // YYYY-MM
+          const expanded = ref(new Set());
+          const qExpanded = ref(new Set());
+
+          // ---- helpers ----
+          const norm = (s) => (s || "").toString().trim().toLowerCase();
+          const effDate = (r) =>
+            (r.actual_finished || r.created_at || "").slice(0, 10);
+          const pct = (n, d) => (d > 0 ? ((n / d) * 100).toFixed(1) + "%" : "0.0%");
+          const rejClass = (n, d) =>
+            d > 0 && n / d > 0.05 ? "neg" : "";
+          const otClass = (v) =>
+            v === null ? "" : v >= 80 ? "pill-green" : v >= 50 ? "pill-amber" : "pill-red";
+          const initials = (name) =>
+            (name || "")
+              .toString()
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase() || "?";
+          const color = (name) => {
+            const pal = ["#0ea5e9", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#ec4899", "#14b8a6", "#6366f1"];
+            let h = 0;
+            const s = (name || "").toString();
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            return pal[h % pal.length];
+          };
+          const fmtDate = (iso) =>
+            iso
+              ? new Date(iso).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—";
+          const fmtDateTime = (iso) =>
+            iso
+              ? new Date(iso).toLocaleString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—";
+
+          // ---- record -> schedule matching (mirror of dashboard) ----
+          const isOverdueHelper = (s, r) => {
+            const fin = r.actual_finished || r.created_at;
+            if (!s || !s.EstFinished || !fin) return false;
+            const act = new Date(fin);
+            const est = new Date(s.EstFinished);
+            act.setSeconds(0, 0);
+            est.setSeconds(0, 0);
+            return act.getTime() > est.getTime();
+          };
+          const findMatch = (row) => {
+            if (row.schedule_id != null && row.schedule_id !== "") {
+              const linked = schedules.value.find(
+                (s) => String(s.id) === String(row.schedule_id),
+              );
+              if (linked) return linked;
+            }
+            const jo = norm(row.JO_Number),
+              part = norm(row.Part_Name),
+              param = norm(row.Parameter || row.Inspection_Type);
+            const cand = schedules.value.filter(
+              (s) =>
+                norm(s.JO_Number) === jo &&
+                norm(s.Part_Name) === part &&
+                norm(s.Parameter) === param,
+            );
+            if (cand.length === 0) return null;
+            if (cand.length === 1) return cand[0];
+            const byInsp = cand.filter(
+              (s) =>
+                norm(s.AssignTo) === norm(row.InspectBy) ||
+                norm(s.Replacement) === norm(row.InspectBy),
+            );
+            const pool = byInsp.length ? byInsp : cand;
+            const t = new Date(row.actual_finished || row.created_at).getTime();
+            const started = pool
+              .filter((s) => s.StartDate && new Date(s.StartDate).getTime() <= t)
+              .sort((a, b) => new Date(b.StartDate) - new Date(a.StartDate));
+            if (started.length) return started[0];
+            const byStart = pool
+              .filter((s) => s.StartDate)
+              .sort(
+                (a, b) =>
+                  Math.abs(new Date(a.StartDate) - t) -
+                  Math.abs(new Date(b.StartDate) - t),
+              );
+            return byStart[0] || pool[0] || null;
+          };
+          const schedDone = (s) => {
+            const st = norm(s.Status);
+            return (
+              st === "complete" ||
+              st === "completed" ||
+              !!s.actual_finished_time ||
+              Number(s.remaining_qty) <= 0
+            );
+          };
+
+          // ---- fetch ----
+          const fetchData = async () => {
+            loading.value = true;
+            try {
+              const start = `${month.value}-01`;
+              const startD = new Date(start);
+              const next = new Date(startD);
+              next.setMonth(next.getMonth() + 1);
+              const nextStr = next.toISOString().slice(0, 10);
+              // Record fetch window is padded ±15 days so in-month checks that
+              // were entered just before/after the month are still captured;
+              // display is filtered to the exact month by checking date below.
+              const preD = new Date(startD);
+              preD.setDate(preD.getDate() - 15);
+              const preStr = preD.toISOString().slice(0, 10);
+              const postD = new Date(next);
+              postD.setDate(postD.getDate() + 15);
+              const postStr = postD.toISOString().slice(0, 10);
+              const back = new Date(startD);
+              back.setDate(back.getDate() - 90);
+              const backStr = back.toISOString().slice(0, 10);
+
+              const [resRec, resSch] = await Promise.all([
+                api.get(
+                  `/InspectionRecord?select=*&created_at=gte.${preStr}&created_at=lt.${postStr}&order=created_at.asc`,
+                ),
+                api.get(
+                  `/InspectionSchedule?select=*&StartDate=gte.${backStr}&StartDate=lt.${nextStr}`,
+                ),
+              ]);
+              records.value = resRec.data || [];
+              schedules.value = resSch.data || [];
+            } catch (e) {
+              console.error("Report fetch error:", e);
+              records.value = [];
+              schedules.value = [];
+            } finally {
+              loading.value = false;
+            }
+          };
+
+          // ---- derived ----
+          const monthStart = computed(() => `${month.value}-01`);
+          const filteredRecords = computed(() =>
+            records.value.filter((r) => {
+              const d = effDate(r);
+              return d >= monthStart.value && d.slice(0, 7) === month.value;
+            }),
+          );
+
+          const monthLabel = computed(() =>
+            new Date(month.value + "-01").toLocaleDateString("en-GB", {
+              month: "long",
+              year: "numeric",
+            }),
+          );
+          const dataThrough = computed(() => {
+            const ds = filteredRecords.value.map((r) => effDate(r)).filter(Boolean);
+            if (!ds.length) return "—";
+            return fmtDate(ds.sort().slice(-1)[0]);
+          });
+          const generatedAt = computed(() =>
+            new Date().toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+          );
+
+          const month_ = computed(() => {
+            return filteredRecords.value.reduce(
+              (a, r) => ({
+                total: a.total + (Number(r.TotalCheck) || 0),
+                accept: a.accept + (Number(r.AcceptQty) || 0),
+                reject: a.reject + (Number(r.RejectQty) || 0),
+                scrap: a.scrap + (Number(r.ScrapQty) || 0),
+              }),
+              { total: 0, accept: 0, reject: 0, scrap: 0 },
+            );
+          });
+
+          // Quality: grouped by part_no + JO
+          const qualityRows = computed(() => {
+            const map = {};
+            filteredRecords.value.forEach((r) => {
+              const partNo = (r.part_no || "").toString().trim();
+              const jo = (r.JO_Number || "").toString().trim();
+              const key = partNo + "||" + jo;
+              if (!map[key])
+                map[key] = {
+                  key,
+                  partNo,
+                  part: r.Part_Name || "—",
+                  jo,
+                  total: 0,
+                  accept: 0,
+                  reject: 0,
+                  scrap: 0,
+                  last: "",
+                  details: [],
+                };
+              const g = map[key];
+              g.total += Number(r.TotalCheck) || 0;
+              g.accept += Number(r.AcceptQty) || 0;
+              g.reject += Number(r.RejectQty) || 0;
+              g.scrap += Number(r.ScrapQty) || 0;
+              const d = r.actual_finished || r.created_at || "";
+              if (d > g.last) g.last = d;
+              g.details.push({
+                parameter: r.Parameter || r.Inspection_Type || "—",
+                process: r.process || r.Process || "—",
+                inspector: r.InspectBy || "—",
+                checks: Number(r.TotalCheck) || 0,
+                accept: Number(r.AcceptQty) || 0,
+                reject: Number(r.RejectQty) || 0,
+                when: d,
+              });
+            });
+            return Object.values(map)
+              .map((g) => ({
+                ...g,
+                lastCheck: fmtDate(g.last),
+                details: g.details
+                  .sort((a, b) => (a.when < b.when ? 1 : -1))
+                  .map((x) => ({ ...x, whenLabel: fmtDateTime(x.when) })),
+              }))
+              .sort(
+                (a, b) =>
+                  (a.partNo || "").localeCompare(b.partNo || "") ||
+                  (a.jo || "").localeCompare(b.jo || ""),
+              );
+          });
+          const qTotals = computed(() =>
+            qualityRows.value.reduce(
+              (a, r) => ({
+                total: a.total + r.total,
+                accept: a.accept + r.accept,
+                reject: a.reject + r.reject,
+                scrap: a.scrap + r.scrap,
+              }),
+              { total: 0, accept: 0, reject: 0, scrap: 0 },
+            ),
+          );
+
+          // Inspector performance
+          const inspectorRows = computed(() => {
+            const map = {};
+            const ensure = (n) => {
+              const name = (n || "").trim() || "Unassigned";
+              if (!map[name])
+                map[name] = {
+                  name,
+                  onTime: 0,
+                  late: 0,
+                  open: 0,
+                  checks: 0,
+                  accept: 0,
+                  reject: 0,
+                  scrap: 0,
+                  partMap: {},
+                };
+              return map[name];
+            };
+
+            filteredRecords.value.forEach((r) => {
+              const st = ensure(r.InspectBy);
+              const c = Number(r.TotalCheck) || 0,
+                a = Number(r.AcceptQty) || 0,
+                j = Number(r.RejectQty) || 0,
+                sc = Number(r.ScrapQty) || 0;
+              st.checks += c;
+              st.accept += a;
+              st.reject += j;
+              st.scrap += sc;
+              const s = findMatch(r);
+              if (s && isOverdueHelper(s, r)) st.late++;
+              else st.onTime++;
+              const pk = (r.part_no || r.Part_Name || "—").toString();
+              if (!st.partMap[pk])
+                st.partMap[pk] = {
+                  partNo: r.part_no || "",
+                  part: r.Part_Name || "—",
+                  checks: 0,
+                  accept: 0,
+                  reject: 0,
+                };
+              st.partMap[pk].checks += c;
+              st.partMap[pk].accept += a;
+              st.partMap[pk].reject += j;
+            });
+
+            // open (in-progress, past due, planned in this month)
+            schedules.value.forEach((s) => {
+              if (!s.EstFinished || schedDone(s)) return;
+              if (new Date() <= new Date(s.EstFinished)) return;
+              if ((s.EstFinished || "").slice(0, 7) !== month.value) return;
+              ensure(s.AssignTo).open++;
+            });
+
+            return Object.values(map)
+              .map((r) => {
+                const done = r.onTime + r.late;
+                const onTimeRate = done
+                  ? Math.round((r.onTime / done) * 100)
+                  : null;
+                const parts = Object.values(r.partMap).sort(
+                  (a, b) => b.checks - a.checks,
+                );
+                return { ...r, total: r.onTime + r.late + r.open, onTimeRate, parts };
+              })
+              .sort(
+                (a, b) =>
+                  b.late + b.open - (a.late + a.open) || b.checks - a.checks,
+              );
+          });
+          const iTotals = computed(() => {
+            const t = inspectorRows.value.reduce(
+              (a, r) => ({
+                onTime: a.onTime + r.onTime,
+                late: a.late + r.late,
+                open: a.open + r.open,
+                checks: a.checks + r.checks,
+                accept: a.accept + r.accept,
+                reject: a.reject + r.reject,
+              }),
+              { onTime: 0, late: 0, open: 0, checks: 0, accept: 0, reject: 0 },
+            );
+            const done = t.onTime + t.late;
+            return {
+              ...t,
+              total: t.onTime + t.late + t.open,
+              onTimeRate: done ? Math.round((t.onTime / done) * 100) : null,
+            };
+          });
+
+          const toggle = (name) => {
+            const s = new Set(expanded.value);
+            s.has(name) ? s.delete(name) : s.add(name);
+            expanded.value = s;
+          };
+          const toggleQ = (key) => {
+            const s = new Set(qExpanded.value);
+            s.has(key) ? s.delete(key) : s.add(key);
+            qExpanded.value = s;
+          };
+
+          // ---- export / print ----
+          const printReport = () => window.print();
+          const exportExcel = () => {
+            const wb = XLSX.utils.book_new();
+
+            const q = qualityRows.value.map((r) => ({
+              "Part No": r.partNo,
+              "Part Name": r.part,
+              "Job Order": r.jo,
+              "Total Check": r.total,
+              Accept: r.accept,
+              Reject: r.reject,
+              Scrap: r.scrap,
+              "Accept %": r.total ? +((r.accept / r.total) * 100).toFixed(1) : 0,
+              "Reject %": r.total ? +((r.reject / r.total) * 100).toFixed(1) : 0,
+              "Last Check": r.lastCheck,
+            }));
+            q.push({
+              "Part No": "GRAND TOTAL",
+              "Part Name": "",
+              "Job Order": "",
+              "Total Check": qTotals.value.total,
+              Accept: qTotals.value.accept,
+              Reject: qTotals.value.reject,
+              Scrap: qTotals.value.scrap,
+              "Accept %": qTotals.value.total
+                ? +((qTotals.value.accept / qTotals.value.total) * 100).toFixed(1)
+                : 0,
+              "Reject %": qTotals.value.total
+                ? +((qTotals.value.reject / qTotals.value.total) * 100).toFixed(1)
+                : 0,
+              "Last Check": "",
+            });
+            XLSX.utils.book_append_sheet(
+              wb,
+              XLSX.utils.json_to_sheet(q),
+              "Quality",
+            );
+
+            const ins = inspectorRows.value.map((r) => ({
+              Inspector: r.name,
+              Total: r.total,
+              "On-Time": r.onTime,
+              Late: r.late,
+              Open: r.open,
+              "On-Time %": r.onTimeRate === null ? "" : r.onTimeRate,
+              Checked: r.checks,
+              Accept: r.accept,
+              Reject: r.reject,
+              "Accept %": r.checks ? +((r.accept / r.checks) * 100).toFixed(1) : 0,
+              "Reject %": r.checks ? +((r.reject / r.checks) * 100).toFixed(1) : 0,
+            }));
+            XLSX.utils.book_append_sheet(
+              wb,
+              XLSX.utils.json_to_sheet(ins),
+              "Inspectors",
+            );
+
+            // Inspector x Part detail sheet
+            const det = [];
+            inspectorRows.value.forEach((r) => {
+              r.parts.forEach((p) => {
+                det.push({
+                  Inspector: r.name,
+                  "Part No": p.partNo,
+                  "Part Name": p.part,
+                  Checked: p.checks,
+                  Accept: p.accept,
+                  Reject: p.reject,
+                  "Accept %": p.checks ? +((p.accept / p.checks) * 100).toFixed(1) : 0,
+                  "Reject %": p.checks ? +((p.reject / p.checks) * 100).toFixed(1) : 0,
+                });
+              });
+            });
+            XLSX.utils.book_append_sheet(
+              wb,
+              XLSX.utils.json_to_sheet(det.length ? det : [{ Inspector: "" }]),
+              "Inspector Detail",
+            );
+
+            XLSX.writeFile(wb, `QA_Performance_${month.value}.xlsx`);
+          };
+
+          watch(month, fetchData);
+          onMounted(fetchData);
+
+          return {
+            loading,
+            month,
+            expanded,
+            qExpanded,
+            toggleQ,
+            filteredRecords,
+            monthLabel,
+            dataThrough,
+            generatedAt,
+            month_,
+            qualityRows,
+            qTotals,
+            inspectorRows,
+            iTotals,
+            pct,
+            rejClass,
+            otClass,
+            initials,
+            color,
+            toggle,
+            printReport,
+            exportExcel,
+            fetchData,
+          };
+        },
+      }).mount("#app");
+    </script>
+    <div class="footer no-print">
+      © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+  </body>
+</html>
