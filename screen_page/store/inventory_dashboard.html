@@ -356,7 +356,7 @@
             font-weight: 800;
             text-transform: uppercase;
             border: 1px solid currentColor;
-            white-space: nowrap; 
+            white-space: nowrap;
         }
 
         .badge-success {
@@ -375,26 +375,63 @@
         }
 
         /* --- 1. THE OVERLAY (Dark Background & Centering) --- */
+        /* Update the Overlay to allow scrolling */
         #modal-overlay,
         #edit-modal-overlay {
             display: none;
-            /* Hidden by default */
             position: fixed;
-            /* Stay in place */
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.7);
-            /* Darken the rest of the screen */
             backdrop-filter: blur(5px);
-            /* Blur the background */
             z-index: 10000;
-            /* Always on top */
 
-            /* Centering Logic */
+            /* ADD THESE LINES */
+            overflow-y: auto;
+            /* Allows scrolling the whole modal if it's too tall */
+            padding: 40px 0;
+            /* Gives space at top/bottom when scrolling */
+            align-items: flex-start;
+            /* Changed from 'center' to prevent top cutoff */
             justify-content: center;
-            align-items: center;
+        }
+
+        /* Ensure the Modal Card doesn't lock its height */
+        .modal-card {
+            background: #ffffff !important;
+            width: 95%;
+            max-width: 500px;
+            padding: 35px;
+            border-radius: 20px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+            /* ADD THIS LINE */
+            margin-bottom: 40px;
+            /* Adds buffer so the bottom button isn't stuck to screen edge */
+        }
+
+        /* Specific fix for the Update Modal (which is taller) */
+        #edit-modal-overlay .modal-card {
+            max-width: 750px !important;
+            border: 4px solid #1e293b !important;
+
+            /* OPTIONAL: Internal scrolling for very small screens */
+            max-height: none;
+        }
+
+        /* Ensure the Boss Update Modal is readable on small screens */
+        @media (max-height: 800px) {
+            #edit-modal-overlay {
+                align-items: flex-start;
+            }
+
+            #edit-modal-overlay .modal-card {
+                padding: 20px;
+                margin-top: 20px;
+            }
         }
 
         /* Transaction-edit modal sits above the stock modal */
@@ -667,6 +704,15 @@
                 style="font-size: 18px; color: #475569; margin-bottom: 25px; font-weight: 800; background: #f1f5f9; padding: 15px; border-radius: 8px; border-left: 5px solid #0078d4;">
                 <!-- Barcode - Product Name -->
             </div>
+            <div class="form-group">
+                <label>Barcode / Part ID</label>
+                <input type="text" id="edit-barcode"
+                    style="font-weight: 700; font-family: monospace; text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+                <label>Product Description</label>
+                <input type="text" id="edit-product-name" style="font-weight: 600;">
+            </div>
 
             <input type="hidden" id="edit-id">
 
@@ -735,7 +781,8 @@
             <div class="form-group">
                 <label>Part / Barcode</label>
                 <input type="text" id="txn-part">
-                <small style="color:var(--text-muted);font-size:11px;">Changing this moves the transaction (and its stock) to that item.</small>
+                <small style="color:var(--text-muted);font-size:11px;">Changing this moves the transaction (and its
+                    stock) to that item.</small>
             </div>
 
             <div class="form-row-grid">
@@ -812,7 +859,8 @@
                 </div>
             </div>
 
-            <p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;">Saving adjusts stock by the difference automatically.</p>
+            <p style="font-size:12px;color:var(--text-muted);margin:10px 0 0;">Saving adjusts stock by the difference
+                automatically.</p>
 
             <div class="modal-footer" style="justify-content:space-between;">
                 <button class="btn-cancel" style="background:#dc2626;color:#fff;"
@@ -1049,6 +1097,8 @@
             currentInvItem = item;
             $('#edit-id').val(item.id);
             $('#edit-display-name').text(`${item.barcode} - ${item.product_name}`);
+            $('#edit-barcode').val(item.barcode || '');
+            $('#edit-product-name').val(item.product_name || '');
             $('#edit-units-per').val(item.units_per_carton || 0);
             $('#edit-ctns').val(item.available_cartons || 0);
             $('#edit-loose').val(item.loose_remainder || 0);
@@ -1295,17 +1345,50 @@
 
         async function updateStock() {
             const id = $('#edit-id').val();
+            const newBarcode = $('#edit-barcode').val().trim().toUpperCase(); // Get new barcode
+            const oldBarcode = currentInvItem.barcode; // Get old barcode from our stored variable
+            const productName = $('#edit-product-name').val();
             const unitsPer = parseInt($('#edit-units-per').val()) || 0;
             const ctns = parseInt($('#edit-ctns').val()) || 0;
             const loose = parseInt($('#edit-loose').val()) || 0;
             const total = parseInt($('#edit-total').val()) || 0;
+
+            if (!newBarcode) { alert("Barcode cannot be empty"); return; }
+
             const isCyber = $('body').hasClass('cyber-theme');
-            $('#btn-save-edit').prop('disabled', true).text(isCyber ? 'UPLOADING...' : 'Updating...');
-            const { error } = await _supabase.from('inventory').update({
-                units_per_carton: unitsPer, available_cartons: ctns, loose_remainder: loose, available_pcs: total
-            }).eq('id', id);
-            if (error) { alert("Error: " + error.message); $('#btn-save-edit').prop('disabled', false).text(isCyber ? 'RETRY_UPDATE' : 'Save Changes'); }
-            else { closeEditModal(); fetchStock(); $('#btn-save-edit').prop('disabled', false).text(isCyber ? 'EXECUTE_UPDATE' : 'Save Changes'); }
+            $('#btn-save-edit').prop('disabled', true).text(isCyber ? 'SYNCING_DATABASE...' : 'Updating...');
+
+            try {
+                // 1. Update the Inventory Item
+                const { error: invError } = await _supabase.from('inventory').update({
+                    barcode: newBarcode,
+                    product_name: productName,
+                    units_per_carton: unitsPer,
+                    available_cartons: ctns,
+                    loose_remainder: loose,
+                    available_pcs: total
+                }).eq('id', id);
+
+                if (invError) throw invError;
+
+                // 2. If Barcode changed, update all History records to match new barcode
+                if (newBarcode !== oldBarcode) {
+                    const { error: histError } = await _supabase
+                        .from('storeRecords')
+                        .update({ part_name: newBarcode })
+                        .eq('part_name', oldBarcode);
+
+                    if (histError) console.warn("History update failed, records might be orphaned:", histError);
+                }
+
+                closeEditModal();
+                fetchStock(); // Refresh main table
+
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                $('#btn-save-edit').prop('disabled', false).text(isCyber ? 'EXECUTE_UPDATE' : 'Save Changes');
+            }
         }
 
         async function saveNewInventory() {

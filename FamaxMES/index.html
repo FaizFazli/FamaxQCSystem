@@ -7,63 +7,291 @@
     <title>Famax MES</title>
     <link rel="icon" type="png" href="/assets/LogoRound.png?v=2">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
     <link rel="stylesheet" href="/assets/theme.css">
     <script src="/assets/app-config.js"></script>
 
     <style>
-        body { margin: 0; }
-        .app-shell { min-height: 100vh; }
+        body {
+            margin: 0;
+        }
 
-        .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
-        .sidebar__brand { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) var(--space-6); font-size: var(--fs-lg); font-weight: 700; color: var(--text-main); }
-        .sidebar__brand span { color: var(--primary); }
-        .sidebar__group-label { margin: var(--space-5) var(--space-3) var(--space-2); font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint); }
-        .sidebar__link svg { width: 18px; height: 18px; flex-shrink: 0; }
-        .sidebar__link.is-active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
-        .sidebar__link.is-locked { opacity: 0.45; pointer-events: none; }
-        .sidebar__spacer { flex: 1; }
-        .sidebar__user { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); margin-top: var(--space-4); border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-muted); }
+        .app-shell {
+            min-height: 100vh;
+        }
 
-        .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-        .main__head { display: flex; align-items: flex-end; justify-content: space-between; padding: var(--space-8) var(--space-8) var(--space-5); }
-        .main__title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; color: var(--text-main); }
-        .main__sub { margin: 4px 0 0; color: var(--text-muted); font-size: var(--fs-sm); }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .sidebar__brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 0 var(--space-3) var(--space-6);
+            font-size: var(--fs-lg);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .sidebar__brand span {
+            color: var(--primary);
+        }
+
+        .sidebar__group-label {
+            margin: var(--space-5) var(--space-3) var(--space-2);
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-faint);
+        }
+
+        .sidebar__link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .sidebar__link.is-active {
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .sidebar__link.is-locked {
+            opacity: 0.45;
+            pointer-events: none;
+        }
+
+        .sidebar__spacer {
+            flex: 1;
+        }
+
+        .sidebar__user {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-2);
+            padding: var(--space-3);
+            margin-top: var(--space-4);
+            border-top: 1px solid var(--border);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main__head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: var(--space-8) var(--space-8) var(--space-5);
+        }
+
+        .main__title {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+
+        .main__sub {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: var(--fs-sm);
+        }
 
         /* KPI strip */
-        .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-4); padding: 0 var(--space-8) var(--space-4); }
-        .kpi { padding: var(--space-4) var(--space-5); background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
-        .kpi__num { font-size: 28px; font-weight: 700; line-height: 1; color: var(--text-main); }
-        .kpi__num.warn { color: var(--warning); }
-        .kpi__num.bad { color: var(--danger); }
-        .kpi__label { margin-top: 6px; font-size: var(--fs-sm); color: var(--text-muted); }
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-4);
+            padding: 0 var(--space-8) var(--space-4);
+        }
+
+        .kpi {
+            padding: var(--space-4) var(--space-5);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .kpi__num {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text-main);
+        }
+
+        .kpi__num.warn {
+            color: var(--warning);
+        }
+
+        .kpi__num.bad {
+            color: var(--danger);
+        }
+
+        .kpi__label {
+            margin-top: 6px;
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
 
         /* Widgets */
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-5); padding: var(--space-4) var(--space-8) var(--space-6); }
-        .widget { display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
-        .widget__head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--border); }
-        .widget__title { font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
-        .widget__body { flex: 1; }
-        .wrow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 10px var(--space-5); border-bottom: 1px solid var(--surface-muted); font-size: var(--fs-sm); }
-        .wrow:last-child { border-bottom: none; }
-        .wrow__main { min-width: 0; }
-        .wrow__t { font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .wrow__s { font-size: var(--fs-xs); color: var(--text-muted); }
-        .wrow__r { flex-shrink: 0; text-align: right; }
-        .widget__foot { display: block; padding: 10px var(--space-5); font-size: var(--fs-sm); font-weight: 600; color: var(--primary); text-decoration: none; border-top: 1px solid var(--border); }
-        .widget__foot:hover { background: var(--primary-soft); }
-        .w-empty { padding: var(--space-6); text-align: center; color: var(--text-faint); font-size: var(--fs-sm); }
-        .num { font-variant-numeric: tabular-nums; }
-        .wrow--click { cursor: pointer; }
-        .wrow--click:hover { background: var(--surface-muted); }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: var(--space-5);
+            padding: var(--space-4) var(--space-8) var(--space-6);
+        }
 
-        .modal-overlay { display: none; }
-        .modal-overlay.show { display: flex; }
-        .modal { max-width: 560px; text-align: left; max-height: 85vh; overflow: auto; }
-        .modal__title { margin: 0 0 2px; font-size: var(--fs-lg); }
-        .modal__sub { margin: 0 0 var(--space-4); color: var(--text-muted); font-size: var(--fs-sm); }
+        .widget {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
 
-        @media (max-width: 720px) { .app-shell { flex-direction: column; } .sidebar { position: static; height: auto; width: 100%; } }
+        .widget__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-4) var(--space-5);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .widget__title {
+            font-size: var(--fs-md);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .widget__body {
+            flex: 1;
+        }
+
+        .wrow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+            padding: 10px var(--space-5);
+            border-bottom: 1px solid var(--surface-muted);
+            font-size: var(--fs-sm);
+        }
+
+        .wrow:last-child {
+            border-bottom: none;
+        }
+
+        .wrow__main {
+            min-width: 0;
+        }
+
+        .wrow__t {
+            font-weight: 600;
+            color: var(--text-main);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wrow__s {
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
+        }
+
+        .wrow__r {
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .widget__foot {
+            display: block;
+            padding: 10px var(--space-5);
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            color: var(--primary);
+            text-decoration: none;
+            border-top: 1px solid var(--border);
+        }
+
+        .widget__foot:hover {
+            background: var(--primary-soft);
+        }
+
+        .w-empty {
+            padding: var(--space-6);
+            text-align: center;
+            color: var(--text-faint);
+            font-size: var(--fs-sm);
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .wrow--click {
+            cursor: pointer;
+        }
+
+        .wrow--click:hover {
+            background: var(--surface-muted);
+        }
+
+        .modal-overlay {
+            display: none;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            max-width: 560px;
+            text-align: left;
+            max-height: 85vh;
+            overflow: auto;
+        }
+
+        .modal__title {
+            margin: 0 0 2px;
+            font-size: var(--fs-lg);
+        }
+
+        .modal__sub {
+            margin: 0 0 var(--space-4);
+            color: var(--text-muted);
+            font-size: var(--fs-sm);
+        }
+
+        @media (max-width: 720px) {
+            .app-shell {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -100,7 +328,13 @@
             <h3 class="modal__title" id="jo-title"></h3>
             <p class="modal__sub" id="jo-sub"></p>
             <table class="table">
-                <thead><tr><th>Process</th><th>Qty</th><th>Machine</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Process</th>
+                        <th>Qty</th>
+                        <th>Machine</th>
+                    </tr>
+                </thead>
                 <tbody id="jo-rows"></tbody>
             </table>
             <button class="btn btn--secondary" style="margin-top:var(--space-4)" onclick="closeJo()">Close</button>
@@ -130,13 +364,17 @@
         };
         const NAV = [
             { label: 'Order', items: [{ key: 'sales', title: 'Sales Order', href: '/screen_page/production_planning/sales_order_entry.html', roles: ['BUSINESSDEV'] }] },
-            { label: 'Validation (SCM)', items: [
-                { key: 'scm', title: 'SCM Validation', href: '/FamaxMES/scm_validation.html', roles: ['RESOURCE', 'SCM'] },
-                { key: 'rmr', title: 'Raw Material Request', href: '/FamaxMES/raw_material_request.html', roles: ['RESOURCE', 'SCM'] },
-                { key: 'tooling', title: 'Tooling Entry', href: '/FamaxMES/tooling_entry.html', roles: ['RESOURCE', 'SCM'] }] },
-            { label: 'Production', items: [
-                { key: 'board', title: 'Production Planning', href: '/FamaxMES/production_board.html', roles: ['PRODUCTION'] },
-                { key: 'fg', title: 'Finished-Good Check', href: '/FamaxMES/fg_check.html', roles: ['QUALITY', 'PRODUCTION'] }] },
+            {
+                label: 'Validation (SCM)', items: [
+                    { key: 'scm', title: 'SCM Validation', href: '/FamaxMES/scm_validation.html', roles: ['RESOURCE', 'SCM'] },
+                    { key: 'rmr', title: 'Raw Material Request', href: '/FamaxMES/raw_material_request.html', roles: ['RESOURCE', 'SCM'] },
+                    { key: 'tooling', title: 'Tooling Entry', href: '/FamaxMES/tooling_entry.html', roles: ['RESOURCE', 'SCM'] }]
+            },
+            {
+                label: 'Production', items: [
+                    { key: 'board', title: 'Production Planning', href: '/FamaxMES/production_board.html', roles: ['PRODUCTION'] },
+                    { key: 'fg', title: 'Finished-Good Check', href: '/FamaxMES/fg_check.html', roles: ['QUALITY', 'PRODUCTION'] }]
+            },
         ];
         const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k] || ''}</svg>`;
 
@@ -210,29 +448,37 @@
             // Active job orders — one row per JO_Number, click to see processes
             const jobRows = jobList.slice(0, 6).map(g => {
                 const assigned = g.processes.filter(p => p.machine_id).length;
-                return { t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
-                    r: `<span class="badge ${assigned === g.processes.length ? 'badge--success' : 'badge--primary'}">${assigned}/${g.processes.length} on machine</span>` };
+                return {
+                    t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
+                    r: `<span class="badge ${assigned === g.processes.length ? 'badge--success' : 'badge--primary'}">${assigned}/${g.processes.length} on machine</span>`
+                };
             });
 
             // Behind schedule: JO whose owning SO etd is before today (one row per JO)
             const behindList = jobList.filter(g => { const o = etdBySo[soOf(g.JO_Number)]; return o && o.etd && o.etd < today; });
-            const behindRows = behindList.slice(0, 6).map(g => { const o = etdBySo[soOf(g.JO_Number)]; return {
-                t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
-                r: `<span class="num" style="color:var(--danger);font-weight:700">ETD ${esc(o.etd)}</span>` }; });
+            const behindRows = behindList.slice(0, 6).map(g => {
+                const o = etdBySo[soOf(g.JO_Number)]; return {
+                    t: g.JO_Number, s: g.Part_Name || '', jo: g.JO_Number,
+                    r: `<span class="num" style="color:var(--danger);font-weight:700">ETD ${esc(o.etd)}</span>`
+                };
+            });
 
             // Tooling needing attention
             const toolRows = (tooling || []).slice(0, 6).map(t => ({
                 t: t.tooling_name || t.part_name || t.part_number, s: t.part_number || '',
-                r: `<span class="badge ${t.status === 'MISSING' ? 'badge--danger' : 'badge--warning'}">${esc(t.status)}</span>` }));
+                r: `<span class="badge ${t.status === 'MISSING' ? 'badge--danger' : 'badge--warning'}">${esc(t.status)}</span>`
+            }));
 
             // Low raw material
             const stockRows = (stock || []).slice(0, 6).map(s => ({
                 t: [s.grade, s.size_dimensions].filter(Boolean).join(' ') || s.material_type, s: s.area || '',
-                r: `<span class="num" style="color:var(--danger);font-weight:700">${s.qty_pcs} pcs</span>` }));
+                r: `<span class="num" style="color:var(--danger);font-weight:700">${s.qty_pcs} pcs</span>`
+            }));
 
             // Finished goods to produce (produce_qty>0 already computed at order entry)
             const fgRows = (items || []).slice(0, 6).map(i => ({
-                t: i.part_number, s: (etdBySo_byId[i.so_id]?.so_number) || '', r: `<span class="num">${i.produce_qty} to make</span>` }));
+                t: i.part_number, s: (etdBySo_byId[i.so_id]?.so_number) || '', r: `<span class="num">${i.produce_qty} to make</span>`
+            }));
 
             document.getElementById('kpis').innerHTML = [
                 `<div class="kpi"><div class="kpi__num">${jobList.length}</div><div class="kpi__label">Active job orders</div></div>`,

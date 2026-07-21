@@ -1,460 +1,379 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Checker Daily Record | Famax Quality Hub</title>
-    <link
-      rel="icon"
-      type="png"
-      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
-    />
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Library for Excel Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
 
-    <!-- Shared design system (tokens + UI primitives) -->
-    <link rel="stylesheet" href="/assets/theme.css" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checker Daily Record | Famax Quality Hub</title>
+  <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Library for Excel Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
 
-    <style>
-      /* ---- Page-specific styles (built on shared tokens in theme.css) ----
+  <!-- Shared design system (tokens + UI primitives) -->
+  <link rel="stylesheet" href="/assets/theme.css" />
+
+  <style>
+    /* ---- Page-specific styles (built on shared tokens in theme.css) ----
            NOTE: This page renders with Vue 3 + Tailwind CDN; Tailwind utility
            classes drive layout/behaviour, so markup is left intact. Only
            page-owned visuals below are aligned to the shared design system. */
 
-      body {
-        /* Keep Inter from the shared system instead of the old Jakarta face */
-        font-family: var(--font-sans);
-        background-color: var(--bg-body);
-        color: var(--text-main);
+    body {
+      /* Keep Inter from the shared system instead of the old Jakarta face */
+      font-family: var(--font-sans);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+    }
+
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    /* Responsive Table Container */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
       }
 
-      .glass-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
+      #printableReport {
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
       }
 
-      /* Responsive Table Container */
-      .table-responsive {
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+      @page {
+        size: landscape;
+        margin: 1cm;
       }
+    }
 
-      @media print {
-        .no-print {
-          display: none !important;
-        }
+    /* Printable inspection grid — hard borders kept for paper legibility */
+    .checker-table {
+      min-width: 1000px;
+      /* Ensures table doesn't squash on mobile */
+      width: 100%;
+      border-collapse: collapse;
+      border: 2px solid var(--text-main);
+    }
 
-        #printableReport {
-          padding: 0 !important;
-          margin: 0 !important;
-          box-shadow: none !important;
-        }
+    .checker-table th {
+      border: 1px solid var(--border-strong);
+      padding: 8px 4px;
+      font-size: var(--fs-xs);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background-color: var(--surface-muted);
+    }
 
-        @page {
-          size: landscape;
-          margin: 1cm;
-        }
-      }
+    .checker-table td {
+      border: 1px solid var(--border-strong);
+      padding: 10px 4px;
+      font-size: var(--fs-sm);
+      height: 45px;
+      text-align: left;
+    }
 
-      /* Printable inspection grid — hard borders kept for paper legibility */
-      .checker-table {
-        min-width: 1000px;
-        /* Ensures table doesn't squash on mobile */
-        width: 100%;
-        border-collapse: collapse;
-        border: 2px solid var(--text-main);
-      }
+    /* Row interaction states (slate + primary, replaces old yellow) */
+    .row-hover:hover {
+      background: var(--primary-soft);
+    }
 
-      .checker-table th {
-        border: 1px solid var(--border-strong);
-        padding: 8px 4px;
-        font-size: var(--fs-xs);
-        font-weight: 700;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-        background-color: var(--surface-muted);
-      }
+    .row-editing {
+      background: var(--primary-soft) !important;
+    }
+  </style>
+</head>
 
-      .checker-table td {
-        border: 1px solid var(--border-strong);
-        padding: 10px 4px;
-        font-size: var(--fs-sm);
-        height: 45px;
-        text-align: left;
-      }
+<body class="p-2 md:p-8">
+  <div id="app" class="max-w-[1500px] mx-auto">
+    <!-- HEADER & FILTERS -->
+    <header class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-8 no-print">
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-3 md:gap-4">
+          <div class="h-8 md:h-10 w-1 rounded-full" style="background: var(--primary)"></div>
+          <h1 class="text-lg md:text-2xl font-black italic uppercase leading-none">
+            Checker <span style="color: var(--primary)">Daily Record</span>
+          </h1>
+        </div>
+        <button @click="window.location.href='../../inspectionDashboard.html'"
+          class="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors"
+          style="background: var(--surface-muted)" onmouseover="this.style.background = 'var(--border)'"
+          onmouseout="this.style.background = 'var(--surface-muted)'">
+          <i class="fa fa-home text-sm md:text-base"></i>
+        </button>
+      </div>
 
-      /* Row interaction states (slate + primary, replaces old yellow) */
-      .row-hover:hover {
-        background: var(--primary-soft);
-      }
-      .row-editing {
-        background: var(--primary-soft) !important;
-      }
-    </style>
-  </head>
-
-  <body class="p-2 md:p-8">
-    <div id="app" class="max-w-[1500px] mx-auto">
-      <!-- HEADER & FILTERS -->
-      <header
-        class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-8 no-print"
-      >
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center gap-3 md:gap-4">
-            <div
-              class="h-8 md:h-10 w-1 rounded-full"
-              style="background: var(--primary)"
-            ></div>
-            <h1
-              class="text-lg md:text-2xl font-black italic uppercase leading-none"
-            >
-              Checker <span style="color: var(--primary)">Daily Record</span>
-            </h1>
-          </div>
-          <button
-            @click="window.location.href='../../inspectionDashboard.html'"
-            class="w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors"
-            style="background: var(--surface-muted)"
-            onmouseover="this.style.background = 'var(--border)'"
-            onmouseout="this.style.background = 'var(--surface-muted)'"
-          >
-            <i class="fa fa-home text-sm md:text-base"></i>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="field">
+          <label class="label">Date Filter</label>
+          <input type="date" v-model="filterDate" class="input" />
+        </div>
+        <div class="field">
+          <label class="label">Category</label>
+          <select v-model="selectedCategory" class="select">
+            <option value="">All Categories</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">
+              {{ cat }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label">Available Items (for this date)</label>
+          <select v-model="selectedPart" class="select">
+            <option value="">All Items</option>
+            <option v-for="part in availableParts" :key="part" :value="part">
+              {{ part }}
+            </option>
+          </select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:col-span-2 items-end">
+          <button @click="fetchData" class="btn">
+            <i class="fa fa-sync mr-2"></i> Refresh
+          </button>
+          <button @click="exportToExcel" class="btn" style="background: var(--success)"
+            onmouseover="this.style.background = '#059669'" onmouseout="this.style.background = 'var(--success)'">
+            <i class="fa fa-file-excel mr-2"></i> Export
+          </button>
+          <button @click="printReport" class="btn btn--secondary" style="background: var(--text-main); color: #fff"
+            onmouseover="this.style.background = '#0f172a'" onmouseout="this.style.background = 'var(--text-main)'">
+            <i class="fa fa-print mr-2"></i> Print
           </button>
         </div>
+      </div>
+    </header>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="field">
-            <label class="label">Date Filter</label>
-            <input type="date" v-model="filterDate" class="input" />
-          </div>
-          <div class="field">
-            <label class="label">Category</label>
-            <select v-model="selectedCategory" class="select">
-              <option value="">All Categories</option>
-              <option v-for="cat in categories" :key="cat" :value="cat">
-                {{ cat }}
-              </option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="label">Available Items (for this date)</label>
-            <select v-model="selectedPart" class="select">
-              <option value="">All Items</option>
-              <option v-for="part in availableParts" :key="part" :value="part">
-                {{ part }}
-              </option>
-            </select>
-          </div>
-          <div
-            class="grid grid-cols-1 sm:grid-cols-3 gap-2 lg:col-span-2 items-end"
-          >
-            <button @click="fetchData" class="btn">
-              <i class="fa fa-sync mr-2"></i> Refresh
-            </button>
-            <button
-              @click="exportToExcel"
-              class="btn"
-              style="background: var(--success)"
-              onmouseover="this.style.background = '#059669'"
-              onmouseout="this.style.background = 'var(--success)'"
-            >
-              <i class="fa fa-file-excel mr-2"></i> Export
-            </button>
-            <button
-              @click="printReport"
-              class="btn btn--secondary"
-              style="background: var(--text-main); color: #fff"
-              onmouseover="this.style.background = '#0f172a'"
-              onmouseout="this.style.background = 'var(--text-main)'"
-            >
-              <i class="fa fa-print mr-2"></i> Print
-            </button>
-          </div>
-        </div>
-      </header>
+    <!-- REPORT PREVIEW -->
+    <div id="printableReport" class="bg-white p-4 md:p-8 shadow-sm rounded-2xl overflow-hidden">
+      <h2 class="text-center text-xl md:text-2xl font-bold underline mb-4 md:mb-6 uppercase">
+        Checker Daily Record
+      </h2>
 
-      <!-- REPORT PREVIEW -->
-      <div
-        id="printableReport"
-        class="bg-white p-4 md:p-8 shadow-sm rounded-2xl overflow-hidden"
-      >
-        <h2
-          class="text-center text-xl md:text-2xl font-bold underline mb-4 md:mb-6 uppercase"
-        >
-          Checker Daily Record
-        </h2>
+      <!-- Mobile Hint -->
+      <div class="md:hidden text-center text-[10px] text-gray-400 mb-2 italic">
+        <i class="fa fa-arrows-left-right mr-1"></i> Swipe horizontally to
+        view full table
+      </div>
 
-        <!-- Mobile Hint -->
-        <div
-          class="md:hidden text-center text-[10px] text-gray-400 mb-2 italic"
-        >
-          <i class="fa fa-arrows-left-right mr-1"></i> Swipe horizontally to
-          view full table
-        </div>
+      <!-- Scrollable Table Wrapper -->
+      <div class="table-responsive">
+        <table id="checkerTable" class="checker-table">
+          <thead>
+            <tr>
+              <th style="width: 8%">Date / Time</th>
+              <th style="width: 12%">Items</th>
+              <th style="width: 10%">Part No.</th>
+              <th style="width: 8%">Process</th>
+              <th style="width: 12%">Inspection</th>
+              <th style="width: 10%">Inspection By</th>
+              <th style="width: 8%">Total Checking</th>
+              <th style="width: 8%">Reject Qty</th>
+              <th style="width: 8%">To Rework Qty</th>
+              <th style="width: 8%">Okay Qty</th>
+              <th style="width: 8%">Scrap Qty</th>
+              <th style="width: 8%">Total Output Per Hour</th>
+              <th style="width: 12%">Schedule Info (Overdue)</th>
+              <th style="width: 8%">Remark Finished</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, index) in reportRows" :key="index" @click="startEdit(row)"
+              class="cursor-pointer row-hover transition-colors" :class="{'row-editing': editingId === row.id}">
+              <td>
+                {{ formatDateTime(row.actual_finished || row.created_at) }}
+                <div v-if="row.actual_finished && row.created_at.slice(0,10) !== row.actual_finished.slice(0,10)"
+                  class="text-[8px] text-amber-600 font-bold uppercase no-print">
+                  <i class="fa fa-clock-rotate-left"></i> Late Entry
+                </div>
+              </td>
+              <td>{{ row.Part_Name }}</td>
+              <td>{{ row.part_no || '-' }}</td>
+              <td class="font-semibold text-gray-700">
+                {{ row.process || '-' }}
+              </td>
+              <td>{{ row.Parameter || row.Inspection_Type }}</td>
+              <td>{{ row.InspectBy }}</td>
 
-        <!-- Scrollable Table Wrapper -->
-        <div class="table-responsive">
-          <table id="checkerTable" class="checker-table">
-            <thead>
-              <tr>
-                <th style="width: 8%">Date / Time</th>
-                <th style="width: 12%">Items</th>
-                <th style="width: 10%">Part No.</th>
-                <th style="width: 8%">Process</th>
-                <th style="width: 12%">Inspection</th>
-                <th style="width: 10%">Inspection By</th>
-                <th style="width: 8%">Total Checking</th>
-                <th style="width: 8%">Reject Qty</th>
-                <th style="width: 8%">To Rework Qty</th>
-                <th style="width: 8%">Okay Qty</th>
-                <th style="width: 8%">Scrap Qty</th>
-                <th style="width: 8%">Total Output Per Hour</th>
-                <th style="width: 12%">Schedule Info (Overdue)</th>
-                <th style="width: 8%">Remark Finished</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(row, index) in reportRows"
-                :key="index"
-                @click="startEdit(row)"
-                class="cursor-pointer row-hover transition-colors"
-                :class="{'row-editing': editingId === row.id}"
-              >
-                <td>
-                  {{ formatDateTime(row.actual_finished || row.created_at) }}
-                </td>
-                <td>{{ row.Part_Name }}</td>
-                <td>{{ row.part_no || '-' }}</td>
-                <td class="font-semibold text-gray-700">
-                  {{ row.process || '-' }}
-                </td>
-                <td>{{ row.Parameter || row.Inspection_Type }}</td>
-                <td>{{ row.InspectBy }}</td>
+              <!-- Total is calculated automatically -->
+              <td>
+                <input v-if="editingId === row.id" type="number" v-model.number="editForm.TotalCheck"
+                  @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
+                  class="w-20 border rounded px-1 font-bold" style="background: var(--primary-soft)" />
+                <span v-else class="font-bold">{{ row.TotalCheck || calculateTotal(row) }}</span>
+              </td>
 
-                <!-- Total is calculated automatically -->
-                <td>
-                  <input
-                    v-if="editingId === row.id"
-                    type="number"
-                    v-model.number="editForm.TotalCheck"
-                    @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
-                    class="w-20 border rounded px-1 font-bold"
-                    style="background: var(--primary-soft)"
-                  />
-                  <span v-else class="font-bold"
-                    >{{ row.TotalCheck || calculateTotal(row) }}</span
-                  >
-                </td>
+              <!-- Editable Fields -->
+              <td>
+                <input v-if="editingId === row.id" type="number" v-model.number="editForm.RejectQty"
+                  @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
+                  class="w-16 border rounded px-1" />
+                <span v-else class="text-red-600 font-bold">{{ row.RejectQty || 0 }}</span>
+              </td>
+              <td>
+                <input v-if="editingId === row.id" type="number" v-model.number="editForm.ReworkQty"
+                  class="w-16 border rounded px-1" />
+                <span v-else>{{ row.ReworkQty || 0 }}</span>
+              </td>
+              <td>
+                <input v-if="editingId === row.id" type="number" v-model.number="editForm.AcceptQty"
+                  class="w-16 border rounded px-1" />
+                <span v-else class="text-green-600 font-bold">{{ row.AcceptQty || 0 }}</span>
+              </td>
+              <td>
+                <input v-if="editingId === row.id" type="number" v-model.number="editForm.ScrapQty"
+                  class="w-16 border rounded px-1" />
+                <span v-else>{{ row.ScrapQty || 0 }}</span>
+              </td>
 
-                <!-- Editable Fields -->
-                <td>
-                  <input
-                    v-if="editingId === row.id"
-                    type="number"
-                    v-model.number="editForm.RejectQty"
-                    @input="editForm.AcceptQty = editForm.TotalCheck - editForm.RejectQty"
-                    class="w-16 border rounded px-1"
-                  />
-                  <span v-else class="text-red-600 font-bold"
-                    >{{ row.RejectQty || 0 }}</span
-                  >
-                </td>
-                <td>
-                  <input
-                    v-if="editingId === row.id"
-                    type="number"
-                    v-model.number="editForm.ReworkQty"
-                    class="w-16 border rounded px-1"
-                  />
-                  <span v-else>{{ row.ReworkQty || 0 }}</span>
-                </td>
-                <td>
-                  <input
-                    v-if="editingId === row.id"
-                    type="number"
-                    v-model.number="editForm.AcceptQty"
-                    class="w-16 border rounded px-1"
-                  />
-                  <span v-else class="text-green-600 font-bold"
-                    >{{ row.AcceptQty || 0 }}</span
-                  >
-                </td>
-                <td>
-                  <input
-                    v-if="editingId === row.id"
-                    type="number"
-                    v-model.number="editForm.ScrapQty"
-                    class="w-16 border rounded px-1"
-                  />
-                  <span v-else>{{ row.ScrapQty || 0 }}</span>
-                </td>
+              <!-- Output Calculation -->
+              <td class="font-bold" style="background: var(--primary-soft); color: var(--primary)">
+                <div v-if="editingId === row.id" class="flex flex-col gap-1 no-print">
+                  <button @click.stop="saveEdit" class="text-white text-[10px] py-1 px-2 rounded"
+                    style="background: var(--success)">
+                    SAVE
+                  </button>
+                  <button @click.stop="cancelEdit" class="text-white text-[10px] py-1 px-2 rounded"
+                    style="background: var(--text-muted)">
+                    CANCEL
+                  </button>
+                </div>
+                <span v-else>{{ calculateOutputPerHour(row) }}</span>
+              </td>
 
-                <!-- Output Calculation -->
-                <td
-                  class="font-bold"
-                  style="background: var(--primary-soft); color: var(--primary)"
-                >
-                  <div
-                    v-if="editingId === row.id"
-                    class="flex flex-col gap-1 no-print"
-                  >
-                    <button
-                      @click.stop="saveEdit"
-                      class="text-white text-[10px] py-1 px-2 rounded"
-                      style="background: var(--success)"
-                    >
-                      SAVE
-                    </button>
-                    <button
-                      @click.stop="cancelEdit"
-                      class="text-white text-[10px] py-1 px-2 rounded"
-                      style="background: var(--text-muted)"
-                    >
-                      CANCEL
-                    </button>
-                  </div>
-                  <span v-else>{{ calculateOutputPerHour(row) }}</span>
-                </td>
-
-                <!-- Display Schedule Mapping & Overdue Logic -->
-                <td class="text-[10px] leading-tight text-left px-2">
-                  <template v-if="getScheduleMatch(row)">
-                    <div
-                      :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row), row)}"
-                    >
-                      <div>
-                        Start: {{
-                        formatTimeOnly(getScheduleMatch(row).StartDate) }}
-                      </div>
-                      <div>
-                        Est: {{
-                        formatTimeOnly(getScheduleMatch(row).EstFinished) }}
-                      </div>
-                      <!-- Also updated 'Act' display to show the Record's actual_finished time -->
-                      <div>
-                        Act: {{ formatTimeOnly(row.actual_finished ||
-                        row.created_at) }}
-                      </div>
-
-                      <span
-                        v-if="isOverdue(getScheduleMatch(row), row)"
-                        class="mt-1 inline-block bg-red-600 text-white px-1 rounded font-black"
-                      >
-                        OVERDUE
-                      </span>
+              <!-- Display Schedule Mapping & Overdue Logic -->
+              <td class="text-[10px] leading-tight text-left px-2">
+                <template v-if="getScheduleMatch(row)">
+                  <div :class="{'text-red-600 font-bold': isOverdue(getScheduleMatch(row), row)}">
+                    <div>
+                      Start: {{
+                      formatTimeOnly(getScheduleMatch(row).StartDate) }}
                     </div>
-                  </template>
-                  <span v-else class="text-gray-400">No Schedule Found</span>
-                </td>
-                <!-- Display Remark Finished -->
-                <td class="italic text-gray-600">
-                  {{ row.remark_finished || '-' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                    <div>
+                      Est: {{
+                      formatTimeOnly(getScheduleMatch(row).EstFinished) }}
+                    </div>
+                    <!-- Also updated 'Act' display to show the Record's actual_finished time -->
+                    <div>
+                      Act: {{ formatTimeOnly(row.actual_finished ||
+                      row.created_at) }}
+                    </div>
 
-        <div
-          class="mt-4 flex justify-between text-[9px] md:text-[10px] font-bold uppercase italic text-gray-400"
-        >
-          <span>Famax Quality Management System</span>
-          <span>Page 1</span>
-        </div>
+                    <span v-if="isOverdue(getScheduleMatch(row), row)"
+                      class="mt-1 inline-block bg-red-600 text-white px-1 rounded font-black">
+                      OVERDUE
+                    </span>
+                  </div>
+                </template>
+                <span v-else class="text-gray-400">No Schedule Found</span>
+              </td>
+              <!-- Display Remark Finished -->
+              <td class="italic text-gray-600">
+                {{ row.remark_finished || '-' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-4 flex justify-between text-[9px] md:text-[10px] font-bold uppercase italic text-gray-400">
+        <span>Famax Quality Management System</span>
+        <span>Page 1</span>
       </div>
     </div>
+  </div>
 
-    <script>
-      const { createApp, ref, computed, onMounted, watch } = Vue; // Added watch here
+  <script>
+    const { createApp, ref, computed, onMounted, watch } = Vue; // Added watch here
 
-      createApp({
-        setup() {
-          const api = axios.create({
-            baseURL: "http://192.168.0.5:8000/rest/v1",
-            headers: {
-              apikey:
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
-              Authorization:
-                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
-            },
+    createApp({
+      setup() {
+        const api = axios.create({
+          baseURL: "http://192.168.0.5:8000/rest/v1",
+          headers: {
+            apikey:
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
+            Authorization:
+              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
+          },
+        });
+
+        const allRecords = ref([]);
+        const scheduleRecords = ref([]);
+        const cycleTimeMap = ref({});
+
+        // DEFAULTS
+        const filterDate = ref(new Date().toISOString().slice(0, 10)); // Today
+        const selectedCategory = ref(""); // All Categories
+        const selectedPart = ref(""); // All Items
+        const searchQuery = ref("");
+        const categories = [
+          "Buy-Off",
+          "IQC",
+          "IPQC",
+          "OQC",
+          "Customer Return",
+        ];
+
+        const fetchData = async () => {
+          try {
+            const [resRec, resSch, resGui, resDet] = await Promise.all([
+              api.get("/InspectionRecord?select=*&order=created_at.desc"),
+              api.get("/InspectionSchedule?select=*"),
+              api.get("/InspectionGuide?select=*"),
+              api.get("/InspectionGuideDetails?select=*"),
+            ]);
+            allRecords.value = resRec.data;
+            scheduleRecords.value = resSch.data;
+            buildCycleTimeMap(resGui.data, resDet.data);
+          } catch (err) {
+            console.error("Fetch Error:", err);
+          }
+        };
+
+        // This dynamically updates the dropdown based on the selected date
+        const availableParts = computed(() => {
+          const recordsForDate = allRecords.value.filter((r) => {
+            // Look at actual work date, not entry date
+            const effectiveDate = (r.actual_finished || r.created_at || "").slice(0, 10);
+            return effectiveDate === filterDate.value;
           });
+          const parts = recordsForDate.map((r) => r.Part_Name).filter(Boolean);
+          return [...new Set(parts)].sort();
+        });
 
-          const allRecords = ref([]);
-          const scheduleRecords = ref([]);
-          const cycleTimeMap = ref({});
+        // Reset the item dropdown if the user changes the date
+        watch(filterDate, () => {
+          selectedPart.value = "";
+        });
 
-          // DEFAULTS
-          const filterDate = ref(new Date().toISOString().slice(0, 10)); // Today
-          const selectedCategory = ref(""); // All Categories
-          const selectedPart = ref(""); // All Items
-          const searchQuery = ref("");
-          const categories = [
-            "Buy-Off",
-            "IQC",
-            "IPQC",
-            "OQC",
-            "Customer Return",
-          ];
+        const reportRows = computed(() => {
+          return allRecords.value
+            .filter((r) => {
+              // 1. Determine the "Effective Date" (Work completion date takes priority)
+              const effectiveTimestamp = r.actual_finished || r.created_at || r.Created_At || "";
+              const effectiveDate = effectiveTimestamp.slice(0, 10); // Extract YYYY-MM-DD
 
-          const fetchData = async () => {
-            try {
-              const [resRec, resSch, resGui, resDet] = await Promise.all([
-                api.get("/InspectionRecord?select=*&order=created_at.desc"),
-                api.get("/InspectionSchedule?select=*"),
-                api.get("/InspectionGuide?select=*"),
-                api.get("/InspectionGuideDetails?select=*"),
-              ]);
-              allRecords.value = resRec.data;
-              scheduleRecords.value = resSch.data;
-              buildCycleTimeMap(resGui.data, resDet.data);
-            } catch (err) {
-              console.error("Fetch Error:", err);
-            }
-          };
-
-          // This dynamically updates the dropdown based on the selected date
-          const availableParts = computed(() => {
-            const recordsForDate = allRecords.value.filter((r) => {
-              const dateStr = r.created_at || r.Created_At || "";
-              return dateStr.startsWith(filterDate.value);
-            });
-            const parts = recordsForDate
-              .map((r) => r.Part_Name)
-              .filter(Boolean);
-            return [...new Set(parts)].sort();
-          });
-
-          // Reset the item dropdown if the user changes the date
-          watch(filterDate, () => {
-            selectedPart.value = "";
-          });
-
-          const reportRows = computed(() => {
-            return allRecords.value.filter((r) => {
-              const dateStr = r.created_at || r.Created_At || "";
-              const dateMatch = dateStr.startsWith(filterDate.value);
+              const dateMatch = effectiveDate === filterDate.value;
 
               const cat = r.Category || r.category || "";
-              const catMatch =
-                !selectedCategory.value || cat === selectedCategory.value;
+              const catMatch = !selectedCategory.value || cat === selectedCategory.value;
 
-              const partMatch =
-                !selectedPart.value || r.Part_Name === selectedPart.value;
+              const partMatch = !selectedPart.value || r.Part_Name === selectedPart.value;
 
               const query = searchQuery.value.toLowerCase().trim();
               const searchMatch =
@@ -463,282 +382,288 @@
                 (r.part_no || "").toLowerCase().includes(query);
 
               return dateMatch && catMatch && partMatch && searchMatch;
+            })
+            .sort((a, b) => {
+              // 2. Sort by completion time (Actual Finish) instead of Entry time
+              const timeA = new Date(a.actual_finished || a.created_at).getTime();
+              const timeB = new Date(b.actual_finished || b.created_at).getTime();
+              return timeB - timeA;
             });
+        });
+        // --- Keep all your existing methods (getScheduleMatch, isOverdue, buildCycleTimeMap, etc.) ---
+        // const getScheduleMatch = (row) => {
+        //     return scheduleRecords.value.find(s =>
+        //         s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
+        //         s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
+        //         s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase()
+        //     );
+        // };
+
+        const getScheduleMatch = (row) => {
+          const norm = (v) => (v ?? "").toString().trim().toLowerCase();
+
+          // 1. Identify the Parameter from the record (check both possible fields)
+          const recordParam = row.Parameter || row.Inspection_Type || "";
+
+          // 2. Find candidates based on JO, Part, and Parameter
+          const candidates = scheduleRecords.value.filter(
+            (s) =>
+              norm(s.JO_Number) === norm(row.JO_Number) &&
+              norm(s.Part_Name) === norm(row.Part_Name) &&
+              norm(s.Parameter) === norm(recordParam),
+          );
+
+          if (candidates.length === 0) return null;
+
+          // 3. If there's exactly one clear match, return it immediately
+          // (Don't apply the 48-hour rule to single matches)
+          if (candidates.length === 1) return candidates[0];
+
+          // 4. If there are multiple schedules, find the one with the right inspector
+          const byInspector = candidates.filter(
+            (s) =>
+              norm(s.AssignTo) === norm(row.InspectBy) ||
+              norm(s.Replacement) === norm(row.InspectBy),
+          );
+
+          const pool = byInspector.length > 0 ? byInspector : candidates;
+
+          // 5. Tiebreaker: Closest time
+          const rowTime = new Date(
+            row.actual_finished || row.created_at,
+          ).getTime();
+          const scored = pool.map((s) => ({
+            s,
+            diff: Math.abs(
+              new Date(s.actual_finished_time || s.EstFinished).getTime() -
+              rowTime,
+            ),
+          }));
+
+          const best = scored.reduce((a, b) => (a.diff < b.diff ? a : b));
+
+          // 6. Increased Guard Rail (120 hours = 5 days) to cover weekends/holidays
+          const FIVE_DAYS = 120 * 60 * 60 * 1000;
+          return best.diff <= FIVE_DAYS ? best.s : null;
+        };
+
+        const isOverdue = (schedule, row) => {
+          // 1. Get the finish time from the record (row) instead of the schedule
+          const recordFinishTime = row.actual_finished || row.created_at;
+
+          // 2. Validate we have both the actual finish and the estimated finish
+          if (!schedule || !schedule.EstFinished || !recordFinishTime)
+            return false;
+
+          const act = new Date(recordFinishTime);
+          const est = new Date(schedule.EstFinished);
+
+          // Reset seconds/ms for a fair comparison
+          act.setSeconds(0, 0);
+          est.setSeconds(0, 0);
+
+          // Return true if the record was finished after the estimated time
+          return act.getTime() > est.getTime();
+        };
+
+        const formatTimeOnly = (iso) => {
+          if (!iso) return "-";
+          return new Date(iso).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
           });
+        };
 
-          // --- Keep all your existing methods (getScheduleMatch, isOverdue, buildCycleTimeMap, etc.) ---
-          // const getScheduleMatch = (row) => {
-          //     return scheduleRecords.value.find(s =>
-          //         s.JO_Number?.trim().toLowerCase() === row.JO_Number?.trim().toLowerCase() &&
-          //         s.Part_Name?.trim().toLowerCase() === row.Part_Name?.trim().toLowerCase() &&
-          //         s.AssignTo?.trim().toLowerCase() === row.InspectBy?.trim().toLowerCase()
-          //     );
-          // };
-
-          const getScheduleMatch = (row) => {
-            const norm = (v) => (v ?? "").toString().trim().toLowerCase();
-
-            // 1. Identify the Parameter from the record (check both possible fields)
-            const recordParam = row.Parameter || row.Inspection_Type || "";
-
-            // 2. Find candidates based on JO, Part, and Parameter
-            const candidates = scheduleRecords.value.filter(
-              (s) =>
-                norm(s.JO_Number) === norm(row.JO_Number) &&
-                norm(s.Part_Name) === norm(row.Part_Name) &&
-                norm(s.Parameter) === norm(recordParam),
-            );
-
-            if (candidates.length === 0) return null;
-
-            // 3. If there's exactly one clear match, return it immediately
-            // (Don't apply the 48-hour rule to single matches)
-            if (candidates.length === 1) return candidates[0];
-
-            // 4. If there are multiple schedules, find the one with the right inspector
-            const byInspector = candidates.filter(
-              (s) =>
-                norm(s.AssignTo) === norm(row.InspectBy) ||
-                norm(s.Replacement) === norm(row.InspectBy),
-            );
-
-            const pool = byInspector.length > 0 ? byInspector : candidates;
-
-            // 5. Tiebreaker: Closest time
-            const rowTime = new Date(
-              row.actual_finished || row.created_at,
-            ).getTime();
-            const scored = pool.map((s) => ({
-              s,
-              diff: Math.abs(
-                new Date(s.actual_finished_time || s.EstFinished).getTime() -
-                  rowTime,
-              ),
-            }));
-
-            const best = scored.reduce((a, b) => (a.diff < b.diff ? a : b));
-
-            // 6. Increased Guard Rail (120 hours = 5 days) to cover weekends/holidays
-            const FIVE_DAYS = 120 * 60 * 60 * 1000;
-            return best.diff <= FIVE_DAYS ? best.s : null;
-          };
-
-          const isOverdue = (schedule, row) => {
-            // 1. Get the finish time from the record (row) instead of the schedule
-            const recordFinishTime = row.actual_finished || row.created_at;
-
-            // 2. Validate we have both the actual finish and the estimated finish
-            if (!schedule || !schedule.EstFinished || !recordFinishTime)
-              return false;
-
-            const act = new Date(recordFinishTime);
-            const est = new Date(schedule.EstFinished);
-
-            // Reset seconds/ms for a fair comparison
-            act.setSeconds(0, 0);
-            est.setSeconds(0, 0);
-
-            // Return true if the record was finished after the estimated time
-            return act.getTime() > est.getTime();
-          };
-
-          const formatTimeOnly = (iso) => {
-            if (!iso) return "-";
-            return new Date(iso).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            });
-          };
-
-          const buildCycleTimeMap = (guides, details) => {
-            const map = {};
-            const idToName = {};
-            guides.forEach((g) => {
-              const rawName = g.Parameter || g.parameter || "";
-              idToName[String(g.id)] = rawName
-                .toString()
-                .replace(/\s+/g, "")
-                .toLowerCase();
-            });
-            details.forEach((detail) => {
-              const pNo = (detail.part_no || detail.Part_No || "")
-                .toString()
-                .trim()
-                .toUpperCase();
-              if (!map[pNo]) map[pNo] = {};
-              let ids = detail.inspection_ids;
-              let times = detail.cycle_times;
-              try {
-                if (typeof ids === "string") ids = JSON.parse(ids);
-                if (typeof times === "string") times = JSON.parse(times);
-              } catch (e) {}
-              if (Array.isArray(ids) && Array.isArray(times)) {
-                ids.forEach((id, index) => {
-                  const cycleTime = parseFloat(times[index]);
-                  map[pNo][String(id).trim()] = cycleTime;
-                  const cleanNameKey = idToName[String(id)];
-                  if (cleanNameKey) map[pNo][cleanNameKey] = cycleTime;
-                });
-              }
-            });
-            cycleTimeMap.value = map;
-          };
-
-          const calculateOutputPerHour = (row) => {
-            const partNo = (row.part_no || "").toString().trim().toUpperCase();
-            const rowId = (row.inspection_id || row.InspectionID || "")
+        const buildCycleTimeMap = (guides, details) => {
+          const map = {};
+          const idToName = {};
+          guides.forEach((g) => {
+            const rawName = g.Parameter || g.parameter || "";
+            idToName[String(g.id)] = rawName
               .toString()
-              .trim();
-            const rawName = (
-              row.Parameter ||
-              row.Inspection_Type ||
-              ""
-            ).toString();
-            const cleanRowName = rawName.replace(/\s+/g, "").toLowerCase();
-            if (partNo && cycleTimeMap.value[partNo]) {
-              const cycleTime =
-                cycleTimeMap.value[partNo][rowId] ||
-                cycleTimeMap.value[partNo][cleanRowName];
-              if (cycleTime > 0) return (3600 / cycleTime).toFixed(0);
-            }
-            return "-";
-          };
-
-          const formatDateTime = (iso) => {
-            if (!iso) return "";
-            const d = new Date(iso);
-            return (
-              d.toLocaleDateString("en-GB") +
-              " " +
-              d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-            );
-          };
-
-          const calculateTotal = (row) =>
-            Number(row.AcceptQty || 0) + Number(row.RejectQty || 0);
-
-          const exportToExcel = () => {
-            const table = document.getElementById("checkerTable");
-            const wb = XLSX.utils.table_to_book(table, {
-              sheet: "Daily Record",
-            });
-            XLSX.writeFile(wb, `Checker_Daily_Record_${filterDate.value}.xlsx`);
-          };
-
-          // --- Editing Logic ---
-          const editingId = ref(null);
-          const editForm = ref({
-            id: null,
-            TotalCheck: 0,
-            AcceptQty: 0,
-            RejectQty: 0,
-            ReworkQty: 0,
-            ScrapQty: 0,
+              .replace(/\s+/g, "")
+              .toLowerCase();
           });
-          const startEdit = (row) => {
-            if (editingId.value === row.id) return;
-            editingId.value = row.id;
-            editForm.value = {
-              id: row.id,
-              TotalCheck:
-                row.TotalCheck || Number(row.AcceptQty) + Number(row.RejectQty),
-              AcceptQty: row.AcceptQty || 0,
-              RejectQty: row.RejectQty || 0,
-              ReworkQty: row.ReworkQty || 0,
-              ScrapQty: row.ScrapQty || 0,
-            };
-          };
-          const cancelEdit = () => {
-            editingId.value = null;
-          };
-          const saveEdit = async () => {
+          details.forEach((detail) => {
+            const pNo = (detail.part_no || detail.Part_No || "")
+              .toString()
+              .trim()
+              .toUpperCase();
+            if (!map[pNo]) map[pNo] = {};
+            let ids = detail.inspection_ids;
+            let times = detail.cycle_times;
             try {
-              const id = editForm.value.id;
-              const payload = { ...editForm.value };
-
-              // 1. Get the full row data before updating
-              // We need the JO_Number and Parameter to find the matching schedule
-              const row = allRecords.value.find((r) => r.id === id);
-
-              // Use the current time for actual_finished if it's not already set
-              const finishTime = new Date().toISOString();
-              payload.actual_finished = row.actual_finished || finishTime;
-
-              delete payload.id;
-
-              // 2. Update the InspectionRecord table
-              await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
-
-              // 3. NEW: Sync with the InspectionSchedule table
-              // We match by JO, Part Name, and Parameter
-              await api.patch(
-                `/InspectionSchedule?JO_Number=eq.${row.JO_Number}&Part_Name=eq.${row.Part_Name}&Parameter=eq.${row.Parameter}`,
-                {
-                  actual_finished_time: payload.actual_finished,
-                  Status: "Complete",
-                },
-              );
-
-              // Update local state so UI refreshes immediately
-              const index = allRecords.value.findIndex((r) => r.id === id);
-              if (index !== -1) {
-                allRecords.value[index] = {
-                  ...allRecords.value[index],
-                  ...payload,
-                };
-              }
-
-              alert("Record updated and Schedule marked as Complete!");
-              editingId.value = null;
-            } catch (err) {
-              console.error("Sync Error:", err);
-              alert("Failed to sync status to schedule.");
+              if (typeof ids === "string") ids = JSON.parse(ids);
+              if (typeof times === "string") times = JSON.parse(times);
+            } catch (e) { }
+            if (Array.isArray(ids) && Array.isArray(times)) {
+              ids.forEach((id, index) => {
+                const cycleTime = parseFloat(times[index]);
+                map[pNo][String(id).trim()] = cycleTime;
+                const cleanNameKey = idToName[String(id)];
+                if (cleanNameKey) map[pNo][cleanNameKey] = cycleTime;
+              });
             }
-          };
-
-          // onMounted(fetchData);
-
-          onMounted(() => {
-            fetchData();
-
-            // Re-fetch every 5 minutes while the tab is open
-            setInterval(fetchData, 5 * 60 * 1000);
-
-            // Re-fetch whenever the tab regains focus/visibility
-            document.addEventListener("visibilitychange", () => {
-              if (document.visibilityState === "visible") fetchData();
-            });
           });
+          cycleTimeMap.value = map;
+        };
 
-          return {
-            filterDate,
-            selectedCategory,
-            categories,
-            reportRows,
-            searchQuery,
-            selectedPart,
-            availableParts,
-            fetchData,
-            formatDateTime,
-            calculateTotal,
-            exportToExcel,
-            calculateOutputPerHour,
-            printReport: () => window.print(),
-            editingId,
-            editForm,
-            startEdit,
-            cancelEdit,
-            saveEdit,
-            getScheduleMatch,
-            isOverdue,
-            formatTimeOnly,
+        const calculateOutputPerHour = (row) => {
+          const partNo = (row.part_no || "").toString().trim().toUpperCase();
+          const rowId = (row.inspection_id || row.InspectionID || "")
+            .toString()
+            .trim();
+          const rawName = (
+            row.Parameter ||
+            row.Inspection_Type ||
+            ""
+          ).toString();
+          const cleanRowName = rawName.replace(/\s+/g, "").toLowerCase();
+          if (partNo && cycleTimeMap.value[partNo]) {
+            const cycleTime =
+              cycleTimeMap.value[partNo][rowId] ||
+              cycleTimeMap.value[partNo][cleanRowName];
+            if (cycleTime > 0) return (3600 / cycleTime).toFixed(0);
+          }
+          return "-";
+        };
+
+        const formatDateTime = (iso) => {
+          if (!iso) return "";
+          const d = new Date(iso);
+          return (
+            d.toLocaleDateString("en-GB") +
+            " " +
+            d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          );
+        };
+
+        const calculateTotal = (row) =>
+          Number(row.AcceptQty || 0) + Number(row.RejectQty || 0);
+
+        const exportToExcel = () => {
+          const table = document.getElementById("checkerTable");
+          const wb = XLSX.utils.table_to_book(table, {
+            sheet: "Daily Record",
+          });
+          XLSX.writeFile(wb, `Checker_Daily_Record_${filterDate.value}.xlsx`);
+        };
+
+        // --- Editing Logic ---
+        const editingId = ref(null);
+        const editForm = ref({
+          id: null,
+          TotalCheck: 0,
+          AcceptQty: 0,
+          RejectQty: 0,
+          ReworkQty: 0,
+          ScrapQty: 0,
+        });
+        const startEdit = (row) => {
+          if (editingId.value === row.id) return;
+          editingId.value = row.id;
+          editForm.value = {
+            id: row.id,
+            TotalCheck:
+              row.TotalCheck || Number(row.AcceptQty) + Number(row.RejectQty),
+            AcceptQty: row.AcceptQty || 0,
+            RejectQty: row.RejectQty || 0,
+            ReworkQty: row.ReworkQty || 0,
+            ScrapQty: row.ScrapQty || 0,
           };
-        },
-      }).mount("#app");
-    </script>
-    <div class="footer">
-      © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
-    </div>
-  </body>
+        };
+        const cancelEdit = () => {
+          editingId.value = null;
+        };
+        const saveEdit = async () => {
+          try {
+            const id = editForm.value.id;
+            const payload = { ...editForm.value };
+
+            // 1. Get the full row data before updating
+            // We need the JO_Number and Parameter to find the matching schedule
+            const row = allRecords.value.find((r) => r.id === id);
+
+            // Use the current time for actual_finished if it's not already set
+            const finishTime = new Date().toISOString();
+            payload.actual_finished = row.actual_finished || finishTime;
+
+            delete payload.id;
+
+            // 2. Update the InspectionRecord table
+            await api.patch(`/InspectionRecord?id=eq.${id}`, payload);
+
+            // 3. NEW: Sync with the InspectionSchedule table
+            // We match by JO, Part Name, and Parameter
+            await api.patch(
+              `/InspectionSchedule?JO_Number=eq.${row.JO_Number}&Part_Name=eq.${row.Part_Name}&Parameter=eq.${row.Parameter}`,
+              {
+                actual_finished_time: payload.actual_finished,
+                Status: "Complete",
+              },
+            );
+
+            // Update local state so UI refreshes immediately
+            const index = allRecords.value.findIndex((r) => r.id === id);
+            if (index !== -1) {
+              allRecords.value[index] = {
+                ...allRecords.value[index],
+                ...payload,
+              };
+            }
+
+            alert("Record updated and Schedule marked as Complete!");
+            editingId.value = null;
+          } catch (err) {
+            console.error("Sync Error:", err);
+            alert("Failed to sync status to schedule.");
+          }
+        };
+
+        // onMounted(fetchData);
+
+        onMounted(() => {
+          fetchData();
+
+          // Re-fetch every 5 minutes while the tab is open
+          setInterval(fetchData, 5 * 60 * 1000);
+
+          // Re-fetch whenever the tab regains focus/visibility
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") fetchData();
+          });
+        });
+
+        return {
+          filterDate,
+          selectedCategory,
+          categories,
+          reportRows,
+          searchQuery,
+          selectedPart,
+          availableParts,
+          fetchData,
+          formatDateTime,
+          calculateTotal,
+          exportToExcel,
+          calculateOutputPerHour,
+          printReport: () => window.print(),
+          editingId,
+          editForm,
+          startEdit,
+          cancelEdit,
+          saveEdit,
+          getScheduleMatch,
+          isOverdue,
+          formatTimeOnly,
+        };
+      },
+    }).mount("#app");
+  </script>
+  <div class="footer">
+    © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+  </div>
+</body>
+
 </html>

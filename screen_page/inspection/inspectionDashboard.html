@@ -1,1689 +1,843 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quality Hub | Famax</title>
-    <link
-      rel="icon"
-      type="png"
-      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
-    />
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="/assets/app-config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quality Hub | Famax</title>
+  <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
 
-    <!-- Shared design system (tokens + UI primitives) -->
-    <link rel="stylesheet" href="/assets/theme.css" />
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/assets/app-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
 
-    <style>
-      /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
-      :root {
-        /* Brand accent now maps to the shared primary (#0078d4) */
-        --brand-yellow: var(--primary);
-        --bg-light: var(--bg-body);
+  <!-- Shared design system -->
+  <link rel="stylesheet" href="/assets/theme.css" />
+
+  <style>
+    :root {
+      --brand-yellow: var(--primary);
+      --bg-light: var(--bg-body);
+    }
+
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: transparent !important;
+    }
+
+    #app {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      overflow: hidden;
+    }
+
+    aside {
+      height: 100% !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+    }
+
+    .layout-transition {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    }
+
+    .nav-item {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      border-radius: 16px;
+      margin-bottom: 6px;
+      color: #6b7280;
+    }
+
+    .nav-item.active-side {
+      background: var(--primary) !important;
+      color: var(--on-primary) !important;
+      box-shadow: var(--shadow);
+    }
+
+    .nav-item.active-side i {
+      color: var(--on-primary) !important;
+    }
+
+    .tab-active-primary {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .schedule-card {
+      background: white;
+      border-radius: 2.5rem;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.035);
+    }
+
+    .table-th {
+      padding: 1.5rem 2rem;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #9ca3af;
+      text-align: left;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .table-td {
+      padding: 1.5rem 2rem;
+      vertical-align: middle;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 3rem;
+      width: 100%;
+      max-width: 56rem;
+      overflow: visible;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .modal-header {
+      padding: 2.5rem;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top-left-radius: 3rem;
+      border-top-right-radius: 3rem;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #f9fafb;
+      border: 2px solid transparent;
+      border-radius: 1rem;
+      padding: 1rem 1.5rem;
+      font-weight: 700;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px var(--primary-ring);
+    }
+
+    .close-circle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .close-circle-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    [v-cloak] {
+      display: none;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
 
-      /* body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-light);
-            color: var(--text-main);
-            margin: 0;
-            overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            background: transparent !important;
-        
-            padding: 0 !important;
-        
-        } */
-
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        /* Use % instead of vh for better iframe compatibility */
-        width: 100%;
-        overflow: hidden;
-        /* Prevent the body itself from scrolling */
-        background: transparent !important;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      #app {
-        height: 100vh;
-        width: 100vw;
-        display: flex;
-        overflow: hidden;
-        /* Only the Main content area will scroll */
-      }
+    .animate-in {
+      animation: fadeIn 0.4s ease-out;
+    }
 
-      /* Remove rounded corners from sidebar to make it "Full Height" flush */
-      aside {
-        height: 100% !important;
-        border-radius: 0 !important;
-        margin: 0 !important;
-      }
+    /* Custom Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
 
-      #printableReport {
-        box-shadow: none !important;
-        /* Dashboard already has a shadow */
-        border-radius: 0 !important;
-      }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: var(--primary);
+      border-radius: 10px;
+    }
+  </style>
+</head>
 
-      .search-indicator {
-        margin-top: 0 !important;
-        /* Ensure it sticks to the top of the iframe */
-      }
+<body class="antialiased">
+  <div id="app" v-cloak class="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#f8f9fa]">
 
-      /* --- Layout & Transitions --- */
-      .layout-transition {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
+    <!-- MOBILE OVERLAY -->
+    <div v-if="isSidebarOpen && isMobile" @click="isSidebarOpen = false"
+      class="fixed inset-0 bg-black/50 z-[90] lg:hidden"></div>
 
-      .glass-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
-      }
+    <!-- SIDE NAVIGATION -->
+    <aside
+      :class="[isSidebarOpen ? 'w-64' : 'w-20', isMobile ? (isSidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0' : 'fixed inset-y-0 left-0 -translate-x-full') : 'relative', 'layout-transition flex flex-col h-full bg-white border-r border-black/5 z-[100] flex-shrink-0 py-8 px-2 overflow-hidden']">
 
-      /* --- Side Navigation Items --- */
-      .nav-item {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        align-items: center;
-        border-radius: 16px;
-        margin-bottom: 6px;
-        color: #6b7280;
-        /* Gray-500 */
-      }
-
-      /* Selection Effect (primary background pill) */
-      .nav-item.active-side {
-        background: var(--primary) !important;
-        color: var(--on-primary) !important;
-        box-shadow: var(--shadow);
-      }
-
-      .nav-item.active-side i {
-        color: var(--on-primary) !important;
-      }
-
-      /* Active tab pill (replaces yellow active state) */
-      .tab-active-primary {
-        background: var(--primary);
-        color: var(--on-primary);
-      }
-
-      /* Hover for the inline-styled primary submit button */
-      .btn-primary-hover:hover {
-        background: var(--primary-hover) !important;
-      }
-
-      /* --- Job Queue / Schedule Table Styles --- */
-      .schedule-card {
-        background: white;
-        border-radius: 2.5rem;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.035);
-      }
-
-      .table-th {
-        padding: 1.5rem 2rem;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #9ca3af;
-        text-align: left;
-        border-bottom: 1px solid #f3f4f6;
-      }
-
-      .table-td {
-        padding: 1.5rem 2rem;
-        vertical-align: middle;
-      }
-
-      .btn-action {
-        width: 40px;
-        height: 40px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-      }
-
-      .btn-action:active {
-        transform: scale(0.9);
-      }
-
-      /* --- Modals & Forms --- */
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-        z-index: 200;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-      }
-
-      .modal-content {
-        background: white;
-        border-radius: 3rem;
-        width: 100%;
-        max-width: 56rem;
-        /* Change 'auto' to 'visible' so dropdowns aren't cut off */
-        overflow: visible;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        position: relative;
-      }
-
-      .modal-header {
-        padding: 2.5rem;
-        background: #0f172a;
-        /* Slate-900 */
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top-left-radius: 3rem;
-        border-top-right-radius: 3rem;
-      }
-
-      .form-input {
-        width: 100%;
-        background: #f9fafb;
-        border: 2px solid transparent;
-        border-radius: 1rem;
-        padding: 1rem 1.5rem;
-        font-weight: 700;
-        outline: none;
-        transition: all 0.3s;
-      }
-
-      .form-input:focus {
-        border-color: var(--primary);
-        background: white;
-        box-shadow: 0 0 0 3px var(--primary-ring);
-      }
-
-      .section-label {
-        display: block;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #9ca3af;
-        margin-bottom: 0.75rem;
-        margin-left: 0.5rem;
-      }
-
-      /* --- Custom Scrollbar --- */
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
-      }
-
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: var(--brand-yellow);
-        border-radius: 10px;
-      }
-
-      .dropdown-list {
-        position: absolute;
-        z-index: 100;
-        /* Increased z-index */
-        width: 100%;
-        margin-top: 0.5rem;
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 1rem;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-        /* Stronger shadow */
-        max-height: 15rem;
-        overflow-y: auto;
-        padding: 0.5rem;
-      }
-
-      .dropdown-item {
-        padding: 0.75rem 1rem;
-        border-radius: 0.75rem;
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 0.875rem;
-        transition: background 0.2s;
-      }
-
-      .dropdown-item:hover {
-        background: var(--primary-soft);
-      }
-
-      .clear-btn {
-        position: absolute;
-        right: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #d1d5db;
-        transition: color 0.2s;
-      }
-
-      .clear-btn:hover {
-        color: #ef4444;
-      }
-
-      [v-cloak] {
-        display: none;
-      }
-
-      /* Animation */
-      .animate-in {
-        animation: fadeIn 0.4s ease-out;
-      }
-
-      .modal-header-alt {
-        background-color: #000000;
-        color: #ffffff;
-        padding: 2rem 2.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top-left-radius: 2.5rem;
-        border-top-right-radius: 2.5rem;
-      }
-
-      .header-accent-bar {
-        width: 6px;
-        height: 32px;
-        background-color: var(--primary);
-        border-radius: 999px;
-        margin-right: 1rem;
-      }
-
-      header.glass-card {
-        margin-top: 1rem;
-        /* Adds a tiny safety gap at the top */
-      }
-
-      .modal-title-alt {
-        font-weight: 900;
-        font-size: 1.5rem;
-        font-style: italic;
-        text-transform: uppercase;
-        letter-spacing: -0.05em;
-      }
-
-      .form-label-alt {
-        display: block;
-        font-size: 10px;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: #9ca3af;
-        margin-bottom: 0.75rem;
-        margin-left: 0.5rem;
-      }
-
-      .form-input-alt {
-        width: 100%;
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 1.25rem;
-        padding: 1rem 1.5rem;
-        font-size: 0.875rem;
-        font-weight: 700;
-        color: #374151;
-        outline: none;
-        transition: all 0.2s ease;
-      }
-
-      .form-input-alt:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px var(--primary-ring);
-      }
-
-      .btn-confirm-alt {
-        width: 100%;
-        background-color: var(--primary);
-        color: var(--on-primary);
-        padding: 1.25rem;
-        border-radius: 1.5rem;
-        font-weight: 900;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        border: none;
-        cursor: pointer;
-        margin-top: 1rem;
-        box-shadow: var(--shadow);
-        transition: all 0.2s ease;
-      }
-
-      .btn-confirm-alt:hover {
-        background-color: var(--primary-hover);
-        transform: translateY(-1px);
-      }
-
-      .btn-confirm-alt:active {
-        transform: scale(0.98);
-      }
-
-      .close-circle-btn {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.1);
-        border: none;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .close-circle-btn:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
-  </head>
-
-  <body class="antialiased">
-    <!-- Change h-screen to min-h-screen -->
-    <div
-      id="app"
-      v-cloak
-      class="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#f8f9fa]"
-    >
-      <!-- MOBILE OVERLAY -->
-      <div
-        v-if="isSidebarOpen && isMobile"
-        @click="isSidebarOpen = false"
-        class="fixed inset-0 bg-black/50 z-[90] lg:hidden"
-      ></div>
-
-      <!-- --- SIDE NAVIGATION --- -->
-      <aside
-        :class="[
-    isSidebarOpen ? 'w-64' : 'w-20',
-    isMobile ? (isSidebarOpen ? 'fixed inset-y-0 left-0 translate-x-0' : 'fixed inset-y-0 left-0 -translate-x-full') : 'relative',
-    'layout-transition flex flex-col h-full bg-white border-r border-black/5 z-[100] flex-shrink-0 py-8 px-2 overflow-hidden'
-]"
-      >
-        <!-- Sidebar Content -->
-        <!-- </aside> -->
-
-        <div class="flex items-center gap-3 mb-10 px-2">
-          <div
-            class="min-w-[40px] h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-black/20"
-            style="background: var(--primary)"
-          >
-            <img
-              src="/FamaxQCSystem/assets/LogoRound.png?v=2"
-              class="h-6 w-6"
-            />
-          </div>
-          <div v-if="isSidebarOpen" class="flex flex-col leading-none">
-            <span
-              class="font-black text-base tracking-tighter uppercase italic whitespace-nowrap"
-            >
-              Famax<span style="color: var(--primary)">Quality</span>
-            </span>
-            <span
-              class="font-black text-[10px] tracking-[0.3em] uppercase text-neutral-400 mt-0.5"
-              >Hub System</span
-            >
-          </div>
-        </div>
-        <!-- Navigation Container -->
-        <nav
-          class="flex-1 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar"
-        >
-          <!-- 1. DASHBOARD -->
-          <button
-            @click="navigate('dashboard')"
-            title="Dashboard"
-            :class="[
-            currentView === 'dashboard' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50',
-            isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'
-        ]"
-            class="nav-item flex items-center rounded-2xl transition-all duration-300"
-          >
-            <i class="fa fa-th-large text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Dashboard
-            </span>
-          </button>
-
-          <!-- 2. LIVE QUEUE -->
-          <button
-            @click="navigate('schedule')"
-            title="Live Queue"
-            :class="[
-            currentView === 'schedule' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50',
-            isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'
-        ]"
-            class="nav-item flex items-center rounded-2xl transition-all duration-300"
-          >
-            <i class="fa fa-clock text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Live Queue
-            </span>
-          </button>
-
-          <!-- 3. MASTER RECORDS -->
-          <button
-            @click="navigate('records')"
-            title="Master Records"
-            :class="[
-            currentView === 'records' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50',
-            isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'
-        ]"
-            class="nav-item flex items-center rounded-2xl transition-all duration-300"
-          >
-            <i class="fa fa-layer-group text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Master Records
-            </span>
-          </button>
-
-          <div class="h-px bg-black/5 my-4 mx-4"></div>
-          <!-- 4. TASK MANAGER -->
-          <button
-            @click="goTo('inspectionSchedule.html')"
-            title="Task Manager"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa fa-tasks text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Task Manager
-            </span>
-          </button>
-
-          <!-- 5. NEW INSPECTION -->
-          <button
-            @click="goTo('inspectionCheckerForm.html')"
-            title="New Inspection"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-square-plus text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              New Inspection
-            </span>
-          </button>
-
-          <!-- 6. INSPECTION GUIDE FORM -->
-          <button
-            @click="goTo('inspectionGuide.html')"
-            title="Inspection Plan Form"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-brands fa-wpforms text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Inspection Plan Form
-            </span>
-          </button>
-
-          <!-- 7. INSPECTION REJECT REPORT -->
-          <button
-            @click="goTo('inspectionRejectReport.html')"
-            title="Inspection Reject Report"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-file-lines text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Reject Report
-            </span>
-          </button>
-
-          <!-- 7b. TRACE BY JO (ISO packet, read-only)
-                <button @click="goTo('inspectionTraceJO.html')" title="Trace by JO"
-                    :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-                    class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-                    style="color: var(--primary);">
-                    <i class="fa-solid fa-fingerprint text-xl flex-shrink-0"></i>
-                    <span v-if="isSidebarOpen"
-                        class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
-                        Trace by JO
-                    </span>
-                </button> -->
-
-          <!-- 8. INSPECTION DAILY REPORT -->
-          <button
-            @click="goTo('inspectionDailyReport.html')"
-            title="Inspection Daily Report"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-regular fa-calendar-check text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Daily Report
-            </span>
-          </button>
-
-          <!-- 8b. PART NAME INSPECTION SUMMARY -->
-          <button
-            @click="goTo('inspectionPartSummary.html')"
-            title="Part Name Inspection Summary"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-solid fa-cubes text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Part Summary
-            </span>
-          </button>
-
-          <!-- 9. INSPECTION PLAN LIST -->
-          <button
-            @click="goTo('inspectionGuideList.html')"
-            title="Inspection Guide List"
-            :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
-            class="nav-item flex items-center hover:bg-gray-100/50 rounded-2xl transition-all"
-            style="color: var(--primary)"
-          >
-            <i class="fa-solid fa-magnifying-glass text-xl flex-shrink-0"></i>
-            <span
-              v-if="isSidebarOpen"
-              class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
-            >
-              Inspection Plan List
-            </span>
-          </button>
-        </nav>
-
-        <button
-          @click="toggleSidebar"
-          class="mt-auto w-full py-3 bg-gray-50 rounded-xl transition-all flex items-center justify-center hidden lg:flex"
-          onmouseover="this.style.background = 'var(--primary-soft)'"
-          onmouseout="this.style.background = ''"
-        >
-          <i class="fa" :class="isSidebarOpen ? 'fa-indent' : 'fa-outdent'"></i>
-        </button>
-      </aside>
-
-      <!-- --- MAIN CONTENT --- -->
-      <main class="flex-1 h-full overflow-y-auto custom-scrollbar relative">
-        <!-- 1. IFRAME VIEW: Only shows when a report/form is selected -->
+      <div class="flex items-center gap-3 mb-10 px-2">
         <div
-          v-if="currentView === 'frame'"
-          class="w-full h-full bg-white animate-in"
-        >
-          <iframe
-            :src="frameSrc"
-            class="w-full h-screen"
-            style="border: 0"
-          ></iframe>
+          class="min-w-[40px] h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-black/20"
+          style="background: var(--primary)">
+          <img src="/FamaxQCSystem/assets/LogoRound.png?v=2" class="h-6 w-6" />
         </div>
+        <div v-if="isSidebarOpen" class="flex flex-col leading-none">
+          <span class="font-black text-base tracking-tighter uppercase italic whitespace-nowrap">Famax<span
+              style="color: var(--primary)">Quality</span></span>
+          <span class="font-black text-[10px] tracking-[0.3em] uppercase text-neutral-400 mt-0.5">Hub System</span>
+        </div>
+      </div>
 
-        <!-- 2. DASHBOARD CONTENT: Only shows when viewing Dashboard, Schedule, or Records -->
-        <div v-else class="max-w-6xl mx-auto w-full p-6 lg:p-10">
-          <!-- --- HEADER --- -->
-          <header
-            class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] p-4 lg:p-8 mb-8"
-          >
+      <nav class="flex-1 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <!-- 1. DASHBOARD -->
+        <button @click="navigate('dashboard')"
+          :class="[currentView === 'dashboard' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50', isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto']"
+          class="nav-item flex items-center rounded-2xl transition-all duration-300">
+          <i class="fa fa-th-large text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Dashboard</span>
+        </button>
+
+        <!-- 2. LIVE QUEUE -->
+        <button @click="navigate('schedule')"
+          :class="[currentView === 'schedule' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50', isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto']"
+          class="nav-item flex items-center rounded-2xl transition-all duration-300">
+          <i class="fa fa-clock text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Live Queue</span>
+        </button>
+
+        <!-- 3. MASTER RECORDS -->
+        <button @click="navigate('records')"
+          :class="[currentView === 'records' ? 'active-side' : 'text-gray-400 hover:bg-gray-100/50', isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto']"
+          class="nav-item flex items-center rounded-2xl transition-all duration-300">
+          <i class="fa fa-layer-group text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Master Records</span>
+        </button>
+
+        <div class="h-px bg-black/5 my-4 mx-4"></div>
+
+        <!-- 4. TASK MANAGER -->
+        <button @click="goTo('inspectionSchedule.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa fa-tasks text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Task Manager</span>
+        </button>
+
+        <!-- 5. NEW INSPECTION -->
+        <button @click="goTo('inspectionCheckerForm.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-regular fa-square-plus text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen" class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">New
+            Inspection</span>
+        </button>
+
+        <!-- 6. INSPECTION GUIDE FORM -->
+        <button @click="goTo('inspectionGuide.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-brands fa-wpforms text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Plan Form</span>
+        </button>
+
+        <!-- 7. REJECT REPORT -->
+        <button @click="goTo('inspectionRejectReport.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-regular fa-file-lines text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Reject Report</span>
+        </button>
+
+        <!-- 8. DAILY REPORT -->
+        <button @click="goTo('inspectionDailyReport.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-regular fa-calendar-check text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Daily Report</span>
+        </button>
+
+        <!-- 9. PART SUMMARY -->
+        <button @click="goTo('inspectionPartSummary.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-solid fa-cubes text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Part Summary</span>
+        </button>
+
+        <!-- 10. PLAN LIST -->
+        <button @click="goTo('inspectionGuideList.html')"
+          :class="isSidebarOpen ? 'w-full justify-start px-4' : 'w-12 h-12 justify-center mx-auto'"
+          class="nav-item flex items-center hover:bg-gray-100/50" style="color: var(--primary)">
+          <i class="fa-solid fa-magnifying-glass text-xl flex-shrink-0"></i>
+          <span v-if="isSidebarOpen"
+            class="ml-4 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Plan List</span>
+        </button>
+      </nav>
+
+      <button @click="toggleSidebar"
+        class="mt-auto w-full py-3 bg-gray-50 rounded-xl hidden lg:flex items-center justify-center">
+        <i class="fa" :class="isSidebarOpen ? 'fa-indent' : 'fa-outdent'"></i>
+      </button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 h-full overflow-y-auto custom-scrollbar relative">
+
+      <!-- IFRAME VIEW -->
+      <div v-if="currentView === 'frame'" class="w-full h-full bg-white animate-in">
+        <iframe :src="frameSrc" class="w-full h-screen" style="border: 0"></iframe>
+      </div>
+
+      <!-- DASHBOARD CONTENT -->
+      <div v-else class="max-w-6xl mx-auto w-full p-6 lg:p-10">
+
+        <!-- HEADER -->
+        <header class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] p-4 lg:p-8 mb-8">
+          <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div class="flex items-center gap-4 w-full">
+              <button @click="isSidebarOpen = true" class="lg:hidden text-2xl p-2"><i class="fa fa-bars"></i></button>
+              <div class="h-10 lg:h-14 w-1.5 rounded-full" style="background: var(--primary)"></div>
+              <div>
+                <h1 class="text-xl lg:text-3xl font-black tracking-tighter uppercase italic text-black">Famax <span
+                    style="color: var(--primary)">Quality</span> Hub</h1>
+                <p class="text-neutral-400 font-bold tracking-[0.2em] text-[8px] lg:text-[9px] uppercase">Intelligence
+                  System 2.0</p>
+              </div>
+            </div>
+
             <div
-              class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6"
-            >
-              <div class="flex items-center gap-4 w-full">
-                <button
-                  @click="isSidebarOpen = true"
-                  class="lg:hidden text-2xl p-2"
-                >
-                  <i class="fa fa-bars"></i>
+              class="flex flex-col gap-4 w-full xl:w-auto bg-gray-50 p-2 lg:p-3 rounded-[1.5rem] border border-black/5">
+              <nav class="flex p-1 bg-white rounded-2xl border border-black/5 overflow-x-auto">
+                <button v-for="tab in ['dashboard', 'schedule', 'records']" @click="currentView = tab"
+                  :class="currentView === tab ? 'tab-active-primary shadow-lg' : 'text-gray-400'"
+                  class="flex-1 min-w-[80px] px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all flex items-center justify-center gap-2">
+                  <i :class="getTabIcon(tab)"></i><span>{{ tab }}</span>
                 </button>
-                <div
-                  class="h-10 lg:h-14 w-1.5 rounded-full"
-                  style="background: var(--primary)"
-                ></div>
-                <div>
-                  <h1
-                    class="text-xl lg:text-3xl font-black tracking-tighter uppercase italic text-black"
-                  >
-                    Famax <span style="color: var(--primary)">Quality</span> Hub
-                  </h1>
-                  <p
-                    class="text-neutral-400 font-bold tracking-[0.2em] text-[8px] lg:text-[9px] uppercase"
-                  >
-                    Intelligence System 2.0
-                  </p>
+              </nav>
+
+              <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex-1 min-w-[120px] relative bg-white rounded-xl border border-black/5 px-3 py-2">
+                  <label
+                    class="block text-[7px] text-neutral-400 font-bold uppercase absolute top-2 left-3">Month</label>
+                  <input type="month" v-model="filterMonth"
+                    class="w-full text-[10px] font-bold text-black uppercase bg-transparent outline-none pt-3" />
+                </div>
+                <div class="flex-1 min-w-[120px] relative bg-white rounded-xl border border-black/5 px-3 py-2">
+                  <label class="block text-[7px] text-neutral-400 font-bold uppercase absolute top-2 left-3">Day</label>
+                  <input type="date" v-model="filterDate"
+                    class="w-full text-[10px] font-bold text-black uppercase bg-transparent outline-none pt-3" />
+                </div>
+                <button @click="fetchData" class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style="background: var(--primary); color: var(--on-primary)">
+                  <i class="fa fa-sync-alt" :class="{'fa-spin': loading}"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section v-if="currentView === 'dashboard'" class="space-y-6">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3">Overview · {{ todayLabel
+              }}</p>
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+              <div v-for="card in todayKpiCards" :key="card.label" class="glass-card rounded-2xl p-4 lg:p-6">
+                <p class="text-neutral-400 text-[8px] lg:text-[10px] font-black uppercase mb-2">{{ card.label }}</p>
+                <p class="text-xl lg:text-3xl font-black text-black">{{ card.value }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- CHART -->
+          <div class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-10">
+            <h3 class="text-sm font-black uppercase tracking-tight mb-4">Quality Performance Trend</h3>
+            <div class="h-[260px] lg:h-[340px] w-full"><canvas id="qualityChart"></canvas></div>
+          </div>
+
+          <!-- OVERDUE KPI -->
+          <div class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden">
+            <div class="p-5 lg:p-8 border-b border-black/5 flex justify-between items-center">
+              <h3 class="text-sm font-black uppercase tracking-tight">Inspector Overdue KPI</h3>
+              <div class="text-[10px] font-black uppercase" style="color: var(--primary)">{{ inspectorOverdueRows.length
+                }} Inspectors</div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[640px]">
+                <thead class="bg-gray-50 text-[9px] font-black uppercase text-neutral-400">
+                  <tr>
+                    <th class="px-6 py-4 text-left">Inspector</th>
+                    <th class="px-3 py-4 text-center">Late Counts</th>
+                    <th class="px-3 py-4 text-center">Open Overdue</th>
+                    <th class="px-3 py-4 text-center">With Remark</th>
+                    <th class="px-3 py-4 text-center">No Remark</th>
+                    <th class="px-6 py-4 text-right">Avg Late</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-black/5">
+                  <tr v-if="!inspectorOverdueRows.length">
+                    <td colspan="6" class="px-6 py-10 text-center text-neutral-400 text-xs font-bold uppercase">No
+                      overdue data found</td>
+                  </tr>
+                  <tr v-for="row in inspectorOverdueRows" :key="row.name" class="hover:bg-gray-50/80 cursor-pointer"
+                    @click="openInspectorOverdueModal(row)">
+                    <td class="px-6 py-4">
+                      <div class="font-black text-sm text-black uppercase">{{ row.name }}</div>
+                      <div class="text-[8px] font-bold text-neutral-400 uppercase mt-1">Click for details</div>
+                    </td>
+                    <td class="px-3 py-4 text-center font-black text-lg text-red-500">{{ row.overdueCount }}</td>
+                    <td class="px-3 py-4 text-center font-black text-amber-500">{{ row.openOverdue }}</td>
+                    <td class="px-3 py-4 text-center font-black text-emerald-600">{{ row.withRemark }}</td>
+                    <td class="px-3 py-4 text-center font-black text-rose-500">{{ row.withoutRemark }}</td>
+                    <td class="px-6 py-4 text-right text-[11px] font-bold text-neutral-500">{{ row.avgLateLabel }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- OVERDUE MODAL -->
+        <div v-if="inspectorModal.isOpen" class="modal-overlay" @click.self="closeInspectorOverdueModal">
+          <div class="modal-content max-w-3xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="modal-header">
+              <div>
+                <h3 class="font-black text-lg uppercase italic"><span style="color: var(--primary);">{{
+                    inspectorModal.name }}</span> · Details</h3>
+                <p class="text-[10px] text-white/60 font-bold uppercase">Overdue Records</p>
+              </div>
+              <button @click="closeInspectorOverdueModal" class="close-circle-btn"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6">
+              <div>
+                <h4 class="text-[10px] font-black uppercase text-neutral-400 mb-2">Completed Late ({{
+                  inspectorModal.closed?.length || 0 }})</h4>
+                <div class="overflow-x-auto border border-black/5 rounded-xl">
+                  <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-[9px] font-black uppercase text-neutral-400">
+                      <tr>
+                        <th class="px-3 py-2">Part</th>
+                        <th class="px-3 py-2">JO</th>
+                        <th class="px-3 py-2">Late</th>
+                        <th class="px-3 py-2">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-black/5">
+                      <tr v-for="d in inspectorModal.closed" class="text-xs">
+                        <td class="px-3 py-3 font-bold uppercase">{{ d.part }}</td>
+                        <td class="px-3 py-3">{{ d.jo }}</td>
+                        <td class="px-3 py-3 text-red-500 font-black">{{ d.lateLabel }}</td>
+                        <td class="px-3 py-3 font-bold" :class="d.hasRemark ? 'text-emerald-600' : 'text-rose-500'">{{
+                          d.remark || 'No Remark' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              <div
-                class="flex flex-col gap-4 w-full xl:w-auto bg-gray-50 p-2 lg:p-3 rounded-[1.5rem] border border-black/5"
-              >
-                <nav
-                  class="flex p-1 bg-white rounded-2xl border border-black/5 overflow-x-auto"
-                >
-                  <button
-                    v-for="tab in ['dashboard', 'schedule', 'records']"
-                    @click="currentView = tab"
-                    :class="currentView === tab ? 'tab-active-primary shadow-lg' : 'text-gray-400'"
-                    class="flex-1 min-w-[80px] px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all flex items-center justify-center gap-2"
-                  >
-                    <i :class="getTabIcon(tab)"></i><span>{{ tab }}</span>
-                  </button>
-                </nav>
-
-                <div class="flex items-center gap-2 flex-wrap">
-                  <div
-                    class="flex-1 min-w-[120px] relative bg-white rounded-xl border border-black/5 px-3 py-2"
-                  >
-                    <label
-                      class="block text-[7px] text-neutral-400 font-bold uppercase absolute top-2 left-3 pointer-events-none"
-                      >Month</label
-                    >
-                    <input
-                      type="month"
-                      v-model="filterMonth"
-                      class="w-full text-[10px] font-bold text-black uppercase bg-transparent outline-none pt-3 appearance-none"
-                    />
-                  </div>
-                  <div
-                    class="flex-1 min-w-[120px] relative bg-white rounded-xl border border-black/5 px-3 py-2"
-                  >
-                    <label
-                      class="block text-[7px] text-neutral-400 font-bold uppercase absolute top-2 left-3 pointer-events-none"
-                      >Records day</label
-                    >
-                    <input
-                      type="date"
-                      v-model="filterDate"
-                      class="w-full text-[10px] font-bold text-black uppercase bg-transparent outline-none pt-3 appearance-none"
-                    />
-                  </div>
-                  <button
-                    @click="fetchData"
-                    class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style="background: var(--primary); color: var(--on-primary)"
-                  >
-                    <i class="fa fa-sync-alt" :class="{'fa-spin': loading}"></i>
-                  </button>
+              <div>
+                <h4 class="text-[10px] font-black uppercase text-neutral-400 mb-2">In Progress Overdue ({{
+                  inspectorModal.openJobs?.length || 0 }})</h4>
+                <div class="overflow-x-auto border border-black/5 rounded-xl">
+                  <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-[9px] font-black uppercase text-neutral-400">
+                      <tr>
+                        <th class="px-3 py-2">Part</th>
+                        <th class="px-3 py-2">JO</th>
+                        <th class="px-3 py-2">Est. Finish</th>
+                        <th class="px-3 py-2">Late</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-black/5">
+                      <tr v-for="d in inspectorModal.openJobs" class="text-xs">
+                        <td class="px-3 py-3 font-bold uppercase">{{ d.part }}</td>
+                        <td class="px-3 py-3">{{ d.jo }}</td>
+                        <td class="px-3 py-3 font-bold">{{ d.whenLabel }}</td>
+                        <td class="px-3 py-3 text-amber-500 font-black">{{ d.lateLabel }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
-          </header>
-
-          <!-- --- DASHBOARD VIEW --- -->
-          <section v-if="currentView === 'dashboard'" class="space-y-6">
-            <!-- TODAY KPIs -->
-            <div>
-              <p
-                class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3"
-              >
-                Today · {{ todayLabel }}
-              </p>
-              <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
-                <div
-                  v-for="card in todayKpiCards"
-                  :key="card.label"
-                  class="glass-card rounded-2xl p-4 lg:p-6"
-                >
-                  <p
-                    class="text-neutral-400 text-[8px] lg:text-[10px] font-black uppercase mb-2"
-                  >
-                    {{ card.label }}
-                  </p>
-                  <p class="text-xl lg:text-3xl font-black text-black">
-                    {{ card.value }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- MONTH CHART -->
-            <div
-              class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] p-6 lg:p-10"
-            >
-              <div
-                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4"
-              >
-                <h3 class="text-sm font-black uppercase tracking-tight">
-                  Month activity · {{ filterMonth || '—' }}
-                </h3>
-                <p class="text-[9px] font-bold text-neutral-400 uppercase">
-                  Checks / Pass / Reject / Scrap by day
-                </p>
-              </div>
-              <div class="h-[260px] lg:h-[340px] w-full">
-                <canvas id="qualityChart"></canvas>
-              </div>
-            </div>
-
-            <!-- INSPECTOR OVERDUE KPI -->
-            <div
-              class="glass-card rounded-[1.5rem] lg:rounded-[2.5rem] overflow-hidden"
-            >
-              <div
-                class="p-5 lg:p-8 border-b border-black/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-              >
-                <div>
-                  <h3 class="text-sm font-black uppercase tracking-tight">
-                    Inspector overdue KPI
-                  </h3>
-                  <p
-                    class="text-[9px] font-bold text-neutral-400 uppercase mt-1"
-                  >
-                    Month filter · late finish vs EstFinished · remark status
-                  </p>
-                </div>
-                <div
-                  class="text-[10px] font-black uppercase"
-                  style="color: var(--primary)"
-                >
-                  {{ inspectorOverdueRows.length }} inspectors
-                </div>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[640px]">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th
-                        class="px-4 lg:px-6 py-3 text-left text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        Inspector
-                      </th>
-                      <th
-                        class="px-3 py-3 text-center text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        Overdue times
-                      </th>
-                      <th
-                        class="px-3 py-3 text-center text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        Open overdue
-                      </th>
-                      <th
-                        class="px-3 py-3 text-center text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        With remark
-                      </th>
-                      <th
-                        class="px-3 py-3 text-center text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        No remark
-                      </th>
-                      <th
-                        class="px-4 lg:px-6 py-3 text-right text-[9px] font-black uppercase text-neutral-400"
-                      >
-                        Avg late
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-black/5">
-                    <tr v-if="!inspectorOverdueRows.length">
-                      <td
-                        colspan="6"
-                        class="px-6 py-10 text-center text-neutral-400 text-xs font-bold uppercase"
-                      >
-                        No overdue data for this month
-                      </td>
-                    </tr>
-                    <tr
-                      v-for="row in inspectorOverdueRows"
-                      :key="row.name"
-                      class="hover:bg-gray-50/80 cursor-pointer"
-                      @click="openInspectorOverdueModal(row)"
-                    >
-                      <td class="px-4 lg:px-6 py-4">
-                        <div class="font-black text-sm text-black uppercase">
-                          {{ row.name }}
-                        </div>
-                        <div
-                          class="text-[8px] font-bold text-neutral-400 uppercase mt-1"
-                        >
-                          Click for details
-                        </div>
-                      </td>
-                      <td
-                        class="px-3 py-4 text-center font-black text-lg"
-                        :class="row.overdueCount ? 'text-red-500' : 'text-neutral-300'"
-                      >
-                        {{ row.overdueCount }}
-                      </td>
-                      <td
-                        class="px-3 py-4 text-center font-black"
-                        :class="row.openOverdue ? 'text-amber-500' : 'text-neutral-300'"
-                      >
-                        {{ row.openOverdue }}
-                      </td>
-                      <td
-                        class="px-3 py-4 text-center font-black text-emerald-600"
-                      >
-                        {{ row.withRemark }}
-                      </td>
-                      <td
-                        class="px-3 py-4 text-center font-black text-rose-500"
-                      >
-                        {{ row.withoutRemark }}
-                      </td>
-                      <td
-                        class="px-4 lg:px-6 py-4 text-right text-[11px] font-bold text-neutral-500 uppercase"
-                      >
-                        {{ row.avgLateLabel }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- Inspector overdue detail modal -->
-          <!-- Inspector overdue detail modal -->
-<div v-if="inspectorModal.isOpen" class="modal-overlay" @click.self="closeInspectorOverdueModal">
-    <div class="modal-content max-w-3xl" style="max-height:90vh;overflow:hidden;display:flex;flex-direction:column;border-radius:1.5rem;">
-        <div class="modal-header" style="border-radius:1.5rem 1.5rem 0 0;padding:1.25rem 1.5rem;">
-            <div>
-                <h3 class="font-black text-lg uppercase italic">
-                    <span style="color: var(--primary);">{{ inspectorModal.name }}</span> · Overdue detail
-                </h3>
-                <p class="text-[10px] font-bold text-white/60 uppercase mt-1">Month {{ filterMonth || '—' }}</p>
-            </div>
-            <button @click="closeInspectorOverdueModal" class="close-circle-btn"><i class="fa fa-times"></i></button>
+          </div>
         </div>
-        <div class="p-4 lg:p-6 overflow-y-auto flex-1 space-y-6" style="max-height:calc(90vh - 88px);">
-            <!-- CLOSED LATE SECTION -->
-            <div>
-                <h4 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3">Closed late ({{ inspectorModal.closed?.length || 0 }})</h4>
-                <div class="overflow-x-auto rounded-xl border border-black/5">
-                    <table class="w-full min-w-[560px] text-left">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Part</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Process</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">JO</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">When</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Late</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Remark</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-black/5">
-                            <tr v-if="!inspectorModal.closed?.length">
-                                <td colspan="6" class="px-4 py-6 text-center text-xs text-neutral-400 font-bold">No closed-late records</td>
-                            </tr>
-                            <tr v-for="(d, i) in inspectorModal.closed" :key="'c'+i" class="text-sm">
-                                <td class="px-3 py-3 font-black uppercase">{{ d.part }}</td>
-                                <td class="px-3 py-3 font-bold text-neutral-600">{{ d.process }}</td>
-                                <td class="px-3 py-3 font-bold" style="color:var(--primary);">{{ d.jo }}</td>
-                                <td class="px-3 py-3 text-[11px] font-bold text-neutral-500">{{ d.whenLabel }}</td>
-                                <td class="px-3 py-3 font-black text-red-500">{{ d.lateLabel }}</td>
-                                <td class="px-3 py-3 text-[11px] font-bold" :class="d.hasRemark ? 'text-emerald-600' : 'text-rose-500'">{{ d.remark || '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+
+        <!-- SCHEDULE VIEW -->
+        <section v-if="currentView === 'schedule'" class="animate-in">
+          <div class="schedule-card">
+            <div class="p-8 border-b border-gray-100">
+              <h2 class="text-2xl font-black italic uppercase">Job Queue <span style="color: var(--primary)">({{
+                  filteredSchedule.length }})</span></h2>
             </div>
-
-            <!-- OPEN OVERDUE SECTION (This was the part causing the error) -->
-            <div>
-                <h4 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-3">Open overdue ({{ inspectorModal.openJobs?.length || 0 }})</h4>
-                <div class="overflow-x-auto rounded-xl border border-black/5">
-                    <table class="w-full min-w-[520px] text-left">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Part</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">JO</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Est. finish</th>
-                                <th class="px-3 py-2 text-[9px] font-black uppercase text-neutral-400">Late</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-black/5">
-                            <tr v-if="!inspectorModal.openJobs?.length">
-                                <td colspan="4" class="px-4 py-6 text-center text-xs text-neutral-400 font-bold">No open overdue jobs</td>
-                            </tr>
-                            <tr v-for="(d, i) in inspectorModal.openJobs" :key="'o'+i" class="text-sm">
-                                <td class="px-3 py-3 font-black uppercase">{{ d.part }}</td>
-                                <td class="px-3 py-3 font-bold" style="color:var(--primary);">{{ d.jo }}</td>
-                                <td class="px-3 py-3 text-[11px] font-bold text-neutral-500">{{ d.whenLabel }}</td>
-                                <td class="px-3 py-3 font-black text-amber-500">{{ d.lateLabel }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="overflow-x-auto">
+              <table class="w-full">
+                <thead class="bg-gray-50 text-[10px] font-black uppercase text-neutral-400">
+                  <tr>
+                    <th class="px-8 py-4">Job Order & Part</th>
+                    <th class="px-4 py-4">Balance</th>
+                    <th class="px-4 py-4">Parameter</th>
+                    <th class="px-4 py-4">Assignment</th>
+                    <th class="px-4 py-4">Est. Finished</th>
+                    <th class="px-8 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="item in filteredSchedule" :key="item.id" class="hover:bg-gray-50/50">
+                    <td class="px-8 py-6">
+                      <div class="font-black text-lg" style="color: var(--primary)">{{ item.JO_Number }}</div>
+                      <div class="text-[10px] text-neutral-400 font-bold uppercase">{{ item.Part_Name }}</div>
+                    </td>
+                    <td class="px-4 py-6 font-bold text-sm"><span class="text-red-500">{{ item.remaining_qty }}</span> /
+                      {{ item.quantity }}</td>
+                    <td class="px-4 py-6 text-[10px] font-black">{{ item.Parameter || 'STANDARD' }}</td>
+                    <td class="px-4 py-6 text-[10px] font-black uppercase text-blue-600">{{ item.AssignTo }}</td>
+                    <td class="px-4 py-6">
+                      <div class="text-[11px] font-black" :class="isOverdue(item) ? 'text-red-500' : 'text-slate-600'">
+                        {{ formatDisplayTime(item.EstFinished) }}</div>
+                    </td>
+                    <td class="px-8 py-6 text-right">
+                      <button @click="openReplaceModal(item)"
+                        class="p-3 text-gray-300 hover:text-black transition-colors"><i
+                          class="fa fa-user-pen text-lg"></i></button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-        </div>
-    </div>
-</div>
+          </div>
+        </section>
 
-          <!-- --- SCHEDULE VIEW --- -->
-          <section v-if="currentView === 'schedule'" class="animate-in">
-            <div class="schedule-card">
-              <div
-                class="p-8 md:p-10 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-gray-100"
-              >
-                <h2
-                  class="text-2xl font-black text-black tracking-tighter italic uppercase"
-                >
-                  Job Queue
-                  <span style="color: var(--primary)"
-                    >({{ filteredSchedule.length }})</span
-                  >
-                </h2>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="w-full">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th class="table-th w-[20%]">Job Order & Part</th>
-                      <th class="table-th w-[10%]">Balance</th>
-                      <th class="table-th w-[15%]">Parameter</th>
-                      <th class="table-th w-[20%]">Assignment</th>
-                      <th class="table-th w-[20%]">Est. Finished</th>
-                      <th class="table-th w-[15%] text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-50">
-                    <tr
-                      v-for="item in filteredSchedule"
-                      :key="item.id"
-                      class="hover:bg-gray-50/50 transition-all"
-                      :class="{'row-overdue': isOverdue(item)}"
-                    >
-                      <td class="table-td">
-                        <div
-                          class="font-black text-lg leading-tight"
-                          style="color: var(--primary)"
-                        >
-                          {{ item.JO_Number }}
-                        </div>
-                        <div
-                          class="text-[10px] text-neutral-400 font-bold uppercase"
-                        >
-                          {{ item.Part_Name }}
-                        </div>
-                      </td>
-                      <td class="table-td">
-                        <div class="text-lg">
-                          <span class="balance-red"
-                            >{{ item.remaining_qty }}</span
-                          >
-                          <span class="text-gray-300 mx-2">/</span>
-                          <span class="balance-total">{{ item.quantity }}</span>
-                        </div>
-                      </td>
-                      <td class="table-td">
-                        <div class="param-pill inline-block">
-                          {{ item.Parameter || 'STANDARD' }}
-                        </div>
-                      </td>
-                      <td class="table-td">
-                        <div class="flex flex-col items-center">
-                          <div class="assignment-badge">
-                            <div
-                              class="flex items-center justify-center gap-2 text-[10px] font-black uppercase"
-                              style="color: var(--primary)"
-                            >
-                              <i class="fa fa-user-circle text-xs"></i> {{
-                              item.AssignTo }}
-                            </div>
-                          </div>
-                          <div
-                            v-if="item.Replacement && item.Replacement !== '-'"
-                            class="text-[9px] text-blue-600 font-black italic mt-2 flex items-center gap-1"
-                          >
-                            <i class="fa fa-exchange-alt"></i> Rep: {{
-                            item.Replacement }}
-                          </div>
-                        </div>
-                      </td>
-                      <td class="table-td">
-                        <div class="flex flex-col items-end">
-                          <div
-                            class="text-[11px] font-black uppercase flex items-center gap-2"
-                            :class="isOverdue(item) ? 'text-red-500' : 'text-slate-600'"
-                          >
-                            {{ formatDisplayTime(item.EstFinished) }}
-                            <i
-                              class="fa fa-clock"
-                              :class="{'animate-pulse': isOverdue(item)}"
-                            ></i>
-                          </div>
-                          <div
-                            v-if="isOverdue(item)"
-                            class="text-[10px] font-black text-red-500 italic mt-1"
-                          >
-                            <i class="fa fa-triangle-exclamation mr-1"></i> {{
-                            getOverdueDuration(item.EstFinished) }}
-                          </div>
-                        </div>
-                      </td>
-                      <td class="table-td text-right">
-                        <button
-                          @click="openReplaceModal(item)"
-                          class="p-3 text-gray-300 hover:text-black transition-colors"
-                        >
-                          <i class="fa fa-user-pen text-lg"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+        <!-- RECORDS VIEW -->
+        <section v-if="currentView === 'records'">
+          <div class="glass-card rounded-[1.5rem] overflow-hidden">
+            <div class="p-6 border-b border-black/5 bg-gray-50/50">
+              <h2 class="text-xl font-black uppercase italic">Inspection Log</h2>
             </div>
-
-            <!-- Replacement Modal -->
-            <div v-if="showReplaceModal" class="modal-overlay">
-              <div class="modal-content !max-w-md">
-                <div class="modal-header">
-                  <h3 class="font-black text-xl italic uppercase">
-                    <span style="color: var(--primary)">Assign</span>
-                    Replacement
-                  </h3>
-                  <button
-                    @click="showReplaceModal = false"
-                    class="close-circle-btn"
-                  >
-                    <i class="fa fa-times"></i>
-                  </button>
-                </div>
-                <div class="p-8 space-y-6">
-                  <div
-                    class="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-4"
-                  >
-                    <div
-                      class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-                    >
-                      Currently Assigned To
-                    </div>
-                    <div
-                      class="font-black text-black text-lg flex items-center gap-2"
-                    >
-                      <i
-                        class="fa fa-user-clock"
-                        style="color: var(--primary)"
-                      ></i>
-                      {{ selectedTask?.AssignTo || 'Unassigned' }}
-                    </div>
-                  </div>
-                  <div class="relative">
-                    <label class="section-label"
-                      >Select Replacement Personnel</label
-                    >
-                    <div class="relative">
-                      <input
-                        type="text"
-                        v-model="replacementName"
-                        @focus="dropdowns.replace = true"
-                        @blur="closeDropdown('replace')"
-                        placeholder="Search or Select..."
-                        class="form-input"
-                      />
-                      <button
-                        v-if="replacementName"
-                        @click="replacementName = ''"
-                        class="clear-btn"
-                      >
-                        <i class="fa fa-times-circle"></i>
-                      </button>
-                    </div>
-                    <div v-if="dropdowns.replace" class="dropdown-list">
-                      <div
-                        v-for="u in filterList(inspectorsList, replacementName)"
-                        :key="u"
-                        @mousedown="replacementName = u; dropdowns.replace = false"
-                        class="dropdown-item"
-                      >
-                        <i
-                          class="fa fa-user-circle mr-2 opacity-50"
-                          style="color: var(--primary)"
-                        ></i>
-                        {{ u }}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    @click="submitReplacement"
-                    :disabled="!replacementName"
-                    :class="!replacementName ? 'opacity-50 cursor-not-allowed' : 'btn-primary-hover'"
-                    class="w-full py-5 rounded-2xl font-black uppercase tracking-widest transition-colors shadow-lg shadow-black/20"
-                    style="background: var(--primary); color: var(--on-primary)"
-                  >
-                    Update Assignment
-                  </button>
-                </div>
-              </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead class="text-[9px] text-neutral-400 font-black uppercase border-b border-black/5">
+                  <tr>
+                    <th class="px-8 py-4">Identification</th>
+                    <th class="px-4 text-center">Acc</th>
+                    <th class="px-4 text-center">Rej</th>
+                    <th class="px-8 text-right">Inspector</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-black/5">
+                  <tr v-for="record in filteredRecords" class="hover:bg-gray-50">
+                    <td class="px-8 py-6">
+                      <div class="font-black text-sm">{{ record.Part_Name }}</div>
+                      <div class="text-[9px] text-neutral-400 font-bold uppercase">{{ record.JO_Number }}</div>
+                    </td>
+                    <td class="px-4 py-6 text-center font-black" style="color: var(--primary)">{{ record.AcceptQty || 0
+                      }}</td>
+                    <td class="px-4 py-6 text-center font-black text-neutral-400">{{ record.RejectQty || 0 }}</td>
+                    <td class="px-8 py-6 text-right">
+                      <div class="font-black text-[10px] uppercase">{{ record.InspectBy }}</div>
+                      <div class="text-[8px] text-neutral-400 font-bold">{{ formatDate(record.created_at) }}</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <!-- --- RECORDS VIEW --- -->
-          <section v-if="currentView === 'records'">
-            <div class="glass-card rounded-[1.5rem] overflow-hidden">
-              <div class="p-6 border-b border-black/5 bg-gray-50/50">
-                <h2 class="text-xl font-black uppercase italic">
-                  Inspection <span style="color: var(--primary)">Log</span>
-                </h2>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full text-left min-w-[500px]">
-                  <thead
-                    class="text-[9px] text-neutral-400 font-black uppercase border-b border-black/5"
-                  >
-                    <tr>
-                      <th class="px-8 py-4">Identification</th>
-                      <th class="px-4 py-4 text-center">Acc</th>
-                      <th class="px-4 py-4 text-center">Rej</th>
-                      <th class="px-8 py-4 text-right">Inspector</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-black/5">
-                    <tr
-                      v-for="record in filteredRecords"
-                      class="hover:bg-gray-50"
-                    >
-                      <td class="px-8 py-6">
-                        <div class="font-black text-black text-sm">
-                          {{ record.Part_Name }}
-                        </div>
-                        <div
-                          class="text-[9px] text-neutral-400 font-bold uppercase"
-                        >
-                          {{ record.JO_Number }}
-                        </div>
-                      </td>
-                      <td
-                        class="px-4 py-6 text-center font-black"
-                        style="color: var(--primary)"
-                      >
-                        {{ record.AcceptQty || 0 }}
-                      </td>
-                      <td
-                        class="px-4 py-6 text-center font-black text-neutral-400"
-                      >
-                        {{ record.RejectQty || 0 }}
-                      </td>
-                      <td class="px-8 py-6 text-right">
-                        <div
-                          class="font-black text-black text-[10px] uppercase"
-                        >
-                          {{ record.InspectBy }}
-                        </div>
-                        <div
-                          class="text-[8px] text-neutral-400 font-bold uppercase"
-                        >
-                          {{ formatDate(record.created_at) }}
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
+  </div>
 
-    <script>
-      const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
-      const API_KEY = window.APP_CONFIG.key;
+  <script>
+    const { createApp, ref, onMounted, computed, watch, nextTick } = Vue;
+    const API_KEY = window.APP_CONFIG.key;
 
-      createApp({
-        setup() {
-          const api = axios.create({
-            baseURL: `${window.APP_CONFIG.url}/rest/v1`,
-            headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
-          });
+    createApp({
+      setup() {
+        const api = axios.create({
+          baseURL: `${window.APP_CONFIG.url}/rest/v1`,
+          headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
+        });
 
-          // --- UI State ---
-          const isMobile = ref(window.innerWidth < 1024);
-          const isSidebarOpen = ref(window.innerWidth >= 1024);
-          const currentView = ref("dashboard");
-          const frameSrc = ref("");
-          const loading = ref(false);
+        // 1. DATA STATE
+        const isMobile = ref(window.innerWidth < 1024);
+        const isSidebarOpen = ref(window.innerWidth >= 1024);
+        const currentView = ref("dashboard");
+        const frameSrc = ref("");
+        const loading = ref(false);
 
-          // --- Data State ---
-          const schedule = ref([]);
-          const records = ref([]);
-          const operators = ref([]);
-          const filterDate = ref(new Date().toISOString().split("T")[0]);
-          const filterMonth = ref(new Date().toISOString().slice(0, 7));
-          const filterPartName = ref("");
-          const activeDropdown = ref(null);
-          const dropdowns = ref({
-            part: false,
-            jo: false,
-            user: false,
-            replace: false,
-          });
+        const schedule = ref([]);
+        const records = ref([]);
+        const operators = ref([]);
 
-          // --- Modal State ---
-          // Renamed 'open' to 'isOpen' and 'open' to 'openJobs' to fix the collision
-          const inspectorModal = ref({
-            isOpen: false,
-            name: "",
-            closed: [],
-            openJobs: [],
-          });
-          const showReplaceModal = ref(false);
-          const selectedTask = ref(null);
-          const replacementName = ref("");
+        const filterDate = ref(new Date().toISOString().split("T")[0]);
+        const filterMonth = ref(new Date().toISOString().slice(0, 7));
 
-          let chartInstance = null;
+        const inspectorModal = ref({ isOpen: false, name: "", closed: [], openJobs: [] });
+        let chartInstance = null;
 
-          // --- Utilities ---
-          const todayStr = () => new Date().toISOString().slice(0, 10);
-          const todayLabel = computed(() => {
-            try {
-              return new Date().toLocaleDateString("en-GB", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              });
-            } catch {
-              return todayStr();
-            }
-          });
+        // 2. HELPER FUNCTIONS (Defined first so computed properties can use them)
+        const norm = (s) => (s || "").toString().trim().toLowerCase();
 
-          const norm = (s) => (s || "").toString().trim().toLowerCase();
+        const formatLateLabel = (mins) => {
+          if (!mins || mins <= 0) return '—';
+          return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+        };
 
-          const sumQtys = (rows) =>
-            rows.reduce(
-              (acc, curr) => ({
-                total: acc.total + (Number(curr.TotalCheck) || 0),
-                accept: acc.accept + (Number(curr.AcceptQty) || 0),
-                reject: acc.reject + (Number(curr.RejectQty) || 0),
-                scrap: acc.scrap + (Number(curr.ScrapQty) || 0),
-                rework: acc.rework + (Number(curr.ReworkQty) || 0),
-              }),
-              { total: 0, accept: 0, reject: 0, scrap: 0, rework: 0 },
-            );
+        const isOverdueHelper = (s, r) => {
+          const recordFinishTime = r.actual_finished || r.created_at;
+          if (!s || !s.EstFinished || !recordFinishTime) return false;
+          const act = new Date(recordFinishTime);
+          const est = new Date(s.EstFinished);
+          act.setSeconds(0, 0); // Ignore seconds mismatch
+          est.setSeconds(0, 0);
+          return act.getTime() > est.getTime();
+        };
 
-          // --- Computed Data ---
-          const monthRecords = computed(() => {
-            const m = filterMonth.value;
-            if (!m) return records.value;
-            return records.value.filter((r) =>
-              (r.created_at || "").startsWith(m),
-            );
-          });
+        const findMatch = (row) => {
+          const jo = norm(row.JO_Number);
+          const part = norm(row.Part_Name);
+          const param = norm(row.Parameter || row.Inspection_Type);
 
-          const todayRecords = computed(() => {
-            const t = todayStr();
-            return records.value.filter((r) =>
-              (r.created_at || "").includes(t),
-            );
-          });
-
-          const todayKpiCards = computed(() => {
-            const res = sumQtys(todayRecords.value);
-            const reworkRate =
-              res.total > 0
-                ? ((res.rework / res.total) * 100).toFixed(1) + "%"
-                : "0%";
-            return [
-              { label: "Total checks", value: res.total },
-              { label: "Passed", value: res.accept },
-              { label: "Reject", value: res.reject },
-              { label: "Scrap", value: res.scrap },
-              { label: "Rework rate", value: reworkRate },
-            ];
-          });
-
-          const inspectorsList = computed(() => {
-            const combined = [
-              ...operators.value,
-              ...schedule.value.map((item) => item.AssignTo),
-            ];
-            return [...new Set(combined)]
-              .filter((name) => name && name !== "-")
-              .sort();
-          });
-
-          const filteredSchedule = computed(() => {
-            return (schedule.value || []).filter((item) => {
-              const remaining = Number(item.remaining_qty) || 0;
-              const total = Number(item.quantity) || 0;
-              return remaining === total && total > 0;
-            });
-          });
-
-          const filteredRecords = computed(() =>
-            records.value.filter((r) => {
-              return (
-                (!filterDate.value ||
-                  r.created_at.includes(filterDate.value)) &&
-                (!filterPartName.value || r.Part_Name === filterPartName.value)
-              );
-            }),
+          const pool = schedule.value.filter(s =>
+            norm(s.JO_Number) === jo &&
+            norm(s.Part_Name) === part &&
+            norm(s.Parameter) === param
           );
 
-          // --- Overdue Logic ---
-          const findScheduleMatch = (row) => {
-            const jo = norm(row.JO_Number),
-              part = norm(row.Part_Name),
-              param = norm(row.Parameter);
-            const by = norm(row.InspectBy);
-            const candidates = schedule.value.filter(
-              (s) =>
-                norm(s.JO_Number) === jo &&
-                norm(s.Part_Name) === part &&
-                (!param || !norm(s.Parameter) || norm(s.Parameter) === param),
-            );
-            if (!candidates.length) return null;
-            return (
-              candidates.find(
-                (s) => norm(s.AssignTo) === by || norm(s.Replacement) === by,
-              ) || candidates[0]
-            );
+          if (pool.length === 0) return null;
+          if (pool.length === 1) return pool[0];
+
+          const rowTime = new Date(row.actual_finished || row.created_at).getTime();
+          return pool.reduce((prev, curr) => {
+            const prevDiff = Math.abs(new Date(prev.EstFinished).getTime() - rowTime);
+            const currDiff = Math.abs(new Date(curr.EstFinished).getTime() - rowTime);
+            return currDiff < prevDiff ? prev : curr;
+          });
+        };
+
+        // 3. METHODS
+        const fetchData = async () => {
+          loading.value = true;
+          try {
+            const contextMonth = filterDate.value ? filterDate.value.slice(0, 7) : filterMonth.value;
+            const startOfMonth = `${contextMonth}-01`;
+            const nextMonthObj = new Date(startOfMonth);
+            nextMonthObj.setMonth(nextMonthObj.getMonth() + 1);
+            const endOfMonth = nextMonthObj.toISOString().split('T')[0];
+
+            const [resSched, resRec, resOps] = await Promise.all([
+              api.get(`/InspectionSchedule?select=*&StartDate=gte.${startOfMonth}&StartDate=lt.${endOfMonth}&order=id.desc`),
+              api.get(`/InspectionRecord?select=*&created_at=gte.${startOfMonth}&created_at=lt.${endOfMonth}&order=id.desc`),
+              api.get(`/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc`)
+            ]);
+
+            schedule.value = resSched.data || [];
+            records.value = resRec.data || [];
+            operators.value = resOps.data ? resOps.data.map(i => i.name || i.Name) : [];
+
+            if (currentView.value === 'dashboard') {
+              nextTick(() => updateChart());
+            }
+          } catch (e) {
+            console.error("General Fetch Error:", e);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const getTabIcon = (t) => {
+          const icons = { dashboard: "fa fa-th-large", schedule: "fa fa-clock", records: "fa fa-layer-group" };
+          return icons[t] || "fa fa-circle";
+        };
+
+        const updateChart = () => {
+          const ctx = document.getElementById('qualityChart');
+          if (!ctx) return;
+          if (chartInstance) chartInstance.destroy();
+
+          let labels = [], checks = [], rejects = [];
+          const contextMonth = filterMonth.value || filterDate.value.slice(0, 7);
+          const [y, m] = contextMonth.split('-').map(Number);
+          const daysInMonth = new Date(y, m, 0).getDate();
+
+          if (!filterDate.value) {
+            for (let d = 1; d <= daysInMonth; d++) {
+              const ds = `${contextMonth}-${String(d).padStart(2, '0')}`;
+              labels.push(d);
+              const rows = records.value.filter(r => (r.actual_finished || r.created_at || "").slice(0, 10) === ds);
+              checks.push(rows.reduce((a, b) => a + (Number(b.TotalCheck) || 0), 0));
+              rejects.push(rows.reduce((a, b) => a + (Number(b.RejectQty) || 0), 0));
+            }
+          } else {
+            labels = [filterDate.value];
+            const rows = records.value.filter(r => (r.actual_finished || r.created_at || "").slice(0, 10) === filterDate.value);
+            checks = [rows.reduce((a, b) => a + (Number(b.TotalCheck) || 0), 0)];
+            rejects = [rows.reduce((a, b) => a + (Number(b.RejectQty) || 0), 0)];
+          }
+
+          chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                { label: 'Checks', data: checks, backgroundColor: '#0078d4', borderRadius: 4 },
+                { label: 'Rejects', data: rejects, backgroundColor: '#ef4444', borderRadius: 4 }
+              ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+        };
+
+        // 4. COMPUTED PROPERTIES
+        const inspectorOverdueRows = computed(() => {
+          const map = {};
+          const ensure = (n) => {
+            const name = (n || '').trim() || 'Unassigned';
+            if (!map[name]) map[name] = { name, overdueCount: 0, openOverdue: 0, withRemark: 0, withoutRemark: 0, lateMins: [], closedDetails: [], openDetails: [] };
+            return map[name];
           };
 
-          const isRecordLate = (row, sched) => {
-            if (!sched || !sched.EstFinished) return false;
-            const finish = row.actual_finished || row.created_at;
-            return finish
-              ? new Date(finish) > new Date(sched.EstFinished)
-              : false;
-          };
+          records.value.forEach(r => {
+            const s = findMatch(r);
+            if (!s) return;
+            const workDate = (r.actual_finished || r.created_at || "").slice(0, 10);
+            if (filterDate.value && workDate !== filterDate.value) return;
 
-          const inspectorOverdueRows = computed(() => {
-            const m = filterMonth.value;
-            const map = {};
-            const ensure = (name) => {
-              const n = (name || "").trim() || "Unassigned";
-              if (!map[n])
-                map[n] = {
-                  name: n,
-                  overdueCount: 0,
-                  openOverdue: 0,
-                  withRemark: 0,
-                  withoutRemark: 0,
-                  lateMins: [],
-                  closedDetails: [],
-                  openDetails: [],
-                };
-              return map[n];
-            };
-
-            monthRecords.value.forEach((row) => {
-              const sched = findScheduleMatch(row);
-              if (!isRecordLate(row, sched)) return;
-              const st = ensure(row.InspectBy || sched?.AssignTo);
-              const mins = Math.max(
-                0,
-                Math.floor(
-                  (new Date(row.actual_finished || row.created_at) -
-                    new Date(sched.EstFinished)) /
-                    60000,
-                ),
-              );
-              st.overdueCount += 1;
+            if (isOverdueHelper(s, r)) {
+              const st = ensure(r.InspectBy);
+              const act = new Date(r.actual_finished || r.created_at);
+              const est = new Date(s.EstFinished);
+              const mins = Math.max(0, Math.floor((act - est) / 60000));
+              st.overdueCount++;
               st.lateMins.push(mins);
-              if (row.remark_finished && String(row.remark_finished).trim())
-                st.withRemark += 1;
-              else st.withoutRemark += 1;
-              st.closedDetails.push({
-                part: row.Part_Name || "—",
-                process: row.Parameter || "—",
-                jo: row.JO_Number || "—",
-                whenLabel: new Date(row.created_at).toLocaleString(),
-                lateLabel:
-                  mins > 60
-                    ? `${Math.floor(mins / 60)}h ${mins % 60}m`
-                    : `${mins}m`,
-                hasRemark: !!row.remark_finished,
-                remark: row.remark_finished,
-              });
-            });
-
-            schedule.value.forEach((item) => {
-              if (!item.EstFinished) return;
-              if (Number(item.remaining_qty) <= 0) return;
-              if (new Date() <= new Date(item.EstFinished)) return;
-              const estM = String(item.EstFinished).slice(0, 7);
-              if (m && estM !== m) return;
-              const st = ensure(item.AssignTo);
-              st.openOverdue += 1;
-              const mins = Math.max(
-                0,
-                Math.floor(
-                  (Date.now() - new Date(item.EstFinished).getTime()) / 60000,
-                ),
-              );
-              st.openDetails.push({
-                part: item.Part_Name || "—",
-                jo: item.JO_Number || "—",
-                whenLabel: new Date(item.EstFinished).toLocaleString(),
-                lateLabel:
-                  mins > 60
-                    ? `${Math.floor(mins / 60)}h ${mins % 60}m`
-                    : `${mins}m`,
-                lateMins: mins,
-              });
-            });
-
-            return Object.values(map).sort(
-              (a, b) =>
-                b.overdueCount +
-                b.openOverdue -
-                (a.overdueCount + a.openOverdue),
-            );
+              if (r.remark_finished) st.withRemark++; else st.withoutRemark++;
+              st.closedDetails.push({ part: r.Part_Name, jo: r.JO_Number, lateLabel: formatLateLabel(mins), hasRemark: !!r.remark_finished, remark: r.remark_finished });
+            }
           });
 
-          // --- Methods ---
-          const fetchData = async () => {
-            loading.value = true;
-            try {
-              const [resSched, resRec, resCheckers] = await Promise.all([
-                api.get("/InspectionSchedule?select=*"),
-                api.get("/InspectionRecord?select=*"),
-                api.get(
-                  "/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc",
-                ),
-              ]);
-              schedule.value = resSched.data;
-              records.value = resRec.data;
-              operators.value = resCheckers.data.map((i) => i.name || i.Name);
-            } catch (e) {
-              console.error(e);
-            } finally {
-              loading.value = false;
-            }
-          };
-
-          const openInspectorOverdueModal = (row) => {
-            inspectorModal.value = {
-              isOpen: true,
-              name: row.name,
-              closed: row.closedDetails || [],
-              openJobs: row.openDetails || [],
-            };
-          };
-
-          const closeInspectorOverdueModal = () => {
-            inspectorModal.value.isOpen = false;
-          };
-
-          const openReplaceModal = (item) => {
-            selectedTask.value = item;
-            replacementName.value = "";
-            showReplaceModal.value = true;
-          };
-
-          const submitReplacement = async () => {
-            if (!replacementName.value) return;
-            loading.value = true;
-            try {
-              await api.patch(
-                `/InspectionSchedule?id=eq.${selectedTask.value.id}`,
-                {
-                  Replacement: replacementName.value,
-                },
-              );
-              showReplaceModal.value = false;
-              fetchData();
-            } catch (e) {
-              alert("Failed to update");
-            } finally {
-              loading.value = false;
-            }
-          };
-
-          const navigate = (view) => {
-            currentView.value = view;
-            if (isMobile.value) isSidebarOpen.value = false;
-          };
-
-          const toggleSidebar = () => {
-            isSidebarOpen.value = !isSidebarOpen.value;
-          };
-
-          const getTabIcon = (tab) => {
-            const icons = {
-              dashboard: "fa fa-th-large",
-              schedule: "fa fa-clock",
-              records: "fa fa-layer-group",
-            };
-            return icons[tab] || "fa fa-circle";
-          };
-
-          onMounted(() => {
-            window.addEventListener("resize", () => {
-              isMobile.value = window.innerWidth < 1024;
-            });
-            fetchData();
+          schedule.value.forEach(s => {
+            if (!s.EstFinished || Number(s.remaining_qty) <= 0 || new Date() <= new Date(s.EstFinished)) return;
+            const plannedDate = s.EstFinished.slice(0, 10);
+            if (filterDate.value && plannedDate !== filterDate.value) return;
+            const st = ensure(s.AssignTo);
+            st.openOverdue++;
+            const mins = Math.max(0, Math.floor((Date.now() - new Date(s.EstFinished)) / 60000));
+            st.openDetails.push({ part: s.Part_Name, jo: s.JO_Number, whenLabel: new Date(s.EstFinished).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), lateLabel: formatLateLabel(mins) });
           });
 
-          // --- RETURN TO TEMPLATE ---
-          return {
-            isSidebarOpen,
-            isMobile,
-            currentView,
-            frameSrc,
-            loading,
-            schedule,
-            records,
-            filterDate,
-            filterMonth,
-            filterPartName,
-            todayLabel,
-            todayKpiCards,
-            filteredSchedule,
-            filteredRecords,
-            inspectorsList,
-            inspectorOverdueRows,
-            inspectorModal,
-            showReplaceModal,
-            selectedTask,
-            replacementName,
-            dropdowns,
+          return Object.values(map).map(r => {
+            const avg = r.lateMins.length ? Math.round(r.lateMins.reduce((a, b) => a + b, 0) / r.lateMins.length) : 0;
+            return { ...r, avgLateLabel: avg > 0 ? formatLateLabel(avg) : '—' };
+          }).sort((a, b) => (b.overdueCount + b.openOverdue) - (a.overdueCount + a.openOverdue));
+        });
 
-            fetchData,
-            navigate,
-            toggleSidebar,
-            getTabIcon,
-            openInspectorOverdueModal,
-            closeInspectorOverdueModal,
-            openReplaceModal,
-            submitReplacement,
+        const todayLabel = computed(() => {
+          if (filterDate.value) return new Date(filterDate.value).toLocaleDateString("en-GB", { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+          if (filterMonth.value) return new Date(filterMonth.value + '-01').toLocaleDateString("en-GB", { month: 'long', year: 'numeric' });
+          return "Records";
+        });
 
-            isOverdue: (item) =>
-              item.EstFinished && new Date() > new Date(item.EstFinished),
-            formatDisplayTime: (iso) =>
-              iso
-                ? new Date(iso)
-                    .toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                    .toUpperCase()
-                : "--:--",
-            getOverdueDuration: (iso) => {
-              const diff = Math.floor((new Date() - new Date(iso)) / 60000);
-              return diff > 60
-                ? `${Math.floor(diff / 60)}h ${diff % 60}m Late`
-                : `${diff}m Late`;
-            },
-            filterList: (list, search) =>
-              search
-                ? list.filter((i) =>
-                    String(i).toLowerCase().includes(search.toLowerCase()),
-                  )
-                : list,
-            closeDropdown: (type) =>
-              setTimeout(() => (dropdowns.value[type] = false), 200),
-            formatDate: (iso) =>
-              iso ? new Date(iso).toLocaleDateString() : "--",
-            goTo: (url) => {
-              frameSrc.value = url;
-              currentView.value = "frame";
-              if (isMobile.value) isSidebarOpen.value = false;
-            },
-          };
-        },
-      }).mount("#app");
-    </script>
-    <div class="footer">
-      © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
-    </div>
-  </body>
+        const todayKpiCards = computed(() => {
+          let rows = records.value.filter(r => {
+            const workDate = (r.actual_finished || r.created_at || "").slice(0, 10);
+            return !filterDate.value || workDate === filterDate.value;
+          });
+          const res = rows.reduce((acc, curr) => ({
+            total: acc.total + (Number(curr.TotalCheck) || 0),
+            accept: acc.accept + (Number(curr.AcceptQty) || 0),
+            reject: acc.reject + (Number(curr.RejectQty) || 0),
+            scrap: acc.scrap + (Number(curr.ScrapQty) || 0),
+            rework: acc.rework + (Number(curr.ReworkQty) || 0),
+          }), { total: 0, accept: 0, reject: 0, scrap: 0, rework: 0 });
+          return [
+            { label: filterDate.value ? 'Day Total Checks' : 'Month Total Checks', value: res.total.toLocaleString() },
+            { label: 'Passed', value: res.accept.toLocaleString() },
+            { label: 'Rejected', value: res.reject.toLocaleString() },
+            { label: 'Scrap', value: res.scrap.toLocaleString() },
+            { label: 'Rework Rate', value: res.total > 0 ? ((res.rework / res.total) * 100).toFixed(1) + '%' : '0%' }
+          ];
+        });
+
+        // 5. WATCHERS & LIFECYCLE
+        watch(filterDate, (v) => { if (v) { filterMonth.value = ''; fetchData(); } });
+        watch(filterMonth, (v) => { if (v) { filterDate.value = ''; fetchData(); } });
+
+        onMounted(() => {
+          window.addEventListener("resize", () => { isMobile.value = window.innerWidth < 1024; });
+          fetchData();
+        });
+
+        // 6. RETURN EVERYTHING TO TEMPLATE
+        return {
+          isSidebarOpen, isMobile, currentView, frameSrc, loading, schedule, records, filterDate, filterMonth, todayLabel, todayKpiCards,
+          inspectorOverdueRows, inspectorModal, fetchData, getTabIcon,
+          navigate: (v) => { currentView.value = v; if (v === 'dashboard') nextTick(updateChart); if (isMobile.value) isSidebarOpen.value = false; },
+          filteredSchedule: computed(() => (schedule.value || []).filter(i => (Number(i.quantity) || 0) > 0)),
+          filteredRecords: computed(() => records.value.filter(r => (!filterDate.value || (r.actual_finished || r.created_at || "").slice(0, 10) === filterDate.value))),
+          openInspectorOverdueModal: (row) => { inspectorModal.value = { isOpen: true, name: row.name, closed: row.closedDetails, openJobs: row.openDetails }; },
+          closeInspectorOverdueModal: () => inspectorModal.value.isOpen = false,
+          formatDate: (iso) => iso ? new Date(iso).toLocaleDateString() : "--",
+          formatDisplayTime: (iso) => iso ? new Date(iso).toLocaleString("en-GB", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "--:--",
+          isOverdue: (i) => i.EstFinished && new Date() > new Date(i.EstFinished),
+          goTo: (url) => { frameSrc.value = url; currentView.value = "frame"; if (isMobile.value) isSidebarOpen.value = false; },
+          toggleSidebar: () => { isSidebarOpen.value = !isSidebarOpen.value; setTimeout(() => { if (chartInstance) chartInstance.resize(); }, 450); }
+        };
+      },
+    }).mount("#app");
+  </script>
+  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+</body>
+
 </html>

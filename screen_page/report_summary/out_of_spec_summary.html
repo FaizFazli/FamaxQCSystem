@@ -16,14 +16,23 @@
     <link rel="stylesheet" href="/assets/theme.css" />
 
     <style>
-        .is-framed .card-header { display: none !important; }
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        :root { --oos-danger: #e11d48; }
+        .is-framed .card-header {
+            display: none !important;
+        }
 
-        body { padding: var(--space-3); }
+        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        :root {
+            --oos-danger: #e11d48;
+        }
+
+        body {
+            padding: var(--space-3);
+        }
 
         @media (min-width: 768px) {
-            body { padding: var(--space-5); }
+            body {
+                padding: var(--space-5);
+            }
         }
 
         .page-container {
@@ -79,20 +88,39 @@
         }
 
         select,
-        input[type="month"] { min-width: 150px; width: auto; }
+        input[type="month"] {
+            min-width: 150px;
+            width: auto;
+        }
 
-        .btn { height: 42px; }
+        .btn {
+            height: 42px;
+        }
 
-        .btn-blue { background: var(--primary); }
-        .btn-blue:hover { background: var(--primary-hover); }
+        .btn-blue {
+            background: var(--primary);
+        }
 
-        .btn-green { background: var(--success); }
-        .btn-green:hover { background: #059669; }
+        .btn-blue:hover {
+            background: var(--primary-hover);
+        }
 
-        .report-content { padding: var(--space-4); }
+        .btn-green {
+            background: var(--success);
+        }
+
+        .btn-green:hover {
+            background: #059669;
+        }
+
+        .report-content {
+            padding: var(--space-4);
+        }
 
         @media (min-width: 768px) {
-            .report-content { padding: var(--space-8); }
+            .report-content {
+                padding: var(--space-8);
+            }
         }
 
         /* JS renders part group headers into .report-content */
@@ -148,17 +176,39 @@
             border-radius: var(--radius-sm);
         }
 
+        /* .col-read {
+            width: 75px;
+            text-align: center;
+            white-space: nowrap;
+            /* Prevents 207.614 from breaking */
+        /* } */
+
+        /* .remark-text {
+        font-size: var(--fs-xs);
+        white-space: pre-wrap; 
+        word-break: break-word;
+        line-height: 1.4;
+        min-height: 24px;
+    } */
+
         .remark-text {
             font-size: var(--fs-xs);
             color: var(--text-main);
             padding: var(--space-1);
-            min-height: 20px;
+            min-height: 24px;
             cursor: text;
             outline: none;
             border-radius: var(--radius-sm);
             transition: background var(--transition);
+            /* Ensures long text wraps and shows fully */
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.4;
         }
-        .remark-text:focus { background: var(--primary-soft); }
+
+        */ .remark-text:focus {
+            background: var(--primary-soft);
+        }
 
         .footer {
             text-align: center;
@@ -171,7 +221,130 @@
             opacity: 0.5;
             pointer-events: none;
         }
+
+
+
+        /* TABLE STYLES FOR WEB VIEW */
+        .col-read {
+            width: 85px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .remark-text {
+            font-size: var(--fs-xs);
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.4;
+            min-height: 20px;
+            display: block;
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            @page {
+                size: portrait;
+                margin: 0.5cm;
+            }
+
+            /* Hide Top UI */
+            .toolbar,
+            .card-header,
+            .footer,
+            .btn {
+                display: none !important;
+            }
+
+            body {
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            .page-container {
+                width: 100% !important;
+                border: none !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+
+            table {
+                table-layout: fixed !important;
+                /* Force browser to obey widths below */
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            th,
+            td {
+                font-size: 7pt !important;
+                /* Very small to fit all 9 columns */
+                padding: 3px 2px !important;
+                border: 1px solid #e2e8f0 !important;
+                vertical-align: top !important;
+                word-wrap: break-word !important;
+            }
+
+            /* Calibrated widths for Portrait A4 */
+            .col-date {
+                width: 65px !important;
+            }
+
+            .col-machine {
+                width: 55px !important;
+            }
+
+            .col-process {
+                width: 75px !important;
+            }
+
+            .col-zone {
+                width: 35px !important;
+            }
+
+            .col-spec {
+                width: 75px !important;
+                text-align: center !important;
+            }
+
+            .col-read {
+                width: 58px !important;
+                white-space: nowrap !important;
+                text-align: center !important;
+            }
+
+            .col-remarks {
+                width: auto !important;
+            }
+
+            /* Remarks takes all remaining space */
+
+            .remark-text {
+                font-size: 7pt !important;
+                line-height: 1.1 !important;
+                text-align: left !important;
+
+                /* These three are the "Magic Combo" for table wrapping */
+                display: block !important;
+                white-space: pre-wrap !important;
+                /* Keeps manual line breaks and wraps text */
+                overflow-wrap: anywhere !important;
+                /* Forces a break at the edge of the cell even if it's one long word */
+
+                /* Ensure it doesn't try to be wider than the column */
+                width: 100% !important;
+                word-break: normal !important;
+            }
+
+            .oos-bold {
+                background-color: #fff1f2 !important;
+                color: #e11d48 !important;
+                border: 1px solid #fecdd3 !important;
+                padding: 0 2px !important;
+                font-weight: 700 !important;
+            }
+        }
     </style>
+
 </head>
 
 <body>
@@ -194,6 +367,8 @@
 
             <div style="margin-left: auto; display: flex; gap: var(--space-4);">
                 <button class="btn btn-blue" onclick="generateReport()">Update Report</button>
+                <button class="btn" style="background: #475569; color: white;" onclick="window.print()">Print
+                    Report</button>
                 <button id="exportBtn" class="btn btn-green" onclick="exportToExcel()" disabled>Export to Excel</button>
             </div>
         </div>
@@ -272,14 +447,57 @@
 
             parts.forEach(partName => {
                 const rows = globalOOSData.filter(d => d.part === partName);
-                let html = `<div class="part-group-header"><span>PART: ${partName}</span><span style="font-weight:400; font-size:11px;">OOS: ${rows.length}</span></div><div class="table-responsive"><table><thead><tr><th width="120">Date</th><th width="80">Machine</th><th width="150">Process</th><th width="60">Zone</th><th width="100">LSL/USL</th><th width="80">R1</th><th width="80">R2</th><th width="80">R3</th><th>Remarks</th></tr></thead><tbody>`;
+                let html = `
+            <div class="part-group-header">
+                <span>PART: ${partName}</span>
+                <span style="font-weight:400; font-size:11px;">OOS: ${rows.length}</span>
+            </div>
+            <div class="table-responsive">
+            <table>
+            <thead>
+                <tr>
+                    <th class="col-date">Date</th>
+                    <th class="col-machine">Machine</th>
+                    <th class="col-process">Process</th>
+                    <th class="col-zone">Zone</th>
+                    <th class="col-spec">LSL / USL</th>
+                    <th class="col-read">R1</th>
+                    <th class="col-read">R2</th>
+                    <th class="col-read">R3</th>
+                    <th class="col-remarks">Remarks</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
                 rows.forEach(row => {
-                    const f = (v) => {
+                    const formatReading = (v) => {
+                        if (v === null || v === undefined || v === "") return "-";
                         const n = parseFloat(v);
-                        const isOos = !isNaN(n) && ((!isNaN(row.lsl) && n < row.lsl) || (!isNaN(row.usl) && n > row.usl));
-                        return isOos ? `<span class="oos-bold">${n}</span>` : (v || "-");
+                        if (isNaN(n)) return v;
+                        const isOos = ((!isNaN(row.lsl) && n < row.lsl) || (!isNaN(row.usl) && n > row.usl));
+                        return isOos ? `<span class="oos-bold">${v}</span>` : v;
                     };
-                    html += `<tr><td>${row.date}</td><td><b>${row.machine}</b></td><td>${row.process}</td><td style="text-align:center">${row.zone}</td><td>${row.lsl || '-'}/${row.usl || '-'}</td><td>${f(row.r1)}</td><td>${f(row.r2)}</td><td>${f(row.r3)}</td><td><div class="remark-text" contenteditable="true" onblur="saveRemark(this, '${row.id}')">${row.remarks}</div></td></tr>`;
+
+                    // NEW LOGIC: Break lines at / or |
+                    // We add a newline (\n) after every / or | symbol
+                    const formattedRemarks = (row.remarks || '')
+                        .replace(/\//g, '/\n')
+                        .replace(/\|/g, '|\n');
+
+                    html += `
+                            <tr>
+                                <td class="col-date">${row.date}</td>
+                                <td class="col-machine"><b>${row.machine}</b></td>
+                                <td class="col-process">${row.process}</td>
+                                <td class="col-zone" style="text-align:center">${row.zone}</td>
+                                <td class="col-spec" style="text-align:center">${row.lsl || '-'} / ${row.usl || '-'}</td>
+                                <td class="col-read">${formatReading(row.r1)}</td>
+                                <td class="col-read">${formatReading(row.r2)}</td>
+                                <td class="col-read">${formatReading(row.r3)}</td>
+                                <td class="col-remarks">
+                                    <div class="remark-text" contenteditable="true" onblur="saveRemark(this, '${row.id}')">${formattedRemarks}</div>
+                                </td>
+                            </tr>`;
                 });
                 container.innerHTML += html + `</tbody></table></div>`;
             });
