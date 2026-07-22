@@ -1637,12 +1637,24 @@
               nextMonthObj.setMonth(nextMonthObj.getMonth() + 1);
               const endOfMonth = nextMonthObj.toISOString().split("T")[0];
 
+              // Records are attributed to a month by actual_finished (fallback
+              // created_at). A check can be entered just before/after the month
+              // yet finished inside it, so pad the fetch window ±15 days and let
+              // the effDate month filter (monthRecords) decide membership. This
+              // mirrors the QA Performance Report so the two pages tally.
+              const preObj = new Date(startOfMonth);
+              preObj.setDate(preObj.getDate() - 15);
+              const preStr = preObj.toISOString().split("T")[0];
+              const postObj = new Date(endOfMonth);
+              postObj.setDate(postObj.getDate() + 15);
+              const postStr = postObj.toISOString().split("T")[0];
+
               const [resSched, resRec, resOps] = await Promise.all([
                 api.get(
                   `/InspectionSchedule?select=*&StartDate=gte.${startOfMonth}&StartDate=lt.${endOfMonth}&order=id.desc`,
                 ),
                 api.get(
-                  `/InspectionRecord?select=*&created_at=gte.${startOfMonth}&created_at=lt.${endOfMonth}&order=id.desc`,
+                  `/InspectionRecord?select=*&created_at=gte.${preStr}&created_at=lt.${postStr}&order=created_at.asc`,
                 ),
                 api.get(
                   `/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc`,
@@ -1885,7 +1897,7 @@
               return map[name];
             };
 
-            records.value.forEach((r) => {
+            monthRecords.value.forEach((r) => {
               const workDate = (r.actual_finished || r.created_at || "").slice(
                 0,
                 10,
@@ -2010,12 +2022,21 @@
             return "Records";
           });
 
+          // A record belongs to a month by its finished date (fallback created
+          // date). monthRecords is the padded fetch narrowed to the selected
+          // month, so month totals match the QA Performance Report exactly.
+          const effDate = (r) =>
+            (r.actual_finished || r.created_at || "").slice(0, 10);
+          const scopeMonth = computed(() =>
+            filterDate.value ? filterDate.value.slice(0, 7) : filterMonth.value,
+          );
+          const monthRecords = computed(() =>
+            records.value.filter((r) => effDate(r).slice(0, 7) === scopeMonth.value),
+          );
+
           const todayKpiCards = computed(() => {
-            let rows = records.value.filter((r) => {
-              const workDate = (r.actual_finished || r.created_at || "").slice(
-                0,
-                10,
-              );
+            let rows = monthRecords.value.filter((r) => {
+              const workDate = effDate(r);
               return !filterDate.value || workDate === filterDate.value;
             });
             const res = rows.reduce(
@@ -2050,8 +2071,8 @@
 
           // --- Executive overview metrics ---
           const snapshot = computed(() => {
-            const rows = records.value.filter((r) => {
-              const d = (r.actual_finished || r.created_at || "").slice(0, 10);
+            const rows = monthRecords.value.filter((r) => {
+              const d = effDate(r);
               return !filterDate.value || d === filterDate.value;
             });
             const s = rows.reduce(
@@ -2215,7 +2236,7 @@
 
           // Master Records: within the selected period, newest first.
           const filteredRecords = computed(() =>
-            records.value
+            monthRecords.value
               .filter(
                 (r) =>
                   !filterDate.value ||

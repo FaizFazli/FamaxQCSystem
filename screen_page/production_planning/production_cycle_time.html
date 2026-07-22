@@ -1,807 +1,1705 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cycle Time Entry | Famax</title>
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
+    <link
+      rel="icon"
+      type="png"
+      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/assets/app-config.js"></script>
 
     <!-- Shared design system (tokens + UI primitives) -->
-    <link rel="stylesheet" href="/assets/theme.css">
+    <link rel="stylesheet" href="/assets/theme.css" />
 
     <style>
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        body {
-            display: flex;
-            flex-direction: column;
+      /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: var(--z-header);
+        display: flex;
+        align-items: center;
+        height: 64px;
+        padding: 0 var(--space-8);
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Two-panel workspace: side by side on desktop, stacked on small screens */
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-6);
+        width: 100%;
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: var(--space-6);
+        height: calc(100vh - 64px);
+        box-sizing: border-box;
+      }
+
+      .panel {
+        height: 100%;
+        min-height: 0;
+        overflow-y: auto;
+        box-sizing: border-box;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .card {
+        padding: var(--space-8);
+        margin: 0;
+      }
+
+      /* Stack top/bottom on smaller screens */
+      @media (max-width: 900px) {
+        .workspace {
+          grid-template-columns: 1fr;
+          height: auto;
         }
 
-        header {
-            position: sticky;
-            top: 0;
-            z-index: var(--z-header);
-            display: flex;
-            align-items: center;
-            height: 64px;
-            padding: 0 var(--space-8);
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
+        .panel {
+          height: auto;
+          overflow: visible;
         }
+      }
 
-        .container {
-            max-width: 900px;
-        }
+      .section-header {
+        text-align: center;
+        margin-bottom: var(--space-8);
+      }
 
-        .card {
-            padding: var(--space-8);
-        }
+      .section-header h2 {
+        margin: 0 0 var(--space-2);
+        font-size: var(--fs-xl);
+        font-weight: 700;
+        letter-spacing: -0.4px;
+        color: var(--text-main);
+      }
 
-        .section-header {
-            text-align: center;
-            margin-bottom: var(--space-8);
-        }
+      .section-header p {
+        color: var(--text-muted);
+      }
 
-        .section-header h2 {
-            margin: 0 0 var(--space-2);
-            font-size: var(--fs-xl);
-            font-weight: 700;
-            letter-spacing: -0.4px;
-            color: var(--text-main);
-        }
+      .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-5);
+      }
 
-        .section-header p {
-            color: var(--text-muted);
-        }
+      .full-width {
+        grid-column: span 2;
+      }
 
-        .form-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: var(--space-5);
-        }
+      .form-group {
+        position: relative;
+      }
 
-        .full-width {
-            grid-column: span 2;
-        }
+      label {
+        display: block;
+        margin-bottom: var(--space-2);
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        color: var(--text-muted);
+      }
 
-        .form-group {
-            position: relative;
-        }
+      input:read-only,
+      input:disabled {
+        background: var(--surface-muted);
+        color: #475569;
+        cursor: not-allowed;
+      }
 
-        label {
-            display: block;
-            margin-bottom: var(--space-2);
-            font-size: var(--fs-sm);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-            color: var(--text-muted);
-        }
+      .output-highlight {
+        background: #f5f3ff !important;
+        border-color: #c4b5fd !important;
+        color: #5b21b6 !important;
+        font-weight: 700;
+      }
 
-        input:read-only,
-        input:disabled {
-            background: var(--surface-muted);
-            color: #475569;
-            cursor: not-allowed;
-        }
+      /* Custom search dropdown */
+      .dropdown-results {
+        position: absolute;
+        width: 100%;
+        margin-top: 4px;
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 50;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-lg);
+      }
 
-        .output-highlight {
-            background: #f5f3ff !important;
-            border-color: #c4b5fd !important;
-            color: #5b21b6 !important;
-            font-weight: 700;
-        }
+      .result-item {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--surface-muted);
+        transition: background var(--transition);
+      }
 
-        /* Custom search dropdown */
-        .dropdown-results {
-            position: absolute;
-            width: 100%;
-            margin-top: 4px;
-            max-height: 250px;
-            overflow-y: auto;
-            z-index: 50;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            box-shadow: var(--shadow-lg);
-        }
+      .result-item:last-child {
+        border-bottom: none;
+      }
 
-        .result-item {
-            display: flex;
-            flex-direction: column;
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid var(--surface-muted);
-            transition: background var(--transition);
-        }
+      .result-item:hover {
+        background: var(--primary-soft);
+      }
 
-        .result-item:last-child {
-            border-bottom: none;
-        }
+      .result-item span {
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+      }
 
-        .result-item:hover {
-            background: var(--primary-soft);
-        }
+      .result-item strong {
+        color: var(--primary);
+      }
 
-        .result-item span {
-            font-size: var(--fs-sm);
-            color: var(--text-muted);
-        }
+      .time-input-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
 
-        .result-item strong {
-            color: var(--primary);
-        }
+      .time-unit-wrapper {
+        position: relative;
+      }
 
-        .time-input-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
+      .time-unit-wrapper input {
+        padding-right: 3.2rem;
+      }
 
-        .time-unit-wrapper {
-            position: relative;
-        }
+      .time-unit-label {
+        position: absolute;
+        right: 0.9rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
 
-        .time-unit-wrapper input {
-            padding-right: 3.2rem;
-        }
+      /* Full-width submit, page-specific */
+      .btn {
+        width: 100%;
+        margin-top: var(--space-6);
+        padding: 1rem;
+      }
 
-        .time-unit-label {
-            position: absolute;
-            right: 0.9rem;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: var(--fs-sm);
-            font-weight: 600;
-            color: var(--text-muted);
-            pointer-events: none;
-        }
+      .success-msg {
+        margin-top: var(--space-4);
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        background: #dcfce7;
+        color: #166534;
+        border-radius: var(--radius-sm);
+      }
 
-        /* Full-width submit, page-specific */
-        .btn {
-            width: 100%;
-            margin-top: var(--space-6);
-            padding: 1rem;
-        }
+      .error-msg {
+        margin-top: var(--space-4);
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        background: #fee2e2;
+        color: #991b1b;
+        border-radius: var(--radius-sm);
+      }
 
-        .success-msg {
-            margin-top: var(--space-4);
-            padding: 1rem;
-            text-align: center;
-            font-weight: 600;
-            background: #dcfce7;
-            color: #166534;
-            border-radius: var(--radius-sm);
-        }
+      .helper-text {
+        margin-top: 4px;
+        font-size: var(--fs-xs);
+        font-weight: 500;
+        color: var(--primary);
+      }
 
-        .error-msg {
-            margin-top: var(--space-4);
-            padding: 1rem;
-            text-align: center;
-            font-weight: 600;
-            background: #fee2e2;
-            color: #991b1b;
-            border-radius: var(--radius-sm);
-        }
+      .existing-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: 0.5rem;
+        padding: 0.15rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: none;
+        letter-spacing: 0;
+        vertical-align: middle;
+        border-radius: var(--radius-full);
+      }
 
-        .helper-text {
-            margin-top: 4px;
-            font-size: var(--fs-xs);
-            font-weight: 500;
-            color: var(--primary);
-        }
+      .existing-badge.exists {
+        background: #ffedd5;
+        color: #9a3412;
+      }
 
-        .existing-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            margin-left: 0.5rem;
-            padding: 0.15rem 0.5rem;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: none;
-            letter-spacing: 0;
-            vertical-align: middle;
-            border-radius: var(--radius-full);
-        }
+      .existing-badge.new {
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
 
-        .existing-badge.exists {
-            background: #ffedd5;
-            color: #9a3412;
-        }
+      .preview-box {
+        grid-column: span 2;
+        padding: 0.85rem 1rem;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+        background: var(--surface-muted);
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--radius-sm);
+      }
 
-        .existing-badge.new {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
+      .preview-box strong {
+        color: var(--text-main);
+      }
 
-        .preview-box {
-            grid-column: span 2;
-            padding: 0.85rem 1rem;
-            font-size: var(--fs-sm);
-            color: var(--text-muted);
-            background: var(--surface-muted);
-            border: 1px dashed var(--border-strong);
-            border-radius: var(--radius-sm);
-        }
+      .preview-box .preview-time {
+        color: var(--primary);
+        font-weight: 700;
+      }
 
-        .preview-box strong {
-            color: var(--text-main);
-        }
+      /* ---- Saved cycle time cards ---- */
+      .records-section {
+        padding: var(--space-8);
+      }
 
-        .preview-box .preview-time {
-            color: var(--primary);
-            font-weight: 700;
-        }
+      .records-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+        flex-wrap: wrap;
+      }
 
-        /* ---- Saved cycle time cards ---- */
-        .records-section {
-            margin-top: var(--space-8);
-        }
+      .records-header .header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+      }
 
-        .records-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: var(--space-4);
-            margin-bottom: var(--space-4);
-            flex-wrap: wrap;
-        }
+      .records-header h3 {
+        margin: 0;
+        font-size: var(--fs-lg);
+        font-weight: 700;
+        color: var(--text-main);
+      }
 
-        .records-header h3 {
-            margin: 0;
-            font-size: var(--fs-lg);
-            font-weight: 700;
-            color: var(--text-main);
-        }
+      .export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        color: #fff;
+        background: #167a3c;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background var(--transition);
+      }
 
-        .export-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.55rem 1rem;
-            font-size: var(--fs-sm);
-            font-weight: 600;
-            color: #fff;
-            background: #167a3c;
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: background var(--transition);
-        }
+      .export-btn:hover {
+        background: #12652f;
+      }
 
-        .export-btn:hover {
-            background: #12652f;
-        }
+      .export-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
-        .export-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+      /* Need Attention button + badge */
+      .attention-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1rem;
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background var(--transition);
+      }
 
-        .records-search {
-            width: 100%;
-            margin-bottom: var(--space-4);
-            padding: 0.75rem 1rem;
-            font-size: var(--fs-sm);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-        }
+      .attention-btn:hover {
+        background: #fde68a;
+      }
 
-        .records-list {
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-        }
+      .attention-btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
 
-        .record-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: var(--space-4);
-            padding: var(--space-4) var(--space-5);
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-        }
+      .attention-btn .count-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 0.35rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #fff;
+        background: #dc2626;
+        border-radius: var(--radius-full);
+      }
 
-        .record-row:last-child {
-            border-bottom: none;
-        }
+      /* Modal */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
+        background: rgba(15, 23, 42, 0.55);
+      }
 
-        .record-info .part-name {
-            margin: 0 0 var(--space-2);
-            font-size: var(--fs-md);
-            font-weight: 700;
-            color: var(--text-main);
-        }
+      /* Selector matches theme.css specificity (.modal-overlay > .modal)
+         so our wide sizing wins over the shared 420px dialog cap. */
+      .modal-overlay > .modal {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 96vw;
+        max-width: 96vw;
+        height: 92vh;
+        max-height: 92vh;
+        padding: 0;
+        text-align: left;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+      }
 
-        .record-info .process-tag {
-            display: inline-block;
-            padding: 0.15rem 0.6rem;
-            font-size: var(--fs-xs);
-            font-weight: 600;
-            color: var(--primary);
-            background: var(--primary-soft);
-            border-radius: var(--radius-full);
-        }
+      .modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-5) var(--space-6);
+        border-bottom: 1px solid var(--border);
+      }
 
-        .record-time {
-            text-align: right;
-            white-space: nowrap;
-        }
+      .modal-head h3 {
+        margin: 0;
+        font-size: var(--fs-lg);
+        font-weight: 700;
+        color: var(--text-main);
+      }
 
-        .record-time .cycle-time {
-            font-size: var(--fs-lg);
-            font-weight: 700;
-            color: var(--primary);
-        }
+      .modal-head p {
+        margin: 0.25rem 0 0;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+      }
 
-        .record-time .cycle-time-sec {
-            font-size: var(--fs-sm);
-            color: var(--text-muted);
-        }
+      .modal-close {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1.1rem;
+        line-height: 1;
+        color: var(--text-muted);
+        background: var(--surface-muted);
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
 
-        .records-empty {
-            padding: var(--space-5);
-            text-align: center;
-            color: var(--text-muted);
+      .modal-close:hover {
+        background: var(--border);
+      }
+
+      /* Scroll container only — must NOT also be the grid, or Chrome clips
+         the bottom of the scrollable area and rows become unreachable. */
+      .modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: var(--space-6);
+        overflow-y: auto;
+      }
+
+      /* The 2-column grid lives on an inner wrapper */
+      .conflict-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* Desktop: 2 cols */
+        gap: var(--space-5);
+        align-items: stretch; /* equal-height boxes per row */
+      }
+
+      .conflict-group {
+        border: 1px solid #fcd34d;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        align-self: stretch;
+        min-width: 0; /* Prevents text from pushing box wider than column */
+        background: #fff;
+      }
+
+      @media (max-width: 1024px) {
+        .conflict-grid {
+          grid-template-columns: 1fr;
         }
+      }
+
+      .conflict-head {
+        padding: var(--space-3) var(--space-4);
+        background: #fffbeb;
+        border-bottom: 1px solid #fde68a;
+      }
+
+      .conflict-head .cg-part {
+        margin: 0;
+        font-size: var(--fs-md);
+        font-weight: 700;
+        color: var(--text-main);
+        word-break: break-word; /* Crucial: breaks long part names */
+        overflow-wrap: break-word;
+      }
+
+      .conflict-head .cg-meta {
+        font-size: var(--fs-xs);
+        color: var(--text-muted);
+      }
+
+      .conflict-head .cg-process {
+        display: inline-block;
+        margin-top: 0.35rem;
+        padding: 0.15rem 0.6rem;
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        color: var(--primary);
+        background: var(--primary-soft);
+        border-radius: var(--radius-full);
+      }
+
+      .conflict-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border-bottom: 1px solid var(--surface-muted);
+      }
+
+      .conflict-row:last-child {
+        border-bottom: none;
+      }
+
+      .conflict-row .cr-machine {
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        color: var(--text-main);
+        word-break: break-word;
+        min-width: 0;
+      }
+
+      .conflict-row .cr-time {
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        color: var(--primary);
+        white-space: nowrap;
+      }
+
+      .conflict-row.is-min .cr-time {
+        color: #15803d;
+      }
+
+      .conflict-row.is-max .cr-time {
+        color: #dc2626;
+      }
+
+      .conflict-row .cr-sec {
+        font-size: var(--fs-xs);
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .modal-empty {
+        padding: var(--space-6);
+        text-align: center;
+        color: var(--text-muted);
+      }
+
+      .records-search {
+        width: 100%;
+        margin-bottom: var(--space-4);
+        padding: 0.75rem 1rem;
+        font-size: var(--fs-sm);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+      }
+
+      /* Saved cycle times grouped into per-part boxes */
+      .records-groups {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+      }
+
+      .part-group {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--bg-card);
+      }
+
+      .part-group-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: var(--space-4) var(--space-5);
+        background: var(--surface-muted);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .part-group-head .pg-name {
+        margin: 0;
+        font-size: var(--fs-md);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .part-group-head .pg-pn {
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .part-group-head .pg-count {
+        margin-left: auto;
+        padding: 0.15rem 0.6rem;
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-full);
+      }
+
+      .record-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-3) var(--space-5);
+        background: var(--bg-card);
+        border-bottom: 1px solid var(--surface-muted);
+      }
+
+      .record-row:last-child {
+        border-bottom: none;
+      }
+
+      .record-info {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        min-width: 0;
+        flex: 1;
+      }
+
+      .record-info .process-tag {
+        display: inline-block;
+        padding: 0.15rem 0.6rem;
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        color: var(--primary);
+        background: var(--primary-soft);
+        border-radius: var(--radius-full);
+      }
+
+      .record-info .record-machine {
+        font-size: var(--fs-xs);
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+
+      .record-time {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .record-time .cycle-time {
+        font-size: var(--fs-lg);
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .record-time .cycle-time-sec {
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+      }
+
+      .records-empty {
+        padding: var(--space-5);
+        text-align: center;
+        color: var(--text-muted);
+      }
+
+      /* Clickable / editable record rows */
+      .record-row.is-clickable {
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+
+      .record-row.is-clickable:hover {
+        background: var(--primary-soft);
+      }
+
+      .record-row .edit-chevron {
+        flex-shrink: 0;
+        color: var(--text-muted);
+        opacity: 0.5;
+      }
+
+      .record-row.is-clickable:hover .edit-chevron {
+        color: var(--primary);
+        opacity: 1;
+      }
+
+      /* ---- Edit record modal ---- */
+      .edit-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
+        background: rgba(15, 23, 42, 0.55);
+      }
+
+      .edit-card {
+        width: 100%;
+        max-width: 440px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+      }
+
+      .edit-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-5) var(--space-6);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .edit-head h3 {
+        margin: 0;
+        font-size: var(--fs-lg);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+
+      .edit-head p {
+        margin: 0.25rem 0 0;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+      }
+
+      .edit-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+        padding: var(--space-6);
+        overflow-y: auto;
+      }
+
+      .edit-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        border-top: 1px solid var(--border);
+      }
+
+      .edit-cancel,
+      .edit-save {
+        padding: 0.65rem 1.25rem;
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
+
+      .edit-cancel {
+        color: var(--text-muted);
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+      }
+
+      .edit-save {
+        color: #fff;
+        background: var(--primary);
+        border: none;
+      }
+
+      .edit-save:disabled,
+      .edit-cancel:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-
+  <body>
     <div id="app">
-        <header>
-            <h1 style="font-size:1.25rem; font-weight:700; color: var(--primary);">FAMAX <span
-                    style="color:var(--text-main)">Cycle Time</span></h1>
-        </header>
+      <header>
+        <h1 style="font-size: 1.25rem; font-weight: 700; color: var(--primary)">
+          FAMAX <span style="color: var(--text-main)">Cycle Time</span>
+        </h1>
+      </header>
 
-        <div class="container">
-            <div class="card">
-                <div class="section-header">
-                    <h2>Cycle Time Entry</h2>
-                    <p style="color:var(--text-sub)">Record standard cycle time per part, process and machine</p>
+      <div class="workspace">
+        <div class="card panel">
+          <div class="section-header">
+            <h2>Cycle Time Entry</h2>
+            <p style="color: var(--text-sub)">
+              Record standard cycle time per part, process and machine
+            </p>
+          </div>
+
+          <div class="form-grid">
+            <!-- Part Name (Smart Search from Parts table) -->
+            <div class="form-group full-width">
+              <label>Part Name</label>
+              <input
+                type="text"
+                v-model="form.part_name"
+                @input="handlePartInput"
+                @focus="showPartResults = true"
+                placeholder="Search part name..."
+              />
+              <div
+                v-if="showPartResults && filteredParts.length"
+                class="dropdown-results"
+              >
+                <div
+                  v-for="p in filteredParts"
+                  :key="p.Part_Number"
+                  class="result-item"
+                  @click="selectPart(p)"
+                >
+                  <strong>{{ p.Part_Name }}</strong>
+                  <span>PN: {{ p.Part_Number }}</span>
                 </div>
-
-                <div class="form-grid">
-                    <!-- Part Name (Smart Search from Parts table) -->
-                    <div class="form-group full-width">
-                        <label>Part Name</label>
-                        <input type="text" v-model="form.part_name" @input="handlePartInput"
-                            @focus="showPartResults = true" placeholder="Search part name..." />
-                        <div v-if="showPartResults && filteredParts.length" class="dropdown-results">
-                            <div v-for="p in filteredParts" :key="p.Part_Number" class="result-item"
-                                @click="selectPart(p)">
-                                <strong>{{ p.Part_Name }}</strong>
-                                <span>PN: {{ p.Part_Number }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Part No (Auto, from Parts table) -->
-                    <div class="form-group">
-                        <label>Part No.</label>
-                        <input type="text" v-model="form.part_no" readonly placeholder="Auto-filled">
-                    </div>
-
-                    <!-- Process (from Parts table) -->
-                    <div class="form-group">
-                        <label>
-                            Process
-                            <span v-if="form.part_no && form.process" class="existing-badge"
-                                :class="processExists ? 'exists' : 'new'">
-                                {{ processExists ? 'Existing' : 'New' }}
-                            </span>
-                        </label>
-                        <input type="text" v-model="form.process" @focus="showProcessResults = true"
-                            placeholder="Select process step..." readonly />
-                        <div v-if="showProcessResults && availableProcesses.length" class="dropdown-results">
-                            <div v-for="proc in availableProcesses" :key="proc" class="result-item"
-                                @click="selectProcess(proc)">
-                                <strong>{{ proc }}</strong>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Machine (from MachinesM table) -->
-                    <div class="form-group full-width">
-                        <label>
-                            Machine
-                            <span v-if="form.part_no && form.process && form.machine" class="existing-badge"
-                                :class="machineExists ? 'exists' : 'new'">
-                                {{ machineExists ? 'Existing' : 'New' }}
-                            </span>
-                        </label>
-                        <input type="text" v-model="form.machine" @input="handleMachineInput"
-                            @focus="showMachineResults = true" placeholder="Search Machine..." />
-                        <div v-if="showMachineResults && filteredMachines.length" class="dropdown-results">
-                            <div v-for="m in filteredMachines" :key="m.machine_id" class="result-item"
-                                @click="selectMachine(m)">
-                                <strong>{{ m.machine_id }}</strong>
-                                <span>Category: {{ m.category_code }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="full-width" style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                    <!-- Cycle Time Input (Minutes + Seconds) -->
-                    <div class="form-group full-width">
-                        <label>Cycle Time</label>
-                        <div class="time-input-group">
-                            <div class="time-unit-wrapper">
-                                <input type="number" min="0" v-model.number="form.minutes" placeholder="0">
-                                <span class="time-unit-label">MIN</span>
-                            </div>
-                            <div class="time-unit-wrapper">
-                                <input type="number" min="0" max="59" v-model.number="form.seconds" placeholder="0">
-                                <span class="time-unit-label">SEC</span>
-                            </div>
-                        </div>
-                        <div class="helper-text">Enter the standard cycle time for this part / process / machine
-                            combination.</div>
-                    </div>
-
-                    <!-- Preview -->
-                    <div class="preview-box">
-                        <strong>Will save as:</strong>
-                        <span class="preview-time">{{ formattedCycleTime || '—' }}</span>
-                        ({{ totalSeconds }} sec)
-                        for Part <strong>{{ form.part_no || '—' }}</strong> /
-                        Process <strong>{{ form.process || '—' }}</strong> /
-                        Machine <strong>{{ form.machine || '—' }}</strong>
-                    </div>
-                </div>
-
-                <button class="btn" @click="submitCycleTime" :disabled="submitting || !isFormValid">
-                    {{ submitting ? 'Saving...' : (processExists ? 'Update Cycle Time' : 'Save Cycle Time') }}
-                </button>
-
-                <div v-if="success" class="success-msg">
-                    Cycle time saved successfully!
-                </div>
-                <div v-if="errorMsg" class="error-msg">
-                    {{ errorMsg }}
-                </div>
+              </div>
             </div>
 
-            <div v-if="cycleRecords.length" class="records-section">
-                <div class="records-header">
-                    <h3>Saved Cycle Times</h3>
-                    <button class="export-btn" @click="exportToExcel" :disabled="!cycleRecords.length">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="7 10 12 15 17 10" />
-                            <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        Export to Excel
-                    </button>
-                </div>
-                <input type="text" class="records-search" v-model="recordSearch"
-                    placeholder="Search part name or process...">
-                <div class="records-list">
-                    <div v-for="rec in filteredRecords" :key="rec.id" class="record-row">
-                        <div class="record-info">
-                            <p class="part-name">{{ rec.part_name || rec.part_no }}</p>
-                            <span class="process-tag">{{ rec.process }}</span>
-                        </div>
-                        <div class="record-time">
-                            <div class="cycle-time">{{ recMinSec(rec.cycle_time_sec) }}</div>
-                            <div class="cycle-time-sec">{{ rec.cycle_time_sec }} sec</div>
-                        </div>
-                    </div>
-                    <div v-if="!filteredRecords.length" class="records-empty">No matching records.</div>
-                </div>
+            <!-- Part No (Auto, from Parts table) -->
+            <div class="form-group">
+              <label>Part No.</label>
+              <input
+                type="text"
+                v-model="form.part_no"
+                readonly
+                placeholder="Auto-filled"
+              />
             </div>
+
+            <!-- Process (from Parts table) -->
+            <div class="form-group">
+              <label>
+                Process
+                <span
+                  v-if="form.part_no && form.process"
+                  class="existing-badge"
+                  :class="processExists ? 'exists' : 'new'"
+                >
+                  {{ processExists ? 'Existing' : 'New' }}
+                </span>
+              </label>
+              <input
+                type="text"
+                v-model="form.process"
+                @focus="showProcessResults = true"
+                placeholder="Select process step..."
+                readonly
+              />
+              <div
+                v-if="showProcessResults && availableProcesses.length"
+                class="dropdown-results"
+              >
+                <div
+                  v-for="proc in availableProcesses"
+                  :key="proc"
+                  class="result-item"
+                  @click="selectProcess(proc)"
+                >
+                  <strong>{{ proc }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Machine (from MachinesM table) -->
+            <div class="form-group full-width">
+              <label>
+                Machine
+                <span
+                  v-if="form.part_no && form.process && form.machine"
+                  class="existing-badge"
+                  :class="machineExists ? 'exists' : 'new'"
+                >
+                  {{ machineExists ? 'Existing' : 'New' }}
+                </span>
+              </label>
+              <input
+                type="text"
+                v-model="form.machine"
+                @input="handleMachineInput"
+                @focus="showMachineResults = true"
+                placeholder="Search Machine..."
+              />
+              <div
+                v-if="showMachineResults && filteredMachines.length"
+                class="dropdown-results"
+              >
+                <div
+                  v-for="m in filteredMachines"
+                  :key="m.machine_id"
+                  class="result-item"
+                  @click="selectMachine(m)"
+                >
+                  <strong>{{ m.machine_id }}</strong>
+                  <span>Category: {{ m.category_code }}</span>
+                </div>
+              </div>
+            </div>
+
+            <hr
+              class="full-width"
+              style="
+                border: 0;
+                border-top: 1px solid var(--border);
+                margin: 0.5rem 0;
+              "
+            />
+
+            <!-- Cycle Time Input (Minutes + Seconds) -->
+            <div class="form-group full-width">
+              <label>Cycle Time</label>
+              <div class="time-input-group">
+                <div class="time-unit-wrapper">
+                  <input
+                    type="number"
+                    min="0"
+                    v-model.number="form.minutes"
+                    placeholder="0"
+                  />
+                  <span class="time-unit-label">MIN</span>
+                </div>
+                <div class="time-unit-wrapper">
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    v-model.number="form.seconds"
+                    placeholder="0"
+                  />
+                  <span class="time-unit-label">SEC</span>
+                </div>
+              </div>
+              <div class="helper-text">
+                Enter the standard cycle time for this part / process / machine
+                combination.
+              </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="preview-box">
+              <strong>Will save as:</strong>
+              <span class="preview-time">{{ formattedCycleTime || '—' }}</span>
+              ({{ totalSeconds }} sec) for Part
+              <strong>{{ form.part_no || '—' }}</strong> / Process
+              <strong>{{ form.process || '—' }}</strong> / Machine
+              <strong>{{ form.machine || '—' }}</strong>
+            </div>
+          </div>
+
+          <button
+            class="btn"
+            @click="submitCycleTime"
+            :disabled="submitting || !isFormValid"
+          >
+            {{ submitting ? 'Saving...' : (processExists ? 'Update Cycle Time' :
+            'Save Cycle Time') }}
+          </button>
+
+          <div v-if="success" class="success-msg">
+            Cycle time saved successfully!
+          </div>
+          <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
         </div>
+
+        <div class="records-section panel">
+          <div class="records-header">
+            <h3>Saved Cycle Times</h3>
+            <div class="header-actions">
+              <button
+                class="attention-btn"
+                @click="showAttentionModal = true"
+                :disabled="!attentionGroups.length"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                  />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Need Attention
+                <span v-if="attentionGroups.length" class="count-pill"
+                  >{{ attentionGroups.length }}</span
+                >
+              </button>
+              <button
+                class="export-btn"
+                @click="exportToExcel"
+                :disabled="!cycleRecords.length"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export to Excel
+              </button>
+            </div>
+          </div>
+          <input
+            type="text"
+            class="records-search"
+            v-model="recordSearch"
+            placeholder="Search part name or process..."
+          />
+          <div class="records-groups">
+            <div
+              v-for="g in groupedRecords"
+              :key="g.key"
+              class="part-group"
+            >
+              <div class="part-group-head">
+                <p class="pg-name">{{ g.part_name || g.part_no }}</p>
+                <span class="pg-pn">PN: {{ g.part_no || '—' }}</span>
+                <span class="pg-count">{{ g.rows.length }} process{{ g.rows.length === 1 ? '' : 'es' }}</span>
+              </div>
+              <div class="part-group-body">
+                <div
+                  v-for="rec in g.rows"
+                  :key="rec.id"
+                  class="record-row is-clickable"
+                  @click="openEdit(rec)"
+                  title="Tap to edit"
+                >
+                  <div class="record-info">
+                    <span class="process-tag">{{ rec.process }}</span>
+                    <span class="record-machine" v-if="rec.machine">{{ rec.machine }}</span>
+                  </div>
+                  <div class="record-time">
+                    <div class="cycle-time">
+                      {{ recMinSec(rec.cycle_time_sec) }}
+                    </div>
+                    <div class="cycle-time-sec">{{ rec.cycle_time_sec }} sec</div>
+                  </div>
+                  <svg class="edit-chevron" width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div v-if="!groupedRecords.length" class="records-empty">
+              No matching records.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Need Attention modal: same part no + same process but different cycle time -->
+      <div
+        v-if="showAttentionModal"
+        class="modal-overlay"
+        @click.self="showAttentionModal = false"
+      >
+        <div class="modal">
+          <div class="modal-head">
+            <div>
+              <h3>Cycle Times Needing Attention</h3>
+              <p>Same Part No. &amp; Process, but different Cycle Time (sec)</p>
+            </div>
+            <button class="modal-close" @click="showAttentionModal = false">
+              &times;
+            </button>
+          </div>
+          <div class="modal-body">
+            <div v-if="!attentionGroups.length" class="modal-empty">
+              No conflicts found. All cycle times are consistent.
+            </div>
+            <div v-else class="conflict-grid">
+            <div
+              v-for="g in attentionGroups"
+              :key="g.key"
+              class="conflict-group"
+            >
+              <div class="conflict-head">
+                <p class="cg-part">{{ g.part_name || g.part_no }}</p>
+                <span class="cg-meta">PN: {{ g.part_no }}</span>
+                <div><span class="cg-process">{{ g.process }}</span></div>
+              </div>
+              <div
+                v-for="r in g.rows"
+                :key="r.id"
+                class="conflict-row"
+                :class="{ 'is-min': r.cycle_time_sec === g.minSec, 'is-max': r.cycle_time_sec === g.maxSec }"
+              >
+                <span class="cr-machine">{{ r.machine || '—' }}</span>
+                <div class="cr-time">
+                  {{ recMinSec(r.cycle_time_sec) }}
+                  <span class="cr-sec">({{ r.cycle_time_sec }} sec)</span>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit modal: change process, machine and cycle time for one record -->
+      <div v-if="editRec" class="edit-overlay" @click.self="closeEdit">
+        <div class="edit-card">
+          <div class="edit-head">
+            <div>
+              <h3>Edit Cycle Time</h3>
+              <p>{{ editRec.part_name || editRec.part_no }} &middot; PN: {{ editRec.part_no || '—' }}</p>
+            </div>
+            <button class="modal-close" @click="closeEdit">&times;</button>
+          </div>
+          <div class="edit-body">
+            <div class="form-group">
+              <label>Process</label>
+              <input type="text" v-model="editForm.process" placeholder="Process step" />
+            </div>
+            <div class="form-group">
+              <label>Machine No.</label>
+              <input type="text" v-model="editForm.machine" placeholder="Machine number" />
+            </div>
+            <div class="form-group">
+              <label>Cycle Time</label>
+              <div class="time-input-group">
+                <div class="time-unit-wrapper">
+                  <input type="number" min="0" v-model.number="editForm.minutes" placeholder="0" />
+                  <span class="time-unit-label">MIN</span>
+                </div>
+                <div class="time-unit-wrapper">
+                  <input type="number" min="0" max="59" v-model.number="editForm.seconds" placeholder="0" />
+                  <span class="time-unit-label">SEC</span>
+                </div>
+              </div>
+              <div class="helper-text">Total: {{ editTotalSeconds }} sec</div>
+            </div>
+            <div v-if="editError" class="error-msg">{{ editError }}</div>
+          </div>
+          <div class="edit-foot">
+            <button class="edit-cancel" @click="closeEdit" :disabled="editSaving">Cancel</button>
+            <button class="edit-save" @click="saveEdit" :disabled="editSaving || !editValid">
+              {{ editSaving ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+      const { createApp, ref, computed, onMounted } = Vue;
 
-        createApp({
-            setup() {
-                const SUPABASE_URL = 'http://192.168.0.5:8000';
-                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+      createApp({
+        setup() {
+          const SUPABASE_URL = "http://192.168.0.5:8000";
+          const SUPABASE_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
 
+          const api = axios.create({
+            baseURL: SUPABASE_URL,
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+              "Content-Type": "application/json",
+            },
+          });
 
-                const api = axios.create({
-                    baseURL: SUPABASE_URL,
-                    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" }
-                });
+          const masterParts = ref([]); // from Parts table
+          const masterMachines = ref([]); // from MachinesM table
+          const cycleRecords = ref([]); // existing rows from cycle_time table
 
-                const masterParts = ref([]);     // from Parts table
-                const masterMachines = ref([]);  // from MachinesM table
-                const cycleRecords = ref([]);    // existing rows from cycle_time table
+          const showPartResults = ref(false);
+          const showProcessResults = ref(false);
+          const showMachineResults = ref(false);
+          const submitting = ref(false);
+          const success = ref(false);
+          const errorMsg = ref("");
+          const recordSearch = ref("");
 
-                const showPartResults = ref(false);
-                const showProcessResults = ref(false);
-                const showMachineResults = ref(false);
-                const submitting = ref(false);
-                const success = ref(false);
-                const errorMsg = ref('');
-                const recordSearch = ref('');
+          const form = ref({
+            part_name: "",
+            part_no: "",
+            process: "",
+            machine: "",
+            minutes: null,
+            seconds: null,
+          });
 
-                const form = ref({
-                    part_name: '',
-                    part_no: '',
-                    process: '',
-                    machine: '',
-                    minutes: null,
-                    seconds: null
-                });
+          onMounted(() => {
+            fetchInitialData();
+            window.addEventListener("click", (e) => {
+              if (!e.target.closest(".form-group")) {
+                showPartResults.value = false;
+                showProcessResults.value = false;
+                showMachineResults.value = false;
+              }
+            });
+          });
 
-                onMounted(() => {
-                    fetchInitialData();
-                    window.addEventListener('click', (e) => {
-                        if (!e.target.closest('.form-group')) {
-                            showPartResults.value = false;
-                            showProcessResults.value = false;
-                            showMachineResults.value = false;
-                        }
-                    });
-                });
-
-                async function fetchInitialData() {
-                    try {
-                        const [partsRes, machRes, cycleRes] = await Promise.all([
-                            api.get('/rest/v1/Parts?select=Part_Name,Part_Number,Process'),
-                            api.get('/rest/v1/MachinesM?select=machine_id,category_code&is_active=eq.true'),
-                            api.get('/rest/v1/cycle_time?select=id,machine,part_no,part_name,process,cycle_time,cycle_time_sec')
-                        ]);
-                        masterParts.value = partsRes.data;
-                        masterMachines.value = machRes.data;
-                        cycleRecords.value = cycleRes.data;
-                    } catch (err) {
-                        console.error(err);
-                        errorMsg.value = 'Failed to load master data. Check connection.';
-                    }
-                }
-
-                // ---------- Helpers ----------
-                const norm = (v) => (v || '').toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
-
-                // ---------- Part Name search (Parts table) ----------
-                const filteredParts = computed(() => {
-                    const q = norm(form.value.part_name);
-                    if (!q) return [];
-                    return masterParts.value.filter(p => norm(p.Part_Name).includes(q)).slice(0, 10);
-                });
-
-                function selectPart(part) {
-                    form.value.part_name = part.Part_Name;
-                    form.value.part_no = part.Part_Number;
-                    form.value.process = '';
-                    form.value.machine = '';
-                    showPartResults.value = false;
-                }
-
-                function handlePartInput() {
-                    form.value.part_name = form.value.part_name.toUpperCase();
-                    showPartResults.value = true;
-                    // if user retypes the part name, clear dependent fields until re-selected
-                    form.value.part_no = '';
-                    form.value.process = '';
-                }
-
-                // ---------- Process options (from Parts.Process for selected part) ----------
-                const availableProcesses = computed(() => {
-                    const part = masterParts.value.find(p => p.Part_Name === form.value.part_name);
-                    let list = [];
-                    if (part && part.Process) {
-                        try { list = typeof part.Process === 'string' ? JSON.parse(part.Process) : part.Process; }
-                        catch (e) { list = []; }
-                    }
-                    // Fallback: any processes already used for this part_no in cycle_time
-                    if ((!list || !list.length) && form.value.part_no) {
-                        list = [...new Set(cycleRecords.value
-                            .filter(r => norm(r.part_no) === norm(form.value.part_no))
-                            .map(r => r.process))];
-                    }
-                    return list || [];
-                });
-
-                function selectProcess(proc) {
-                    form.value.process = proc;
-                    showProcessResults.value = false;
-                    prefillFromExisting();
-                }
-
-                // ---------- Machine search (MachinesM table) ----------
-                const filteredMachines = computed(() => {
-                    const q = norm(form.value.machine);
-                    if (!q) return masterMachines.value.slice(0, 10);
-                    return masterMachines.value.filter(m => norm(m.machine_id).includes(q)).slice(0, 10);
-                });
-
-                function selectMachine(m) {
-                    form.value.machine = m.machine_id;
-                    showMachineResults.value = false;
-                    prefillFromExisting();
-                }
-
-                function handleMachineInput() {
-                    form.value.machine = form.value.machine.toUpperCase();
-                    showMachineResults.value = true;
-                }
-
-                // ---------- Existing cycle_time lookups ----------
-                // Does this exact Part No + Process already exist in cycle_time?
-                const processExists = computed(() => {
-                    if (!form.value.part_no || !form.value.process) return false;
-                    return cycleRecords.value.some(r =>
-                        norm(r.part_no) === norm(form.value.part_no) &&
-                        norm(r.process) === norm(form.value.process)
-                    );
-                });
-
-                // Does this exact Part No + Process + Machine already exist? (decides insert vs update)
-                const existingRecord = computed(() => {
-                    if (!form.value.part_no || !form.value.process || !form.value.machine) return null;
-                    return cycleRecords.value.find(r =>
-                        norm(r.part_no) === norm(form.value.part_no) &&
-                        norm(r.process) === norm(form.value.process) &&
-                        norm(r.machine) === norm(form.value.machine)
-                    ) || null;
-                });
-
-                const machineExists = computed(() => !!existingRecord.value);
-
-                // If exact part/process/machine combo already exists, load its current cycle time into the form
-                function prefillFromExisting() {
-                    const rec = existingRecord.value;
-                    if (rec) {
-                        const total = rec.cycle_time_sec || 0;
-                        form.value.minutes = Math.floor(total / 60) || null;
-                        form.value.seconds = total % 60;
-                    }
-                }
-
-                // ---------- Time formatting ----------
-                const totalSeconds = computed(() => {
-                    const m = form.value.minutes || 0;
-                    const s = form.value.seconds || 0;
-                    return (m * 60) + s;
-                });
-
-                const formattedCycleTime = computed(() => {
-                    const m = form.value.minutes || 0;
-                    const s = form.value.seconds || 0;
-                    if (!m && !s) return '';
-                    let out = '';
-                    if (m) out += `${m}M`;
-                    if (s || !m) out += `${m ? ' ' : ''}${s}S`;
-                    return out.trim();
-                });
-
-                // Format total seconds -> "Xm Ys" for the saved list
-                function recMinSec(total) {
-                    const t = total || 0;
-                    return `${Math.floor(t / 60)}m ${t % 60}s`;
-                }
-
-                // ---------- Export all cycle time data to Excel ----------
-                function exportToExcel() {
-                    if (!cycleRecords.value.length) return;
-
-                    // Sort by Part Name, then Process (case-insensitive)
-                    const sorted = [...cycleRecords.value].sort((a, b) => {
-                        const nameA = (a.part_name || a.part_no || '').toString().toLowerCase();
-                        const nameB = (b.part_name || b.part_no || '').toString().toLowerCase();
-                        if (nameA !== nameB) return nameA.localeCompare(nameB);
-                        const procA = (a.process || '').toString().toLowerCase();
-                        const procB = (b.process || '').toString().toLowerCase();
-                        return procA.localeCompare(procB);
-                    });
-
-                    const rows = sorted.map(r => ({
-                        'Part Name': r.part_name || '',
-                        'Part No.': r.part_no || '',
-                        'Process': r.process || '',
-                        'Machine': r.machine || '',
-                        'Cycle Time': r.cycle_time || recMinSec(r.cycle_time_sec),
-                        'Cycle Time (sec)': r.cycle_time_sec || 0
-                    }));
-
-                    const ws = XLSX.utils.json_to_sheet(rows);
-                    ws['!cols'] = [
-                        { wch: 30 }, // Part Name
-                        { wch: 16 }, // Part No.
-                        { wch: 22 }, // Process
-                        { wch: 16 }, // Machine
-                        { wch: 14 }, // Cycle Time
-                        { wch: 16 }  // Cycle Time (sec)
-                    ];
-
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, 'Cycle Time');
-
-                    const stamp = new Date().toISOString().slice(0, 10);
-                    XLSX.writeFile(wb, `CycleTime_${stamp}.xlsx`);
-                }
-
-                const filteredRecords = computed(() => {
-                    const q = norm(recordSearch.value);
-                    if (!q) return cycleRecords.value;
-                    return cycleRecords.value.filter(r =>
-                        norm(r.part_name).includes(q) ||
-                        norm(r.part_no).includes(q) ||
-                        norm(r.process).includes(q)
-                    );
-                });
-
-                const isFormValid = computed(() => {
-                    return form.value.part_name.trim() &&
-                        form.value.part_no.trim() &&
-                        form.value.process.trim() &&
-                        form.value.machine.trim() &&
-                        totalSeconds.value > 0;
-                });
-
-                // ---------- Submit ----------
-                async function submitCycleTime() {
-                    submitting.value = true;
-                    errorMsg.value = '';
-                    success.value = false;
-                    try {
-                        const payload = {
-                            part_name: form.value.part_name.trim(),
-                            machine: form.value.machine.trim(),
-                            part_no: form.value.part_no.trim(),
-                            process: form.value.process.trim(),
-                            cycle_time: formattedCycleTime.value,
-                            cycle_time_sec: totalSeconds.value,
-                            created_at: new Date().toISOString()
-                        };
-
-                        if (existingRecord.value) {
-                            // Update existing row by id
-                            await api.patch(`/rest/v1/cycle_time?id=eq.${existingRecord.value.id}`, payload);
-                        } else {
-                            // Insert new row
-                            await api.post('/rest/v1/cycle_time', payload);
-                        }
-
-                        success.value = true;
-                        await fetchInitialData();
-
-                        // Reset only the time fields; keep part/process/machine for quick edits
-                        form.value.minutes = null;
-                        form.value.seconds = null;
-                        setTimeout(() => success.value = false, 4000);
-                    } catch (err) {
-                        console.error(err);
-                        errorMsg.value = "Error saving cycle time. Check connection.";
-                    } finally {
-                        submitting.value = false;
-                    }
-                }
-
-                return {
-                    form, cycleRecords, recMinSec, recordSearch, filteredRecords, exportToExcel,
-                    filteredParts, availableProcesses, filteredMachines,
-                    showPartResults, showProcessResults, showMachineResults,
-                    submitting, success, errorMsg,
-                    handlePartInput, handleMachineInput,
-                    selectPart, selectProcess, selectMachine,
-                    processExists, machineExists,
-                    totalSeconds, formattedCycleTime, isFormValid,
-                    submitCycleTime
-                };
+          async function fetchInitialData() {
+            try {
+              const [partsRes, machRes, cycleRes] = await Promise.all([
+                api.get("/rest/v1/Parts?select=Part_Name,Part_Number,Process"),
+                api.get(
+                  "/rest/v1/MachinesM?select=machine_id,category_code&is_active=eq.true",
+                ),
+                api.get(
+                  "/rest/v1/cycle_time?select=id,machine,part_no,part_name,process,cycle_time,cycle_time_sec",
+                ),
+              ]);
+              masterParts.value = partsRes.data;
+              masterMachines.value = machRes.data;
+              cycleRecords.value = cycleRes.data;
+            } catch (err) {
+              console.error(err);
+              errorMsg.value = "Failed to load master data. Check connection.";
             }
-        }).mount('#app');
-    </script>
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
-</body>
+          }
 
+          // ---------- Helpers ----------
+          const norm = (v) =>
+            (v || "")
+              .toString()
+              .replace(/[^a-zA-Z0-9]/g, "")
+              .toLowerCase()
+              .trim();
+
+          // ---------- Part Name search (Parts table) ----------
+          const filteredParts = computed(() => {
+            const q = norm(form.value.part_name);
+            if (!q) return [];
+            return masterParts.value
+              .filter((p) => norm(p.Part_Name).includes(q))
+              .slice(0, 10);
+          });
+
+          function selectPart(part) {
+            form.value.part_name = part.Part_Name;
+            form.value.part_no = part.Part_Number;
+            form.value.process = "";
+            form.value.machine = "";
+            showPartResults.value = false;
+          }
+
+          function handlePartInput() {
+            form.value.part_name = form.value.part_name.toUpperCase();
+            showPartResults.value = true;
+            // if user retypes the part name, clear dependent fields until re-selected
+            form.value.part_no = "";
+            form.value.process = "";
+          }
+
+          // ---------- Process options (from Parts.Process for selected part) ----------
+          const availableProcesses = computed(() => {
+            const part = masterParts.value.find(
+              (p) => p.Part_Name === form.value.part_name,
+            );
+            let list = [];
+            if (part && part.Process) {
+              try {
+                list =
+                  typeof part.Process === "string"
+                    ? JSON.parse(part.Process)
+                    : part.Process;
+              } catch (e) {
+                list = [];
+              }
+            }
+            // Fallback: any processes already used for this part_no in cycle_time
+            if ((!list || !list.length) && form.value.part_no) {
+              list = [
+                ...new Set(
+                  cycleRecords.value
+                    .filter((r) => norm(r.part_no) === norm(form.value.part_no))
+                    .map((r) => r.process),
+                ),
+              ];
+            }
+            return list || [];
+          });
+
+          function selectProcess(proc) {
+            form.value.process = proc;
+            showProcessResults.value = false;
+            prefillFromExisting();
+          }
+
+          // ---------- Machine search (MachinesM table) ----------
+          const filteredMachines = computed(() => {
+            const q = norm(form.value.machine);
+            if (!q) return masterMachines.value.slice(0, 10);
+            return masterMachines.value
+              .filter((m) => norm(m.machine_id).includes(q))
+              .slice(0, 10);
+          });
+
+          function selectMachine(m) {
+            form.value.machine = m.machine_id;
+            showMachineResults.value = false;
+            prefillFromExisting();
+          }
+
+          function handleMachineInput() {
+            form.value.machine = form.value.machine.toUpperCase();
+            showMachineResults.value = true;
+          }
+
+          // ---------- Existing cycle_time lookups ----------
+          // Does this exact Part No + Process already exist in cycle_time?
+          const processExists = computed(() => {
+            if (!form.value.part_no || !form.value.process) return false;
+            return cycleRecords.value.some(
+              (r) =>
+                norm(r.part_no) === norm(form.value.part_no) &&
+                norm(r.process) === norm(form.value.process),
+            );
+          });
+
+          // Does this exact Part No + Process + Machine already exist? (decides insert vs update)
+          const existingRecord = computed(() => {
+            if (
+              !form.value.part_no ||
+              !form.value.process ||
+              !form.value.machine
+            )
+              return null;
+            return (
+              cycleRecords.value.find(
+                (r) =>
+                  norm(r.part_no) === norm(form.value.part_no) &&
+                  norm(r.process) === norm(form.value.process) &&
+                  norm(r.machine) === norm(form.value.machine),
+              ) || null
+            );
+          });
+
+          const machineExists = computed(() => !!existingRecord.value);
+
+          // If exact part/process/machine combo already exists, load its current cycle time into the form
+          function prefillFromExisting() {
+            const rec = existingRecord.value;
+            if (rec) {
+              const total = rec.cycle_time_sec || 0;
+              form.value.minutes = Math.floor(total / 60) || null;
+              form.value.seconds = total % 60;
+            }
+          }
+
+          // ---------- Time formatting ----------
+          const totalSeconds = computed(() => {
+            const m = form.value.minutes || 0;
+            const s = form.value.seconds || 0;
+            return m * 60 + s;
+          });
+
+          const formattedCycleTime = computed(() => {
+            const m = form.value.minutes || 0;
+            const s = form.value.seconds || 0;
+            if (!m && !s) return "";
+            let out = "";
+            if (m) out += `${m}M`;
+            if (s || !m) out += `${m ? " " : ""}${s}S`;
+            return out.trim();
+          });
+
+          // Format total seconds -> "Xm Ys" for the saved list
+          function recMinSec(total) {
+            const t = total || 0;
+            return `${Math.floor(t / 60)}m ${t % 60}s`;
+          }
+
+          // ---------- Export all cycle time data to Excel ----------
+          function exportToExcel() {
+            if (!cycleRecords.value.length) return;
+
+            // Group ALL records by Part No. (same as the Saved Cycle Times UI)
+            const map = {};
+            cycleRecords.value.forEach((r) => {
+              const key = norm(r.part_no) || norm(r.part_name);
+              if (!map[key]) {
+                map[key] = { part_no: r.part_no, part_name: r.part_name, rows: [] };
+              }
+              if (!map[key].part_name && r.part_name) map[key].part_name = r.part_name;
+              map[key].rows.push(r);
+            });
+
+            const groups = Object.values(map);
+            // Sort processes inside each group, then groups by Part Name
+            groups.forEach((g) =>
+              g.rows.sort((a, b) =>
+                (a.process || "").toLowerCase().localeCompare((b.process || "").toLowerCase()),
+              ),
+            );
+            groups.sort((a, b) => {
+              const na = (a.part_name || a.part_no || "").toLowerCase();
+              const nb = (b.part_name || b.part_no || "").toLowerCase();
+              if (na !== nb) return na.localeCompare(nb);
+              return (a.part_no || "").toLowerCase().localeCompare((b.part_no || "").toLowerCase());
+            });
+
+            // Build a grouped sheet: part header block, then its process rows
+            const aoa = [];
+            const merges = [];
+            groups.forEach((g) => {
+              const nameRow = aoa.length;
+              aoa.push([g.part_name || g.part_no || "—", "", "", ""]);
+              merges.push({ s: { r: nameRow, c: 0 }, e: { r: nameRow, c: 3 } });
+
+              const pnRow = aoa.length;
+              aoa.push([`PN: ${g.part_no || "—"}`, "", "", ""]);
+              merges.push({ s: { r: pnRow, c: 0 }, e: { r: pnRow, c: 3 } });
+
+              aoa.push(["Process", "Machine", "Cycle Time", "Cycle Time (sec)"]);
+              g.rows.forEach((r) => {
+                aoa.push([
+                  r.process || "",
+                  r.machine || "",
+                  r.cycle_time || recMinSec(r.cycle_time_sec),
+                  r.cycle_time_sec || 0,
+                ]);
+              });
+              aoa.push([]); // blank separator between part groups
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+            ws["!cols"] = [
+              { wch: 30 }, // Process / Part header
+              { wch: 18 }, // Machine
+              { wch: 16 }, // Cycle Time
+              { wch: 16 }, // Cycle Time (sec)
+            ];
+            ws["!merges"] = merges;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Cycle Time");
+
+            const stamp = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `CycleTime_${stamp}.xlsx`);
+          }
+
+          // ---------- Need Attention: same Part No + Process but different cycle_time_sec ----------
+          const showAttentionModal = ref(false);
+
+          const attentionGroups = computed(() => {
+            const map = {};
+            cycleRecords.value.forEach((r) => {
+              const key = norm(r.part_no) + "||" + norm(r.process);
+              (map[key] = map[key] || []).push(r);
+            });
+
+            const groups = [];
+            Object.entries(map).forEach(([key, rows]) => {
+              const distinct = new Set(rows.map((r) => r.cycle_time_sec));
+              if (distinct.size > 1) {
+                const secs = rows.map((r) => r.cycle_time_sec || 0);
+                groups.push({
+                  key,
+                  part_no: rows[0].part_no,
+                  part_name: rows[0].part_name,
+                  process: rows[0].process,
+                  minSec: Math.min(...secs),
+                  maxSec: Math.max(...secs),
+                  rows: [...rows].sort(
+                    (a, b) => (a.cycle_time_sec || 0) - (b.cycle_time_sec || 0),
+                  ),
+                });
+              }
+            });
+
+            // Sort by Part Name, then Process
+            groups.sort((a, b) => {
+              const na = (a.part_name || a.part_no || "").toLowerCase();
+              const nb = (b.part_name || b.part_no || "").toLowerCase();
+              if (na !== nb) return na.localeCompare(nb);
+              return (a.process || "")
+                .toLowerCase()
+                .localeCompare((b.process || "").toLowerCase());
+            });
+            return groups;
+          });
+
+          const filteredRecords = computed(() => {
+            const q = norm(recordSearch.value);
+            if (!q) return cycleRecords.value;
+            return cycleRecords.value.filter(
+              (r) =>
+                norm(r.part_name).includes(q) ||
+                norm(r.part_no).includes(q) ||
+                norm(r.process).includes(q),
+            );
+          });
+
+          // Group the (filtered) saved records by Part No. -> box with a list
+          // of its processes and cycle times.
+          const groupedRecords = computed(() => {
+            const map = {};
+            filteredRecords.value.forEach((r) => {
+              const key = norm(r.part_no) || norm(r.part_name);
+              if (!map[key]) {
+                map[key] = {
+                  key,
+                  part_no: r.part_no,
+                  part_name: r.part_name,
+                  rows: [],
+                };
+              }
+              // keep a readable part name if the first row lacked one
+              if (!map[key].part_name && r.part_name) map[key].part_name = r.part_name;
+              map[key].rows.push(r);
+            });
+
+            const groups = Object.values(map);
+            // Sort processes inside each group by process name
+            groups.forEach((g) =>
+              g.rows.sort((a, b) =>
+                (a.process || '').toLowerCase().localeCompare((b.process || '').toLowerCase()),
+              ),
+            );
+            // Sort groups by Part Name (fallback Part No.)
+            groups.sort((a, b) => {
+              const na = (a.part_name || a.part_no || '').toLowerCase();
+              const nb = (b.part_name || b.part_no || '').toLowerCase();
+              if (na !== nb) return na.localeCompare(nb);
+              return (a.part_no || '').toLowerCase().localeCompare((b.part_no || '').toLowerCase());
+            });
+            return groups;
+          });
+
+          // ---------- Edit a saved record (process / machine / cycle time) ----------
+          const editRec = ref(null);
+          const editForm = ref({ process: '', machine: '', minutes: null, seconds: null });
+          const editSaving = ref(false);
+          const editError = ref('');
+
+          function openEdit(rec) {
+            const total = rec.cycle_time_sec || 0;
+            editForm.value = {
+              process: rec.process || '',
+              machine: rec.machine || '',
+              minutes: Math.floor(total / 60) || null,
+              seconds: total % 60,
+            };
+            editError.value = '';
+            editRec.value = rec;
+          }
+
+          function closeEdit() {
+            editRec.value = null;
+          }
+
+          const editTotalSeconds = computed(
+            () => (editForm.value.minutes || 0) * 60 + (editForm.value.seconds || 0),
+          );
+
+          const editValid = computed(
+            () => (editForm.value.process || '').trim() && editTotalSeconds.value > 0,
+          );
+
+          async function saveEdit() {
+            if (!editRec.value || !editValid.value) return;
+            editSaving.value = true;
+            editError.value = '';
+            try {
+              const m = editForm.value.minutes || 0;
+              const s = editForm.value.seconds || 0;
+              let ct = '';
+              if (m) ct += `${m}M`;
+              if (s || !m) ct += `${m ? ' ' : ''}${s}S`;
+
+              const payload = {
+                process: (editForm.value.process || '').trim(),
+                machine: (editForm.value.machine || '').trim(),
+                cycle_time: ct.trim(),
+                cycle_time_sec: editTotalSeconds.value,
+              };
+              await api.patch(`/rest/v1/cycle_time?id=eq.${editRec.value.id}`, payload);
+              await fetchInitialData();
+              editRec.value = null;
+            } catch (err) {
+              console.error(err);
+              editError.value = 'Error saving changes. Check connection.';
+            } finally {
+              editSaving.value = false;
+            }
+          }
+
+          const isFormValid = computed(() => {
+            return (
+              form.value.part_name.trim() &&
+              form.value.part_no.trim() &&
+              form.value.process.trim() &&
+              form.value.machine.trim() &&
+              totalSeconds.value > 0
+            );
+          });
+
+          // ---------- Submit ----------
+          async function submitCycleTime() {
+            submitting.value = true;
+            errorMsg.value = "";
+            success.value = false;
+            try {
+              const payload = {
+                part_name: form.value.part_name.trim(),
+                machine: form.value.machine.trim(),
+                part_no: form.value.part_no.trim(),
+                process: form.value.process.trim(),
+                cycle_time: formattedCycleTime.value,
+                cycle_time_sec: totalSeconds.value,
+                created_at: new Date().toISOString(),
+              };
+
+              if (existingRecord.value) {
+                // Update existing row by id
+                await api.patch(
+                  `/rest/v1/cycle_time?id=eq.${existingRecord.value.id}`,
+                  payload,
+                );
+              } else {
+                // Insert new row
+                await api.post("/rest/v1/cycle_time", payload);
+              }
+
+              success.value = true;
+              await fetchInitialData();
+
+              // Reset only the time fields; keep part/process/machine for quick edits
+              form.value.minutes = null;
+              form.value.seconds = null;
+              setTimeout(() => (success.value = false), 4000);
+            } catch (err) {
+              console.error(err);
+              errorMsg.value = "Error saving cycle time. Check connection.";
+            } finally {
+              submitting.value = false;
+            }
+          }
+
+          return {
+            form,
+            cycleRecords,
+            recMinSec,
+            recordSearch,
+            filteredRecords,
+            groupedRecords,
+            exportToExcel,
+            editRec,
+            editForm,
+            editSaving,
+            editError,
+            editTotalSeconds,
+            editValid,
+            openEdit,
+            closeEdit,
+            saveEdit,
+            attentionGroups,
+            showAttentionModal,
+            filteredParts,
+            availableProcesses,
+            filteredMachines,
+            showPartResults,
+            showProcessResults,
+            showMachineResults,
+            submitting,
+            success,
+            errorMsg,
+            handlePartInput,
+            handleMachineInput,
+            selectPart,
+            selectProcess,
+            selectMachine,
+            processExists,
+            machineExists,
+            totalSeconds,
+            formattedCycleTime,
+            isFormValid,
+            submitCycleTime,
+          };
+        },
+      }).mount("#app");
+    </script>
+    <div class="footer">
+      © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
+  </body>
 </html>
