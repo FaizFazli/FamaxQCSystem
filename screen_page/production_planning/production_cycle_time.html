@@ -10,6 +10,7 @@
         rel="stylesheet" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/assets/app-config.js"></script>
 
     <!-- Shared design system (tokens + UI primitives) -->
@@ -244,11 +245,44 @@
             margin-top: var(--space-8);
         }
 
-        .records-section>h3 {
-            margin: 0 0 var(--space-4);
+        .records-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            flex-wrap: wrap;
+        }
+
+        .records-header h3 {
+            margin: 0;
             font-size: var(--fs-lg);
             font-weight: 700;
             color: var(--text-main);
+        }
+
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1rem;
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            color: #fff;
+            background: #167a3c;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        .export-btn:hover {
+            background: #12652f;
+        }
+
+        .export-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .records-search {
@@ -441,7 +475,18 @@
             </div>
 
             <div v-if="cycleRecords.length" class="records-section">
-                <h3>Saved Cycle Times</h3>
+                <div class="records-header">
+                    <h3>Saved Cycle Times</h3>
+                    <button class="export-btn" @click="exportToExcel" :disabled="!cycleRecords.length">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Export to Excel
+                    </button>
+                </div>
                 <input type="text" class="records-search" v-model="recordSearch"
                     placeholder="Search part name or process...">
                 <div class="records-list">
@@ -645,6 +690,46 @@
                     return `${Math.floor(t / 60)}m ${t % 60}s`;
                 }
 
+                // ---------- Export all cycle time data to Excel ----------
+                function exportToExcel() {
+                    if (!cycleRecords.value.length) return;
+
+                    // Sort by Part Name, then Process (case-insensitive)
+                    const sorted = [...cycleRecords.value].sort((a, b) => {
+                        const nameA = (a.part_name || a.part_no || '').toString().toLowerCase();
+                        const nameB = (b.part_name || b.part_no || '').toString().toLowerCase();
+                        if (nameA !== nameB) return nameA.localeCompare(nameB);
+                        const procA = (a.process || '').toString().toLowerCase();
+                        const procB = (b.process || '').toString().toLowerCase();
+                        return procA.localeCompare(procB);
+                    });
+
+                    const rows = sorted.map(r => ({
+                        'Part Name': r.part_name || '',
+                        'Part No.': r.part_no || '',
+                        'Process': r.process || '',
+                        'Machine': r.machine || '',
+                        'Cycle Time': r.cycle_time || recMinSec(r.cycle_time_sec),
+                        'Cycle Time (sec)': r.cycle_time_sec || 0
+                    }));
+
+                    const ws = XLSX.utils.json_to_sheet(rows);
+                    ws['!cols'] = [
+                        { wch: 30 }, // Part Name
+                        { wch: 16 }, // Part No.
+                        { wch: 22 }, // Process
+                        { wch: 16 }, // Machine
+                        { wch: 14 }, // Cycle Time
+                        { wch: 16 }  // Cycle Time (sec)
+                    ];
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Cycle Time');
+
+                    const stamp = new Date().toISOString().slice(0, 10);
+                    XLSX.writeFile(wb, `CycleTime_${stamp}.xlsx`);
+                }
+
                 const filteredRecords = computed(() => {
                     const q = norm(recordSearch.value);
                     if (!q) return cycleRecords.value;
@@ -703,7 +788,7 @@
                 }
 
                 return {
-                    form, cycleRecords, recMinSec, recordSearch, filteredRecords,
+                    form, cycleRecords, recMinSec, recordSearch, filteredRecords, exportToExcel,
                     filteredParts, availableProcesses, filteredMachines,
                     showPartResults, showProcessResults, showMachineResults,
                     submitting, success, errorMsg,
