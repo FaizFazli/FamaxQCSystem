@@ -646,6 +646,17 @@
         color: var(--text-muted);
       }
 
+      .record-info .record-wirev {
+        display: inline-block;
+        padding: 0.1rem 0.5rem;
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        color: var(--text-sub);
+        background: var(--surface-muted);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-full);
+      }
+
       .record-time {
         text-align: right;
         white-space: nowrap;
@@ -904,6 +915,20 @@
               </div>
             </div>
 
+            <!-- WI Revision (free text, optional) -->
+            <div class="form-group full-width">
+              <label>WI Revision</label>
+              <input
+                type="text"
+                v-model="form.wi_rev"
+                @input="handleWiRevInput"
+                placeholder="e.g. REV 03"
+              />
+              <div class="helper-text">
+                Work Instruction revision this cycle time was taken from.
+              </div>
+            </div>
+
             <hr
               class="full-width"
               style="
@@ -950,7 +975,8 @@
               ({{ totalSeconds }} sec) for Part
               <strong>{{ form.part_no || '—' }}</strong> / Process
               <strong>{{ form.process || '—' }}</strong> / Machine
-              <strong>{{ form.machine || '—' }}</strong>
+              <strong>{{ form.machine || '—' }}</strong> / WI Rev
+              <strong>{{ form.wi_rev || '—' }}</strong>
             </div>
           </div>
 
@@ -1050,6 +1076,7 @@
                   <div class="record-info">
                     <span class="process-tag">{{ rec.process }}</span>
                     <span class="record-machine" v-if="rec.machine">{{ rec.machine }}</span>
+                    <span class="record-wirev" v-if="rec.wi_rev">WI: {{ rec.wi_rev }}</span>
                   </div>
                   <div class="record-time">
                     <div class="cycle-time">
@@ -1109,7 +1136,10 @@
                 class="conflict-row"
                 :class="{ 'is-min': r.cycle_time_sec === g.minSec, 'is-max': r.cycle_time_sec === g.maxSec }"
               >
-                <span class="cr-machine">{{ r.machine || '—' }}</span>
+                <span class="cr-machine">
+                  {{ r.machine || '—' }}
+                  <template v-if="r.wi_rev"> &middot; WI {{ r.wi_rev }}</template>
+                </span>
                 <div class="cr-time">
                   {{ recMinSec(r.cycle_time_sec) }}
                   <span class="cr-sec">({{ r.cycle_time_sec }} sec)</span>
@@ -1139,6 +1169,10 @@
             <div class="form-group">
               <label>Machine No.</label>
               <input type="text" v-model="editForm.machine" placeholder="Machine number" />
+            </div>
+            <div class="form-group">
+              <label>WI Revision</label>
+              <input type="text" v-model="editForm.wi_rev" placeholder="e.g. REV 03" />
             </div>
             <div class="form-group">
               <label>Cycle Time</label>
@@ -1201,6 +1235,7 @@
             part_no: "",
             process: "",
             machine: "",
+            wi_rev: "",
             minutes: null,
             seconds: null,
           });
@@ -1224,7 +1259,7 @@
                   "/rest/v1/MachinesM?select=machine_id,category_code&is_active=eq.true",
                 ),
                 api.get(
-                  "/rest/v1/cycle_time?select=id,machine,part_no,part_name,process,cycle_time,cycle_time_sec",
+                  "/rest/v1/cycle_time?select=id,machine,part_no,part_name,process,cycle_time,cycle_time_sec,wi_rev",
                 ),
               ]);
               masterParts.value = partsRes.data;
@@ -1258,6 +1293,7 @@
             form.value.part_no = part.Part_Number;
             form.value.process = "";
             form.value.machine = "";
+            form.value.wi_rev = "";
             showPartResults.value = false;
           }
 
@@ -1324,6 +1360,10 @@
             showMachineResults.value = true;
           }
 
+          function handleWiRevInput() {
+            form.value.wi_rev = form.value.wi_rev.toUpperCase();
+          }
+
           // ---------- Existing cycle_time lookups ----------
           // Does this exact Part No + Process already exist in cycle_time?
           const processExists = computed(() => {
@@ -1362,6 +1402,7 @@
               const total = rec.cycle_time_sec || 0;
               form.value.minutes = Math.floor(total / 60) || null;
               form.value.seconds = total % 60;
+              form.value.wi_rev = rec.wi_rev || "";
             }
           }
 
@@ -1422,18 +1463,19 @@
             const merges = [];
             groups.forEach((g) => {
               const nameRow = aoa.length;
-              aoa.push([g.part_name || g.part_no || "—", "", "", ""]);
-              merges.push({ s: { r: nameRow, c: 0 }, e: { r: nameRow, c: 3 } });
+              aoa.push([g.part_name || g.part_no || "—", "", "", "", ""]);
+              merges.push({ s: { r: nameRow, c: 0 }, e: { r: nameRow, c: 4 } });
 
               const pnRow = aoa.length;
-              aoa.push([`PN: ${g.part_no || "—"}`, "", "", ""]);
-              merges.push({ s: { r: pnRow, c: 0 }, e: { r: pnRow, c: 3 } });
+              aoa.push([`PN: ${g.part_no || "—"}`, "", "", "", ""]);
+              merges.push({ s: { r: pnRow, c: 0 }, e: { r: pnRow, c: 4 } });
 
-              aoa.push(["Process", "Machine", "Cycle Time", "Cycle Time (sec)"]);
+              aoa.push(["Process", "Machine", "WI Rev", "Cycle Time", "Cycle Time (sec)"]);
               g.rows.forEach((r) => {
                 aoa.push([
                   r.process || "",
                   r.machine || "",
+                  r.wi_rev || "",
                   r.cycle_time || recMinSec(r.cycle_time_sec),
                   r.cycle_time_sec || 0,
                 ]);
@@ -1445,6 +1487,7 @@
             ws["!cols"] = [
               { wch: 30 }, // Process / Part header
               { wch: 18 }, // Machine
+              { wch: 14 }, // WI Rev
               { wch: 16 }, // Cycle Time
               { wch: 16 }, // Cycle Time (sec)
             ];
@@ -1505,7 +1548,8 @@
               (r) =>
                 norm(r.part_name).includes(q) ||
                 norm(r.part_no).includes(q) ||
-                norm(r.process).includes(q),
+                norm(r.process).includes(q) ||
+                norm(r.wi_rev).includes(q),
             );
           });
 
@@ -1547,7 +1591,7 @@
 
           // ---------- Edit a saved record (process / machine / cycle time) ----------
           const editRec = ref(null);
-          const editForm = ref({ process: '', machine: '', minutes: null, seconds: null });
+          const editForm = ref({ process: '', machine: '', wi_rev: '', minutes: null, seconds: null });
           const editSaving = ref(false);
           const editError = ref('');
 
@@ -1556,6 +1600,7 @@
             editForm.value = {
               process: rec.process || '',
               machine: rec.machine || '',
+              wi_rev: rec.wi_rev || '',
               minutes: Math.floor(total / 60) || null,
               seconds: total % 60,
             };
@@ -1589,6 +1634,7 @@
               const payload = {
                 process: (editForm.value.process || '').trim(),
                 machine: (editForm.value.machine || '').trim(),
+                wi_rev: (editForm.value.wi_rev || '').trim().toUpperCase() || null,
                 cycle_time: ct.trim(),
                 cycle_time_sec: editTotalSeconds.value,
               };
@@ -1624,6 +1670,7 @@
                 machine: form.value.machine.trim(),
                 part_no: form.value.part_no.trim(),
                 process: form.value.process.trim(),
+                wi_rev: form.value.wi_rev.trim() || null,
                 cycle_time: formattedCycleTime.value,
                 cycle_time_sec: totalSeconds.value,
                 created_at: new Date().toISOString(),
@@ -1685,6 +1732,7 @@
             errorMsg,
             handlePartInput,
             handleMachineInput,
+            handleWiRevInput,
             selectPart,
             selectProcess,
             selectMachine,
