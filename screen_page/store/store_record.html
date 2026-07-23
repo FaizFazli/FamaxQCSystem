@@ -773,6 +773,24 @@
         </div>
     </div>
 
+    <!-- SHARED-BARCODE ITEM PICKER -->
+    <div id="item-picker-modal"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 10001;">
+        <div class="modal-card" style="width: 460px; max-width: 92%;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 2px solid var(--bg); padding-bottom: 10px;">
+                <h3 style="margin:0;">Which item?</h3>
+                <span onclick="closeItemPicker()"
+                    style="cursor:pointer; font-weight:800; color:var(--danger);">✕</span>
+            </div>
+            <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px;">
+                Barcode <strong id="item-picker-barcode"></strong> belongs to more than one customer.
+                Each is a separate item with its own stock &mdash; pick the one this transaction is for.
+            </p>
+            <div id="item-picker-list"></div>
+        </div>
+    </div>
+
     <!-- TRANSACTION DETAILS MODAL -->
     <div id="details-modal-overlay"
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: none; justify-content: center; align-items: center; z-index: 10000;">
@@ -867,6 +885,9 @@
                                 </div>
                             </div>
                             <div id="list-barcode" class="autocomplete-items"></div>
+                            <div id="resolved-item"
+                                style="display:none; margin-top:6px; font-size:10px; font-weight:800;
+                                       color:var(--primary); letter-spacing:0.3px;"></div>
                         </div>
                         <div class="form-group">
                             <label>Job Number</label>
@@ -874,8 +895,8 @@
                             <div id="list-jobs" class="autocomplete-items"></div>
                         </div>
                     </div>
-                    <div class="form-group" id="customer-group" style="display: none;">
-                        <label>Customer Name</label>
+                    <div class="form-group" id="customer-group">
+                        <label>Customer Name <span style="color:var(--danger);">*</span></label>
                         <input type="text" id="customer_name" placeholder="Search or add new customer..."
                             autocomplete="off">
                         <div id="list-customers" class="autocomplete-items"></div>
@@ -1011,6 +1032,44 @@
         let currentEntryType = 'IN';
         let selectedProductName = "";
         let inventoryList = [], customersList = [], jobsList = [], locationsList = [];
+
+        // The exact inventory row this transaction belongs to. A barcode alone is
+        // NOT a key - the same barcode under a different customer is a different
+        // item with its own stock - so every storeRecords row must name its owner.
+        let selectedInventoryId = null;
+
+        // Synthetic opening-balance rows written by the data migration. They
+        // exist so available_pcs reconciles against the ledger, but they are
+        // not real store activity, so they stay out of the history views.
+        //
+        // Filtered in JS rather than with .neq() on the query: in PostgREST a
+        // <> comparison is NULL for NULL values, so .neq('remark_in_out', ...)
+        // would silently drop every record with no remark - i.e. almost all of
+        // them.
+        function isMigrationRecord(r) {
+            if (!r) return false;
+            const remark = String(r.remark_in_out || '').toUpperCase();
+            return remark.startsWith('OPENING BALANCE - MIGRATION')
+                || String(r.pic_name || '').toUpperCase() === 'MIGRATION';
+        }
+
+        // Put the resolved item's customer back into the field. Used when the
+        // RETURN TO QA lock is released, so the operator is not left with an
+        // empty required field.
+        function restoreCustomerFromItem() {
+            if (!selectedInventoryId) { $('#customer_name').val(''); return; }
+            const inv = inventoryList.find(p => String(p.id) === String(selectedInventoryId));
+            $('#customer_name').val(inv && inv.customer ? String(inv.customer).toUpperCase() : '');
+        }
+
+        // Shows the operator which item the scan actually resolved to.
+        function setResolvedItem(inv) {
+            selectedInventoryId = inv ? inv.id : null;
+            const $b = $('#resolved-item');
+            if (!inv) { $b.hide().text(''); return; }
+            const cust = inv.customer ? String(inv.customer).toUpperCase() : '(NO CUSTOMER)';
+            $b.text(cust + ' - ' + (inv.product_name || '')).show();
+        }
         let currentHistoryData = [];
 
         $(document).ready(function () {
@@ -1030,10 +1089,12 @@
                     $('#remark-group').show();
                     $('#customer-group').show();
                 } else {
-                    $('#customer_name').val('').prop('readonly', false);
+                    $('#customer_name').prop('readonly', false);
                     $('#remark-group').hide();
-                    // If it was already OUT before checking, keep it shown, else hide
-                    if (currentEntryType === 'IN') $('#customer-group').hide();
+                    // Customer stays visible and required on every entry type.
+                    // Put the resolved item's customer back rather than blanking
+                    // a field the operator now has to fill in again.
+                    restoreCustomerFromItem();
                 }
             });
             $('#is_return_qa').on('change', function () {
@@ -1041,9 +1102,10 @@
                     $('#customer_name').val('RETURN TO QA').prop('readonly', true);
                     $('#remark-group').show();
                 } else {
-                    $('#customer_name').val('').prop('readonly', false);
+                    $('#customer_name').prop('readonly', false);
                     $('#remark-group').hide();
                     $('#scm_remark').val('');
+                    restoreCustomerFromItem();
                 }
             });
 
@@ -1080,33 +1142,60 @@
             currentEntryType = type;
             $('.t-btn').removeClass('active-in active-out active-res');
 
+            // Customer is part of an item's identity - the same barcode under a
+            // different customer is a different item - so it is required on
+            // every entry type, IN included. Leaving it off IN records is what
+            // made their history impossible to attribute.
+            $('#customer-group').show();
+
             if (type === 'IN') {
                 $('#btn-in').addClass('active-in');
-                $('#customer-group').hide();
                 $('#qa-return-section').hide();
             } else if (type === 'OUT') {
                 $('#btn-out').addClass('active-out');
-                $('#customer-group').show();
                 $('#qa-return-section').show();
             } else if (type === 'RESERVATION') {
                 $('#btn-res').addClass('active-res');
-                $('#customer-group').show(); // Reservation needs a customer
                 $('#qa-return-section').hide();
             }
+
+            // Prefill from the resolved item so the operator rarely types it.
+            if (selectedInventoryId) {
+                const inv = inventoryList.find(p => String(p.id) === String(selectedInventoryId));
+                if (inv && inv.customer && !$('#customer_name').val().trim()) {
+                    $('#customer_name').val(String(inv.customer).toUpperCase());
+                }
+            }
+        }
+
+        // PostgREST silently caps an unbounded select at 1000 rows, and it does
+        // not error when it truncates. inventoryList drives barcode resolution,
+        // so a missing row would send a transaction to the wrong customer's
+        // stock. Page through explicitly.
+        async function fetchAllInventoryRows(columns) {
+            const PAGE = 1000;
+            let all = [], from = 0;
+            for (;;) {
+                const { data, error } = await _supabase
+                    .from('inventory').select(columns)
+                    .order('id', { ascending: true })
+                    .range(from, from + PAGE - 1);
+                if (error) { console.error('Inventory fetch failed:', error.message); return all; }
+                all = all.concat(data || []);
+                if (!data || data.length < PAGE) break;
+                from += PAGE;
+            }
+            return all;
         }
 
         async function loadAllSuggestions() {
             // 1. Load Inventory (Barcode, Product, etc.)
-            const invRes = await _supabase.from('inventory').select('barcode, product_name, units_per_carton, customer, item_location');
-            inventoryList = invRes.data || [];
+            inventoryList = await fetchAllInventoryRows('id, barcode, product_name, units_per_carton, customer, item_location');
             setupBarcodeAutocomplete();
 
             // 2. Load Customers (Changed 'customer_name' to 'customer')
-            const custRes = await _supabase.from('inventory').select('customer');
-
-            // We filter out duplicates locally so the list isn't huge
-            const rawCustomers = custRes.data || [];
-            const uniqueCustomers = [...new Set(rawCustomers.map(item => item.customer))].filter(Boolean);
+            // Reuse the rows already fetched above instead of a second round trip.
+            const uniqueCustomers = [...new Set(inventoryList.map(item => item.customer))].filter(Boolean);
 
             // Convert back to object format for the autocomplete function
             customersList = uniqueCustomers.map(c => ({ customer: c }));
@@ -1123,15 +1212,17 @@
             setupLocationAutocomplete();
         }
 
+        // NOTE: this second definition overrides the one above - it is the one
+        // that actually runs. Kept in place to avoid changing which behaviour is
+        // live, but both are now paginated and dedupe customers identically.
         async function loadAllSuggestions() {
             // 1. Load Inventory
-            const invRes = await _supabase.from('inventory').select('barcode, product_name, units_per_carton, customer, item_location');
-            inventoryList = invRes.data || [];
+            inventoryList = await fetchAllInventoryRows('id, barcode, product_name, units_per_carton, customer, item_location');
             setupBarcodeAutocomplete();
 
             // 2. Load Customers
-            const custRes = await _supabase.from('inventory').select('customer');
-            customersList = custRes.data || [];
+            const uniqueCust = [...new Set(inventoryList.map(item => item.customer))].filter(Boolean);
+            customersList = uniqueCust.map(c => ({ customer: c }));
             setupAutocomplete('#customer_name', '#list-customers', customersList, 'customer');
 
             // 3. Setup Job No (Now dynamic, no pre-loading needed)
@@ -1144,6 +1235,12 @@
         }
 
         function setupBarcodeAutocomplete() {
+            // Typing/pasting invalidates any previously picked item - the operator
+            // must re-resolve so the transaction cannot land on the wrong customer.
+            $('#barcode').off('input.resolve').on('input.resolve', function () {
+                if (selectedInventoryId) setResolvedItem(null);
+            });
+
             $('#barcode').on('focus input', function () {
                 let val = this.value.toUpperCase();
                 let container = $('#list-barcode').empty();
@@ -1185,8 +1282,13 @@
                                 $('#item_location').val(''); // Clear if no location found
                             }
 
-                            if (currentEntryType === 'OUT') $('#customer_name').val(m.customer ? m.customer.toUpperCase() : '');
+                            // Customer is required on every entry type now, so
+                            // prefill it from the chosen item regardless of type.
+                            if (!$('#customer_name').prop('readonly')) {
+                                $('#customer_name').val(m.customer ? m.customer.toUpperCase() : '');
+                            }
 
+                            setResolvedItem(m);
                             container.hide();
                             calculateTotal();
                         });
@@ -1326,6 +1428,21 @@
                 available_cartons: 0,
                 loose_remainder: 0
             };
+            if (!payload.barcode) { alert("Barcode is required."); return; }
+            if (!payload.customer) { alert("Customer is required - it is part of the item's identity."); return; }
+
+            // barcode + customer is the business key. Block the duplicate here so
+            // the ambiguity never reaches the transaction history.
+            const { data: dupe } = await _supabase
+                .from('inventory').select('id, product_name')
+                .ilike('barcode', payload.barcode).ilike('customer', payload.customer).limit(1);
+
+            if (dupe && dupe.length > 0) {
+                alert(`"${payload.barcode}" already exists for customer "${payload.customer}"`
+                    + `\n(${dupe[0].product_name || ''}).\n\nEdit that item instead of adding a second one.`);
+                return;
+            }
+
             const { error } = await _supabase.from('inventory').insert([payload]);
             if (error) { alert("Error: " + error.message); }
             else {
@@ -1361,18 +1478,18 @@
             if (!barcodeVal) { alert("Please scan or enter a Barcode."); return; }
             if (!pic) { alert("Please enter Staff Name (PIC)."); return; }
             if (!locationVal) { alert("MANDATORY: Please enter or scan an Item Location."); return; }
-            if (currentEntryType === 'OUT' && !custName) { alert("Please enter Customer Name for OUT transactions."); return; }
+            // Required on IN, OUT and RESERVATION alike - customer is part of
+            // the item's identity, not just shipping information.
+            if (!custName) { alert("MANDATORY: Please enter a Customer Name."); return; }
 
             $('#overlay').css('display', 'flex');
 
-            /// 3. Fetch matching inventory items
-            console.log("Searching for Barcode:", barcodeVal); // Debugging log
-
-            // Search ONLY by barcode to be safe
-            let query = _supabase.from('inventory').select('*').ilike('barcode', barcodeVal);
-
-
-            const { data: matchedItems, error: fetchErr } = await query;
+            /// 3. Resolve the ONE inventory row that owns this transaction.
+            // The same barcode under a different customer is a different item with
+            // its own stock, so the delta must land on exactly one row - never on
+            // every row sharing the barcode.
+            const { data: matchedItems, error: fetchErr } = await _supabase
+                .from('inventory').select('*').ilike('barcode', barcodeVal);
 
             if (fetchErr) {
                 console.error("Supabase Error:", fetchErr);
@@ -1382,9 +1499,52 @@
             }
 
             if (!matchedItems || matchedItems.length === 0) {
-                console.log("No match found for:", barcodeVal);
                 $('#overlay').hide();
                 alert(`Error: Barcode "${barcodeVal}" not found in inventory table.\n\nPlease add it via '+ New Inventory' first.`);
+                return;
+            }
+
+            let targetItem = null;
+
+            if (matchedItems.length === 1) {
+                targetItem = matchedItems[0];
+            } else if (selectedInventoryId
+                && matchedItems.some(i => String(i.id) === String(selectedInventoryId))) {
+                // Operator already chose this exact item from the dropdown/picker.
+                targetItem = matchedItems.find(i => String(i.id) === String(selectedInventoryId));
+            } else if (custName) {
+                const byCustomer = matchedItems.filter(
+                    i => String(i.customer || '').trim().toUpperCase() === custName.trim()
+                );
+                if (byCustomer.length === 1) targetItem = byCustomer[0];
+            }
+
+            if (!targetItem) {
+                // Ambiguous - make the operator name the owner rather than guessing.
+                $('#overlay').hide();
+                openItemPicker(barcodeVal, matchedItems, function (chosen) {
+                    // Only record the choice - do NOT reset the form, the operator
+                    // has already filled in qty / job no / location.
+                    setResolvedItem(chosen);
+                    saveToStoreRecord();   // re-run now that selectedInventoryId is set
+                });
+                return;
+            }
+
+            setResolvedItem(targetItem);
+
+            // 4b. The customer typed must match the item this lands on, or the
+            // record contradicts itself and re-creates the ambiguity this whole
+            // change removes. RETURN TO QA is exempt - it is a disposition, not
+            // a customer.
+            const itemCust = String(targetItem.customer || '').trim().toUpperCase();
+            if (!isReturnQA && itemCust && custName !== itemCust) {
+                $('#overlay').hide();
+                alert(`Customer mismatch.\n\n`
+                    + `You entered:  ${custName}\n`
+                    + `Barcode "${barcodeVal}" resolved to:  ${itemCust}\n`
+                    + `  (${targetItem.product_name || ''})\n\n`
+                    + `Correct the Customer field, or re-pick the item from the barcode list.`);
                 return;
             }
 
@@ -1394,9 +1554,13 @@
 
             const payload = {
                 entry_type: currentEntryType,
+                inventory_id: targetItem.id,   // the owning item - the real key
                 part_name: barcodeVal,
                 quantity: quantity,
-                customer_name: (currentEntryType === 'OUT' || currentEntryType === 'RESERVATION') ? custName : null,
+                // Now mandatory on every entry type, so it is stamped unchanged.
+                // History stays attributable to a customer even when read
+                // without joining through inventory_id.
+                customer_name: custName,
                 jo_number: jobNo,
                 pic_name: pic,
                 // Only set manu_date if IN, only set out_date if OUT. RESERVATION remains null.
@@ -1417,47 +1581,57 @@
                 return;
             }
 
-            // 6. Update Stock Levels
+            // 6. Update Stock Levels - on the resolved item ONLY.
+            // RESERVATION deducts stock the same way OUT does.
             const multiplier = (currentEntryType === 'IN') ? 1 : -1;
 
-            const updatePromises = matchedItems.map(item => {
-                const std = parseInt(item.units_per_carton) || 1;
-                const totalQtyChange = quantity * multiplier;
+            const std = parseInt(targetItem.units_per_carton) || 1;
+            const totalQtyChange = quantity * multiplier;
 
-                // Calculate New Balance (Synced for both columns)
-                const newTotalPcs = (item.available_pcs || 0) + totalQtyChange;
-                const newAvailableCartons = Math.floor(newTotalPcs / std);
-                const newLooseRemainder = newTotalPcs % std;
+            // Calculate New Balance (Synced for both columns)
+            const newTotalPcs = (targetItem.available_pcs || 0) + totalQtyChange;
 
-                // Prepare Update Payload
-                let updateData = {
-                    available_pcs: newTotalPcs,        // Primary Stock
-                    ready_to_ship_pcs: newTotalPcs,    // Synced Stock (Always same as available)
-                    available_cartons: newAvailableCartons,
-                    loose_remainder: newLooseRemainder,
-                    updated_at: new Date().toISOString()
-                };
+            let updateData = {
+                available_pcs: newTotalPcs,        // Primary Stock
+                ready_to_ship_pcs: newTotalPcs,    // Synced Stock (Always same as available)
+                available_cartons: Math.floor(newTotalPcs / std),
+                loose_remainder: newTotalPcs % std,
+                updated_at: new Date().toISOString()
+            };
 
-                // --- LOGIC FOR SPECIFIC COUNTERS ---
-                if (currentEntryType === 'IN') {
-                    // Increment total received/passed QA
-                    updateData.in_qa_pass_pcs = (item.in_qa_pass_pcs || 0) + quantity;
-                } else {
-                    // Increment total shipped out
-                    updateData.out_shipped_pcs = (item.out_shipped_pcs || 0) + quantity;
-                }
-                // -----------------------------------
+            // --- LOGIC FOR SPECIFIC COUNTERS ---
+            if (currentEntryType === 'IN') {
+                // Increment total received/passed QA
+                updateData.in_qa_pass_pcs = (targetItem.in_qa_pass_pcs || 0) + quantity;
+            } else {
+                // Increment total shipped out
+                updateData.out_shipped_pcs = (targetItem.out_shipped_pcs || 0) + quantity;
+            }
+            // -----------------------------------
 
-                // Handle location updates
-                let locArray = Array.isArray(item.item_location) ? item.item_location : (item.item_location ? [item.item_location] : []);
+            // Handle location updates. Once the item is emptied out it is no
+            // longer occupying any rack, so the bin list is released rather
+            // than left pointing at racks the next operator would find empty.
+            if (newTotalPcs <= 0) {
+                updateData.item_location = [];
+            } else {
+                let locArray = Array.isArray(targetItem.item_location)
+                    ? targetItem.item_location
+                    : (targetItem.item_location ? [targetItem.item_location] : []);
                 if (locationVal && !locArray.includes(locationVal)) {
                     locArray.push(locationVal);
                 }
                 updateData.item_location = locArray;
+            }
 
-                return _supabase.from('inventory').update(updateData).eq('id', item.id);
-            });
-            await Promise.all(updatePromises);
+            const { error: stockErr } = await _supabase
+                .from('inventory').update(updateData).eq('id', targetItem.id);
+
+            if (stockErr) {
+                $('#overlay').hide();
+                alert("Record saved but stock update failed: " + stockErr.message);
+                return;
+            }
 
             $('#overlay').hide();
             Toastify({ text: "TRANSACTION SAVED", background: "var(--success)" }).showToast();
@@ -1467,6 +1641,7 @@
             $('#is_qa_return').prop('checked', false).trigger('change');
             $('#r_date').val(new Date().toISOString().split('T')[0]);
             selectedProductName = "";
+            setResolvedItem(null);
             fetchHistory(); // Refresh history
         }
 
@@ -1486,8 +1661,10 @@
 
             if (error) return;
 
-            currentHistoryData = data; // Store the original data
-            renderHistoryTable(data);  // Call the render function
+            const visible = (data || []).filter(r => !isMigrationRecord(r));
+
+            currentHistoryData = visible; // Store the original data
+            renderHistoryTable(visible);  // Call the render function
             $('#history-search').val(''); // Clear search on month change
         }
 
@@ -1553,8 +1730,11 @@
             const year = new Date().getFullYear();
             const start = `${year}-${month.toString().padStart(2, '0')}-01`, end = new Date(year, month, 0).toISOString().split('T')[0];
             const { data } = await _supabase.from('storeRecords').select('*').gte('manu_date', start).lte('manu_date', end);
-            if (!data || data.length === 0) return alert("No data to export.");
-            const ws = XLSX.utils.json_to_sheet(data);
+            // Same rule as the on-screen history: synthetic migration rows are
+            // not real store activity, so they stay out of the monthly report.
+            const rows = (data || []).filter(r => !isMigrationRecord(r));
+            if (rows.length === 0) return alert("No data to export.");
+            const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Inventory");
             XLSX.writeFile(wb, `StoreReport_${month}_${year}.xlsx`);
@@ -1739,33 +1919,86 @@
             }
         }
 
+        function applyBarcodeMatch(match) {
+            $('#barcode').val(String(match.barcode).toUpperCase());
+            $('#job_no').val(''); // Clear old Job No
+            $('#std_pack').val(match.units_per_carton || 0);
+            selectedProductName = match.product_name;
+
+            // FIX: Changed match.location to match.item_location
+            if (match.item_location) {
+                const locText = Array.isArray(match.item_location) ? match.item_location.join(', ') : match.item_location;
+                $('#item_location').val(String(locText).toUpperCase());
+            }
+
+            // Customer is required on every entry type now. Never overwrite the
+            // RETURN TO QA value, which is locked readonly.
+            if (!$('#customer_name').prop('readonly')) {
+                $('#customer_name').val(match.customer ? match.customer.toUpperCase() : '');
+            }
+
+            setResolvedItem(match);
+            calculateTotal();
+            Toastify({ text: "ITEM MATCHED: " + match.product_name, background: "var(--success)" }).showToast();
+        }
+
         function processBarcodeMatch(scannedBarcode) {
-            // Look for match in the inventoryList
-            const match = inventoryList.find(p => String(p.barcode).toUpperCase() === scannedBarcode);
+            // A barcode can be shared by several customers - each is a separate
+            // item with its own stock - so never silently take the first hit.
+            const matches = inventoryList.filter(p => String(p.barcode).toUpperCase() === scannedBarcode);
 
-            if (match) {
-                $('#barcode').val(match.barcode.toUpperCase());
-                $('#job_no').val(''); // Clear old Job No
-                $('#std_pack').val(match.units_per_carton || 0);
-                selectedProductName = match.product_name;
-
-                // FIX: Changed match.location to match.item_location
-                if (match.item_location) {
-                    const locText = Array.isArray(match.item_location) ? match.item_location.join(', ') : match.item_location;
-                    $('#item_location').val(String(locText).toUpperCase());
-                }
-
-                if (currentEntryType === 'OUT') {
-                    $('#customer_name').val(match.customer ? match.customer.toUpperCase() : '');
-                }
-
-                calculateTotal();
-                Toastify({ text: "ITEM MATCHED: " + match.product_name, background: "var(--success)" }).showToast();
+            if (matches.length === 1) {
+                applyBarcodeMatch(matches[0]);
+            } else if (matches.length > 1) {
+                openItemPicker(scannedBarcode, matches, applyBarcodeMatch);
             } else {
                 // If no match found, we still put the barcode in the field so the user can see what they scanned
                 $('#barcode').val(scannedBarcode);
+                setResolvedItem(null);
                 alert(`⚠️ NEW ITEM\n\nBarcode "${scannedBarcode}" is not in the system.\n\nPlease click '+ New Inventory' to register it.`);
             }
+        }
+
+        // ---- Item picker: forces the operator to name the owning item when a
+        // ---- barcode is shared by more than one customer. ----
+        let itemPickerCallback = null;
+
+        function openItemPicker(barcode, candidates, onPick) {
+            itemPickerCallback = onPick;
+            $('#item-picker-barcode').text(barcode);
+
+            const rows = candidates.map(c => {
+                const cust = c.customer ? String(c.customer).toUpperCase() : '(NO CUSTOMER)';
+                const loc = Array.isArray(c.item_location)
+                    ? c.item_location.join(', ')
+                    : (c.item_location || '-');
+                const bal = (c.available_pcs === undefined || c.available_pcs === null)
+                    ? '' : `<div style="font-size:10px; color:var(--text-muted);">BALANCE: ${Number(c.available_pcs).toLocaleString()} PCS</div>`;
+                return `
+                <div class="picker-row" data-inv-id="${c.id}"
+                     style="padding:12px; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px; cursor:pointer;">
+                    <div style="font-weight:800; color:var(--primary); font-size:12px;">${cust}</div>
+                    <div style="font-size:11px; margin-top:2px;">${c.product_name || ''}</div>
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">LOC: ${String(loc).toUpperCase()}</div>
+                    ${bal}
+                </div>`;
+            }).join('');
+
+            $('#item-picker-list').html(rows);
+            $('#item-picker-modal').css('display', 'flex');
+
+            $('#item-picker-list .picker-row').on('click', function () {
+                const id = $(this).data('inv-id');
+                const chosen = candidates.find(c => String(c.id) === String(id));
+                $('#item-picker-modal').hide();
+                if (chosen && itemPickerCallback) itemPickerCallback(chosen);
+                itemPickerCallback = null;
+            });
+        }
+
+        function closeItemPicker() {
+            $('#item-picker-modal').hide();
+            itemPickerCallback = null;
         }
 
         function processLocationMatch(scannedLocation) {
