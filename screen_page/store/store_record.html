@@ -1746,22 +1746,69 @@
             const isReservation = item.entry_type === 'RESERVATION';
 
             // 1. FETCH CURRENT STOCK FROM INVENTORY TABLE
+            // Same barcode + same product description is ONE physical stock line
+            // however many customers own a share of it. The headline balance is
+            // therefore pooled across owners and reads identically whichever
+            // customer's record you opened; the per-owner split sits under it.
             let availableStock = 0;
+            let stockLine = null;   // the inventory row this record belongs to
+            let stockPool = [];     // every owner sharing that barcode + description
             try {
-                // We only filter by Barcode (part_name) to get the true system balance
-                // regardless of who we are shipping it to.
-                const { data: invData, error: invErr } = await _supabase
+                const { data: invData } = await _supabase
                     .from('inventory')
-                    .select('available_pcs')
-                    .eq('barcode', item.part_name);
+                    .select('id, customer, product_name, available_pcs')
+                    .ilike('barcode', item.part_name);
 
-                if (invData && invData.length > 0) {
-                    // Sum up in case the same barcode exists under multiple owners
-                    availableStock = invData.reduce((sum, entry) => sum + (entry.available_pcs || 0), 0);
-                }
+                const rows = invData || [];
+                const norm = v => String(v || '').trim().toUpperCase();
+
+                // Which row owns this transaction? inventory_id is the real answer.
+                // Records written before the split carry none, so fall back to the
+                // customer stamped on them, then to the only candidate there is.
+                stockLine = rows.find(r => String(r.id) === String(item.inventory_id))
+                    || rows.find(r => norm(r.customer) === norm(item.customer_name))
+                    || (rows.length === 1 ? rows[0] : null);
+
+                // A row describing a different product is a different line and stays
+                // out of the pool. With no anchor we cannot tell, so pool everything.
+                const desc = stockLine ? norm(stockLine.product_name) : null;
+                stockPool = desc === null ? rows : rows.filter(r => norm(r.product_name) === desc);
+
+                availableStock = stockPool.reduce((sum, r) => sum + (r.available_pcs || 0), 0);
             } catch (err) {
                 console.error("Error fetching available stock:", err);
             }
+
+            // Pooled figure alone is ambiguous once two customers share it, so name
+            // the line and show who holds what. Single-owner items skip the split.
+            const stockDescHtml = (stockLine && stockLine.product_name)
+                ? `<div style="font-size:12px; font-weight:700; color:#166534; margin-top:8px; text-transform:uppercase;">${item.part_name} &middot; ${stockLine.product_name}</div>`
+                : '';
+
+            const stockSplitHtml = stockPool.length > 1
+                ? `<div style="border-top:1px solid #86efac; margin-top:10px; padding-top:8px; display:grid; gap:5px;">`
+                + stockPool
+                    .slice()
+                    .sort((a, b) => String(a.customer || '').localeCompare(String(b.customer || '')))
+                    .map(r => {
+                        const mine = stockLine && String(r.id) === String(stockLine.id);
+                        return `<div style="display:flex; justify-content:space-between; gap:12px; font-size:12px; color:#166534; ${mine ? 'font-weight:900;' : 'opacity:.75;'}">
+                                    <span>${r.customer || '(NO CUSTOMER)'}${mine ? ' <span style="font-size:10px;">&#9664; THIS RECORD</span>' : ''}</span>
+                                    <span>${(r.available_pcs || 0).toLocaleString()} PCS</span>
+                                 </div>`;
+                    }).join('')
+                + `</div>`
+                : '';
+
+            // Recipient named on the record vs the item it draws from. These legitimately
+            // differ - a legal entity on the paperwork, a plant name on the item - so both
+            // are shown plainly, side by side, with no judgement about the difference.
+            const ownerName = stockLine ? (stockLine.customer || '(NO CUSTOMER)') : '(UNASSIGNED)';
+            const recipientHtml = (item.entry_type === 'OUT')
+                ? `<input type="text" id="edit-customer" class="edit-input"
+                          style="color:${isQA ? 'var(--danger)' : 'inherit'}; font-weight: bold;"
+                          value="${item.customer_name || ''}">`
+                : `<div class="detail-value">${item.customer_name || '-'}</div>`;
 
             const dateLabel = isReservation ? 'Set Shipment Date' : (item.entry_type === 'IN' ? 'Manufacturing Date' : 'Shipment Date');
             const dateValue = item.manu_date || item.out_date || 'N/A';
@@ -1782,6 +1829,8 @@
              <div style="font-size: 32px; font-weight: 900; color: #15803d; margin-top: 5px;">
                 ${availableStock.toLocaleString()} <small style="font-size: 14px;">PCS</small>
              </div>
+             ${stockDescHtml}
+             ${stockSplitHtml}
         </div>
 
         <div class="detail-item" style="grid-column: span 2;">
@@ -1793,6 +1842,16 @@
             <span class="detail-label">Part Name / Barcode</span>
             <div class="detail-value" style="font-size: 18px; font-weight: 800;">${item.part_name}</div>
         </div>
+
+        <div class="detail-item">
+            <span class="detail-label">Recipient / Customer</span>
+            ${recipientHtml}
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Stock Owner</span>
+            <div class="detail-value">${ownerName}</div>
+        </div>
+
         <div class="detail-item">
             <span class="detail-label">Transaction Qty</span>
             <div class="detail-value" style="font-size: 18px; font-weight: 800; color: ${item.entry_type === 'IN' ? '#16a34a' : '#dc2626'}">
@@ -1825,17 +1884,6 @@
             <input type="text" id="edit-remark-io" class="edit-input" value="${item.remark_in_out || ''}">
         </div>
     `;
-
-            if (item.entry_type === 'OUT') {
-                html += `
-            <div class="detail-item" style="grid-column: span 2;">
-                <span class="detail-label">Recipient / Customer</span>
-                <input type="text" id="edit-customer" class="edit-input" 
-                style="color:${isQA ? 'var(--danger)' : 'inherit'}; font-weight: bold;" 
-                value="${item.customer_name || ''}">
-            </div>
-        `;
-            }
 
             if (isQA) {
                 html += `
