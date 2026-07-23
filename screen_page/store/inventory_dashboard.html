@@ -738,6 +738,12 @@
                 </div>
             </div>
 
+            <!-- Pooled balance across every customer sharing this barcode +
+                 description. Hidden when this customer is the only owner. -->
+            <div id="edit-stock-pool"
+                style="display:none; margin-top:18px; padding:14px 16px; border-radius:10px;
+                       background:#f0fdf4; border:1px solid #86efac;"></div>
+
             <div style="margin-top: 30px; border-top: 3px solid #f1f5f9; padding-top: 20px;">
                 <label
                     style="font-size: 16px !important; color: #0078d4 !important; display: block; margin-bottom: 15px;">
@@ -1112,6 +1118,67 @@
                 || String(r.pic_name || '').toUpperCase() === 'MIGRATION';
         }
 
+        // ---- Pooled stock ----------------------------------------------------
+        // Same barcode + same product description is ONE physical stock line
+        // however many customers own a share of it. Rows stay per-customer -
+        // barcode + customer is the item key that transactions, edits and the
+        // duplicate check all hang off - but wherever a balance is shown for a
+        // single row we also name the pool it sits in, so the physical figure
+        // reads the same whichever owner's item you opened.
+        const normKey = v => String(v || '').trim().toUpperCase();
+        const poolKey = r => JSON.stringify([normKey(r && r.barcode), normKey(r && r.product_name)]);
+
+        // Rebuilt on every render. Per-row scanning would be O(n^2), and the
+        // dashboard routinely carries a few thousand items.
+        let poolIndex = new Map();
+
+        function buildPoolIndex() {
+            const idx = new Map();
+            (fullData || []).forEach(r => {
+                const k = poolKey(r);
+                if (!idx.has(k)) idx.set(k, []);
+                idx.get(k).push(r);
+            });
+            poolIndex = idx;
+        }
+
+        function getStockPool(item) {
+            if (!item) return [];
+            return poolIndex.get(poolKey(item))
+                || (fullData || []).filter(r => poolKey(r) === poolKey(item));
+        }
+
+        const poolTotal = pool => pool.reduce((sum, r) => sum + (parseInt(r.available_pcs) || 0), 0);
+
+        function renderStockPool(item) {
+            const $box = $('#edit-stock-pool');
+            const pool = getStockPool(item);
+
+            // Sole owner: the pooled figure would just repeat TOTAL PHYSICAL
+            // STOCK, so there is nothing to reconcile and the panel stays out.
+            if (pool.length < 2) { $box.hide().empty(); return; }
+
+            const split = pool.slice()
+                .sort((a, b) => String(a.customer || '').localeCompare(String(b.customer || '')))
+                .map(r => {
+                    const mine = String(r.id) === String(item.id);
+                    return `<div style="display:flex; justify-content:space-between; gap:12px; font-size:12px; color:#166534; ${mine ? 'font-weight:900;' : 'opacity:.75;'}">
+                                <span>${r.customer || '(NO CUSTOMER)'}${mine ? ' <span style="font-size:10px;">&#9664; THIS ITEM</span>' : ''}</span>
+                                <span>${(parseInt(r.available_pcs) || 0).toLocaleString()} PCS</span>
+                            </div>`;
+                }).join('');
+
+            $box.html(`
+                <div style="font-size:11px; font-weight:800; color:#166534; text-transform:uppercase; letter-spacing:.5px;">Pooled Stock &middot; Shared Line</div>
+                <div style="font-size:12px; font-weight:700; color:#166534; margin-top:4px; text-transform:uppercase;">${item.barcode} &middot; ${item.product_name || '-'}</div>
+                <div style="font-size:28px; font-weight:900; color:#15803d; margin-top:6px;">${poolTotal(pool).toLocaleString()} <small style="font-size:13px;">PCS</small></div>
+                <div style="border-top:1px solid #86efac; margin-top:10px; padding-top:8px; display:grid; gap:5px;">${split}</div>
+                <div style="margin-top:10px; font-size:10px; color:#166534; opacity:.85; line-height:1.5;">
+                    TOTAL PHYSICAL STOCK above is this customer's share only. Saving writes that share alone &mdash; the other owners are untouched.
+                </div>
+            `).show();
+        }
+
         async function openEditModal(item) {
             currentInvItem = item;
             $('#edit-id').val(item.id);
@@ -1122,6 +1189,7 @@
             $('#edit-ctns').val(item.available_cartons || 0);
             $('#edit-loose').val(item.loose_remainder || 0);
             $('#edit-total').val(item.available_pcs || 0);
+            renderStockPool(item);
 
             $('#edit-modal-overlay').css('display', 'flex').hide().fadeIn(200);
             loadItemHistory();
@@ -1569,6 +1637,9 @@
         function renderTable(data) {
             let html = "";
             const isCyber = $('body').hasClass('cyber-theme');
+            // Built from fullData, not the filtered view - a search that hides
+            // the other owners must not make a shared line look exclusive.
+            buildPoolIndex();
             if (!data || data.length === 0) {
                 $("#inventory-table").html(`<tr><td colspan="10" align="center" style="padding: 40px; color: var(--text-muted);">${isCyber ? 'NO_DATA_STREAM_MATCH' : 'No matching items found.'}</td></tr>`);
                 return;
@@ -1586,10 +1657,21 @@
                 // the item reappears in the rack it belongs to.
                 const location = avail > 0 ? (row.item_location || '-') : '-';
 
+                // This barcode + description is one physical line split between
+                // owners. The qty column stays this customer's share; the tag
+                // says the number is not the whole line. Open the item for the
+                // pooled total and the per-owner split.
+                const pool = getStockPool(row);
+                const sharedTag = pool.length > 1
+                    ? ` <span title="Shared with ${pool.length - 1} other customer(s) - ${poolTotal(pool).toLocaleString()} PCS pooled"
+                             style="font-size:9px; font-weight:800; letter-spacing:.5px; padding:2px 6px; border-radius:10px;
+                                    background:#f0fdf4; border:1px solid #86efac; color:#166534; white-space:nowrap;">SHARED &times;${pool.length}</span>`
+                    : '';
+
                 html += `<tr data-id="${row.id}">
                     <td style="font-weight:700; ${isCyber ? 'color:var(--secondary)' : ''}">${row.customer || '-'}</td>
                     <td style="color:var(--primary); font-weight:700; font-family:monospace;">${row.barcode}</td>
-                    <td style="font-weight:600">${row.product_name || '-'}</td>
+                    <td style="font-weight:600">${row.product_name || '-'}${sharedTag}</td>
                     <td style="color:var(--text-muted); font-weight:700;">${location}</td>
                     <td>${statusBadge}</td>
                     <td>${row.uom || 'PCS'}</td>
