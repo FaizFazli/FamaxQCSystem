@@ -1148,7 +1148,21 @@
                 || (fullData || []).filter(r => poolKey(r) === poolKey(item));
         }
 
-        const poolTotal = pool => pool.reduce((sum, r) => sum + (parseInt(r.available_pcs) || 0), 0);
+        // Rows sharing a barcode + name usually split one physical line between
+        // separate owners, so the pooled figure is their sum. But a two-part
+        // product (Part A / Part B) is entered as one row per part under the
+        // same barcode + name, and both parts mirror the same stock - identical
+        // carton, loose and total. Summing those would double-count one physical
+        // unit, so when every row in the pool carries the same carton/loose/total
+        // we read it as one mirrored line and report a single row's amount.
+        const poolMirrored = pool => pool.length > 1 && pool.every(r =>
+            (parseInt(r.available_cartons) || 0) === (parseInt(pool[0].available_cartons) || 0) &&
+            (parseInt(r.loose_remainder) || 0) === (parseInt(pool[0].loose_remainder) || 0) &&
+            (parseInt(r.available_pcs) || 0) === (parseInt(pool[0].available_pcs) || 0));
+
+        const poolTotal = pool => poolMirrored(pool)
+            ? (parseInt(pool[0] && pool[0].available_pcs) || 0)
+            : pool.reduce((sum, r) => sum + (parseInt(r.available_pcs) || 0), 0);
 
         function renderStockPool(item) {
             const $box = $('#edit-stock-pool');

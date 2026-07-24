@@ -1750,17 +1750,34 @@
             // however many customers own a share of it. The headline balance is
             // therefore pooled across owners and reads identically whichever
             // customer's record you opened; the per-owner split sits under it.
+            // Matching has to agree with inventory_dashboard exactly or the same
+            // item reads two different balances on the two screens. The dashboard
+            // compares barcodes on trim().toUpperCase(); ilike cannot reproduce
+            // that - it reads % and _ inside a barcode as wildcards (pulling in
+            // rows that are not ours) and cannot see past whitespace stored on the
+            // column (missing rows that are). So the query is only used to fetch a
+            // candidate superset, and the pool is decided here by the same rule.
+            const norm = v => String(v || '').trim().toUpperCase();
+
             let availableStock = 0;
             let stockLine = null;   // the inventory row this record belongs to
             let stockPool = [];     // every owner sharing that barcode + description
+            let poolSplits = [];    // set only when the barcode cannot be attributed
             try {
+                const wanted = norm(item.part_name);
+
+                // Every LIKE metacharacter becomes _, which matches any single
+                // character - so the pattern still matches the literal barcode and
+                // only ever widens the result set. The %..% wrap tolerates padding
+                // stored on the column. Both are narrowed away below.
+                const pattern = '%' + wanted.replace(/[\\%_*]/g, '_') + '%';
+
                 const { data: invData } = await _supabase
                     .from('inventory')
-                    .select('id, customer, product_name, available_pcs')
-                    .ilike('barcode', item.part_name);
+                    .select('id, customer, barcode, product_name, available_pcs')
+                    .ilike('barcode', pattern);
 
-                const rows = invData || [];
-                const norm = v => String(v || '').trim().toUpperCase();
+                const rows = (invData || []).filter(r => norm(r.barcode) === wanted);
 
                 // Which row owns this transaction? inventory_id is the real answer.
                 // Records written before the split carry none, so fall back to the
@@ -1769,10 +1786,27 @@
                     || rows.find(r => norm(r.customer) === norm(item.customer_name))
                     || (rows.length === 1 ? rows[0] : null);
 
-                // A row describing a different product is a different line and stays
-                // out of the pool. With no anchor we cannot tell, so pool everything.
-                const desc = stockLine ? norm(stockLine.product_name) : null;
-                stockPool = desc === null ? rows : rows.filter(r => norm(r.product_name) === desc);
+                if (stockLine) {
+                    // A row describing a different product is a different line.
+                    const desc = norm(stockLine.product_name);
+                    stockPool = rows.filter(r => norm(r.product_name) === desc);
+                } else {
+                    // No anchor. If every candidate describes the same product there
+                    // is only one line and the pool is still unambiguous. If they
+                    // describe different products, summing them all would invent a
+                    // balance that no dashboard item shows - so report the barcode as
+                    // unattributed and list each line instead of guessing.
+                    const descs = [...new Set(rows.map(r => norm(r.product_name)))];
+                    if (descs.length > 1) {
+                        poolSplits = descs.map(d => ({
+                            desc: d,
+                            pcs: rows.filter(r => norm(r.product_name) === d)
+                                .reduce((sum, r) => sum + (r.available_pcs || 0), 0)
+                        }));
+                    } else {
+                        stockPool = rows;
+                    }
+                }
 
                 availableStock = stockPool.reduce((sum, r) => sum + (r.available_pcs || 0), 0);
             } catch (err) {
@@ -1797,6 +1831,23 @@
                                     <span>${(r.available_pcs || 0).toLocaleString()} PCS</span>
                                  </div>`;
                     }).join('')
+                + `</div>`
+                : '';
+
+            // Several products share this barcode and nothing on the record says
+            // which one it drew from. Showing one number here would contradict the
+            // dashboard whichever line we picked, so show them and say so.
+            const stockAmbiguousHtml = poolSplits.length
+                ? `<div style="border-top:1px solid #86efac; margin-top:10px; padding-top:8px; display:grid; gap:5px;">`
+                + `<div style="font-size:11px; font-weight:800; color:#b45309; text-transform:uppercase;">Barcode not attributed &mdash; ${poolSplits.length} product lines</div>`
+                + poolSplits
+                    .slice()
+                    .sort((a, b) => a.desc.localeCompare(b.desc))
+                    .map(s => `<div style="display:flex; justify-content:space-between; gap:12px; font-size:12px; color:#166534;">
+                                    <span>${s.desc || '(NO DESCRIPTION)'}</span>
+                                    <span>${s.pcs.toLocaleString()} PCS</span>
+                               </div>`).join('')
+                + `<div style="font-size:10px; color:#b45309; line-height:1.5; margin-top:4px;">Assign this record to an item to see its balance.</div>`
                 + `</div>`
                 : '';
 
@@ -1827,10 +1878,11 @@
         <div class="detail-item" style="grid-column: span 2; background: #f0fdf4 !important; border: 3px solid #15803d !important; padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align:center;">
              <span style="color: #15803d; font-weight: 900; font-size: 14px; text-transform: uppercase;">Current System Stock Balance</span>
              <div style="font-size: 32px; font-weight: 900; color: #15803d; margin-top: 5px;">
-                ${availableStock.toLocaleString()} <small style="font-size: 14px;">PCS</small>
+                ${poolSplits.length ? '&mdash;' : availableStock.toLocaleString() + ' <small style="font-size: 14px;">PCS</small>'}
              </div>
              ${stockDescHtml}
              ${stockSplitHtml}
+             ${stockAmbiguousHtml}
         </div>
 
         <div class="detail-item" style="grid-column: span 2;">
