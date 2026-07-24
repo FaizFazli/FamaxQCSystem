@@ -39,7 +39,7 @@ exports.createFolder = async (req, res) => {
 
         let filesCreatedCount = 0;
 
-        for (const proc of processes) {
+        for (const [idx, proc] of processes.entries()) {
             const masterPath = excelUtil.findMasterDocument(proc.documentType);
 
             if (!masterPath) {
@@ -47,7 +47,11 @@ exports.createFolder = async (req, res) => {
                 continue;
             }
 
-            const fileName = `${sanitizeName(proc.name)}_${proc.documentType}.xlsx`;
+            // Prefix the process sequence number (the "#" from the generator) so
+            // the files sort in process order on disk. The register step strips
+            // this leading "NN_" back off - see processFromFileName in addPart.
+            const seqNo = String(idx + 1).padStart(2, "0");
+            const fileName = `${seqNo}_${sanitizeName(proc.name)}_${proc.documentType}.xlsx`;
             const destinationPath = path.join(folderPath, fileName);
 
             // --- REPLACEMENT LOGIC ---

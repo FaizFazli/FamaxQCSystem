@@ -206,7 +206,31 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
+        .file-chip .chip-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .chip-remove {
+            flex: none;
+            border: none;
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            line-height: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0;
+            text-align: center;
+        }
+        .chip-remove:hover { background: #fecaca; }
 
         .process-slot {
             background: #fff;
@@ -410,7 +434,7 @@
                         <h3>1. Work Instruction (WI)</h3>
                         <span class="badge badge-need" id="statusWi">Required</span>
                     </div>
-                    <p class="hint">Select a <strong>folder</strong> — only <code>.xlsx</code> / <code>.xls</code> are used. Process = text before <code>_</code> in the filename.</p>
+                    <p class="hint">Select a <strong>folder</strong> — only <code>.xlsx</code> / <code>.xls</code> are used. Process = text before <code>_</code> in the filename (any leading <code>NN_</code> number is ignored).</p>
                     <label class="file-pick-btn" for="wiFolderInput">Choose WI folder</label>
                     <input type="file" id="wiFolderInput" webkitdirectory directory multiple style="display:none" />
                     <div class="file-chip-list" id="wiFileList"></div>
@@ -527,7 +551,7 @@
                 } else {
                     showToast(`Found ${wiFiles.length} WI Excel file(s).`, "success");
                 }
-                renderChips($("#wiFileList"), wiFiles);
+                renderChips($("#wiFileList"), wiFiles, removeWiFile);
                 rebuildProcessSlots();
                 this.value = "";
             });
@@ -573,7 +597,12 @@
         }
 
         function processFromFileName(name) {
-            const stem = name.replace(/\.(xlsx|xls)$/i, "");
+            // Files come off the generator prefixed with the process sequence
+            // number ("01_", "02_", ...). Trim that leading "NN_" before reading
+            // the process name, so registering does not pick up the numbering.
+            const stem = name
+                .replace(/\.(xlsx|xls)$/i, "")
+                .replace(/^\d+_/, "");
             return stem.split("_")[0];
         }
 
@@ -587,9 +616,28 @@
             }));
         }
 
-        function renderChips($el, files) {
+        function renderChips($el, files, onRemove) {
             $el.empty();
-            files.forEach((f) => $el.append(`<span class="file-chip">${f.name}</span>`));
+            files.forEach((f, i) => {
+                const $chip = $('<span class="file-chip"></span>');
+                $chip.append($('<span class="chip-name"></span>').text(f.name));
+                if (onRemove) {
+                    $('<button type="button" class="chip-remove" title="Remove">&times;</button>')
+                        .on("click", () => onRemove(i))
+                        .appendTo($chip);
+                }
+                $el.append($chip);
+            });
+        }
+
+        // Drop a single WI file before submitting. Removing a WI rebuilds the
+        // process slots off the remaining files, so a process with no WI left
+        // disappears and its matched image is dropped with it.
+        function removeWiFile(index) {
+            wiFiles.splice(index, 1);
+            renderChips($("#wiFileList"), wiFiles, removeWiFile);
+            if (!wiFiles.length) showToast("All WI files removed.", "error");
+            rebuildProcessSlots();
         }
 
         function setBadge($badge, ready) {
