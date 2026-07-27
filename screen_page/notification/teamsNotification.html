@@ -613,11 +613,14 @@
                     const statusClass = item.status.toLowerCase().replace(/\s+/g, '-');
                     let actionBtn = "";
 
+                    // ESCAPE QUOTES HERE to prevent SyntaxErrors in the onclick attribute
+                    const escapedPartNames = item.part_names ? item.part_names.replace(/'/g, "\\'") : "";
+
                     if (item.status === "Pending QA") {
-                        actionBtn = `<button class="qa-sign-btn" onclick="qaSignApproval('${item.id}', '${item.part_names}')">QA Sign</button>`;
+                        actionBtn = `<button class="qa-sign-btn" onclick="qaSignApproval('${item.id}', '${escapedPartNames}')">QA Sign</button>`;
                     }
                     else if (item.status === "Pending MGMT") {
-                        actionBtn = `<button class="complete-btn" onclick="completeApproval('${item.id}', '${item.part_names}')">Complete Sign</button>`;
+                        actionBtn = `<button class="complete-btn" onclick="completeApproval('${item.id}', '${escapedPartNames}')">Complete Sign</button>`;
                     }
 
                     container.innerHTML += `
