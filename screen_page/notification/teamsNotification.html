@@ -901,20 +901,31 @@
 
                 btn.textContent = "Sending...";
                 let sent = 0;
+                let queuedOnly = false;
                 const failed = [];
                 for (const role of Object.keys(groups)) {
                     try {
-                        await axios.post(TEAMS_WEBHOOK_URL, buildReminderCard(role, groups[role], sender));
+                        const r = await axios.post(TEAMS_WEBHOOK_URL, buildReminderCard(role, groups[role], sender));
+                        console.log(`[remind] ${role} -> relay`, r.data);
+                        if (r.data && r.data.queuedOnly) queuedOnly = true;
                         sent++;
                     } catch (e) {
-                        console.error("Reminder failed for " + role, e);
-                        failed.push(role);
+                        // The relay now returns 502 with the upstream status/body when Teams
+                        // refuses the card, so show that instead of a generic failure.
+                        const d = e.response && e.response.data;
+                        console.error("Reminder failed for " + role, d || e);
+                        failed.push(d && d.upstreamStatus ? `${role} (HTTP ${d.upstreamStatus})` : role);
                     }
                 }
 
                 let msg = `Reminder sent for ${sent} group${sent === 1 ? "" : "s"}.`;
                 if (failed.length) msg += `\nFailed: ${failed.join(", ")}.`;
                 if (unknown.length) msg += `\nSkipped ${unknown.length} row(s) with an unrecognised status.`;
+                if (queuedOnly) {
+                    msg += "\n\nNote: Power Automate ACCEPTED the request (202) but that only means it was"
+                        + " queued. If nothing appears in the channel, the failure is inside the Flow —"
+                        + " check its run history.";
+                }
                 alert(msg);
             } catch (e) {
                 console.error(e);

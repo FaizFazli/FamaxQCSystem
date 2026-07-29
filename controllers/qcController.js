@@ -206,12 +206,40 @@ exports.saveExcelFile = (req, res) => {
 };
 
 // 5. Teams Relay
+// Relays an Adaptive Card payload to the configured Teams endpoint.
+//
+// Do NOT treat "no exception" as delivered. Two ways this silently lies:
+//   - Classic O365 connectors returned HTTP 200 with an error STRING in the body.
+//   - Power Automate returns 202 Accepted immediately, before the flow runs; the
+//     "Post card" step can fail afterwards and nothing reaches the channel.
+// So we pass the upstream status/body straight back to the caller and only report
+// ok when the status is 2xx AND the body doesn't look like an error.
 exports.relayToTeams = async (req, res) => {
     try {
-        const response = await axios.post(config.TEAMS_WEBHOOK_URL, req.body);
-        res.status(200).json({ message: "Sent to Teams", status: response.status });
+        const response = await axios.post(config.TEAMS_WEBHOOK_URL, req.body, {
+            validateStatus: () => true,          // never throw on 4xx/5xx — we want to see it
+            timeout: 15000
+        });
+
+        const raw = typeof response.data === "string"
+            ? response.data
+            : JSON.stringify(response.data ?? "");
+        const looksLikeError = /error|failed|invalid|unauthorized/i.test(raw || "");
+        const ok = response.status >= 200 && response.status < 300 && !looksLikeError;
+
+        console.log(`[teams-relay] upstream ${response.status} ok=${ok} body=${(raw || "").slice(0, 300)}`);
+
+        res.status(ok ? 200 : 502).json({
+            ok,
+            message: ok ? "Sent to Teams" : "Teams endpoint did not accept the message",
+            upstreamStatus: response.status,
+            upstreamBody: (raw || "").slice(0, 500),
+            // 202 means Power Automate QUEUED it — the flow can still fail afterwards.
+            queuedOnly: response.status === 202
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("[teams-relay] request failed:", error.message);
+        res.status(500).json({ ok: false, error: error.message });
     }
 };
 
