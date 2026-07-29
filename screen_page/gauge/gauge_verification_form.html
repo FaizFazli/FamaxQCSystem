@@ -137,7 +137,7 @@
                     <div class="form-grid mb-10">
                         <!-- CUSTOM DROPDOWN -->
                         <div class="field relative" id="gauge_select_wrapper">
-                            <label class="label">Gauge ID</label>
+                            <label class="label">Gauge ID *</label>
                             <input type="text" v-model="form.gauge_no" @focus="showGaugeList = true"
                                 class="input cap" placeholder="SEARCH GAUGE...">
                             <transition name="dropdown">
@@ -155,12 +155,12 @@
                         </div>
 
                         <div class="field">
-                            <label class="label">Gauge Description</label>
+                            <label class="label">Gauge Description *</label>
                             <input v-model="form.gauge_name" class="input cap">
                         </div>
 
                         <div class="field">
-                            <label class="label">Drawing No</label>
+                            <label class="label">Drawing No *</label>
                             <input v-model="form.drawing_no" class="input cap">
                         </div>
 
@@ -181,22 +181,22 @@
                         </div>
 
                         <div class="field">
-                            <label class="label">Process</label>
+                            <label class="label">Process *</label>
                             <input v-model="form.for_process" class="input cap">
                         </div>
 
                         <div class="field">
-                            <label class="label">Part No</label>
+                            <label class="label">Part No *</label>
                             <input v-model="form.part_no" class="input cap">
                         </div>
 
                         <div class="field">
-                            <label class="label">Verified By (Name)</label>
+                            <label class="label">Verified By (Name) *</label>
                             <input v-model="form.verified_by" class="input cap">
                         </div>
 
                         <div class="field">
-                            <label class="label">Verification Date</label>
+                            <label class="label">Verification Date *</label>
                             <input type="date" v-model="form.verify_date" @change="updateDueDate" class="input">
                         </div>
 
@@ -277,25 +277,31 @@
                                     <tr v-for="(row, idx) in (section === 'GO' ? form.go_specs : form.nogo_specs)"
                                         :key="idx"
                                         class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                                        <!-- Label and equipment are boxed like the numeric fields.
+                                             Borderless inputs read as static text, so operators did
+                                             not realise these two were typeable at all. -->
                                         <td class="p-4">
                                             <input v-model="row.spec_label"
-                                                class="cap w-full font-black text-slate-700 outline-none text-xs"
-                                                placeholder="ENTER LABEL">
+                                                class="cap w-full min-w-[7rem] p-2 bg-slate-50 rounded-xl text-xs font-black text-slate-700 outline-none border border-slate-100 placeholder:font-bold placeholder:text-slate-400"
+                                                placeholder="E.G. OD, LENGTH">
                                         </td>
                                         <td class="p-4">
                                             <div class="flex items-center space-x-2">
                                                 <input type="number" step="0.0001" v-model.number="row.nominal_value"
-                                                    class="w-20 p-2 bg-slate-50 rounded-xl text-xs font-black outline-none border border-slate-100">
+                                                    class="w-24 p-2 bg-slate-50 rounded-xl text-xs font-black outline-none border border-slate-100 placeholder:font-bold placeholder:text-slate-400"
+                                                    placeholder="NOMINAL">
                                                 <input type="number" step="0.0001" v-model.number="row.upper_tol"
-                                                    class="w-14 p-2 bg-green-50 text-green-700 rounded-xl text-xs font-black outline-none border border-green-100"
-                                                    placeholder="+">
+                                                    class="w-20 p-2 bg-green-50 text-green-700 rounded-xl text-xs font-black outline-none border border-green-100 placeholder:font-bold placeholder:text-green-400"
+                                                    placeholder="+ TOL">
                                                 <input type="number" step="0.0001" v-model.number="row.lower_tol"
-                                                    class="w-14 p-2 bg-red-50 text-red-700 rounded-xl text-xs font-black outline-none border border-red-100"
-                                                    placeholder="-">
+                                                    class="w-20 p-2 bg-red-50 text-red-700 rounded-xl text-xs font-black outline-none border border-red-100 placeholder:font-bold placeholder:text-red-400"
+                                                    placeholder="- TOL">
                                             </div>
                                         </td>
-                                        <td class="p-4 text-slate-500 font-bold text-xs uppercase">
-                                            <input v-model="row.measuring_equipment" class="cap w-full outline-none">
+                                        <td class="p-4">
+                                            <input v-model="row.measuring_equipment"
+                                                class="cap w-full min-w-[9rem] p-2 bg-slate-50 rounded-xl text-xs font-black text-slate-700 outline-none border border-slate-100 placeholder:font-bold placeholder:text-slate-400"
+                                                placeholder="E.G. VERNIER CALIPER">
                                         </td>
                                         <td class="p-4">
                                             <input type="number" step="0.0001" v-model.number="row.actual_reading"
@@ -618,7 +624,7 @@
                             <input v-model="newGauge.for_process" class="input cap">
                         </div>
                         <div class="field">
-                            <label class="label">Part No (optional)</label>
+                            <label class="label">Part No *</label>
                             <input v-model="newGauge.part_no" class="input cap">
                         </div>
                         <div class="field">
@@ -1545,7 +1551,11 @@
                 };
 
                 const addRow = (section) => {
-                    const row = { spec_label: '', nominal_value: 0, upper_tol: 0, lower_tol: 0, measuring_equipment: '', actual_reading: null, status: '', overridden: false, remark: '' };
+                    // null, not 0: a new row must come up EMPTY so the placeholders are visible.
+                    // Pre-filling 0 hid them behind a value that looked deliberate. calculateStatus
+                    // reads these through Number(), which treats null as 0, so a row left blank
+                    // behaves exactly as it did before.
+                    const row = { spec_label: '', nominal_value: null, upper_tol: null, lower_tol: null, measuring_equipment: '', actual_reading: null, status: '', overridden: false, remark: '' };
                     if (section === 'GO') form.go_specs.push(row); else form.nogo_specs.push(row);
                 };
 
@@ -1571,7 +1581,25 @@
 
 
                 const submitForm = async () => {
-                    if (!form.verified_by) { alert("Please input SIGNATURE NAME"); return; }
+                    // Everything marked * on the form. These are not cosmetic: gauge_no, gauge_name,
+                    // drawing_no and for_process are UPSERTED onto the gauge master on every save,
+                    // so submitting them blank would overwrite the master with empty strings.
+                    // part_no is stamped onto the record and onto every spec row, and verify_date
+                    // is a date column that rejects ''.
+                    const required = [
+                        ['GAUGE ID', form.gauge_no],
+                        ['GAUGE DESCRIPTION', form.gauge_name],
+                        ['DRAWING NO', form.drawing_no],
+                        ['PROCESS', form.for_process],
+                        ['PART NO', form.part_no],
+                        ['VERIFIED BY', form.verified_by],
+                        ['VERIFICATION DATE', form.verify_date]
+                    ];
+                    const missing = required.filter(([, v]) => !String(v ?? '').trim()).map(([n]) => n);
+                    if (missing.length) {
+                        alert('Please fill in the required fields (*):\n\n• ' + missing.join('\n• '));
+                        return;
+                    }
                     isSubmitting.value = true;
 
                     try {
@@ -1861,8 +1889,8 @@
 
                 const addNewGauge = async () => {
                     const g = newGauge;
-                    if (!g.gauge_no || !g.gauge_name || !g.drawing_no || !g.for_process) {
-                        addGaugeMsg.value = 'Please fill Gauge ID, Description, Drawing No and For Process.';
+                    if (!g.gauge_no || !g.gauge_name || !g.drawing_no || !g.for_process || !String(g.part_no || '').trim()) {
+                        addGaugeMsg.value = 'Please fill Gauge ID, Description, Drawing No, For Process and Part No.';
                         return;
                     }
                     if (!gaugeFile.value) { addGaugeMsg.value = 'Please upload the drawing PDF.'; return; }
@@ -1920,10 +1948,8 @@
                             .upsert(payload, { onConflict: 'gauge_no' }).select();
                         if (gErr || !gRec || !gRec.length) throw new Error('Save failed: ' + (gErr?.message || 'no row'));
 
-                        // 3. Optional part link
-                        if (g.part_no && g.part_no.trim()) {
-                            await _supabase.from('gauge_parts').insert({ gauge_id: gRec[0].id, part_no: up(g.part_no) });
-                        }
+                        // 4. Part link — required, so this always runs.
+                        await _supabase.from('gauge_parts').insert({ gauge_id: gRec[0].id, part_no: up(g.part_no) });
 
                         await fetchMasters();
 
