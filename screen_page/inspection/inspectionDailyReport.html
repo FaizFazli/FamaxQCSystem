@@ -7,10 +7,13 @@
   <title>Checker Daily Record | Famax Quality Hub</title>
   <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2" />
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/assets/app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Library for Excel Export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
@@ -97,6 +100,65 @@
     .row-editing {
       background: var(--primary-soft) !important;
     }
+
+    /* ---- Embedded (in-iframe) ----
+       theme.css hides every semantic <header> when the page is framed, so the
+       shell's title isn't duplicated. This page's <header> is not just a title:
+       it also carries the date / category / item filters and the action buttons.
+       Keep the bar itself, and hide only its title row when framed. */
+    .is-framed > body header {
+      display: block !important;
+    }
+
+    .is-framed .page-title-row {
+      display: none !important;
+    }
+
+    /* ---- Re-Inspection modal (mirrors inspectionSchedule.html's modal chrome) ---- */
+    .modal-content {
+      padding: 0 !important;
+      /* header/body own their padding */
+      border-radius: 1.75rem;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      background: var(--text-main);
+      color: #fff;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--primary);
+    }
+
+    .section-label {
+      display: block;
+      font-size: var(--fs-sm);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-input {
+      width: 100%;
+      height: 3rem;
+      padding: 0 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 0.9rem;
+      font-weight: 600;
+      color: var(--text-main);
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px var(--primary-ring);
+    }
   </style>
 </head>
 
@@ -104,7 +166,7 @@
   <div id="app" class="max-w-[1500px] mx-auto">
     <!-- HEADER & FILTERS -->
     <header class="glass-card rounded-2xl md:rounded-3xl p-4 md:p-6 mb-4 md:mb-8 no-print">
-      <div class="flex justify-between items-center mb-6">
+      <div class="page-title-row flex justify-between items-center mb-6">
         <div class="flex items-center gap-3 md:gap-4">
           <div class="h-8 md:h-10 w-1 rounded-full" style="background: var(--primary)"></div>
           <h1 class="text-lg md:text-2xl font-black italic uppercase leading-none">
@@ -189,6 +251,7 @@
               <th style="width: 8%">Total Output Per Hour</th>
               <th style="width: 12%">Schedule Info (Overdue)</th>
               <th style="width: 8%">Remark Finished</th>
+              <th class="no-print" style="width: 9%">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -285,6 +348,29 @@
               <td class="italic text-gray-600">
                 {{ row.remark_finished || '-' }}
               </td>
+
+              <!-- Re-Inspection action: key in the qty reworked-and-passed per reject description -->
+              <td class="no-print text-center">
+                <button v-if="canReinspect(row)" @click.stop="openReinspect(row)"
+                  class="text-white text-[10px] font-black py-1.5 px-2 rounded-lg w-full uppercase tracking-wide"
+                  style="background: var(--primary)" title="Record a re-inspection of reworked parts">
+                  <i class="fa fa-rotate-right mr-1"></i> Re-Inspect
+                </button>
+                <span v-else-if="isReinspection(row)"
+                  class="inline-block text-[9px] font-black px-2 py-1 rounded bg-amber-100 text-amber-700 uppercase">
+                  Re-Insp
+                </span>
+                <span v-else-if="Number(row.RejectQty || 0) > 0 && Number(row.ReworkQty || 0) > 0"
+                  class="text-[9px] font-black text-green-600 uppercase">
+                  <i class="fa fa-circle-check"></i> Cleared
+                </span>
+                <span v-else class="text-gray-300">-</span>
+
+                <div v-if="Number(row.ReworkQty || 0) > 0 && !isReinspection(row)"
+                  class="text-[9px] font-bold text-gray-400 mt-1">
+                  {{ reinspectedQty(row) }} / {{ row.ReworkQty || 0 }} re-inspected
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -295,6 +381,125 @@
         <span>Page 1</span>
       </div>
     </div>
+
+    <!-- RE-INSPECTION MODAL -->
+    <div v-if="showReinspect" class="modal-overlay no-print" @mousedown.self="closeReinspect">
+      <div class="modal-content !max-w-2xl">
+        <div class="modal-header">
+          <h3 class="font-black text-xl italic uppercase">
+            <span style="color: var(--primary)">Re-</span>Inspection
+          </h3>
+          <button @click="closeReinspect"><i class="fa fa-times"></i></button>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-6">
+          <!-- Context -->
+          <div class="p-4 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]"
+            style="background: var(--surface-muted); border: 1px solid var(--border)">
+            <div>
+              <div class="font-bold text-[9px] uppercase" style="color: var(--text-muted)">Job Order</div>
+              <div class="font-black">{{ reinspectRow?.JO_Number || '-' }}</div>
+            </div>
+            <div>
+              <div class="font-bold text-[9px] uppercase" style="color: var(--text-muted)">Part</div>
+              <div class="font-black">{{ reinspectRow?.Part_Name || '-' }}</div>
+            </div>
+            <div>
+              <div class="font-bold text-[9px] uppercase" style="color: var(--text-muted)">Process</div>
+              <div class="font-black">{{ reinspectRow?.process || '-' }}</div>
+            </div>
+            <div>
+              <div class="font-bold text-[9px] uppercase" style="color: var(--text-muted)">Inspection</div>
+              <div class="font-black">{{ reinspectRow?.Parameter || reinspectRow?.Inspection_Type || '-' }}</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="p-3 rounded-xl bg-red-50">
+              <div class="text-[9px] font-black uppercase text-red-400">Reject Qty</div>
+              <div class="text-lg font-black text-red-600">{{ reinspectRow?.RejectQty || 0 }}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-blue-50">
+              <div class="text-[9px] font-black uppercase text-blue-400">To Rework</div>
+              <div class="text-lg font-black text-blue-600">{{ reinspectRow?.ReworkQty || 0 }}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-green-50">
+              <div class="text-[9px] font-black uppercase text-green-500">Still Open</div>
+              <div class="text-lg font-black text-green-600">{{ reworkRemaining(reinspectRow || {}) }}</div>
+            </div>
+          </div>
+
+          <!-- Inspector + Date -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="section-label">Re-Inspected By (QA/QC)</label>
+              <select v-model="reinspectForm.inspector" class="form-input">
+                <option value="">-- Select Inspector --</option>
+                <option v-for="n in qaStaff" :key="n" :value="n">{{ n }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="section-label">Re-Inspection Date</label>
+              <input type="date" v-model="reinspectForm.date" class="form-input" />
+            </div>
+          </div>
+
+          <!-- Defect selection -->
+          <div>
+            <label class="section-label">Select Reject Description &amp; Key In Qty</label>
+
+            <div v-if="!reinspectForm.lines.length"
+              class="p-4 rounded-xl text-[11px] italic text-center text-gray-400 bg-gray-50">
+              This record has no defect breakdown, so there is no reject description to select.
+            </div>
+
+            <div v-else class="border rounded-xl overflow-hidden" style="border-color: var(--border)">
+              <div class="grid grid-cols-12 gap-2 px-3 py-2 text-[9px] font-black uppercase"
+                style="background: var(--surface-muted); color: var(--text-muted)">
+                <div class="col-span-1"></div>
+                <div class="col-span-5">Defect Description</div>
+                <div class="col-span-2 text-center">Rejected</div>
+                <div class="col-span-2 text-center">Done</div>
+                <div class="col-span-2 text-center">Re-Inspect OK</div>
+              </div>
+
+              <div v-for="(l, i) in reinspectForm.lines" :key="i"
+                class="grid grid-cols-12 gap-2 px-3 py-2 items-center border-t text-[11px]"
+                style="border-color: var(--border)" :class="{ 'opacity-40': l.remaining <= 0 }">
+                <div class="col-span-1">
+                  <input type="checkbox" v-model="l.selected" :disabled="l.remaining <= 0"
+                    @change="l.okQty = l.selected ? l.remaining : 0" class="w-4 h-4" />
+                </div>
+                <div class="col-span-5 font-bold uppercase">{{ l.description }}</div>
+                <div class="col-span-2 text-center font-black text-red-600">{{ l.quantity }}</div>
+                <div class="col-span-2 text-center font-bold text-gray-400">{{ l.already }}</div>
+                <div class="col-span-2">
+                  <input type="number" min="0" :max="l.remaining" v-model.number="l.okQty"
+                    :disabled="!l.selected || l.remaining <= 0"
+                    class="w-full border rounded px-2 py-1 text-center font-black disabled:bg-gray-100" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-12 gap-2 px-3 py-2 border-t text-[11px] font-black"
+                style="border-color: var(--border); background: var(--primary-soft)">
+                <div class="col-span-10 text-right uppercase">Total this re-inspection</div>
+                <div class="col-span-2 text-center" style="color: var(--primary)">{{ reinspectTotal }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button @click="closeReinspect" class="btn btn--secondary flex-1 uppercase tracking-widest">
+              Cancel
+            </button>
+            <button @click="submitReinspect" :disabled="reinspectSaving"
+              class="btn flex-1 uppercase tracking-widest disabled:opacity-50">
+              {{ reinspectSaving ? 'Saving...' : 'Save Re-Inspection' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -302,19 +507,28 @@
 
     createApp({
       setup() {
+        // Shared backend config (host auto-detected) — same client shape as the sibling reports.
         const api = axios.create({
-          baseURL: "http://192.168.0.5:8000/rest/v1",
+          baseURL: `${window.APP_CONFIG.url}/rest/v1`,
           headers: {
-            apikey:
-              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE",
+            apikey: window.APP_CONFIG.key,
+            Authorization: `Bearer ${window.APP_CONFIG.key}`,
           },
         });
+
+        const showToast = (msg, type) =>
+          Toastify({
+            text: msg,
+            duration: 3500,
+            gravity: "top",
+            position: "right",
+            style: { background: type === "error" ? "#ef4444" : "#10b981" },
+          }).showToast();
 
         const allRecords = ref([]);
         const scheduleRecords = ref([]);
         const cycleTimeMap = ref({});
+        const qaStaff = ref([]);
 
         // DEFAULTS
         const filterDate = ref(new Date().toISOString().slice(0, 10)); // Today
@@ -331,15 +545,20 @@
 
         const fetchData = async () => {
           try {
-            const [resRec, resSch, resGui, resDet] = await Promise.all([
+            const [resRec, resSch, resGui, resDet, resQa] = await Promise.all([
               api.get("/InspectionRecord?select=*&order=created_at.desc"),
               api.get("/InspectionSchedule?select=*"),
               api.get("/InspectionGuide?select=*"),
               api.get("/InspectionGuideDetails?select=*"),
+              // Inspection staff come from the HR-owned EmployeeTable, QA/QC department only
+              api.get("/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc"),
             ]);
             allRecords.value = resRec.data;
             scheduleRecords.value = resSch.data;
             buildCycleTimeMap(resGui.data, resDet.data);
+            qaStaff.value = [
+              ...new Set(resQa.data.map((c) => c.name || c.Name).filter(Boolean)),
+            ].sort();
           } catch (err) {
             console.error("Fetch Error:", err);
           }
@@ -573,11 +792,219 @@
           Number(row.AcceptQty || 0) + Number(row.RejectQty || 0);
 
         const exportToExcel = () => {
+          // table_to_book serialises the live DOM, so strip the screen-only cells
+          // (Action buttons, SAVE/CANCEL) from a clone before converting.
           const table = document.getElementById("checkerTable");
-          const wb = XLSX.utils.table_to_book(table, {
+          const clone = table.cloneNode(true);
+          clone.querySelectorAll(".no-print").forEach((el) => {
+            if (el.tagName === "TD" || el.tagName === "TH") el.remove();
+            else el.textContent = "";
+          });
+          const wb = XLSX.utils.table_to_book(clone, {
             sheet: "Daily Record",
           });
           XLSX.writeFile(wb, `Checker_Daily_Record_${filterDate.value}.xlsx`);
+        };
+
+        // --- Re-Inspection Logic ---
+        // A re-inspection is an InspectionRecord row with Inspection_Type = 'RE-INSPECTION',
+        // linked to the reject row it clears via parent_record_id. Its Remark array names
+        // exactly which defect lines were re-checked, and AcceptQty is the total passed qty.
+        // The Rejected Product Record reads both to fill its Re-Inspection Date/By/Qty columns.
+        const REINSPECT_TYPE = "RE-INSPECTION";
+
+        const isReinspection = (row) =>
+          (row.Inspection_Type || "").toUpperCase() === REINSPECT_TYPE;
+
+        const normDesc = (s) => (s || "").trim().replace(/\s+/g, " ").toUpperCase();
+
+        // Remark may arrive as a jsonb array or a JSON string; normalise either way.
+        const parseRemark = (raw) => {
+          let list = [];
+          try {
+            list = Array.isArray(raw) ? raw : JSON.parse(raw || "[]");
+          } catch (e) {
+            list = [];
+          }
+          if (!Array.isArray(list)) list = [];
+          return list
+            .map((d) => ({
+              description:
+                d && d.description != null
+                  ? d.description
+                  : typeof d === "string"
+                    ? d
+                    : "",
+              quantity: Number(d && d.quantity != null ? d.quantity : 0) || 0,
+            }))
+            .filter((d) => d.description !== "");
+        };
+
+        const childReinspections = (row) =>
+          allRecords.value.filter(
+            (r) => isReinspection(r) && Number(r.parent_record_id) === Number(row.id),
+          );
+
+        // Total already re-inspected OK against this reject row.
+        const reinspectedQty = (row) =>
+          childReinspections(row).reduce(
+            (sum, r) => sum + (Number(r.AcceptQty) || 0),
+            0,
+          );
+
+        // Per defect description: how much has already been re-inspected.
+        const reinspectedByDesc = (row) => {
+          const map = {};
+          childReinspections(row).forEach((r) => {
+            parseRemark(r.Remark).forEach((d) => {
+              const k = normDesc(d.description);
+              map[k] = (map[k] || 0) + d.quantity;
+            });
+          });
+          return map;
+        };
+
+        const reworkRemaining = (row) =>
+          Math.max(0, Number(row.ReworkQty || 0) - reinspectedQty(row));
+
+        // Button shows only on original reject rows that still have rework outstanding.
+        const canReinspect = (row) =>
+          !isReinspection(row) &&
+          Number(row.RejectQty || 0) > 0 &&
+          reworkRemaining(row) > 0;
+
+        const showReinspect = ref(false);
+        const reinspectSaving = ref(false);
+        const reinspectRow = ref(null);
+        const reinspectForm = ref({ inspector: "", date: "", lines: [] });
+
+        const openReinspect = (row) => {
+          const done = reinspectedByDesc(row);
+          reinspectRow.value = row;
+          reinspectForm.value = {
+            inspector: "",
+            date: new Date().toISOString().slice(0, 10),
+            lines: parseRemark(row.Remark).map((d) => {
+              const already = done[normDesc(d.description)] || 0;
+              return {
+                description: d.description,
+                quantity: d.quantity,
+                already,
+                remaining: Math.max(0, d.quantity - already),
+                selected: false,
+                okQty: 0,
+              };
+            }),
+          };
+          showReinspect.value = true;
+        };
+
+        const closeReinspect = () => {
+          showReinspect.value = false;
+          reinspectRow.value = null;
+        };
+
+        const reinspectTotal = computed(() =>
+          reinspectForm.value.lines
+            .filter((l) => l.selected)
+            .reduce((sum, l) => sum + (Number(l.okQty) || 0), 0),
+        );
+
+        const submitReinspect = async () => {
+          const row = reinspectRow.value;
+          if (!row || reinspectSaving.value) return;
+          const f = reinspectForm.value;
+          const picked = f.lines.filter(
+            (l) => l.selected && Number(l.okQty) > 0,
+          );
+
+          if (!f.inspector)
+            return showToast("SELECT THE RE-INSPECTION INSPECTOR", "error");
+          if (!f.date) return showToast("SELECT THE RE-INSPECTION DATE", "error");
+          if (!picked.length)
+            return showToast(
+              "SELECT AT LEAST ONE REJECT DESCRIPTION AND KEY IN A QUANTITY",
+              "error",
+            );
+
+          for (const l of picked) {
+            if (Number(l.okQty) > l.remaining) {
+              return showToast(
+                `"${l.description}" ALLOWS ONLY ${l.remaining} MORE (${l.quantity} REJECTED, ${l.already} ALREADY RE-INSPECTED)`,
+                "error",
+              );
+            }
+          }
+
+          const remaining = reworkRemaining(row);
+          if (reinspectTotal.value > remaining) {
+            return showToast(
+              `TOTAL ${reinspectTotal.value} EXCEEDS THE REWORK QTY STILL OPEN (${remaining})`,
+              "error",
+            );
+          }
+
+          // Stamp the chosen date with the current time-of-day. The reject report orders
+          // re-inspections against the parent record, so it must not predate it.
+          const now = new Date();
+          const chosen = new Date(`${f.date}T00:00:00`);
+          chosen.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+          const parentTs = new Date(row.actual_finished || row.created_at);
+          if (chosen < parentTs) {
+            return showToast(
+              "RE-INSPECTION DATE CANNOT BE EARLIER THAN THE ORIGINAL INSPECTION",
+              "error",
+            );
+          }
+          const chosenTs = chosen.toISOString();
+          const total = reinspectTotal.value;
+
+          reinspectSaving.value = true;
+          try {
+            await api.post("/InspectionRecord", {
+              parent_record_id: row.id,
+              Inspection_Type: REINSPECT_TYPE,
+              Category: row.Category,
+              Part_Name: row.Part_Name,
+              part_no: row.part_no,
+              process: row.process,
+              JO_Number: row.JO_Number,
+              DO_Number: row.DO_Number,
+              Parameter: row.Parameter,
+              InspectBy: (f.inspector || "").toUpperCase(),
+              FinalizeBy: row.FinalizeBy,
+              Remark: picked.map((l) => ({
+                description: normDesc(l.description),
+                quantity: Number(l.okQty) || 0,
+              })),
+              TotalCheck: total,
+              AcceptQty: total,
+              RejectQty: 0,
+              ScrapQty: 0,
+              ReworkQty: 0,
+              actual_finished: chosenTs,
+              created_at: chosenTs,
+              schedule_id: row.schedule_id,
+              remark_finished: `RE-INSPECTION OF RECORD #${row.id}`,
+            });
+
+            closeReinspect();
+            await fetchData();
+            showToast(`RE-INSPECTION SAVED (${total} PCS)`, "success");
+          } catch (err) {
+            console.error("Re-Inspection Error:", err);
+            const missingCol = String(
+              err?.response?.data?.message || "",
+            ).includes("parent_record_id");
+            showToast(
+              missingCol
+                ? "RUN sql/2026-07-29_reinspection_link.sql FIRST"
+                : "FAILED TO SAVE RE-INSPECTION",
+              "error",
+            );
+          } finally {
+            reinspectSaving.value = false;
+          }
         };
 
         // --- Editing Logic ---
@@ -643,11 +1070,11 @@
               };
             }
 
-            alert("Record updated and Schedule marked as Complete!");
+            showToast("RECORD UPDATED AND SCHEDULE MARKED AS COMPLETE", "success");
             editingId.value = null;
           } catch (err) {
             console.error("Sync Error:", err);
-            alert("Failed to sync status to schedule.");
+            showToast("FAILED TO SYNC STATUS TO SCHEDULE", "error");
           }
         };
 
@@ -687,6 +1114,19 @@
           getScheduleMatch,
           isOverdue,
           formatTimeOnly,
+          qaStaff,
+          isReinspection,
+          canReinspect,
+          reinspectedQty,
+          reworkRemaining,
+          showReinspect,
+          reinspectSaving,
+          reinspectRow,
+          reinspectForm,
+          reinspectTotal,
+          openReinspect,
+          closeReinspect,
+          submitReinspect,
         };
       },
     }).mount("#app");
