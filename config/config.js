@@ -2,7 +2,7 @@ module.exports = {
     BASE_FOLDER: "C:\\Users\\FamaxQC_Doc",
     DMS_FOLDER: "\\\\FAMAX\\Famax DMS",
     MASTER_DOC_DIR: "Master_Document",
-    TEAMS_WEBHOOK_URL: "https://fmefamax3.webhook.office.com/webhookb2/f45f5cc6-1616-40b2-a58a-9b68ad1a4357@e0eb2e96-7e5f-4ebc-9891-a07922257dce/IncomingWebhook/d6acc3987e41441187168e334b0c7f42/7dbace1f-849f-4069-b37e-3d8852f42c31/V2wDgPw2MmdzmrgOh8B0rs5uu91wK_WbEb6sIhn5mvX1Y1",
+    TEAMS_WEBHOOK_URL: "https://defaulte0eb2e967e5f4ebc9891a07922257d.ce.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/13/workflows/5935cb754369419f89e344ac37a88d8d/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=3D2ffGQdNm79yCROLRMmoDllpds_sYVgikUh7XO9aP8",
     INSPECTION_PATHS: {
         IPQC: "C:\\Users\\IPQC_Part_Summary",
         BuyOff: "C:\\Users\\BuyOff_Part_Summary",

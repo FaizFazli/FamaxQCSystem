@@ -19,6 +19,8 @@
     <!-- Corrected Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
+    <!-- Role -> person mapping for @mentions (DB-backed, see sql/2026-07-29_notification_recipient.sql) -->
+    <script src="/assets/teams-recipients.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 
     <style>
@@ -393,7 +395,8 @@
             <div class="card-body">
                 <div class="form-group">
                     <label for="sender-name">Your Name</label>
-                    <input type="text" id="sender-name" placeholder="Enter your name" oninput="autoGenerateMessage()" />
+                    <input type="text" id="sender-name" placeholder="Enter your name" oninput="autoGenerateMessage()"
+                        style="text-transform: uppercase;" />
                 </div>
 
                 <div class="form-group">
@@ -436,7 +439,16 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Person Responsible</label>
+                    <label style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <span>Person Responsible</span>
+                        <!-- Admin-only: who sits behind each role is data, not code -->
+                        <button type="button" id="manage-recipients-btn" onclick="openRecipientsModal()"
+                            style="display:none; background:var(--surface-muted); border:1px solid var(--border);
+                                   color:var(--text-muted); font-size:11px; font-weight:700; text-transform:uppercase;
+                                   letter-spacing:.04em; padding:6px 12px; border-radius:999px; cursor:pointer;">
+                            &#9881; Manage Recipients
+                        </button>
+                    </label>
                     <div class="radio-cards">
                         <label class="radio-card">
                             <input type="radio" name="resp-opt" value="QA" checked onchange="autoGenerateMessage()" />
@@ -472,8 +484,15 @@
         <div class="tracking-card">
             <div class="tracking-header">
                 <span>Approval Tracking</span>
-                <button onclick="loadApprovalLogs()"
-                    style="background:none; border:none; color:var(--primary); font-weight:800; font-size:11px; cursor:pointer;">Refresh</button>
+                <span style="display:flex; align-items:center; gap:14px;">
+                    <!-- Chases every still-pending row in TeamsLog, mentioning whoever owes the signature -->
+                    <button id="remind-btn" onclick="remindPending()"
+                        style="background:none; border:none; color:var(--warning, #d97706); font-weight:800; font-size:11px; cursor:pointer;">
+                        &#128276; Remind Pending
+                    </button>
+                    <button onclick="loadApprovalLogs()"
+                        style="background:none; border:none; color:var(--primary); font-weight:800; font-size:11px; cursor:pointer;">Refresh</button>
+                </span>
             </div>
             <div id="tracking-list">
                 <div style="padding: 20px; text-align: center; color: var(--text-muted); font-weight: 500;">Loading
@@ -481,6 +500,92 @@
             </div>
         </div>
     </div>
+
+    <!-- MANAGE RECIPIENTS (admins only) -->
+    <div id="recipients-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:760px;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3 style="margin:0; font-size:18px; font-weight:800;">Notification Recipients</h3>
+                <button onclick="closeRecipientsModal()"
+                    style="background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:var(--text-muted);">&times;</button>
+            </div>
+            <p style="margin:0 0 16px; font-size:12px; color:var(--text-muted);">
+                Who gets @mentioned for each role. When someone leaves, deactivate or edit them here —
+                no code change needed.
+            </p>
+
+            <div id="recipients-list" style="margin-bottom:18px;"></div>
+
+            <div style="border-top:1px solid var(--border); padding-top:16px;">
+                <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:10px;">
+                    <span id="recipient-form-title">Add recipient</span>
+                </div>
+                <input type="hidden" id="recipient-id" />
+                <div style="display:grid; grid-template-columns:130px 1fr 1fr auto; gap:8px; align-items:center;">
+                    <select id="recipient-role" class="rcp-input">
+                        <option value="QA">QA</option>
+                        <option value="ENG">ENG</option>
+                        <option value="MANAGEMENT">MANAGEMENT</option>
+                    </select>
+                    <input type="text" id="recipient-name" class="rcp-input" placeholder="Display name" />
+                    <input type="email" id="recipient-email" class="rcp-input" placeholder="name@company.com" />
+                    <label style="display:flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap;">
+                        <input type="checkbox" id="recipient-active" checked /> Active
+                    </label>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px;">
+                    <button onclick="saveRecipient()" id="recipient-save-btn"
+                        style="background:var(--primary); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer;">Save</button>
+                    <button onclick="resetRecipientForm()"
+                        style="background:var(--surface-muted); color:var(--text-muted); border:1px solid var(--border); padding:10px 20px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer;">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .rcp-input {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--bg-card);
+            color: var(--text-main);
+            box-sizing: border-box;
+        }
+
+        .rcp-row {
+            display: grid;
+            grid-template-columns: 110px 1fr 1fr 70px auto;
+            gap: 8px;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .rcp-role {
+            font-weight: 800;
+            font-size: 10px;
+            letter-spacing: .05em;
+            color: var(--primary);
+        }
+
+        .rcp-mini {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+    </style>
 
     <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
@@ -581,10 +686,8 @@
             const finalSubject = subjectOpt === "Others" ? otherSubject || "Other Issue" : subjectOpt;
             const respPerson = document.querySelector('input[name="resp-opt"]:checked').value;
 
-            let mention = "";
-            if (respPerson === "QA") mention = "@Ayyub Sofi";
-            else if (respPerson === "ENG") mention = "@M. Nor Aiman @Muhammad Zahid Bin A.Aziz";
-            else if (respPerson === "Management") mention = "@Vicson Lee";
+            // Names come from the NotificationRecipient table, never from literals here.
+            const mention = TeamsRecipients.plainText(respPerson);
 
             const selectedPartsArray = Array.from(selectedParts);
             const partsListString = selectedPartsArray.length > 0 ? selectedPartsArray.join(", ") : "None selected";
@@ -623,6 +726,13 @@
                         actionBtn = `<button class="complete-btn" onclick="completeApproval('${item.id}', '${escapedPartNames}')">Complete Sign</button>`;
                     }
 
+                    // Who raised it — TeamsLog.initiated_by, captured when the WI was sent.
+                    // Uppercased on display so older mixed-case rows ("Ayyub" vs "AYYUB") line up.
+                    const initiatedBy = ((item.initiated_by || "").trim() || "Unknown").toUpperCase();
+                    const initiatedAt = item.eng_initiated_at
+                        ? new Date(item.eng_initiated_at).toLocaleString('en-GB')
+                        : "-";
+
                     container.innerHTML += `
                 <div class="log-item">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -630,7 +740,10 @@
                         <span class="status-badge status-${statusClass}">${item.status}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
-                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Initiated: ${new Date(item.eng_initiated_at).toLocaleString('en-GB')}</span>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">
+                            Initiated: ${initiatedAt}
+                            <span style="color: var(--primary); font-weight: 700;">(Initiated by: ${initiatedBy})</span>
+                        </span>
                         ${actionBtn}
                     </div>
                 </div>
@@ -648,6 +761,13 @@
                     status: "Pending MGMT"
                 });
 
+                // Who signed: the actual signer, not a name baked into the code.
+                const signer = (document.getElementById("sender-name").value || "").trim()
+                    || sessionStorage.getItem("userId") || "QA";
+                // Who to notify next: whoever is currently active for MANAGEMENT.
+                const mgmtEntities = TeamsRecipients.entities("MANAGEMENT");
+                const mgmtText = TeamsRecipients.mentionText("MANAGEMENT");
+
                 const payload = {
                     "type": "message",
                     "attachments": [{
@@ -656,21 +776,15 @@
                             "type": "AdaptiveCard",
                             "body": [
                                 { "type": "TextBlock", "text": "✅ QA SIGNED - ACTION REQUIRED", "weight": "Bolder", "color": "Accent", "size": "Large" },
-                                { "type": "TextBlock", "text": `QA (Ayyub) has signed the WI for the following parts. Management approval is now required.`, "wrap": true },
+                                { "type": "TextBlock", "text": `QA (${signer}) has signed the WI for the following parts. Management approval is now required.`, "wrap": true },
                                 {
                                     "type": "FactSet", "facts": [
                                         { "title": "Parts:", "value": partNames },
-                                        { "title": "Attention:", "value": "<at>Vicson Lee</at>" }
+                                        { "title": "Attention:", "value": mgmtText || "Management" }
                                     ]
                                 }
                             ],
-                            "msteams": {
-                                "entities": [{
-                                    "type": "mention",
-                                    "text": "<at>Vicson Lee</at>",
-                                    "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" }
-                                }]
-                            },
+                            ...(mgmtEntities.length ? { "msteams": { "entities": mgmtEntities } } : {}),
                             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                             "version": "1.4"
                         }
@@ -686,13 +800,140 @@
             }
         }
 
+        // ---------------- Re-notify every pending approval ----------------
+        // One card per pending group so each role is only chased for what IT owes:
+        //   "Pending QA"   -> waiting on QA to sign      -> mention the QA recipients
+        //   "Pending MGMT" -> waiting on Management      -> mention the MANAGEMENT recipients
+        // Parts are listed oldest-first with how long they have been waiting.
+
+        const daysWaiting = (iso) => {
+            if (!iso) return null;
+            const ms = Date.now() - new Date(iso).getTime();
+            return Math.max(0, Math.floor(ms / 86400000));
+        };
+
+        // Which role owes the next signature for a given TeamsLog status.
+        const ROLE_FOR_STATUS = { "Pending QA": "QA", "Pending MGMT": "MANAGEMENT" };
+
+        function buildReminderCard(role, rows, sender) {
+            const entities = TeamsRecipients.entities(role);
+            const mentionText = TeamsRecipients.mentionText(role);
+            const waitingOn = role === "MANAGEMENT" ? "Management" : "QA";
+
+            // Oldest first — the most overdue item leads.
+            const sorted = rows.slice().sort(
+                (a, b) => new Date(a.eng_initiated_at || 0) - new Date(b.eng_initiated_at || 0)
+            );
+
+            const lines = sorted.map(r => {
+                const d = daysWaiting(r.eng_initiated_at);
+                const age = d === null ? "" : ` — waiting ${d} day${d === 1 ? "" : "s"}`;
+                return `• ${r.part_names}${age}`;
+            }).join("\n\n");
+
+            const oldest = daysWaiting(sorted[0] && sorted[0].eng_initiated_at);
+
+            return {
+                "type": "message",
+                "attachments": [{
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "type": "AdaptiveCard",
+                        "body": [
+                            {
+                                "type": "TextBlock", "text": "⏰ REMINDER - PENDING APPROVAL",
+                                "weight": "Bolder", "color": "Warning", "size": "Large"
+                            },
+                            {
+                                "type": "TextBlock", "wrap": true,
+                                "text": `${sorted.length} item${sorted.length === 1 ? "" : "s"} still waiting on ${waitingOn} sign-off.`
+                            },
+                            {
+                                "type": "FactSet", "facts": [
+                                    { "title": "Waiting on:", "value": `${waitingOn} ${mentionText}`.trim() },
+                                    { "title": "Items:", "value": String(sorted.length) },
+                                    { "title": "Oldest:", "value": oldest === null ? "-" : `${oldest} day${oldest === 1 ? "" : "s"}` },
+                                    { "title": "Reminded by:", "value": sender }
+                                ]
+                            },
+                            { "type": "TextBlock", "text": lines, "wrap": true }
+                        ],
+                        // Same guard as everywhere else: never emit an <at> token with no matching entity.
+                        ...(entities.length ? { "msteams": { "entities": entities } } : {}),
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "version": "1.4"
+                    }
+                }]
+            };
+        }
+
+        async function remindPending() {
+            const btn = document.getElementById("remind-btn");
+            const sender = (document.getElementById("sender-name").value || "").trim()
+                || sessionStorage.getItem("userId") || "QC System";
+
+            try {
+                btn.disabled = true;
+                btn.textContent = "Checking...";
+
+                // Always read fresh — the on-screen list may be stale.
+                const res = await api.get("/rest/v1/TeamsLog?status=neq.Completed&order=eng_initiated_at.asc");
+                const pending = res.data || [];
+
+                if (!pending.length) {
+                    alert("Nothing pending — no reminder sent.");
+                    return;
+                }
+
+                // Group by the role that owes the signature.
+                const groups = {};
+                const unknown = [];
+                pending.forEach(r => {
+                    const role = ROLE_FOR_STATUS[r.status];
+                    if (!role) { unknown.push(r); return; }
+                    (groups[role] = groups[role] || []).push(r);
+                });
+
+                const summary = Object.keys(groups)
+                    .map(role => `${groups[role].length} waiting on ${role}`)
+                    .join("\n");
+                if (!confirm(`Send a reminder to the Teams channel?\n\n${summary}`)) return;
+
+                btn.textContent = "Sending...";
+                let sent = 0;
+                const failed = [];
+                for (const role of Object.keys(groups)) {
+                    try {
+                        await axios.post(TEAMS_WEBHOOK_URL, buildReminderCard(role, groups[role], sender));
+                        sent++;
+                    } catch (e) {
+                        console.error("Reminder failed for " + role, e);
+                        failed.push(role);
+                    }
+                }
+
+                let msg = `Reminder sent for ${sent} group${sent === 1 ? "" : "s"}.`;
+                if (failed.length) msg += `\nFailed: ${failed.join(", ")}.`;
+                if (unknown.length) msg += `\nSkipped ${unknown.length} row(s) with an unrecognised status.`;
+                alert(msg);
+            } catch (e) {
+                console.error(e);
+                alert("Could not send reminders.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = "&#128276; Remind Pending";
+            }
+        }
+
         async function logApprovalStep(partsArray, step, sender) {
             for (const part of partsArray) {
                 try {
                     const checkRes = await api.get(`/rest/v1/TeamsLog?part_names=eq.${encodeURIComponent(part)}&status=neq.Completed`);
                     const payload = {
                         part_names: part,
-                        initiated_by: sender,
+                        // Stored uppercase so the initiator name stays consistent at the source,
+                        // matching how the checker form uppercases its text fields.
+                        initiated_by: (sender || "").trim().toUpperCase(),
                         status: step === "Management" ? "Pending MGMT" : "Pending QA",
                         eng_initiated_at: new Date().toISOString()
                     };
@@ -765,19 +1006,10 @@
                     await logApprovalStep(selectedPartsArray, respPerson, sender);
                 }
 
-                let mentionEntities = [];
-                let mentionText = "";
-
-                if (respPerson === "QA") {
-                    mentionText = "<at>Ayyub Sofi</at>";
-                    mentionEntities.push({ "type": "mention", "text": "<at>Ayyub Sofi</at>", "mentioned": { "id": "ayyub.sofi@famax.com.my", "name": "Ayyub Sofi" } });
-                } else if (respPerson === "ENG") {
-                    mentionText = "<at>Azim Bakar</at>";
-                    mentionEntities.push({ "type": "mention", "text": "<at>Azim Bakar</at>", "mentioned": { "id": "aiman.mazlan@fmefamax.com", "name": "Nor Aiman" } });
-                } else if (respPerson === "Management") {
-                    mentionText = "<at>Vicson Lee</at>";
-                    mentionEntities.push({ "type": "mention", "text": "<at>Vicson Lee</at>", "mentioned": { "id": "vicson.lee@famax.com.my", "name": "Vicson Lee" } });
-                }
+                // Both are built from the same recipient rows, so the <at> tokens in the body
+                // always have a matching entity — Teams rejects a card where they disagree.
+                const mentionEntities = TeamsRecipients.entities(respPerson);
+                const mentionText = TeamsRecipients.mentionText(respPerson);
 
                 const payload = {
                     "type": "message",
@@ -797,7 +1029,9 @@
                                 },
                                 { "type": "TextBlock", "text": message, "wrap": true }
                             ],
-                            "msteams": { "entities": mentionEntities },
+                            // Omit the block entirely when a role has nobody active — an <at>-free
+                            // card is valid, a card with an unmatched entity list is not.
+                            ...(mentionEntities.length ? { "msteams": { "entities": mentionEntities } } : {}),
                             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                             "version": "1.4"
                         }
@@ -814,9 +1048,156 @@
             }
         }
 
+        // ---------------- Notification recipients (role -> person) ----------------
+        // The people behind QA / ENG / Management live in the NotificationRecipient table.
+        // Editing them here means a resigned employee is replaced without touching code.
+
+        async function refreshRecipients() {
+            try {
+                await TeamsRecipients.load();
+            } catch (e) {
+                console.error("Recipient load failed:", e);
+                // Not fatal: sending still works, the card just carries no @mention.
+            }
+            autoGenerateMessage();
+        }
+
+        // Show the Manage button only for admins, mirroring AdminLogin.html's access lookup.
+        async function initRecipientAdmin() {
+            try {
+                const userId = sessionStorage.getItem("userId");
+                if (!userId) return;
+                const res = await api.get(
+                    `/rest/v1/AdminCredential?select=Access&UserId=eq.${encodeURIComponent(userId)}`
+                );
+                const access = (res.data[0] && res.data[0].Access || "").toUpperCase();
+                if (access === "ALL" || access === "MANAGEMENT") {
+                    document.getElementById("manage-recipients-btn").style.display = "inline-block";
+                }
+            } catch (e) {
+                console.warn("Access check failed; Manage Recipients stays hidden.", e);
+            }
+        }
+
+        function openRecipientsModal() {
+            document.getElementById("recipients-modal").style.display = "flex";
+            resetRecipientForm();
+            renderRecipientList();
+        }
+
+        function closeRecipientsModal() {
+            document.getElementById("recipients-modal").style.display = "none";
+        }
+
+        const esc = (s) => String(s == null ? "" : s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+        async function renderRecipientList() {
+            const box = document.getElementById("recipients-list");
+            box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">Loading…</div>`;
+            try {
+                const rows = await TeamsRecipients.loadAll();
+                if (!rows.length) {
+                    box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--text-muted); font-size:12px;">No recipients yet — add one below.</div>`;
+                    return;
+                }
+                box.innerHTML = rows.map(r => `
+                    <div class="rcp-row" style="${r.active ? "" : "opacity:.45;"}">
+                        <span class="rcp-role">${esc(r.role)}</span>
+                        <span style="font-weight:600;">${esc(r.display_name)}</span>
+                        <span style="color:var(--text-muted); font-size:12px; overflow:hidden; text-overflow:ellipsis;">${esc(r.email)}</span>
+                        <span style="font-size:11px; font-weight:700; color:${r.active ? "var(--success)" : "var(--text-muted)"};">
+                            ${r.active ? "ACTIVE" : "OFF"}
+                        </span>
+                        <span style="display:flex; gap:2px;">
+                            <button class="rcp-mini" style="color:var(--primary);"
+                                onclick='editRecipient(${JSON.stringify(r)})'>Edit</button>
+                            <button class="rcp-mini" style="color:var(--text-muted);"
+                                onclick="toggleRecipient(${r.id}, ${r.active ? "false" : "true"})">${r.active ? "Disable" : "Enable"}</button>
+                            <button class="rcp-mini" style="color:#ef4444;"
+                                onclick="deleteRecipient(${r.id})">Del</button>
+                        </span>
+                    </div>`).join("");
+            } catch (e) {
+                console.error(e);
+                box.innerHTML = `<div style="padding:14px; text-align:center; color:#ef4444; font-size:12px;">
+                    Could not load recipients. Has sql/2026-07-29_notification_recipient.sql been run?</div>`;
+            }
+        }
+
+        function resetRecipientForm() {
+            document.getElementById("recipient-id").value = "";
+            document.getElementById("recipient-name").value = "";
+            document.getElementById("recipient-email").value = "";
+            document.getElementById("recipient-active").checked = true;
+            document.getElementById("recipient-role").value = "QA";
+            document.getElementById("recipient-form-title").textContent = "Add recipient";
+            document.getElementById("recipient-save-btn").textContent = "Save";
+        }
+
+        function editRecipient(r) {
+            document.getElementById("recipient-id").value = r.id;
+            document.getElementById("recipient-role").value = r.role;
+            document.getElementById("recipient-name").value = r.display_name;
+            document.getElementById("recipient-email").value = r.email;
+            document.getElementById("recipient-active").checked = !!r.active;
+            document.getElementById("recipient-form-title").textContent = "Edit recipient #" + r.id;
+            document.getElementById("recipient-save-btn").textContent = "Update";
+        }
+
+        async function saveRecipient() {
+            const id = document.getElementById("recipient-id").value;
+            const row = {
+                role: document.getElementById("recipient-role").value,
+                display_name: document.getElementById("recipient-name").value.trim(),
+                email: document.getElementById("recipient-email").value.trim(),
+                active: document.getElementById("recipient-active").checked
+            };
+            if (!row.display_name) return alert("Display name is required.");
+            if (!row.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email))
+                return alert("A valid email address is required — it is what Teams uses to @mention.");
+
+            try {
+                if (id) await TeamsRecipients.update(id, row);
+                else await TeamsRecipients.create(row);
+                resetRecipientForm();
+                await renderRecipientList();
+                await refreshRecipients();   // preview reflects the change immediately
+            } catch (e) {
+                console.error(e);
+                alert("Could not save recipient.");
+            }
+        }
+
+        async function toggleRecipient(id, active) {
+            try {
+                await TeamsRecipients.update(id, { active });
+                await renderRecipientList();
+                await refreshRecipients();
+            } catch (e) { console.error(e); alert("Could not update recipient."); }
+        }
+
+        async function deleteRecipient(id) {
+            if (!confirm("Remove this recipient permanently? Use Disable if you only want to stop notifying them.")) return;
+            try {
+                await TeamsRecipients.remove(id);
+                await renderRecipientList();
+                await refreshRecipients();
+            } catch (e) { console.error(e); alert("Could not delete recipient."); }
+        }
+
+        // Close on backdrop click
+        document.addEventListener("mousedown", (e) => {
+            const m = document.getElementById("recipients-modal");
+            if (m && m.style.display === "flex" && e.target === m) closeRecipientsModal();
+        });
+
         window.onload = () => {
             loadPartsList();
             loadApprovalLogs();
+            refreshRecipients();
+            initRecipientAdmin();
         };
     </script>
 </body>
