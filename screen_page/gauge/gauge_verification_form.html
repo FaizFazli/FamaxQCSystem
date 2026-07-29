@@ -36,6 +36,12 @@
             text-transform: uppercase;
         }
 
+        /* Search dropdowns are pinned with `top-full`, not left to their static position.
+           theme.css makes .field a flex column, and an absolutely-positioned child of a
+           flex container takes its static position from the container's top-left corner
+           rather than from where it sits in flow — so a panel without an explicit `top`
+           renders straight over its own label and input, hiding what you type. */
+
         .pdf-viewer-container {
             height: 85vh;
             /* Sets height to 85% of the screen height */
@@ -103,6 +109,11 @@
                 <button @click="view = 'addgauge'"
                     :class="view === 'addgauge' ? 'is-active' : ''"
                     class="tab">Add Gauge</button>
+
+                <button @click="openRevisionPage"
+                    :class="view === 'revision' ? 'is-active' : ''"
+                    class="tab">Revision
+                    Control</button>
             </div>
 
             <!-- Branding Section -->
@@ -131,10 +142,12 @@
                                 class="input cap" placeholder="SEARCH GAUGE...">
                             <transition name="dropdown">
                                 <div v-if="showGaugeList && filteredGauges.length > 0"
-                                    class="absolute z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                                    class="absolute top-full left-0 z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                                     <div v-for="g in filteredGauges" :key="g.id" @click="selectGauge(g)"
                                         class="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0">
-                                        <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}</p>
+                                        <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}
+                                            <span class="ml-2 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] tracking-widest align-middle">REV {{ revLabel(g) }}</span>
+                                        </p>
                                         <p class="text-[10px] text-slate-500 font-bold cap">{{ g.gauge_name }}</p>
                                     </div>
                                 </div>
@@ -149,6 +162,22 @@
                         <div class="field">
                             <label class="label">Drawing No</label>
                             <input v-model="form.drawing_no" class="input cap">
+                        </div>
+
+                        <!-- Revision is never typed here: it is set in Revision Control and merely
+                             stamped onto this record so the certificate keeps its own history. -->
+                        <div class="field">
+                            <label class="label">Revision (Drawing + Gauge)</label>
+                            <div class="input flex items-center justify-between"
+                                style="background: var(--surface-2, #f8fafc); cursor: not-allowed;">
+                                <span class="font-black tracking-widest text-slate-700">
+                                    {{ form.gauge_no ? 'REV ' + form.drawing_rev + form.gauge_rev : '—' }}
+                                </span>
+                                <span v-if="form.gauge_no"
+                                    class="text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                                    DWG {{ form.drawing_rev }} · GAUGE {{ form.gauge_rev }}
+                                </span>
+                            </div>
                         </div>
 
                         <div class="field">
@@ -177,6 +206,22 @@
                             <input type="date" v-model="form.due_date" readonly class="input">
                         </div>
                     </div>
+                    <!-- GAUGE PHOTO: reference only, so it stays behind a button instead of
+                         competing with the drawing for space on the form. -->
+                    <div v-if="form.gauge_no" class="mb-10 flex items-center gap-4">
+                        <button v-if="form.image_path" @click="showImageModal = true" class="btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            VIEW GAUGE PHOTO
+                        </button>
+                        <p v-else class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            No photo on file for this gauge — add one when registering it.
+                        </p>
+                    </div>
+
                     <!--PDF VIEW SECTION-->
                     <div v-if="form.drawing_path" class="mb-10">
                         <!-- Header with File Info -->
@@ -388,7 +433,9 @@
 
                                 <!-- Gauge ID -->
                                 <td class="px-6 py-4">
-                                    <p class="font-black text-slate-800 text-sm cap">{{ rec.gauges?.gauge_no }}</p>
+                                    <p class="font-black text-slate-800 text-sm cap">{{ rec.gauges?.gauge_no }}
+                                        <span class="ml-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] tracking-widest align-middle">REV {{ recordRev(rec) }}</span>
+                                    </p>
                                 </td>
 
                                 <!-- Part No -->
@@ -483,7 +530,7 @@
 
                     <transition name="dropdown">
                         <div v-if="showReportDropdown && filteredGaugesReport.length > 0"
-                            class="absolute z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                            class="absolute top-full left-0 z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
                             <div v-for="g in filteredGaugesReport" :key="g.id" @click="fetchHistory(g)"
                                 class="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50">
                                 <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}</p>
@@ -499,6 +546,7 @@
                         <thead>
                             <tr>
                                 <th>Verify Date</th>
+                                <th>Revision</th>
                                 <th>Auditor</th>
                                 <th>Approval Status</th>
                                 <th class="text-center">Action</th>
@@ -507,6 +555,11 @@
                         <tbody>
                             <tr v-for="h in reportHistory" :key="h.id" class="hover:bg-slate-50/50">
                                 <td class="p-6 font-bold text-slate-700">{{ h.verify_date }}</td>
+                                <td class="p-6">
+                                    <span class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[10px] font-black tracking-widest">
+                                        REV {{ recordRev(h) }}
+                                    </span>
+                                </td>
                                 <td class="p-6 font-bold text-slate-500 cap">{{ h.verified_by }}</td>
                                 <td class="p-6">
                                     <span
@@ -574,6 +627,25 @@
                                 class="input">
                             <p v-if="gaugeFileName" class="text-[10px] text-slate-500 font-bold mt-1 cap">{{ gaugeFileName }}</p>
                         </div>
+
+                        <!-- Photograph of the gauge itself — identification aid, not a controlled
+                             document. The drawing PDF above stays the thing we verify against. -->
+                        <div class="field">
+                            <label class="label">Gauge Photo (PNG / JPEG)</label>
+                            <input id="gauge-image-input" type="file" accept="image/png,image/jpeg"
+                                @change="onGaugeImage" class="input">
+                            <p v-if="gaugeImageName" class="text-[10px] text-slate-500 font-bold mt-1 cap">
+                                {{ gaugeImageName }}</p>
+                            <p v-else class="text-[10px] text-slate-400 font-bold mt-1">
+                                Optional. PNG or JPEG only.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Preview so the operator can see they picked the right photo before saving -->
+                    <div v-if="gaugeImagePreview" class="mb-8 flex justify-center">
+                        <img :src="gaugeImagePreview" alt="Gauge photo preview"
+                            class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 max-h-64 object-contain">
                     </div>
 
                     <p v-if="addGaugeMsg" class="text-red-500 font-bold text-sm mb-4 text-center">{{ addGaugeMsg }}</p>
@@ -586,6 +658,300 @@
                 </div>
             </div>
         </div>
+
+        <!-- 5. REVISION CONTROL -->
+        <div v-if="view === 'revision'" class="animate-in fade-in duration-500">
+            <div class="panel">
+                <div class="bg-slate-900 p-8 text-white">
+                    <h1 class="text-3xl font-black tracking-tight uppercase">Gauge Revision Control</h1>
+                    <p class="text-slate-400 mt-1 font-medium text-xs uppercase tracking-widest">
+                        Drawing revision 1 · 2 · 3 &nbsp;—&nbsp; Gauge replacement A · B · C
+                    </p>
+                </div>
+
+                <div class="panel__body p-8">
+                    <!-- GAUGE PICKER -->
+                    <div class="field max-w-md mb-8 relative" id="revision_filter_wrapper">
+                        <label class="label">Select Gauge</label>
+                        <input type="text" v-model="revFilter.gauge_no" @focus="showRevDropdown = true"
+                            class="input cap" placeholder="TYPE GAUGE NO...">
+                        <transition name="dropdown">
+                            <div v-if="showRevDropdown && filteredGaugesRevision.length > 0"
+                                class="absolute top-full left-0 z-50 w-full mt-2 bg-white shadow-2xl rounded-2xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                                <div v-for="g in filteredGaugesRevision" :key="g.id" @click="selectRevisionGauge(g)"
+                                    class="p-4 hover:bg-indigo-50 cursor-pointer border-b border-slate-50 last:border-0">
+                                    <p class="font-black text-indigo-600 text-sm cap">{{ g.gauge_no }}
+                                        <span class="ml-2 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] tracking-widest align-middle">REV {{ revLabel(g) }}</span>
+                                    </p>
+                                    <p class="text-[10px] text-slate-500 font-bold cap">{{ g.gauge_name }}</p>
+                                </div>
+                            </div>
+                        </transition>
+                    </div>
+
+                    <div v-if="!revGauge" class="py-20 text-center text-slate-300 font-bold uppercase text-xs">
+                        Select a gauge to view or raise a revision.
+                    </div>
+
+                    <div v-else>
+                        <!-- CURRENT STATE -->
+                        <div class="rounded-3xl border border-slate-100 bg-slate-50 p-6 mb-8 flex flex-wrap items-center gap-8">
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Gauge</p>
+                                <p class="text-xl font-black text-slate-800 cap">{{ revGauge.gauge_no }}</p>
+                                <p class="text-[10px] font-bold text-slate-500 cap">{{ revGauge.gauge_name }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Current Revision</p>
+                                <p class="text-3xl font-black text-indigo-600 tracking-tighter">REV {{ revLabel(revGauge) }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Drawing No</p>
+                                <p class="text-sm font-black text-slate-700 cap">{{ revGauge.drawing_no }}</p>
+                                <a v-if="revGauge.drawing_path" :href="revGauge.drawing_path" target="_blank"
+                                    class="text-[10px] font-black text-indigo-500 hover:underline uppercase tracking-widest">Open current drawing ↗</a>
+                            </div>
+                        </div>
+
+                        <p v-if="revMsg" class="text-red-500 font-bold text-sm mb-6 text-center">{{ revMsg }}</p>
+
+                        <!-- GAUGE PHOTO — reference only, so it is NOT a revision: swapping the
+                             photo changes nothing that was verified, and gets no history row. -->
+                        <div class="rounded-3xl border-2 border-slate-100 bg-white p-6 mb-8">
+                            <h3 class="font-black text-lg tracking-tight uppercase flex items-center mb-1">
+                                <span class="w-1.5 h-6 bg-emerald-500 rounded-full mr-3"></span>
+                                Gauge Photo
+                            </h3>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-5">
+                                Reference image · PNG or JPEG · replaces the current photo
+                            </p>
+
+                            <div class="flex flex-wrap items-start gap-8">
+                                <!-- what is on file now -->
+                                <div class="shrink-0">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                                        Current</p>
+                                    <img v-if="revGauge.image_path" :src="revGauge.image_path" alt="Current gauge photo"
+                                        class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 object-contain"
+                                        style="max-height: 10rem; max-width: 16rem;">
+                                    <div v-else
+                                        class="rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 font-black uppercase text-[10px] tracking-widest flex items-center justify-center"
+                                        style="height: 10rem; width: 16rem;">
+                                        No photo on file
+                                    </div>
+                                </div>
+
+                                <!-- the replacement -->
+                                <div class="shrink-0">
+                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                                        New</p>
+                                    <img v-if="revImagePreview" :src="revImagePreview" alt="New gauge photo preview"
+                                        class="rounded-2xl border-4 border-white shadow-xl shadow-emerald-100 object-contain"
+                                        style="max-height: 10rem; max-width: 16rem;">
+                                    <div v-else
+                                        class="rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 font-black uppercase text-[10px] tracking-widest flex items-center justify-center"
+                                        style="height: 10rem; width: 16rem;">
+                                        Nothing selected
+                                    </div>
+                                </div>
+
+                                <div class="flex-1 min-w-[16rem] space-y-4">
+                                    <div class="field">
+                                        <label class="label">Select Photo (PNG / JPEG)</label>
+                                        <input id="rev-image-input" type="file" accept="image/png,image/jpeg"
+                                            @change="onRevImageFile" class="input">
+                                        <p v-if="revImageName" class="text-[10px] text-slate-500 font-bold mt-1 cap">
+                                            {{ revImageName }}</p>
+                                    </div>
+
+                                    <p v-if="revImageMsg"
+                                        :class="revImageOk ? 'text-emerald-600' : 'text-red-500'"
+                                        class="font-bold text-sm">{{ revImageMsg }}</p>
+
+                                    <button @click="updateGaugeImage" :disabled="isUploadingImage || !revImageName"
+                                        class="btn" style="background: var(--success, #10b981);">
+                                        {{ isUploadingImage ? 'Uploading…' : (revGauge.image_path ? 'Replace Photo' : 'Upload Photo') }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- THE TWO ACTIONS -->
+                        <div class="grid gap-6 md:grid-cols-2 mb-12">
+                            <!-- DRAWING REVISION -->
+                            <div class="rounded-3xl border-2 border-indigo-100 bg-white p-6">
+                                <h3 class="font-black text-lg tracking-tight uppercase flex items-center mb-1">
+                                    <span class="w-1.5 h-6 bg-indigo-600 rounded-full mr-3"></span>
+                                    Drawing Revision
+                                </h3>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-5">
+                                    REV {{ revLabel(revGauge) }} → REV {{ nextDrawingLabel }} · letter resets to A
+                                </p>
+
+                                <div class="space-y-4">
+                                    <div class="field">
+                                        <label class="label">New Drawing No</label>
+                                        <input v-model="drawingRev.drawing_no" class="input cap">
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">New Drawing PDF *</label>
+                                        <input id="rev-drawing-file" type="file" accept="application/pdf"
+                                            @change="onRevDrawingFile" class="input">
+                                        <p v-if="drawingRevFileName" class="text-[10px] text-slate-500 font-bold mt-1 cap">
+                                            {{ drawingRevFileName }}</p>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Reason for Revision *</label>
+                                        <input v-model="drawingRev.reason" class="input cap"
+                                            placeholder="e.g. CUSTOMER DRAWING REV C">
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Revised By *</label>
+                                        <input v-model="drawingRev.changed_by" class="input cap">
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Effective Date</label>
+                                        <input type="date" v-model="drawingRev.effective_date" class="input">
+                                    </div>
+                                </div>
+
+                                <p class="text-[10px] font-bold text-slate-400 mt-4 leading-relaxed">
+                                    The REV {{ revGauge.drawing_rev }} dimensions are copied forward as a starting
+                                    point — edit the ones that changed on the next verification. Records already
+                                    signed keep the REV {{ revGauge.drawing_rev }} tolerances.
+                                </p>
+
+                                <button @click="raiseDrawingRevision" :disabled="isRevising"
+                                    class="btn w-full mt-6">
+                                    {{ isRevising ? 'Working…' : 'Issue Drawing Revision ' + nextDrawingLabel }}
+                                </button>
+                            </div>
+
+                            <!-- GAUGE REPLACEMENT -->
+                            <div class="rounded-3xl border-2 border-amber-100 bg-white p-6">
+                                <h3 class="font-black text-lg tracking-tight uppercase flex items-center mb-1">
+                                    <span class="w-1.5 h-6 bg-amber-500 rounded-full mr-3"></span>
+                                    Gauge Replacement
+                                </h3>
+                                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-5">
+                                    REV {{ revLabel(revGauge) }} → REV {{ nextGaugeLabel }} · drawing unchanged
+                                </p>
+
+                                <div class="space-y-4">
+                                    <div class="field">
+                                        <label class="label">Reason for Replacement *</label>
+                                        <input v-model="gaugeRev.reason" class="input cap"
+                                            placeholder="e.g. WEAR AND TEAR">
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Replaced By *</label>
+                                        <input v-model="gaugeRev.changed_by" class="input cap">
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Effective Date</label>
+                                        <input type="date" v-model="gaugeRev.effective_date" class="input">
+                                    </div>
+                                </div>
+
+                                <p class="text-[10px] font-bold text-slate-400 mt-4 leading-relaxed">
+                                    Same drawing (REV {{ revGauge.drawing_rev }}), new physical gauge. Dimensions and
+                                    tolerances carry over untouched — only the letter advances.
+                                </p>
+
+                                <button @click="replaceGauge" :disabled="isRevising"
+                                    class="btn w-full mt-6" style="background: var(--warning, #f59e0b);">
+                                    {{ isRevising ? 'Working…' : 'Record Replacement ' + nextGaugeLabel }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- HISTORY -->
+                        <h3 class="font-black text-lg tracking-tight uppercase flex items-center mb-4">
+                            <span class="w-1.5 h-6 bg-slate-800 rounded-full mr-3"></span>
+                            Revision History
+                        </h3>
+                        <div class="overflow-hidden border border-slate-100 rounded-[32px]">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Effective</th>
+                                        <th>Type</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                        <th>Reason</th>
+                                        <th>By</th>
+                                        <th class="text-center">Drawing</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="h in revHistory" :key="h.id" class="hover:bg-slate-50/50">
+                                        <td class="p-5 font-bold text-slate-700">{{ h.effective_date }}</td>
+                                        <td class="p-5">
+                                            <span
+                                                :class="h.rev_type === 'DRAWING' ? 'text-indigo-600 bg-indigo-50' : 'text-amber-600 bg-amber-50'"
+                                                class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                {{ h.rev_type === 'DRAWING' ? 'DRAWING' : 'REPLACEMENT' }}
+                                            </span>
+                                        </td>
+                                        <td class="p-5 font-black text-slate-400">
+                                            {{ h.from_drawing_rev ? h.from_drawing_rev + h.from_gauge_rev : '—' }}
+                                        </td>
+                                        <td class="p-5 font-black text-slate-800">{{ h.to_drawing_rev }}{{ h.to_gauge_rev }}</td>
+                                        <td class="p-5 font-bold text-slate-500 text-xs cap">{{ h.reason }}</td>
+                                        <td class="p-5 font-bold text-slate-500 text-xs cap">{{ h.changed_by }}</td>
+                                        <td class="p-5 text-center">
+                                            <a v-if="h.drawing_path" :href="h.drawing_path" target="_blank"
+                                                class="text-indigo-600 font-black text-[10px] hover:underline uppercase tracking-widest">VIEW</a>
+                                            <span v-else class="text-slate-200">—</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div v-if="revHistory.length === 0"
+                                class="py-16 text-center text-slate-300 font-bold uppercase text-xs">
+                                No revision history for this gauge.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAUGE PHOTO MODAL -->
+        <transition name="dropdown">
+            <div v-if="showImageModal" class="modal-overlay">
+                <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" @click="showImageModal = false"></div>
+
+                <div class="modal relative w-full overflow-hidden flex flex-col"
+                    style="max-width: 56rem; max-height: 90vh; padding: 0; text-align: left;">
+
+                    <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-black uppercase tracking-tighter">Gauge Photo</h2>
+                            <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase mt-1">
+                                {{ form.gauge_no }} — REV {{ form.drawing_rev }}{{ form.gauge_rev }} — REFERENCE ONLY
+                            </p>
+                        </div>
+                        <button @click="showImageModal = false"
+                            class="text-slate-400 hover:text-white text-2xl font-black leading-none">&times;</button>
+                    </div>
+
+                    <div class="p-6 bg-slate-100 flex-1 overflow-auto flex items-center justify-center">
+                        <img v-if="form.image_path" :src="form.image_path" alt="Gauge photo"
+                            class="max-w-full rounded-2xl shadow-2xl object-contain"
+                            style="max-height: 65vh;">
+                    </div>
+
+                    <div class="p-5 bg-white border-t border-slate-100 flex justify-between items-center">
+                        <a :href="form.image_path" target="_blank"
+                            class="text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:underline">
+                            Open full size ↗
+                        </a>
+                        <button @click="showImageModal = false" class="btn btn--secondary">Close</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
 
         <!-- REPORT DETAIL MODAL -->
         <transition name="dropdown">
@@ -602,7 +968,8 @@
                         <div>
                             <h2 class="text-2xl font-black uppercase tracking-tighter">Verification Details</h2>
                             <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase mt-1">
-                                {{ selectedRecord?.gauges?.gauge_no }} — RECORDED ON {{ selectedRecord?.verify_date }}
+                                {{ selectedRecord?.gauges?.gauge_no }} — REV {{ recordRev(selectedRecord) }} — RECORDED
+                                ON {{ selectedRecord?.verify_date }}
                             </p>
                         </div>
                         <button @click="showReportModal = false"
@@ -738,7 +1105,8 @@
                         <div>
                             <h2 class="text-xl font-black uppercase tracking-tighter">Audit & Review Phase</h2>
                             <p class="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">
-                                Gauge: {{ selectedApprovalRecord?.gauges?.gauge_no }} — Operator: {{
+                                Gauge: {{ selectedApprovalRecord?.gauges?.gauge_no }} — Rev {{
+                                recordRev(selectedApprovalRecord) }} — Operator: {{
                                 selectedApprovalRecord?.verified_by }}
                             </p>
                         </div>
@@ -876,7 +1244,10 @@
                         <td
                             style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; width: 30mm; background: #eee;">
                             GAUGE NO:</td>
+                        <!-- Revision rides in the GAUGE NO cell: adding a 4th info row would break
+                             the 282mm one-page lock this template depends on. -->
                         <td style="border: 0.5pt solid black; padding-left: 5px; width: 65mm;">{{ printData.gauge_no }}
+                            <span style="font-weight: bold;">&nbsp;&nbsp;REV {{ printData.rev }}</span>
                         </td>
                         <td
                             style="border: 0.5pt solid black; padding-left: 5px; font-weight: bold; width: 35mm; background: #eee;">
@@ -1025,15 +1396,41 @@
                 const newGauge = reactive({ gauge_no: '', gauge_name: '', drawing_no: '', for_process: '', part_no: '' });
                 const gaugeFile = ref(null);
                 const gaugeFileName = ref('');
+                const gaugeImage = ref(null);
+                const gaugeImageName = ref('');
+                const gaugeImagePreview = ref('');
+                const showImageModal = ref(false);
+                const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg'];
                 const isAddingGauge = ref(false);
                 const addGaugeMsg = ref('');
                 const GAUGE_BUCKET = 'gauge'; // Supabase Storage bucket for drawing PDFs
+
+                // --- REVISION CONTROL STATE ---
+                const revFilter = reactive({ gauge_no: '' });
+                const showRevDropdown = ref(false);
+                const revGauge = ref(null);          // the gauge master currently being revised
+                const revHistory = ref([]);
+                const isRevising = ref(false);
+                const revMsg = ref('');
+                const drawingRevFile = ref(null);
+                const drawingRevFileName = ref('');
+                const revImageFile = ref(null);
+                const revImageName = ref('');
+                const revImagePreview = ref('');
+                const revImageMsg = ref('');
+                const revImageOk = ref(false);
+                const isUploadingImage = ref(false);
+                const drawingRev = reactive({ drawing_no: '', reason: '', changed_by: '', effective_date: getToday() });
+                const gaugeRev = reactive({ reason: 'WEAR AND TEAR', changed_by: '', effective_date: getToday() });
 
                 const form = reactive({
                     gauge_no: '',
                     gauge_name: '',
                     drawing_no: '',
                     drawing_path: '',
+                    image_path: '',
+                    drawing_rev: 1,     // stamped onto the record, never typed by the operator
+                    gauge_rev: 'A',
                     for_process: '',
                     part_no: '',
                     verified_by: '',
@@ -1050,12 +1447,41 @@
                     return gaugeMasters.value.filter(g => g.gauge_no.toUpperCase().includes(q));
                 });
 
+                // --- REVISION HELPERS ---
+                // "1A" for a gauge master. Gauges registered before revision control default to 1A.
+                const revLabel = (g) => `${g?.drawing_rev ?? 1}${g?.gauge_rev ?? 'A'}`;
+
+                // The revision a record was SIGNED against — never the gauge's current revision,
+                // otherwise an old certificate would silently re-badge itself after a revision.
+                const recordRev = (rec) => `${rec?.drawing_rev ?? 1}${rec?.gauge_rev ?? 'A'}`;
+
+                // A -> B ... Z -> AA. Spreadsheet-style so the letters never run out.
+                const nextLetter = (letter) => {
+                    const s = (letter || 'A').toUpperCase();
+                    let i = s.length - 1;
+                    let out = s.split('');
+                    while (i >= 0) {
+                        if (out[i] === 'Z') { out[i] = 'A'; i--; }
+                        else { out[i] = String.fromCharCode(out[i].charCodeAt(0) + 1); return out.join(''); }
+                    }
+                    return 'A' + out.join('');
+                };
+
+                const nextDrawingLabel = computed(() =>
+                    revGauge.value ? `${(revGauge.value.drawing_rev ?? 1) + 1}A` : '');
+
+                const nextGaugeLabel = computed(() =>
+                    revGauge.value ? `${revGauge.value.drawing_rev ?? 1}${nextLetter(revGauge.value.gauge_rev)}` : '');
+
                 const selectGauge = async (match) => {
                     form.gauge_no = match.gauge_no;
                     form.gauge_name = match.gauge_name;
                     form.drawing_no = match.drawing_no;
                     form.for_process = match.for_process;
                     form.drawing_path = match.drawing_path;
+                    form.image_path = match.image_path || '';
+                    form.drawing_rev = match.drawing_rev ?? 1;
+                    form.gauge_rev = match.gauge_rev ?? 'A';
 
                     const { data: partsData, error: pError } = await _supabase
                         .from('gauge_parts')
@@ -1071,9 +1497,12 @@
                     showGaugeList.value = false;
                     rotation.value = 0;
 
+                    // Only the spec set belonging to the CURRENT drawing revision. Superseded
+                    // revisions stay in the table so old records keep their original tolerances.
                     const { data: specs } = await _supabase.from('gauge_specifications')
                         .select('*')
-                        .eq('gauge_id', match.id);
+                        .eq('gauge_id', match.id)
+                        .eq('drawing_rev', form.drawing_rev);
 
                     form.go_specs = (specs || []).filter(s => s.section_type === 'GO').map(s => ({ ...s, actual_reading: null, status: '', overridden: false, remark: '' }));
                     form.nogo_specs = (specs || []).filter(s => s.section_type === 'NO GO').map(s => ({ ...s, actual_reading: null, status: '', overridden: false, remark: '' }));
@@ -1097,8 +1526,10 @@
                 const closeDropdown = (e) => {
                     const el = document.getElementById('gauge_select_wrapper');
                     const elReport = document.getElementById('report_filter_wrapper'); // Added this
+                    const elRev = document.getElementById('revision_filter_wrapper');
                     if (el && !el.contains(e.target)) showGaugeList.value = false;
                     if (elReport && !elReport.contains(e.target)) showReportDropdown.value = false;
+                    if (elRev && !elRev.contains(e.target)) showRevDropdown.value = false;
                 };
 
                 onMounted(() => {
@@ -1158,6 +1589,21 @@
                         if (gError || !gRec || gRec.length === 0) throw new Error("Gauge Update Failed: " + gError?.message);
                         const gaugeData = gRec[0];
 
+                        // The revision comes back from the DB, not from the form: if someone raised a
+                        // revision while this form sat open, the record is stamped with what is
+                        // actually in force, and the operator sees it on the certificate.
+                        const drawingRevNow = gaugeData.drawing_rev ?? 1;
+                        const gaugeRevNow = gaugeData.gauge_rev ?? 'A';
+                        if (form.gauge_no && (drawingRevNow !== form.drawing_rev || gaugeRevNow !== form.gauge_rev)) {
+                            const ok = confirm(
+                                `This gauge moved to REV ${drawingRevNow}${gaugeRevNow} while the form was open ` +
+                                `(you started on REV ${form.drawing_rev}${form.gauge_rev}).\n\n` +
+                                `Save this verification against REV ${drawingRevNow}${gaugeRevNow}?`);
+                            if (!ok) { isSubmitting.value = false; return; }
+                            form.drawing_rev = drawingRevNow;
+                            form.gauge_rev = gaugeRevNow;
+                        }
+
                         // --- STEP 2: VERIFICATION RECORD (Always CREATE NEW entry for history) ---
                         const { data: hRec, error: hError } = await _supabase.from('verification_records').insert({
                             gauge_id: gaugeData.id,
@@ -1165,6 +1611,8 @@
                             verified_by: up(form.verified_by),
                             verify_date: form.verify_date,
                             due_date: form.due_date,
+                            drawing_rev: drawingRevNow,
+                            gauge_rev: gaugeRevNow,
                             approval_status: 'PENDING'
                         }).select();
 
@@ -1183,6 +1631,7 @@
                                 // A. GAUGE SPECIFICATION (Update existing slot or create new slot)
                                 const { data: sRec, error: sError } = await _supabase.from('gauge_specifications').upsert({
                                     gauge_id: gaugeData.id,
+                                    drawing_rev: drawingRevNow, // scoped: edits here never touch an older revision
                                     part_no: up(form.part_no),
                                     section_type: s.t,
                                     line_no: n++, // This matches the 1, 2, 3 sequence
@@ -1190,7 +1639,7 @@
                                     nominal_value: r.nominal_value,
                                     upper_tol: r.upper_tol,
                                     lower_tol: r.lower_tol
-                                }, { onConflict: 'gauge_id,section_type,line_no' }).select();
+                                }, { onConflict: 'gauge_id,drawing_rev,section_type,line_no' }).select();
 
                                 if (sError || !sRec) {
                                     console.error("Master Spec Sync Error:", sError);
@@ -1224,17 +1673,26 @@
                     }
                 };
 
-                const resetFormAfterSuccess = () => {
-                    // Clear relevant form data to allow the next entry
+                // Drop the loaded gauge from the verification form. Used after a save, and after a
+                // drawing revision — the specs on screen belong to the superseded revision and must
+                // not be submitted against the new one.
+                const clearGaugeSelection = () => {
                     form.gauge_no = '';
                     form.for_process = '';
                     form.gauge_name = '';
                     form.drawing_no = '';
                     form.drawing_path = '';
+                    form.image_path = '';
+                    form.drawing_rev = 1;
+                    form.gauge_rev = 'A';
                     form.part_no = '';
                     form.go_specs = [];
                     form.nogo_specs = [];
                     rotation.value = 0;
+                };
+
+                const resetFormAfterSuccess = () => {
+                    clearGaugeSelection();
                     showSuccessModal.value = false;
                     view.value = 'form';
                 };
@@ -1380,6 +1838,27 @@
                     gaugeFileName.value = f ? f.name : '';
                 };
 
+                // PNG/JPEG only, checked on the MIME type rather than the filename — the accept
+                // attribute is a file-picker hint, not a guarantee, and a renamed .png sails past it.
+                const onGaugeImage = (e) => {
+                    const f = e.target.files && e.target.files[0];
+                    addGaugeMsg.value = '';
+
+                    if (f && !ALLOWED_IMAGE_TYPES.includes(f.type)) {
+                        addGaugeMsg.value = 'Gauge photo must be a PNG or JPEG image.';
+                        e.target.value = '';
+                        gaugeImage.value = null;
+                        gaugeImageName.value = '';
+                        gaugeImagePreview.value = '';
+                        return;
+                    }
+
+                    gaugeImage.value = f || null;
+                    gaugeImageName.value = f ? f.name : '';
+                    if (gaugeImagePreview.value) URL.revokeObjectURL(gaugeImagePreview.value);
+                    gaugeImagePreview.value = f ? URL.createObjectURL(f) : '';
+                };
+
                 const addNewGauge = async () => {
                     const g = newGauge;
                     if (!g.gauge_no || !g.gauge_name || !g.drawing_no || !g.for_process) {
@@ -1388,15 +1867,20 @@
                     }
                     if (!gaugeFile.value) { addGaugeMsg.value = 'Please upload the drawing PDF.'; return; }
                     if (gaugeFile.value.type !== 'application/pdf') { addGaugeMsg.value = 'Drawing must be a PDF file.'; return; }
+                    if (gaugeImage.value && !ALLOWED_IMAGE_TYPES.includes(gaugeImage.value.type)) {
+                        addGaugeMsg.value = 'Gauge photo must be a PNG or JPEG image.'; return;
+                    }
 
                     isAddingGauge.value = true;
                     addGaugeMsg.value = '';
                     try {
                         const up = (v) => String(v).toUpperCase().trim();
 
-                        // 1. Upload the drawing PDF to the storage bucket
+                        // 1. Upload the drawing PDF to the storage bucket. The photo shares this
+                        //    base name so the pair sits together in the bucket listing.
                         const safe = up(g.gauge_no).replace(/[^A-Z0-9_-]/g, '_');
-                        const path = `${safe}-${Date.now()}.pdf`;
+                        const base = `${safe}-${Date.now()}`;
+                        const path = `${base}.pdf`;
                         const { error: upErr } = await _supabase.storage
                             .from(GAUGE_BUCKET)
                             .upload(path, gaugeFile.value, { upsert: true, contentType: 'application/pdf' });
@@ -1405,14 +1889,35 @@
                         const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(path);
                         const drawingUrl = pub.publicUrl;
 
-                        // 2. Create/refresh the gauge master
-                        const { data: gRec, error: gErr } = await _supabase.from('gauges').upsert({
+                        // 2. Optional gauge photograph, same bucket, same base name.
+                        let imageUrl = null;
+                        if (gaugeImage.value) {
+                            const ext = gaugeImage.value.type === 'image/png' ? 'png' : 'jpg';
+                            const imgPath = `${base}.${ext}`;
+                            const { error: imgErr } = await _supabase.storage
+                                .from(GAUGE_BUCKET)
+                                .upload(imgPath, gaugeImage.value, {
+                                    upsert: true, contentType: gaugeImage.value.type
+                                });
+                            if (imgErr) throw new Error('Photo upload failed: ' + imgErr.message);
+
+                            const { data: imgPub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(imgPath);
+                            imageUrl = imgPub.publicUrl;
+                        }
+
+                        // 3. Create/refresh the gauge master. image_path is only sent when a photo
+                        //    was actually chosen — omitting it leaves any existing photo alone.
+                        const payload = {
                             gauge_no: up(g.gauge_no),
                             gauge_name: up(g.gauge_name),
                             drawing_no: up(g.drawing_no),
                             for_process: up(g.for_process),
                             drawing_path: drawingUrl
-                        }, { onConflict: 'gauge_no' }).select();
+                        };
+                        if (imageUrl) payload.image_path = imageUrl;
+
+                        const { data: gRec, error: gErr } = await _supabase.from('gauges')
+                            .upsert(payload, { onConflict: 'gauge_no' }).select();
                         if (gErr || !gRec || !gRec.length) throw new Error('Save failed: ' + (gErr?.message || 'no row'));
 
                         // 3. Optional part link
@@ -1426,7 +1931,11 @@
                         newGauge.gauge_no = ''; newGauge.gauge_name = ''; newGauge.drawing_no = '';
                         newGauge.for_process = ''; newGauge.part_no = '';
                         gaugeFile.value = null; gaugeFileName.value = '';
+                        gaugeImage.value = null; gaugeImageName.value = '';
+                        if (gaugeImagePreview.value) URL.revokeObjectURL(gaugeImagePreview.value);
+                        gaugeImagePreview.value = '';
                         const fi = document.getElementById('gauge-file-input'); if (fi) fi.value = '';
+                        const ii = document.getElementById('gauge-image-input'); if (ii) ii.value = '';
 
                         alert('Gauge "' + up(g.gauge_no) + '" registered and drawing uploaded.');
                         view.value = 'form';
@@ -1435,6 +1944,328 @@
                         addGaugeMsg.value = e.message || 'Could not add gauge.';
                     } finally {
                         isAddingGauge.value = false;
+                    }
+                };
+
+                // ==========================================================================
+                // REVISION CONTROL
+                //   drawing_rev  1,2,3  — the drawing changed
+                //   gauge_rev    A,B,C  — the physical gauge was replaced (wear and tear)
+                //   A drawing revision means a newly made gauge, so the letter resets to A.
+                // ==========================================================================
+                const openRevisionPage = async () => {
+                    view.value = 'revision';
+                    await fetchMasters();
+                    // Keep showing the gauge already selected, with fresh numbers from the DB.
+                    if (revGauge.value) {
+                        const fresh = gaugeMasters.value.find(g => g.id === revGauge.value.id);
+                        if (fresh) await selectRevisionGauge(fresh);
+                    }
+                };
+
+                const filteredGaugesRevision = computed(() => {
+                    if (!revFilter.gauge_no) return gaugeMasters.value.slice(0, 10);
+                    const q = revFilter.gauge_no.toUpperCase();
+                    return gaugeMasters.value.filter(g => g.gauge_no.toUpperCase().includes(q));
+                });
+
+                const selectRevisionGauge = async (gauge) => {
+                    revGauge.value = gauge;
+                    revFilter.gauge_no = gauge.gauge_no;
+                    showRevDropdown.value = false;
+                    revMsg.value = '';
+
+                    drawingRev.drawing_no = gauge.drawing_no || '';
+                    drawingRev.reason = '';
+                    drawingRev.changed_by = '';
+                    drawingRev.effective_date = getToday();
+                    drawingRevFile.value = null;
+                    drawingRevFileName.value = '';
+                    const fi = document.getElementById('rev-drawing-file'); if (fi) fi.value = '';
+
+                    gaugeRev.reason = 'WEAR AND TEAR';
+                    gaugeRev.changed_by = '';
+                    gaugeRev.effective_date = getToday();
+
+                    // Never let a photo picked for one gauge follow you to the next.
+                    revImageFile.value = null;
+                    revImageName.value = '';
+                    if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
+                    revImagePreview.value = '';
+                    revImageMsg.value = '';
+                    revImageOk.value = false;
+                    const ri = document.getElementById('rev-image-input'); if (ri) ri.value = '';
+
+                    await fetchRevHistory(gauge.id);
+                };
+
+                const fetchRevHistory = async (gaugeId) => {
+                    const { data, error } = await _supabase
+                        .from('gauge_revision_history')
+                        .select('*')
+                        .eq('gauge_id', gaugeId)
+                        .order('created_at', { ascending: false });
+                    if (error) console.error('Revision history load failed:', error);
+                    revHistory.value = data || [];
+                };
+
+                // Photo filename: the drawing's FOLDER, but the GAUGE's name.
+                //
+                // Filing it beside the drawing (…/gauge/ARB/) keeps a gauge's files together, but it
+                // cannot be NAMED after the drawing: 339 gauges share only 302 drawings — GAU-ARB-0008
+                // (I) through (VI) are six separate physical gauges on one PDF — so a drawing-derived
+                // name would have them overwriting each other's photo, which is exactly what an
+                // identification picture must not do. Gauges whose drawing is still a C:\ path have
+                // no folder to join, so their photo goes to the bucket root.
+                //
+                // The name is stable, not timestamped: replacing a photo should replace the file
+                // (upsert), and the ?v= cache-buster on the stored URL handles the stale-image problem.
+                const photoBaseName = (gauge) => {
+                    const path = gauge.drawing_path || '';
+                    const m = path.match(new RegExp('/object/public/' + GAUGE_BUCKET + '/(.+)\\.pdf$', 'i'));
+                    const dir = m ? decodeURIComponent(m[1]).split('/').slice(0, -1).join('/') : '';
+                    const safe = String(gauge.gauge_no).toUpperCase().trim().replace(/[^A-Z0-9_-]/g, '_');
+                    return dir ? `${dir}/${safe}` : safe;
+                };
+
+                const onRevImageFile = (e) => {
+                    const f = e.target.files && e.target.files[0];
+                    revImageMsg.value = '';
+                    revImageOk.value = false;
+
+                    // MIME check, not extension — accept="" is only a picker hint.
+                    if (f && !ALLOWED_IMAGE_TYPES.includes(f.type)) {
+                        revImageMsg.value = 'Photo must be a PNG or JPEG image.';
+                        e.target.value = '';
+                        revImageFile.value = null;
+                        revImageName.value = '';
+                        if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
+                        revImagePreview.value = '';
+                        return;
+                    }
+
+                    revImageFile.value = f || null;
+                    revImageName.value = f ? f.name : '';
+                    if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
+                    revImagePreview.value = f ? URL.createObjectURL(f) : '';
+                };
+
+                const updateGaugeImage = async () => {
+                    const g = revGauge.value;
+                    if (!g || !revImageFile.value) return;
+
+                    revImageMsg.value = '';
+                    revImageOk.value = false;
+
+                    if (!ALLOWED_IMAGE_TYPES.includes(revImageFile.value.type)) {
+                        revImageMsg.value = 'Photo must be a PNG or JPEG image.';
+                        return;
+                    }
+                    if (g.image_path && !confirm(`Replace the photo on file for ${g.gauge_no}?`)) return;
+
+                    isUploadingImage.value = true;
+                    try {
+                        const ext = revImageFile.value.type === 'image/png' ? 'png' : 'jpg';
+                        const imgPath = `${photoBaseName(g)}.${ext}`;
+
+                        const { error: upErr } = await _supabase.storage
+                            .from(GAUGE_BUCKET)
+                            .upload(imgPath, revImageFile.value, {
+                                upsert: true, contentType: revImageFile.value.type
+                            });
+                        if (upErr) throw new Error('Upload failed: ' + upErr.message);
+
+                        const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(imgPath);
+                        // Cache-buster: replacing a photo reuses the same storage path, and the
+                        // browser would otherwise keep showing the old picture.
+                        const imageUrl = `${pub.publicUrl}?v=${Date.now()}`;
+
+                        const { data, error } = await _supabase.from('gauges')
+                            .update({ image_path: imageUrl })
+                            .eq('id', g.id)
+                            .select();
+                        if (error) throw new Error(error.message);
+                        if (!data || !data.length) throw new Error('Gauge record not found.');
+
+                        // Keep the verification form in step if it has this gauge loaded.
+                        if (form.gauge_no === g.gauge_no) form.image_path = imageUrl;
+
+                        await fetchMasters();
+                        revGauge.value = gaugeMasters.value.find(x => x.id === g.id) || data[0];
+
+                        revImageFile.value = null;
+                        revImageName.value = '';
+                        if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
+                        revImagePreview.value = '';
+                        const ii = document.getElementById('rev-image-input'); if (ii) ii.value = '';
+
+                        revImageOk.value = true;
+                        revImageMsg.value = `Photo saved for ${g.gauge_no}.`;
+                    } catch (e) {
+                        console.error('Gauge photo update failed:', e);
+                        revImageMsg.value = e.message || 'Could not save the photo.';
+                    } finally {
+                        isUploadingImage.value = false;
+                    }
+                };
+
+                const onRevDrawingFile = (e) => {
+                    const f = e.target.files && e.target.files[0];
+                    drawingRevFile.value = f || null;
+                    drawingRevFileName.value = f ? f.name : '';
+                };
+
+                // Guarded update: the WHERE clause pins the revision we believe is current, so two
+                // people revising the same gauge at once cannot double-bump it silently.
+                const bumpRevision = async (gauge, next) => {
+                    const { data, error } = await _supabase
+                        .from('gauges')
+                        .update(next)
+                        .eq('id', gauge.id)
+                        .eq('drawing_rev', gauge.drawing_rev ?? 1)
+                        .eq('gauge_rev', gauge.gauge_rev ?? 'A')
+                        .select();
+                    if (error) throw new Error(error.message);
+                    if (!data || data.length === 0) {
+                        throw new Error('This gauge was revised by someone else a moment ago. Reopen Revision Control and try again.');
+                    }
+                    return data[0];
+                };
+
+                const raiseDrawingRevision = async () => {
+                    const g = revGauge.value;
+                    if (!g) return;
+                    revMsg.value = '';
+
+                    if (!drawingRevFile.value) { revMsg.value = 'Upload the new drawing PDF.'; return; }
+                    if (drawingRevFile.value.type !== 'application/pdf') { revMsg.value = 'Drawing must be a PDF file.'; return; }
+                    if (!drawingRev.reason.trim()) { revMsg.value = 'State the reason for the drawing revision.'; return; }
+                    if (!drawingRev.changed_by.trim()) { revMsg.value = 'Enter who authorised the revision.'; return; }
+
+                    const from = { d: g.drawing_rev ?? 1, l: g.gauge_rev ?? 'A' };
+                    const to = { d: from.d + 1, l: 'A' };   // new drawing => newly made gauge => back to A
+
+                    if (!confirm(`Issue REV ${to.d}${to.l} for ${g.gauge_no}? (currently REV ${from.d}${from.l})`)) return;
+
+                    isRevising.value = true;
+                    try {
+                        const up = (v) => String(v).toUpperCase().trim();
+
+                        // 1. New drawing PDF (kept alongside the old one — superseded revisions
+                        //    must stay retrievable for audit).
+                        const safe = up(g.gauge_no).replace(/[^A-Z0-9_-]/g, '_');
+                        const path = `${safe}-REV${to.d}-${Date.now()}.pdf`;
+                        const { error: upErr } = await _supabase.storage
+                            .from(GAUGE_BUCKET)
+                            .upload(path, drawingRevFile.value, { upsert: true, contentType: 'application/pdf' });
+                        if (upErr) throw new Error('Upload failed: ' + upErr.message);
+                        const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(path);
+                        const drawingUrl = pub.publicUrl;
+
+                        // 2. Move the master forward.
+                        const updated = await bumpRevision(g, {
+                            drawing_rev: to.d,
+                            gauge_rev: to.l,
+                            drawing_no: up(drawingRev.drawing_no || g.drawing_no),
+                            drawing_path: drawingUrl
+                        });
+
+                        // 3. Carry the dimensions forward as a starting point. QA edits what changed
+                        //    on the next verification; the old rows stay put for old records.
+                        const { data: oldSpecs, error: sErr } = await _supabase
+                            .from('gauge_specifications')
+                            .select('*')
+                            .eq('gauge_id', g.id)
+                            .eq('drawing_rev', from.d);
+                        if (sErr) console.error('Could not read previous specs:', sErr);
+
+                        if (oldSpecs && oldSpecs.length) {
+                            const carried = oldSpecs.map(s => {
+                                const { id, created_at, ...rest } = s;
+                                return { ...rest, drawing_rev: to.d };
+                            });
+                            const { error: insErr } = await _supabase
+                                .from('gauge_specifications')
+                                .upsert(carried, { onConflict: 'gauge_id,drawing_rev,section_type,line_no' });
+                            if (insErr) console.error('Spec carry-forward failed:', insErr);
+                        }
+
+                        // 4. Why it happened.
+                        const { error: hErr } = await _supabase.from('gauge_revision_history').insert({
+                            gauge_id: g.id,
+                            rev_type: 'DRAWING',
+                            from_drawing_rev: from.d,
+                            from_gauge_rev: from.l,
+                            to_drawing_rev: to.d,
+                            to_gauge_rev: to.l,
+                            drawing_no: up(drawingRev.drawing_no || g.drawing_no),
+                            drawing_path: drawingUrl,
+                            reason: up(drawingRev.reason),
+                            changed_by: up(drawingRev.changed_by),
+                            effective_date: drawingRev.effective_date || getToday()
+                        });
+                        if (hErr) console.error('Revision history write failed:', hErr);
+
+                        await fetchMasters();
+                        await selectRevisionGauge(gaugeMasters.value.find(x => x.id === g.id) || updated);
+                        if (form.gauge_no === g.gauge_no) clearGaugeSelection();
+
+                        alert(`${g.gauge_no} is now REV ${to.d}${to.l}.`);
+                    } catch (e) {
+                        console.error('Drawing revision failed:', e);
+                        revMsg.value = e.message || 'Could not raise the drawing revision.';
+                    } finally {
+                        isRevising.value = false;
+                    }
+                };
+
+                const replaceGauge = async () => {
+                    const g = revGauge.value;
+                    if (!g) return;
+                    revMsg.value = '';
+
+                    if (!gaugeRev.reason.trim()) { revMsg.value = 'State the reason for the replacement.'; return; }
+                    if (!gaugeRev.changed_by.trim()) { revMsg.value = 'Enter who replaced the gauge.'; return; }
+
+                    const from = { d: g.drawing_rev ?? 1, l: g.gauge_rev ?? 'A' };
+                    const to = { d: from.d, l: nextLetter(from.l) };   // same drawing, next letter
+
+                    if (!confirm(`Record replacement of ${g.gauge_no}: REV ${from.d}${from.l} → REV ${to.d}${to.l}?`)) return;
+
+                    isRevising.value = true;
+                    try {
+                        const up = (v) => String(v).toUpperCase().trim();
+
+                        // Drawing and specs are untouched — only the physical gauge changed.
+                        const updated = await bumpRevision(g, { gauge_rev: to.l });
+
+                        const { error: hErr } = await _supabase.from('gauge_revision_history').insert({
+                            gauge_id: g.id,
+                            rev_type: 'GAUGE',
+                            from_drawing_rev: from.d,
+                            from_gauge_rev: from.l,
+                            to_drawing_rev: to.d,
+                            to_gauge_rev: to.l,
+                            drawing_no: g.drawing_no,
+                            drawing_path: g.drawing_path,
+                            reason: up(gaugeRev.reason),
+                            changed_by: up(gaugeRev.changed_by),
+                            effective_date: gaugeRev.effective_date || getToday()
+                        });
+                        if (hErr) console.error('Revision history write failed:', hErr);
+
+                        await fetchMasters();
+                        await selectRevisionGauge(gaugeMasters.value.find(x => x.id === g.id) || updated);
+                        if (form.gauge_no === g.gauge_no) {
+                            form.gauge_rev = to.l;   // form stays open on the same gauge, new letter
+                        }
+
+                        alert(`${g.gauge_no} is now REV ${to.d}${to.l}.`);
+                    } catch (e) {
+                        console.error('Gauge replacement failed:', e);
+                        revMsg.value = e.message || 'Could not record the replacement.';
+                    } finally {
+                        isRevising.value = false;
                     }
                 };
 
@@ -1462,7 +2293,9 @@
                             due_date: record.due_date,
                             part_no: record.part_no,
                             verified_by: record.verified_by,
-                            approved_by: record.approved_by
+                            approved_by: record.approved_by,
+                            // The revision as signed, not the gauge's current one.
+                            rev: recordRev(record)
                         };
                         printReadings.value = data || [];
 
@@ -1486,7 +2319,7 @@
                             // Template is already full A4 with its own 7mm inner margin,
                             // so no extra html2pdf margin (10mm here overflowed to a 2nd page).
                             margin: 0,
-                            filename: `VERIF_${record.gauges.gauge_no}.pdf`,
+                            filename: `VERIF_${record.gauges.gauge_no}_REV${recordRev(record)}_${record.verify_date}.pdf`,
                             image: { type: 'jpeg', quality: 1.0 },
                             html2canvas: {
                                 scale: 2,
@@ -1529,6 +2362,14 @@
                     approvalReadings, openApprovalDetail, isLocalPathApproval, approveRecord, filterApprovalReadings,
                     printData, printReadings, getRow, generatePDF,
                     newGauge, gaugeFile, gaugeFileName, isAddingGauge, addGaugeMsg, onGaugeFile, addNewGauge,
+                    gaugeImage, gaugeImageName, gaugeImagePreview, onGaugeImage, showImageModal,
+                    // revision control
+                    revLabel, recordRev, revFilter, showRevDropdown, filteredGaugesRevision, revGauge,
+                    revHistory, revMsg, isRevising, drawingRev, gaugeRev, drawingRevFileName,
+                    nextDrawingLabel, nextGaugeLabel, openRevisionPage, selectRevisionGauge,
+                    onRevDrawingFile, raiseDrawingRevision, replaceGauge,
+                    revImageName, revImagePreview, revImageMsg, revImageOk, isUploadingImage,
+                    onRevImageFile, updateGaugeImage,
                 };
             }
         }).mount('#app');
