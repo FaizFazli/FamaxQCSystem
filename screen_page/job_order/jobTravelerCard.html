@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Traveler Card | Famax</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/theme.css">
+    <style>
+        body {
+            margin: 0;
+            background: var(--bg-body);
+            font-family: var(--font-sans);
+            color: var(--text-main);
+        }
+
+        .panel,
+        .panel__body { overflow: visible !important; }
+
+        /* JO search dropdown (cloned from inspectionTraceJO) */
+        .dropdown-container { position: relative; width: 100%; }
+        .custom-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+            z-index: 9999; max-height: 350px; overflow-y: auto; margin-top: 5px; display: none;
+        }
+        .dropdown-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+        .dropdown-item:hover { background: #f0f7ff; }
+        .dropdown-item:last-child { border-bottom: none; }
+        .item-title { display: block; color: #006adc; font-weight: 700; font-size: .95rem; text-transform: uppercase; margin-bottom: 2px; }
+        .item-subtitle { display: block; color: #64748b; font-size: .75rem; font-weight: 500; }
+
+        /* ---- Traveler card ---- */
+        #printable { background: #fff; }
+        .trav-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .doc-head {
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 2px solid var(--text-main); padding-bottom: 12px; margin-bottom: 16px; gap: 16px;
+        }
+        .doc-head__co { display: flex; align-items: center; gap: 12px; }
+        .doc-head__co img { height: 46px; width: 46px; object-fit: contain; }
+        .doc-head__co .co-name { font-size: 1.05rem; font-weight: 800; letter-spacing: .3px; }
+        .doc-head__co .doc-title { font-size: .78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .doc-head__meta { text-align: right; font-size: .68rem; color: var(--text-muted); line-height: 1.5; }
+        #qrcode { padding: 4px; background: #fff; border: 1px solid var(--border); border-radius: 6px; }
+
+        .id-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 18px; margin-bottom: 8px;
+        }
+        .id-grid .cell { border-bottom: 1px dotted var(--border-strong); padding-bottom: 4px; }
+        .id-grid .l { font-size: .6rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: .5px; }
+        .id-grid .v { font-size: .9rem; font-weight: 700; margin-top: 2px; }
+
+        .progress-wrap { margin: 14px 0 4px; }
+        .progress-row { display: flex; align-items: center; gap: 12px; }
+        .progress-bar { flex: 1; height: 14px; background: var(--surface-muted); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+        .progress-bar > span { display: block; height: 100%; background: var(--success); }
+        .progress-label { font-size: .72rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
+
+        .prod-done {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #dcfce7; color: #15803d; border: 1px solid #86efac;
+            font-size: .72rem; font-weight: 800; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 999px; letter-spacing: .5px;
+        }
+        .prod-inprog {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #fef3c7; color: #b45309; border: 1px solid #fcd34d;
+            font-size: .72rem; font-weight: 800; text-transform: uppercase;
+            padding: 4px 10px; border-radius: 999px; letter-spacing: .5px;
+        }
+
+        .sec-title {
+            font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .6px;
+            color: var(--text-main); margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border);
+        }
+
+        table.trav { width: 100%; border-collapse: collapse; font-size: .76rem; }
+        table.trav th, table.trav td { padding: 7px 8px; border: 1px solid var(--border); text-align: left; vertical-align: middle; }
+        table.trav th { background: #f8fafc; font-size: .62rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: .4px; }
+        table.trav td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .bookend td { background: #f1f5f9; font-weight: 700; }
+
+        .st-badge { display: inline-block; font-size: .6rem; font-weight: 800; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; letter-spacing: .4px; }
+        .st-passed { background: #dcfce7; color: #15803d; }
+        .st-failed { background: #fee2e2; color: #b91c1c; }
+        .st-inprog { background: #fef3c7; color: #b45309; }
+        .st-pending { background: #e2e8f0; color: #475569; }
+
+        .sign-cell { min-width: 96px; }
+        .signed { font-size: .66rem; line-height: 1.3; }
+        .signed b { color: var(--text-main); }
+        .signed small { color: var(--text-muted); }
+        .sign-btn {
+            font-size: .62rem; font-weight: 700; padding: 3px 8px; border: 1px dashed var(--border-strong);
+            background: #fff; color: var(--primary); border-radius: 6px; cursor: pointer;
+        }
+        .sign-btn:hover { background: var(--primary-soft); }
+        .sign-box { display: block; height: 22px; border-bottom: 1px solid var(--border-strong); }
+
+        .mini { width: 100%; border-collapse: collapse; font-size: .68rem; margin-top: 4px; }
+        .mini th, .mini td { padding: 4px 6px; border: 1px solid var(--border); }
+        .mini th { background: #fbfdff; color: var(--text-muted); text-transform: uppercase; font-size: .58rem; }
+        .expand-btn { cursor: pointer; color: var(--primary); font-weight: 700; }
+
+        .empty-note { color: var(--text-muted); font-size: .8rem; font-style: italic; padding: 8px 2px; }
+
+        /* Signature modal */
+        .modal-back {
+            position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 3000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal-card { background: #fff; border-radius: var(--radius); padding: 22px; width: 340px; box-shadow: var(--shadow-lg); }
+        .modal-card h3 { margin: 0 0 14px; font-size: 1rem; }
+        .modal-card label { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); }
+        .modal-card input { width: 100%; margin: 4px 0 12px; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+
+        @media print {
+            .topbar, .panel, .no-print { display: none !important; }
+            body { background: #fff; }
+            .container { max-width: none; padding: 0; margin: 0; }
+            .trav-card { border: none; box-shadow: none; padding: 0; }
+            table.trav { page-break-inside: auto; }
+            table.trav tr, .out-block { page-break-inside: avoid; }
+            .st-badge, .prod-done, .prod-inprog, .progress-bar > span {
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            @page { size: A4 portrait; margin: 10mm; }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">
+            <i class="fas fa-id-card"></i>
+            <span>Job Traveler Card</span>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn btn--secondary no-print" id="btn-pdf"><i class="fas fa-file-pdf"></i> Save PDF</button>
+            <button class="btn no-print" id="btn-print"><i class="fas fa-print"></i> Print</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="panel mb-8">
+            <div class="panel__body">
+                <div class="toolbar">
+                    <div class="field dropdown-container" style="flex:1; min-width:280px;">
+                        <label class="label">Job Order Number</label>
+                        <input id="jo" class="input" placeholder="Click to see list or type to search..." autocomplete="off">
+                        <div id="custom-menu" class="custom-dropdown"></div>
+                    </div>
+                    <button class="btn" id="btn-search" style="align-self:flex-end; min-width:120px;">
+                        <i class="fas fa-search mr-2"></i> Load
+                    </button>
+                </div>
+                <div id="msg" style="color:var(--danger); font-size:var(--fs-sm); font-weight:600; margin-top:8px;" hidden></div>
+            </div>
+        </div>
+
+        <div id="printable"></div>
+    </div>
+
+    <!-- Signature modal -->
+    <div class="modal-back" id="sign-modal">
+        <div class="modal-card">
+            <h3 id="sign-title">Sign step</h3>
+            <label>Name</label>
+            <input class="input" id="sign-name" placeholder="Your name / ID">
+            <label>Remark (optional)</label>
+            <input class="input" id="sign-remark" placeholder="e.g. OK to next process">
+            <div class="modal-actions">
+                <button class="btn btn--secondary" id="sign-cancel">Cancel</button>
+                <button class="btn" id="sign-confirm">Sign</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const sb = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+            const joInput = document.getElementById('jo');
+            const menu = document.getElementById('custom-menu');
+            const btn = document.getElementById('btn-search');
+            const printable = document.getElementById('printable');
+            const msg = document.getElementById('msg');
+
+            // Shift definition (shared with daily_output.html)
+            const SHIFTS = [
+                { name: 'Day', start: '08:00', end: '18:00', note: 'OT to 19:00' },
+                { name: 'Night', start: '19:00', end: '05:00', crossesMidnight: true }
+            ];
+
+            let allJOData = [];
+            let current = null; // { jo, part, joRows, parts, buckets, routing }
+
+            const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const num = v => Number(v) || 0;
+            function fmtDate(iso) { if (!iso) return '-'; try { return new Date(iso).toLocaleString('en-GB'); } catch { return iso; } }
+            function fmtDay(iso) { if (!iso) return '-'; try { return new Date(iso).toLocaleDateString('en-GB'); } catch { return iso; } }
+
+            // ---- JO autocomplete (cloned) ----
+            async function loadJOList() {
+                const { data, error } = await sb.from('JobOrder').select('JO_Number, Part_Name').order('created_at', { ascending: false }).limit(1000);
+                if (!error && data) {
+                    // unique JO_Number
+                    const seen = new Set();
+                    allJOData = data.filter(d => { if (seen.has(d.JO_Number)) return false; seen.add(d.JO_Number); return true; });
+                }
+            }
+            function renderDropdown(filterText = '') {
+                const q = filterText.toLowerCase().trim();
+                const filtered = (q === '' ? allJOData.slice(0, 100)
+                    : allJOData.filter(i => i.JO_Number.toLowerCase().includes(q) || (i.Part_Name || '').toLowerCase().includes(q)).slice(0, 100));
+                menu.innerHTML = filtered.length
+                    ? filtered.map(i => `<div class="dropdown-item" data-value="${esc(i.JO_Number)}"><span class="item-title">${esc(i.JO_Number)}</span><span class="item-subtitle">PN: ${esc(i.Part_Name || 'N/A')}</span></div>`).join('')
+                    : '<div style="padding:12px;text-align:center;color:#94a3b8;font-size:.75rem;">No matching JO found</div>';
+                menu.style.display = 'block';
+            }
+            joInput.addEventListener('focus', () => renderDropdown(joInput.value));
+            joInput.addEventListener('input', e => renderDropdown(e.target.value));
+            menu.addEventListener('mousedown', e => {
+                const item = e.target.closest('.dropdown-item');
+                if (item) { joInput.value = item.dataset.value; menu.style.display = 'none'; search(); }
+            });
+            document.addEventListener('mousedown', e => { if (!e.target.closest('.dropdown-container')) menu.style.display = 'none'; });
+
+            // ---- fetch helper ----
+            async function get(table, col, val) {
+                try { const { data, error } = await sb.from(table).select('*').eq(col, val).limit(500); return error ? [] : (data || []); }
+                catch { return []; }
+            }
+
+            function parseProcessList(raw) {
+                if (!raw) return [];
+                if (Array.isArray(raw)) return raw;
+                if (typeof raw === 'string') { try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw]; } catch { return [raw]; } }
+                return [];
+            }
+
+            // ---- main load ----
+            async function search() {
+                const jo = joInput.value.trim();
+                if (!jo) return;
+                menu.style.display = 'none';
+                msg.hidden = true;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading...';
+                printable.innerHTML = '';
+
+                try {
+                    const joRows = await get('JobOrder', 'JO_Number', jo);
+                    if (!joRows.length) {
+                        msg.textContent = 'No Job Order found for ' + jo;
+                        msg.hidden = false;
+                        return;
+                    }
+                    const partName = joRows[0].Part_Name;
+
+                    const [dataIpqc, inspRec, dataBuyoff, buyoffLogs, inspSched, signoffs, dailyOut, partsArr] = await Promise.all([
+                        get('Data_IPQC', 'JO_Number', jo),
+                        get('InspectionRecord', 'JO_Number', jo),
+                        get('Data_BUYOFF', 'JO_Number', jo),
+                        get('data_buyoff_logs', 'jo_number', jo),
+                        get('InspectionSchedule', 'JO_Number', jo),
+                        get('TravelerSignoff', 'JO_Number', jo),
+                        get('Daily_Output', 'jo_number', jo),
+                        get('Parts', 'Part_Name', partName)
+                    ]);
+
+                    const parts = partsArr[0] || {};
+                    // Routing spine = Parts.Process (master flow); fall back to JO rows' processes.
+                    let routing = parseProcessList(parts.Process);
+                    if (!routing.length) routing = [...new Set(joRows.map(r => r.Process).filter(Boolean))];
+                    // Ensure any JO process not in the master flow is appended.
+                    joRows.forEach(r => { if (r.Process && !routing.includes(r.Process)) routing.push(r.Process); });
+
+                    current = { jo, partName, parts, joRows, dataIpqc, inspRec, dataBuyoff, buyoffLogs, inspSched, signoffs, dailyOut, routing };
+                    render();
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-search mr-2"></i> Load';
+                }
+            }
+
+            // ---- per-step computation ----
+            function ipqcOOS(rows) {
+                let oos = 0;
+                rows.forEach(r => {
+                    const lsl = r.LSL_OK, usl = r.USL_NG;
+                    [r.Reading_1, r.Reading_2, r.Reading_3].forEach(x => {
+                        if (x === null || x === undefined || x === '') return;
+                        const v = Number(x); if (isNaN(v)) return;
+                        if ((lsl !== null && lsl !== undefined && lsl !== '' && v < Number(lsl)) ||
+                            (usl !== null && usl !== undefined && usl !== '' && v > Number(usl))) oos++;
+                    });
+                });
+                return oos;
+            }
+            function statusVal(r) { return String(r.status ?? r.Status ?? r.result ?? r.Result ?? '').toUpperCase(); }
+
+            function computeStep(step) {
+                const c = current;
+                const joRow = c.joRows.find(r => r.Process === step) || {};
+                const target = num(joRow.Quantity);
+                const ipqc = c.dataIpqc.filter(r => r.Process === step);
+                const insp = c.inspRec.filter(r => (r.process === step || r.Process === step));
+                const buyoff = c.dataBuyoff.filter(r => r.Process === step);
+                const blogs = c.buyoffLogs.filter(r => (r.process === step || r.Process === step) || c.buyoffLogs.every(x => !x.process && !x.Process));
+                const sched = c.inspSched.filter(r => (r.Parameter === step || r.param_details === step || r.process === step));
+                const out = c.dailyOut.filter(r => r.process === step);
+
+                const accept = insp.reduce((s, r) => s + num(r.AcceptQty), 0);
+                const reject = insp.reduce((s, r) => s + num(r.RejectQty), 0);
+                const totalCheck = insp.reduce((s, r) => s + num(r.TotalCheck), 0);
+                const oos = ipqcOOS(ipqc);
+                const buyoffNG = buyoff.filter(r => statusVal(r) === 'NG').length + blogs.filter(r => statusVal(r) === 'NG').length;
+                const buyoffOK = buyoff.filter(r => statusVal(r) === 'OK').length + blogs.filter(r => statusVal(r) === 'OK').length;
+                const schedDone = sched.some(r => String(r.Status || '').toLowerCase() === 'completed');
+                const schedOpen = sched.some(r => num(r.remaining_qty) > 0 || String(r.Status || '').toLowerCase() === 'pending');
+
+                const failSignal = buyoffNG > 0 || oos > 0 || (reject > 0 && accept === 0);
+
+                let status;
+                if (failSignal) status = 'FAILED';
+                else if ((accept > 0 && reject === 0) || buyoffOK > 0 || schedDone) status = 'PASSED';
+                else if (ipqc.length || insp.length || schedOpen || (accept > 0 && reject > 0)) status = 'IN-PROGRESS';
+                else status = 'PENDING';
+
+                // last activity + inspector
+                const dates = [
+                    ...ipqc.map(r => r.created_at), ...insp.map(r => r.created_at),
+                    ...buyoff.map(r => r.created_at), ...out.map(r => r.updated_at || r.production_date)
+                ].filter(Boolean).map(d => new Date(d).getTime());
+                const lastAct = dates.length ? new Date(Math.max(...dates)).toISOString() : null;
+                const inspector = insp.length ? (insp[insp.length - 1].InspectBy || insp[insp.length - 1].FinalizeBy) : (ipqc.length ? ipqc[ipqc.length - 1].Person : '');
+
+                // production
+                const produced = out.reduce((s, r) => s + num(r.output_count), 0);
+                const prodReject = out.reduce((s, r) => s + num(r.reject_qty), 0);
+                const remaining = Math.max(target - produced, 0);
+                const machine = joRow.machine_id || (out[0] && out[0].machine_no) || '-';
+                const prodDone = !!joRow.production_completed_at || (target > 0 && produced >= target);
+
+                return { step, joRow, target, ipqc, insp, buyoff, out, accept, reject, totalCheck, oos, buyoffNG, buyoffOK,
+                    status, lastAct, inspector, produced, prodReject, remaining, machine, prodDone };
+            }
+
+            function latestSign(step, stage) {
+                const rows = current.signoffs.filter(r => r.Process === step && r.stage === stage);
+                if (!rows.length) return null;
+                rows.sort((a, b) => new Date(b.signed_at) - new Date(a.signed_at));
+                return rows[0];
+            }
+
+            function signCell(step, stage) {
+                const s = latestSign(step, stage);
+                if (s) return `<div class="signed"><b>${esc(s.signed_by)}</b><br><small>${esc(fmtDate(s.signed_at))}</small></div>`;
+                return `<button class="sign-btn no-print" data-step="${esc(step)}" data-stage="${stage}"><i class="fas fa-pen"></i> Sign</button><span class="sign-box" style="display:none"></span>`;
+            }
+
+            // ---- render ----
+            function render() {
+                const c = current;
+                const steps = c.routing.map(computeStep);
+                const header = c.joRows[0] || {};
+
+                // JO-level production = last routing step vs its target
+                const lastStep = steps[steps.length - 1];
+                const ordered = lastStep ? lastStep.target : num(header.Quantity);
+                const produced = lastStep ? lastStep.produced : 0;
+                const remaining = Math.max(ordered - produced, 0);
+                const pct = ordered > 0 ? Math.min(100, Math.round(produced / ordered * 100)) : 0;
+                const prodDone = steps.length && steps.every(s => s.prodDone);
+
+                const partNo = c.parts.Part_Number || c.parts.part_no || '-';
+                const rev = c.parts.rev || c.parts.revNumber || c.parts.Revision || c.parts.Rev || '-';
+                const customerPO = header.Customer_PO || '-';
+
+                const idGrid = `
+                    <div class="id-grid">
+                        <div class="cell"><div class="l">JO Number</div><div class="v">${esc(c.jo)}</div></div>
+                        <div class="cell"><div class="l">Part Name</div><div class="v">${esc(c.partName)}</div></div>
+                        <div class="cell"><div class="l">Part No</div><div class="v">${esc(partNo)}</div></div>
+                        <div class="cell"><div class="l">Revision</div><div class="v">${esc(rev)}</div></div>
+                        <div class="cell"><div class="l">Ordered Qty</div><div class="v">${esc(ordered || header.Quantity || '-')}</div></div>
+                        <div class="cell"><div class="l">Customer PO</div><div class="v">${esc(customerPO)}</div></div>
+                        <div class="cell"><div class="l">Created</div><div class="v">${esc(fmtDay(header.created_at))}</div></div>
+                        <div class="cell"><div class="l">Printed</div><div class="v" id="print-date">${esc(new Date().toLocaleDateString('en-GB'))}</div></div>
+                    </div>`;
+
+                const progress = `
+                    <div class="progress-wrap">
+                        <div class="progress-row">
+                            <div class="progress-bar"><span style="width:${pct}%"></span></div>
+                            <div class="progress-label">Produced ${produced} / ${ordered || '?'} &nbsp;(Remaining ${remaining})</div>
+                            ${prodDone ? '<span class="prod-done"><i class="fas fa-check-circle"></i> Production Done</span>'
+                                       : '<span class="prod-inprog"><i class="fas fa-industry"></i> In Production</span>'}
+                        </div>
+                    </div>`;
+
+                // Section A: routing + QC
+                const rowsA = steps.map((s, i) => `
+                    <tr>
+                        <td class="num">${i + 1}</td>
+                        <td>${esc(s.step)}</td>
+                        <td><span class="st-badge ${badgeClass(s.status)}">${s.status}</span></td>
+                        <td class="num">${s.accept || '-'}</td>
+                        <td class="num">${s.reject || '-'}</td>
+                        <td>${esc(s.inspector || '-')}</td>
+                        <td>${esc(s.lastAct ? fmtDate(s.lastAct) : '-')}</td>
+                        <td class="sign-cell">${signCell(s.step, 'operator')}</td>
+                        <td class="sign-cell">${signCell(s.step, 'qc')}</td>
+                    </tr>`).join('');
+
+                const sectionA = `
+                    <div class="sec-title">Section A &mdash; Process Routing &amp; QC Status</div>
+                    <table class="trav">
+                        <thead><tr>
+                            <th>#</th><th>Process</th><th>QC Status</th><th>Accept</th><th>Reject</th>
+                            <th>Inspector</th><th>Last Activity</th><th>Operator Sign</th><th>QC Sign</th>
+                        </tr></thead>
+                        <tbody>
+                            <tr class="bookend"><td colspan="9"><i class="fas fa-arrow-down"></i> Incoming (IQC) &rarr; ${incomingSummary()}</td></tr>
+                            ${rowsA}
+                            <tr class="bookend"><td colspan="9"><i class="fas fa-flag-checkered"></i> Outgoing (OQC) &rarr; ${outgoingSummary()}</td></tr>
+                        </tbody>
+                    </table>`;
+
+                // Section B: production output
+                const rowsB = steps.map((s, i) => {
+                    const bpct = s.target > 0 ? Math.min(100, Math.round(s.produced / s.target * 100)) : 0;
+                    const hasBreak = s.out.length > 0;
+                    const breakId = 'brk-' + i;
+                    return `
+                    <tr class="out-block">
+                        <td class="num">${i + 1}</td>
+                        <td>${esc(s.step)} ${hasBreak ? `<span class="expand-btn no-print" data-brk="${breakId}">[${s.out.length} log${s.out.length > 1 ? 's' : ''}]</span>` : ''}</td>
+                        <td>${esc(s.machine)}</td>
+                        <td class="num">${s.produced}</td>
+                        <td class="num">${s.prodReject || '-'}</td>
+                        <td class="num">${s.remaining}</td>
+                        <td><div class="progress-bar" style="width:120px;"><span style="width:${bpct}%"></span></div></td>
+                    </tr>
+                    <tr class="out-detail" id="${breakId}" ${hasBreak ? '' : 'hidden'} data-open="0">
+                        <td colspan="7" style="padding:0 8px 8px;">${hasBreak ? breakdownTable(s.out) : ''}</td>
+                    </tr>`;
+                }).join('');
+
+                const sectionB = `
+                    <div class="sec-title">Section B &mdash; Production Output (by shift / day)</div>
+                    <table class="trav">
+                        <thead><tr>
+                            <th>#</th><th>Process</th><th>Machine</th><th>Produced</th><th>Reject</th><th>Remaining</th><th>Progress</th>
+                        </tr></thead>
+                        <tbody>${rowsB}</tbody>
+                    </table>`;
+
+                printable.innerHTML = `
+                    <div class="trav-card" id="trav-card">
+                        <div class="doc-head">
+                            <div class="doc-head__co">
+                                <img src="/FamaxQCSystem/assets/LogoRound.png" alt="Famax" onerror="this.style.display='none'">
+                                <div>
+                                    <div class="co-name">FAMAX TECHNOLOGY (M) SDN BHD</div>
+                                    <div class="doc-title">Job Traveler Card</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:14px;">
+                                <div class="doc-head__meta">Doc: FMX-JTC-01<br>Rev: 00<br>Page 1 of 1</div>
+                                <div id="qrcode"></div>
+                            </div>
+                        </div>
+                        ${idGrid}
+                        ${progress}
+                        ${sectionA}
+                        ${sectionB}
+                    </div>`;
+
+                // QR of JO_Number
+                try {
+                    const holder = document.getElementById('qrcode');
+                    holder.innerHTML = '';
+                    new QRCode(holder, { text: c.jo, width: 74, height: 74, correctLevel: QRCode.CorrectLevel.M });
+                } catch (e) { /* QR optional */ }
+
+                wireInteractions();
+            }
+
+            function badgeClass(s) {
+                return s === 'PASSED' ? 'st-passed' : s === 'FAILED' ? 'st-failed' : s === 'IN-PROGRESS' ? 'st-inprog' : 'st-pending';
+            }
+
+            function incomingSummary() {
+                // IQC is lot-level; not stored per JO in this schema — show placeholder to be filled at goods-in.
+                return '<span style="font-weight:400;color:var(--text-muted);">material verified at goods-in</span>';
+            }
+            function outgoingSummary() {
+                const insp = current.inspRec;
+                const accept = insp.reduce((s, r) => s + num(r.AcceptQty), 0);
+                const reject = insp.reduce((s, r) => s + num(r.RejectQty), 0);
+                return `<span style="font-weight:400;color:var(--text-muted);">Lot Accept ${accept} &middot; Reject ${reject}</span>`;
+            }
+
+            function shiftOrder(name) { return name === 'Day' ? 0 : name === 'Night' ? 1 : 2; }
+            function breakdownTable(out) {
+                const rows = [...out].sort((a, b) => {
+                    const d = new Date(a.production_date) - new Date(b.production_date);
+                    return d !== 0 ? d : shiftOrder(a.shift) - shiftOrder(b.shift);
+                });
+                const body = rows.map(r => `
+                    <tr>
+                        <td>${esc(fmtDay(r.production_date))}</td>
+                        <td>${esc(r.shift || '-')}</td>
+                        <td>${esc(r.machine_no || '-')}</td>
+                        <td class="num">${esc(r.counter_start ?? '-')}</td>
+                        <td class="num">${esc(r.counter_end ?? '-')}</td>
+                        <td class="num">${esc(num(r.output_count))}</td>
+                        <td class="num">${esc(num(r.reject_qty))}</td>
+                        <td>${esc(r.operator || '-')}</td>
+                    </tr>`).join('');
+                return `<table class="mini">
+                    <thead><tr><th>Date</th><th>Shift</th><th>Machine</th><th>Ctr Start</th><th>Ctr End</th><th>Output</th><th>Reject</th><th>Operator</th></tr></thead>
+                    <tbody>${body}</tbody></table>`;
+            }
+
+            function wireInteractions() {
+                // expand/collapse breakdown
+                printable.querySelectorAll('.expand-btn').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const tr = document.getElementById(el.dataset.brk);
+                        if (!tr) return;
+                        const open = tr.getAttribute('data-open') === '1';
+                        tr.hidden = open; tr.setAttribute('data-open', open ? '0' : '1');
+                    });
+                });
+                // sign buttons
+                printable.querySelectorAll('.sign-btn').forEach(el => {
+                    el.addEventListener('click', () => openSign(el.dataset.step, el.dataset.stage));
+                });
+            }
+
+            // ---- signature modal ----
+            const signModal = document.getElementById('sign-modal');
+            const signName = document.getElementById('sign-name');
+            const signRemark = document.getElementById('sign-remark');
+            const signTitle = document.getElementById('sign-title');
+            let signCtx = null;
+
+            function openSign(step, stage) {
+                signCtx = { step, stage };
+                signTitle.textContent = `${stage === 'qc' ? 'QC' : 'Operator'} sign-off — ${step}`;
+                signName.value = sessionStorage.getItem('userId') || '';
+                signRemark.value = '';
+                signModal.style.display = 'flex';
+                setTimeout(() => signName.focus(), 30);
+            }
+            document.getElementById('sign-cancel').addEventListener('click', () => { signModal.style.display = 'none'; });
+            signModal.addEventListener('mousedown', e => { if (e.target === signModal) signModal.style.display = 'none'; });
+            document.getElementById('sign-confirm').addEventListener('click', async () => {
+                if (!signCtx) return;
+                const name = signName.value.trim();
+                if (!name) { signName.focus(); return; }
+                const confirmBtn = document.getElementById('sign-confirm');
+                confirmBtn.disabled = true; confirmBtn.textContent = 'Saving...';
+                try {
+                    await sb.from('TravelerSignoff').insert({
+                        JO_Number: current.jo, Process: signCtx.step, stage: signCtx.stage,
+                        signed_by: name, remark: signRemark.value.trim() || null
+                    });
+                    signModal.style.display = 'none';
+                    // refresh signoffs only, then re-render
+                    current.signoffs = await get('TravelerSignoff', 'JO_Number', current.jo);
+                    render();
+                } catch (e) {
+                    alert('Could not save signature. If this is the first use, run the TravelerSignoff migration.');
+                } finally {
+                    confirmBtn.disabled = false; confirmBtn.textContent = 'Sign';
+                }
+            });
+
+            // ---- print / pdf ----
+            document.getElementById('btn-print').addEventListener('click', () => { if (current) window.print(); });
+            document.getElementById('btn-pdf').addEventListener('click', async () => {
+                if (!current) return;
+                const el = document.getElementById('trav-card');
+                if (!el || !window.html2canvas || !window.jspdf) { window.print(); return; }
+                const b = document.getElementById('btn-pdf');
+                b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building...';
+                try {
+                    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pw = pdf.internal.pageSize.getWidth();
+                    const ph = pdf.internal.pageSize.getHeight();
+                    const margin = 8;
+                    const imgW = pw - margin * 2;
+                    const imgH = canvas.height * imgW / canvas.width;
+                    let heightLeft = imgH, position = margin;
+                    const img = canvas.toDataURL('image/png');
+                    pdf.addImage(img, 'PNG', margin, position, imgW, imgH);
+                    heightLeft -= (ph - margin * 2);
+                    while (heightLeft > 0) {
+                        position = margin - (imgH - heightLeft);
+                        pdf.addPage();
+                        pdf.addImage(img, 'PNG', margin, position, imgW, imgH);
+                        heightLeft -= (ph - margin * 2);
+                    }
+                    pdf.save(`Traveler_${current.jo.replace(/[^\w.-]/g, '_')}.pdf`);
+                } catch (e) {
+                    window.print();
+                } finally {
+                    b.disabled = false; b.innerHTML = '<i class="fas fa-file-pdf"></i> Save PDF';
+                }
+            });
+
+            btn.addEventListener('click', search);
+            joInput.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+
+            // init
+            loadJOList().then(() => {
+                const params = new URLSearchParams(location.search);
+                const pre = params.get('jo');
+                if (pre) { joInput.value = pre; search(); }
+            });
+        })();
+    </script>
+</body>
+
+</html>

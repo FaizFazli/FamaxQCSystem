@@ -496,6 +496,7 @@
                                 <th>Process</th>
                                 <th>Qty</th>
                                 <th>Status</th>
+                                <th>Traveler</th>
                             </tr>
                         </thead>
                         <tbody id="jo-table-body"></tbody>
@@ -767,6 +768,13 @@
                             <td>${jo.Process}</td>
                             <td>${jo.Quantity}</td>
                             <td><span class="badge-status status-active">Active</span></td>
+                            <td>
+                                <a href="/FamaxQCSystem/screen_page/job_order/jobTravelerCard.html?jo=${encodeURIComponent(jo.JO_Number)}"
+                                   target="_blank" rel="noopener"
+                                   class="btn-refresh" style="text-decoration:none; font-size:11px; white-space:nowrap;">
+                                   Traveler Card
+                                </a>
+                            </td>
                         </tr>
                     `);
                 });

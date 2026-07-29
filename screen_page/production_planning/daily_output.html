@@ -143,10 +143,20 @@
                 </div>
 
                 <div class="form-grid">
-                    <!-- Date of Production (Read Only) -->
-                    <div class="form-group full-width">
+                    <!-- Date of Production (editable: night shift is back-dated to its start date) -->
+                    <div class="form-group">
                         <label>Production Date</label>
-                        <input type="date" v-model="form.production_date" readonly>
+                        <input type="date" v-model="form.production_date">
+                        <div class="helper-text">Night shift after midnight &rarr; keep the date the shift started.</div>
+                    </div>
+
+                    <!-- Shift -->
+                    <div class="form-group">
+                        <label>Shift</label>
+                        <select v-model="form.shift">
+                            <option value="Day">Day (08:00&ndash;18:00, OT to 19:00)</option>
+                            <option value="Night">Night (19:00&ndash;05:00)</option>
+                        </select>
                     </div>
 
                     <!-- Job Order Number (Smart Search) -->
@@ -207,6 +217,12 @@
                                 <span>Category: {{ m.category_code }}</span>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Operator / PIC -->
+                    <div class="form-group full-width">
+                        <label>Operator (PIC)</label>
+                        <input type="text" v-model="form.operator" placeholder="Machine operator / person in charge">
                     </div>
 
                     <hr class="full-width" style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
@@ -281,8 +297,18 @@
                 // Initial Form State
                 const getToday = () => new Date().toISOString().split('T')[0];
 
+                // Shift definition (shared with jobTravelerCard.html):
+                //   Day   = 08:00-18:00 (OT through 19:00)
+                //   Night = 19:00-05:00 (crosses midnight; business date = shift start date)
+                const shiftForTime = (d = new Date()) => {
+                    const h = d.getHours();
+                    return (h >= 8 && h < 19) ? 'Day' : 'Night';
+                };
+
                 const form = ref({
                     production_date: getToday(),
+                    shift: shiftForTime(),
+                    operator: '',
                     jo_number: '',
                     part_name: '',
                     part_number: '',
@@ -396,16 +422,52 @@
                         form.value.counter_end > form.value.counter_start;
                 });
 
+                // After each save, recompute the running produced total for this JO+process
+                // and flag the Job Order as production-done when produced >= ordered Quantity.
+                // (Separate from the manual QC Status/completed_at flag.)
+                async function updateJobOrderProgress(jo, proc) {
+                    try {
+                        const outRes = await api.get('/rest/v1/Daily_Output', {
+                            params: { select: 'output_count', jo_number: `eq.${jo}`, process: `eq.${proc}` }
+                        });
+                        const produced = (outRes.data || []).reduce((s, r) => s + (Number(r.output_count) || 0), 0);
+
+                        const joRes = await api.get('/rest/v1/JobOrder', {
+                            params: { select: 'id,Quantity,production_completed_at', JO_Number: `eq.${jo}`, Process: `eq.${proc}` }
+                        });
+                        const rows = joRes.data || [];
+                        if (!rows.length) return;
+
+                        for (const row of rows) {
+                            const target = Number(row.Quantity) || 0;
+                            const patch = { produced_qty: produced };
+                            if (target > 0 && produced >= target && !row.production_completed_at) {
+                                patch.production_completed_at = new Date().toISOString();
+                            }
+                            await api.patch(`/rest/v1/JobOrder?id=eq.${row.id}`, patch);
+                        }
+                    } catch (e) {
+                        // Progress cache is best-effort; the traveler card also derives totals live from Daily_Output.
+                        console.warn('JobOrder progress update skipped:', e?.message || e);
+                    }
+                }
+
                 async function submitOutput() {
                     submitting.value = true;
                     try {
+                        const jo = form.value.jo_number;
+                        const proc = form.value.process;
                         const payload = { ...form.value, updated_at: new Date().toISOString() };
                         await api.post('/rest/v1/Daily_Output', payload);
+                        await updateJobOrderProgress(jo, proc);
                         success.value = true;
 
-                        // Reset form
+                        // Reset form (keep date + shift + operator for fast consecutive entries)
+                        const keepDate = form.value.production_date;
+                        const keepShift = form.value.shift;
+                        const keepOperator = form.value.operator;
                         form.value = {
-                            production_date: getToday(),
+                            production_date: keepDate, shift: keepShift, operator: keepOperator,
                             jo_number: '', part_name: '', part_number: '',
                             process: '', machine_no: '', counter_start: null,
                             counter_end: null, reject_qty: 0, output_count: 0, remark: ''

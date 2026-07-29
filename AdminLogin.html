@@ -379,6 +379,18 @@
                     <span class="card-title">Update JO</span>
                     <span class="card-desc">Modify quantities and dates for production batches.</span>
                 </div>
+
+                <div id="btn-traveler-card" class="dashboard-card"
+                    onclick="navigateTo('screen_page/job_order/jobTravelerCard.html')">
+                    <div class="icon-box" style="background-color: #dcfce7; color: #15803d;">
+                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h6v2H6v-2zm0 4h6v2H6v-2zm9-4h3v6h-3v-6z" />
+                        </svg>
+                    </div>
+                    <span class="card-title">Job Traveler Card</span>
+                    <span class="card-desc">Track a JO through its routing: QC status, sign-off and production output.</span>
+                </div>
             </div>
         </section>
 
@@ -545,7 +557,7 @@
         function setButtonAccess(accessLevel) {
             // List of all possible button IDs
             const allButtons = [
-                'generateFileBtn', 'addPartBtn', 'updateJOBtn',
+                'generateFileBtn', 'addPartBtn', 'updateJOBtn', 'btn-traveler-card',
                 'usersBtn', 'removeFolderBtn', 'generateReport', 'dataEditor',
                 'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
                 'btn-packing-list-form', 'btn-do-report', 'btn-dms', 'btn-gv', 'btn-sales-order-form'
@@ -576,7 +588,7 @@
                     break;
 
                 case 'PRODUCTION':
-                    enable(['updateJOBtn', 'btn-fg-store']);
+                    enable(['updateJOBtn', 'btn-traveler-card', 'btn-fg-store']);
                     break;
 
                 case 'REGISTER':
@@ -593,10 +605,10 @@
 
                 case 'QUALITY':
                     enable(['generateFileBtn', 'generateReport', 'dataEditor',
-                        'notifyEmailBtn', 'btn-do-report', 'btn-gv']);
+                        'notifyEmailBtn', 'btn-do-report', 'btn-gv', 'btn-traveler-card']);
                     break;
                 case 'MANAGEMENT':
-                    enable(['generateFileBtn', 'addPartBtn', 'updateJOBtn',
+                    enable(['generateFileBtn', 'addPartBtn', 'updateJOBtn', 'btn-traveler-card',
                         'removeFolderBtn', 'generateReport', 'dataEditor',
                         'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
                         'btn-packing-list-form', 'btn-do-report', 'btn-dms']);
