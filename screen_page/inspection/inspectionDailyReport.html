@@ -115,11 +115,17 @@
     }
 
     /* ---- Re-Inspection modal (mirrors inspectionSchedule.html's modal chrome) ---- */
+    /* Column layout: fixed header, scrolling body, pinned footer. Without this the
+       modal grows past the viewport on small screens and the action buttons are
+       clipped off the bottom with no way to reach them. */
     .modal-content {
       padding: 0 !important;
-      /* header/body own their padding */
+      /* header/body/footer own their padding */
       border-radius: 1.75rem;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      max-height: min(90vh, 100%);
     }
 
     .modal-header {
@@ -130,6 +136,38 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--primary);
+      flex: 0 0 auto;
+    }
+
+    /* The only part that scrolls */
+    .modal-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0;
+      /* lets a flex child actually shrink so overflow kicks in */
+    }
+
+    /* Cancel / Save always reachable, whatever the defect count */
+    .modal-footer {
+      flex: 0 0 auto;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+
+    /* The defect list gets its own scroll so a long breakdown can't push the rest
+       of the form out of view. Its column header stays put while rows scroll. */
+    .defect-scroll {
+      max-height: 38vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .defect-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
     }
 
     .section-label {
@@ -392,7 +430,7 @@
           <button @click="closeReinspect"><i class="fa fa-times"></i></button>
         </div>
 
-        <div class="p-6 md:p-8 space-y-6">
+        <div class="modal-body p-6 md:p-8 space-y-6">
           <!-- Context -->
           <div class="p-4 rounded-2xl grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]"
             style="background: var(--surface-muted); border: 1px solid var(--border)">
@@ -454,29 +492,32 @@
             </div>
 
             <div v-else class="border rounded-xl overflow-hidden" style="border-color: var(--border)">
-              <div class="grid grid-cols-12 gap-2 px-3 py-2 text-[9px] font-black uppercase"
-                style="background: var(--surface-muted); color: var(--text-muted)">
-                <div class="col-span-1"></div>
-                <div class="col-span-5">Defect Description</div>
-                <div class="col-span-2 text-center">Rejected</div>
-                <div class="col-span-2 text-center">Done</div>
-                <div class="col-span-2 text-center">Re-Inspect OK</div>
-              </div>
-
-              <div v-for="(l, i) in reinspectForm.lines" :key="i"
-                class="grid grid-cols-12 gap-2 px-3 py-2 items-center border-t text-[11px]"
-                style="border-color: var(--border)" :class="{ 'opacity-40': l.remaining <= 0 }">
-                <div class="col-span-1">
-                  <input type="checkbox" v-model="l.selected" :disabled="l.remaining <= 0"
-                    @change="l.okQty = l.selected ? l.remaining : 0" class="w-4 h-4" />
+              <!-- Rows scroll; the column header and the running total stay visible -->
+              <div class="defect-scroll">
+                <div class="defect-head grid grid-cols-12 gap-2 px-3 py-2 text-[9px] font-black uppercase"
+                  style="background: var(--surface-muted); color: var(--text-muted)">
+                  <div class="col-span-1"></div>
+                  <div class="col-span-5">Defect Description</div>
+                  <div class="col-span-2 text-center">Rejected</div>
+                  <div class="col-span-2 text-center">Done</div>
+                  <div class="col-span-2 text-center">Re-Inspect OK</div>
                 </div>
-                <div class="col-span-5 font-bold uppercase">{{ l.description }}</div>
-                <div class="col-span-2 text-center font-black text-red-600">{{ l.quantity }}</div>
-                <div class="col-span-2 text-center font-bold text-gray-400">{{ l.already }}</div>
-                <div class="col-span-2">
-                  <input type="number" min="0" :max="l.remaining" v-model.number="l.okQty"
-                    :disabled="!l.selected || l.remaining <= 0"
-                    class="w-full border rounded px-2 py-1 text-center font-black disabled:bg-gray-100" />
+
+                <div v-for="(l, i) in reinspectForm.lines" :key="i"
+                  class="grid grid-cols-12 gap-2 px-3 py-2 items-center border-t text-[11px]"
+                  style="border-color: var(--border)" :class="{ 'opacity-40': l.remaining <= 0 }">
+                  <div class="col-span-1">
+                    <input type="checkbox" v-model="l.selected" :disabled="l.remaining <= 0"
+                      @change="l.okQty = l.selected ? l.remaining : 0" class="w-4 h-4" />
+                  </div>
+                  <div class="col-span-5 font-bold uppercase break-words">{{ l.description }}</div>
+                  <div class="col-span-2 text-center font-black text-red-600">{{ l.quantity }}</div>
+                  <div class="col-span-2 text-center font-bold text-gray-400">{{ l.already }}</div>
+                  <div class="col-span-2">
+                    <input type="number" min="0" :max="l.remaining" v-model.number="l.okQty"
+                      :disabled="!l.selected || l.remaining <= 0"
+                      class="w-full border rounded px-2 py-1 text-center font-black disabled:bg-gray-100" />
+                  </div>
                 </div>
               </div>
 
@@ -487,8 +528,11 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="flex gap-3 pt-2">
+        <!-- Pinned: never scrolls out of reach, however many defect lines there are -->
+        <div class="modal-footer">
+          <div class="flex gap-3">
             <button @click="closeReinspect" class="btn btn--secondary flex-1 uppercase tracking-widest">
               Cancel
             </button>
