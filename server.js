@@ -35,6 +35,10 @@ app.get("/FamaxQCSystem", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+app.get("/FamaxSystem", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.get("/FamaxMES", (req, res) => {
     res.sendFile(path.join(__dirname, "FamaxMES", "index.html"));
 });
