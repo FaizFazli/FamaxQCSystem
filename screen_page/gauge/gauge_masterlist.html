@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gauge Masterlist</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page, deliberately. Captures anything that fails
+           afterwards — including a CDN <script> that 404s — so a failure can
+           never present as a blank page with no explanation. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);   // capture phase: resource load errors do not bubble
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        /* Same palette remap as the DMS dashboard — the Play CDN injects its
+           sheet at runtime, after theme.css, so utilities win. Remapping here
+           keeps this page on the design tokens without touching markup. */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617'
+                        },
+                        blue: {
+                            50: '#e6f2fb', 100: '#cce4f6', 200: '#b3d7f2', 300: '#8cc2ec',
+                            400: '#59a7e3', 500: '#268cda', 600: '#0078d4', 700: '#0067b8',
+                            800: '#00589c', 900: '#004881', 950: '#003965'
+                        },
+                        green: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b'
+                        },
+                        orange: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#f59e0b', 500: '#d97706', 600: '#b45309', 700: '#92400e',
+                            800: '#78350f', 900: '#451a03'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Relative, not /assets/... — an absolute path only resolves when the
+         page is served from the app root, so opening the file from disk (or
+         serving it under a different base) silently 404s both of these and the
+         page cannot start. ../../ resolves correctly under /, under
+         /FamaxQCSystem, and from file://. -->
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+        .tint-thread   { background: #e0f2fe; color: #0369a1; }
+        .tint-diameter { background: #ccfbf1; color: #0f766e; }
+        .tint-other    { background: #f3e8ff; color: #7e22ce; }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Visible from the first byte and removed only once Vue has mounted.
+         The old failure mode was the reverse — everything hidden by [v-cloak]
+         until success — so any error produced a blank white page. -->
+    <div id="boot" style="max-width:760px;margin:64px auto;padding:24px;border:1px solid #e2e8f0;
+                          background:#fff;border-radius:16px;font-family:system-ui,sans-serif">
+        <h1 style="margin:0 0 8px;font-size:16px;font-weight:700;color:#1e293b">Starting…</h1>
+        <p id="boot-msg" style="margin:0;font-size:14px;color:#475569;line-height:1.6">
+            Loading Vue, the Supabase client and the app config. If this message stays,
+            one of them did not load — the detail will appear below.
+        </p>
+        <pre id="boot-detail" style="display:none;margin:12px 0 0;padding:12px;background:#f1f5f9;
+             border-radius:8px;font-size:12px;color:#64748b;white-space:pre-wrap"></pre>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">
+            This page must be served over http:// — opening the .html from disk cannot reach the database.
+            Try <strong>http://127.0.0.1/screen_page/gauge/gauge_masterlist.html</strong>
+        </p>
+    </div>
+
+    <div id="app" v-cloak>
+
+        <!-- ---------- Top bar ---------- -->
+        <header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+            <div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-4">
+                <a href="../../AdminLogin.html"
+                   class="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-blue-600">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                    </svg>
+                    Back
+                </a>
+                <span class="w-px h-6 bg-gray-200"></span>
+                <h1 class="text-base font-bold tracking-tight text-gray-900">Gauge Masterlist</h1>
+                <span class="flex-1"></span>
+                <span v-if="canWrite" class="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full"
+                      style="background:var(--primary-soft);color:var(--primary)">{{ accessLevel }}</span>
+                <span v-else class="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-gray-100 text-gray-500">
+                    Read only
+                </span>
+            </div>
+        </header>
+
+        <main class="max-w-[1600px] mx-auto px-6 py-6">
+
+            <!-- ---------- Migration not applied ---------- -->
+            <!-- Shown ABOVE the tabs, not instead of them: the Special gauge tab
+                 reads the `gauges` table and works with or without the
+                 out_gauge_* migration. -->
+            <div v-if="!loading && categories.length === 0"
+                 class="rounded-2xl border p-6 mb-5" style="border-color:#fde68a;background:#fffbeb">
+                <h2 class="text-base font-bold text-gray-900 mb-2">Purchased-gauge categories are not set up yet</h2>
+                <p class="text-sm text-gray-600 leading-relaxed max-w-3xl">
+                    <code class="font-mono">out_gauge_category</code> returned no rows. The category migration seeds
+                    three rows (TPG, TRG, PIN), so an empty result means it has not been run — or that row-level
+                    security is still blocking the app's anon key.
+                </p>
+                <p class="text-sm text-gray-600 leading-relaxed mt-3">
+                    Run <code class="font-mono font-bold">sql/2026-07-30_gauge_categories_and_rls.sql</code>
+                    in the Supabase SQL editor, then reload.
+                    <strong>Special gauge below is unaffected.</strong>
+                </p>
+                <p v-if="loadError" class="text-sm mt-3 font-medium" style="color:var(--danger)">{{ loadError }}</p>
+            </div>
+
+            <!-- No <template> wrapper here. A <template> with no directive
+                 compiles to a real <template> DOM element, whose children live
+                 in .content and are never rendered — it silently swallowed the
+                 whole page. Only use <template> with v-if/v-else/v-for. -->
+
+            <!-- ---------- Category tabs ---------- -->
+            <div class="flex items-end gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
+                    <button v-for="c in tabs" :key="c.code" @click="selectCategory(c.code)"
+                        :class="['px-4 py-2.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors',
+                                 activeCode === c.code
+                                   ? 'border-blue-600 text-blue-600'
+                                   : 'border-transparent text-gray-500 hover:text-gray-800']">
+                        {{ c.name }}
+                        <span class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
+                            {{ c.code }}
+                        </span>
+                    </button>
+                    <span class="flex-1"></span>
+                    <button v-if="canWrite" @click="openCategory()"
+                        class="mb-1 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-blue-600">
+                        + Category
+                    </button>
+                </div>
+
+                <!-- Special gauges are owned by the Gauge Verification module,
+                     which versions them (Rev 1A, 1B, 2A…). Editing them here
+                     would bypass that, so this tab reads only. -->
+                <div v-if="isSpecial"
+                     class="flex items-center gap-3 mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" class="text-gray-400 flex-shrink-0" fill="currentColor">
+                        <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                    </svg>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Read-only. Special gauges carry drawing and gauge revisions, so they are created and
+                        edited in <strong>Gauge Verification</strong> to keep that history intact.
+                    </p>
+                    <a href="gauge_verification_form.html" class="btn btn--secondary whitespace-nowrap">Open</a>
+                </div>
+
+                <!-- ---------- Toolbar ---------- -->
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <input v-model="search" @input="debouncedReload" type="search"
+                        :placeholder="'Search ' + (activeCategory ? activeCategory.name : 'gauges') + '…'"
+                        class="gm-field" />
+                    <select v-if="!isSpecial" v-model="ownerFilter" @change="reload()" class="gm-field">
+                        <option value="">All departments</option>
+                        <option value="QA">QA</option>
+                        <option value="PROD">PROD</option>
+                    </select>
+                    <select v-model="statusFilter" @change="reload()" class="gm-field">
+                        <option value="">All statuses</option>
+                        <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+                    </select>
+                    <span class="flex-1"></span>
+                    <span class="text-xs text-gray-400 font-medium">
+                        {{ totalSpecs }} {{ isSpecial ? 'gauge' : 'spec' }}{{ totalSpecs === 1 ? '' : 's' }}
+                    </span>
+                    <button v-if="canWrite && !isSpecial" @click="openSpec()" class="btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                        </svg>
+                        New gauge
+                    </button>
+                </div>
+
+                <!-- ---------- Masterlist ---------- -->
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr v-if="isSpecial" class="bg-gray-100 border-b border-gray-200">
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Gauge name</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Gauge no.</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Rev</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">For process</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Location</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Drawing</th>
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Status</th>
+                                </tr>
+                                <tr v-else class="bg-gray-100 border-b border-gray-200">
+                                    <th class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Description</th>
+                                    <th v-if="kind === 'thread'" class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Size</th>
+                                    <th v-if="kind === 'thread'" class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Pitch / TPI</th>
+                                    <th v-if="kind === 'thread'" class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Class</th>
+                                    <th v-if="kind === 'thread'" class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Hand</th>
+                                    <th v-if="kind === 'diameter'" class="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Ø mm</th>
+                                    <th class="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">QA</th>
+                                    <th class="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">PROD</th>
+                                    <th class="text-right px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">Total</th>
+                                    <th class="px-4 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="loading">
+                                    <td :colspan="colCount" class="px-4 py-10 text-center text-gray-400">Loading…</td>
+                                </tr>
+                                <tr v-else-if="specs.length === 0">
+                                    <td :colspan="colCount" class="px-4 py-10 text-center text-gray-400">
+                                        {{ search ? 'No gauge matches that search.' : 'No gauges recorded in this category yet.' }}
+                                    </td>
+                                </tr>
+                                <!-- Special gauges: from `gauges`, a different shape entirely.
+                                     v-for lives on a <template> wrapper, not the <tr>: in Vue 3
+                                     v-if outranks v-for on the same element, so combining them
+                                     both warns and reads misleadingly. -->
+                                <template v-else-if="isSpecial">
+                                <tr v-for="g in specs" :key="g.id"
+                                    class="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                                    <td class="px-4 py-2.5 font-medium text-gray-900">{{ g.gauge_name || '—' }}</td>
+                                    <td class="px-4 py-2.5 text-gray-600 tabular-nums">{{ g.gauge_no || '—' }}</td>
+                                    <td class="px-4 py-2.5 text-gray-600 tabular-nums">
+                                        {{ g.drawing_rev != null ? 'Rev ' + g.drawing_rev + (g.gauge_rev || '') : '—' }}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-gray-600">{{ g.for_process || '—' }}</td>
+                                    <td class="px-4 py-2.5 text-gray-600">{{ g.location || '—' }}</td>
+                                    <td class="px-4 py-2.5 text-gray-600">{{ g.drawing_no || '—' }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <span class="badge" :class="specialStatusClass(g.status)">{{ g.status || '—' }}</span>
+                                    </td>
+                                </tr>
+                                </template>
+
+                                <template v-else>
+                                <tr v-for="s in specs" :key="s.id"
+                                    class="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer"
+                                    @click="openItems(s)">
+                                    <td class="px-4 py-2.5">
+                                        <div class="font-medium text-gray-900">{{ s.designation }}</div>
+                                        <div v-if="s.data_quality_flag" class="text-[11px] mt-0.5" style="color:#b45309">
+                                            ⚠ {{ s.data_quality_flag }}
+                                        </div>
+                                    </td>
+                                    <td v-if="kind === 'thread'" class="px-4 py-2.5 text-gray-600">
+                                        {{ s.nominal_size_label || fmt(s.nominal_size_mm) }}
+                                    </td>
+                                    <td v-if="kind === 'thread'" class="px-4 py-2.5 text-gray-600">
+                                        {{ s.pitch_mm ? fmt(s.pitch_mm) : (s.threads_per_inch ? s.threads_per_inch + ' TPI' : '—') }}
+                                    </td>
+                                    <td v-if="kind === 'thread'" class="px-4 py-2.5 text-gray-600">{{ s.tolerance_class || '—' }}</td>
+                                    <td v-if="kind === 'thread'" class="px-4 py-2.5 text-gray-600">{{ s.hand || '—' }}</td>
+                                    <td v-if="kind === 'diameter'" class="px-4 py-2.5 text-gray-600 tabular-nums">{{ fmt(s.pin_dia_mm) }}</td>
+                                    <td class="px-4 py-2.5 text-right tabular-nums text-gray-600">{{ counts[s.id]?.QA || 0 }}</td>
+                                    <td class="px-4 py-2.5 text-right tabular-nums text-gray-600">{{ counts[s.id]?.PROD || 0 }}</td>
+                                    <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900">{{ counts[s.id]?.total || 0 }}</td>
+                                    <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                                        <button v-if="canWrite" @click.stop="openSpec(s)"
+                                            class="text-xs font-bold text-gray-400 hover:text-blue-600 px-2">Edit</button>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" class="inline text-gray-300" fill="currentColor">
+                                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                                        </svg>
+                                    </td>
+                                </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div v-if="totalSpecs > pageSize" class="flex items-center gap-3 px-4 py-3 border-t border-gray-200">
+                        <button @click="go(page - 1)" :disabled="page === 0" class="btn btn--secondary">Previous</button>
+                        <span class="text-xs text-gray-500 font-medium">
+                            {{ page * pageSize + 1 }}–{{ Math.min((page + 1) * pageSize, totalSpecs) }} of {{ totalSpecs }}
+                        </span>
+                        <button @click="go(page + 1)" :disabled="(page + 1) * pageSize >= totalSpecs" class="btn btn--secondary">Next</button>
+                    </div>
+                </div>
+        </main>
+
+        <!-- ================= Spec drawer ================= -->
+        <div v-if="specModal" class="modal-overlay" style="display:flex" @click.self="specModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">{{ specForm.id ? 'Edit gauge' : 'New gauge' }}
+                        <span class="dlg__sub">{{ activeCategory?.name }} — {{ kind }} type</span>
+                    </h3>
+                    <button class="dlg__close" @click="specModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="field mb-4">
+                        <label class="label">Description <span style="color:var(--danger)">*</span></label>
+                        <input v-model="specForm.designation" type="text" placeholder="M6 X 1.0 6H RH (SINGLE START)" />
+                        <p class="hint">Exactly as it is written on the gauge or the masterlist sheet.</p>
+                    </div>
+
+                    <!-- thread fields -->
+                    <div v-if="kind === 'thread'" class="form-grid">
+                        <div class="field">
+                            <label class="label">Standard</label>
+                            <select v-model="specForm.thread_standard">
+                                <option :value="null">—</option>
+                                <option v-for="t in THREAD_STDS" :key="t" :value="t">{{ t }}</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">Nominal size (mm)</label>
+                            <input v-model.number="specForm.nominal_size_mm" type="number" step="0.001" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Size label (inch)</label>
+                            <input v-model="specForm.nominal_size_label" type="text" placeholder="1/4, 1 1/8" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Pitch (mm)</label>
+                            <input v-model.number="specForm.pitch_mm" type="number" step="0.001" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Threads per inch</label>
+                            <input v-model.number="specForm.threads_per_inch" type="number" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Tolerance class</label>
+                            <input v-model="specForm.tolerance_class" type="text" placeholder="6H, 6g, 2A, 2B" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Hand</label>
+                            <select v-model="specForm.hand">
+                                <option :value="null">—</option>
+                                <option value="RH">RH</option>
+                                <option value="LH">LH</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">Starts</label>
+                            <input v-model.number="specForm.thread_starts" type="number" min="1" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Lead (mm)</label>
+                            <input v-model.number="specForm.lead_mm" type="number" step="0.001" />
+                            <p class="hint">Pitch × starts.</p>
+                        </div>
+                    </div>
+
+                    <!-- diameter fields -->
+                    <div v-if="kind === 'diameter'" class="form-grid">
+                        <div class="field">
+                            <label class="label">Diameter (mm) <span style="color:var(--danger)">*</span></label>
+                            <input v-model.number="specForm.pin_dia_mm" type="number" step="0.001" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Class</label>
+                            <input v-model="specForm.pin_class" type="text" placeholder="ZZ, Z, X" />
+                        </div>
+                    </div>
+
+                    <!-- other: free-form -->
+                    <div v-if="kind === 'other'" class="field mb-4">
+                        <label class="label">Attributes (JSON)</label>
+                        <textarea v-model="attrText" rows="5" class="font-mono text-xs"
+                                  placeholder='{ "range_mm": "0-25", "resolution": "0.01" }'></textarea>
+                        <p class="hint">
+                            This category has no fixed fields, so anything it needs lives here.
+                            Must be a JSON object.
+                        </p>
+                        <p v-if="attrError" class="hint" style="color:var(--danger)">{{ attrError }}</p>
+                    </div>
+
+                    <div class="field mt-4">
+                        <label class="label">Remarks</label>
+                        <textarea v-model="specForm.remarks" rows="2"></textarea>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Data quality flag</label>
+                        <input v-model="specForm.data_quality_flag" type="text"
+                               placeholder="Anything ambiguous on the source sheet" />
+                    </div>
+
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <button v-if="specForm.id" @click="removeSpec()" class="btn btn--danger" :disabled="saving">Delete</button>
+                    <span class="flex-1"></span>
+                    <button @click="specModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveSpec()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save gauge' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Items drawer ================= -->
+        <div v-if="itemsModal" class="modal-overlay" style="display:flex" @click.self="itemsModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">{{ itemsModal.designation }}
+                        <span class="dlg__sub">
+                            Physical pieces — quantity is the number of rows, never a typed number
+                        </span>
+                    </h3>
+                    <button class="dlg__close" @click="itemsModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div v-if="itemsLoading" class="text-sm text-gray-400 py-6 text-center">Loading pieces…</div>
+                    <template v-else>
+                        <div v-if="items.length === 0" class="detail__clear mb-4">
+                            No physical pieces recorded against this gauge yet.
+                        </div>
+                        <table v-else class="w-full text-sm mb-4">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Dept</th>
+                                    <th class="text-left py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Member</th>
+                                    <th class="text-left py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Marking</th>
+                                    <th class="text-left py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Location</th>
+                                    <th class="text-left py-2 text-[11px] font-bold uppercase tracking-wider text-gray-500">Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="it in items" :key="it.id" class="border-b border-gray-100 last:border-0">
+                                    <td class="py-2 text-gray-600">{{ it.owner_dept }}</td>
+                                    <td class="py-2 text-gray-600">{{ it.member }}</td>
+                                    <td class="py-2 text-gray-600">{{ it.marking || '—' }}</td>
+                                    <td class="py-2 text-gray-600">{{ it.location || it.storage_box || '—' }}</td>
+                                    <td class="py-2">
+                                        <span class="badge" :class="statusClass(it.status)">{{ it.status }}</span>
+                                    </td>
+                                    <td class="py-2 text-right">
+                                        <button v-if="canWrite" @click="openItem(it)"
+                                            class="text-xs font-bold text-gray-400 hover:text-blue-600">Edit</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button v-if="canWrite" @click="openItem()" class="btn btn--secondary">+ Add piece</button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Item form ================= -->
+        <div v-if="itemModal" class="modal-overlay" style="display:flex;z-index:2100" @click.self="itemModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">{{ itemForm.id ? 'Edit piece' : 'Add piece' }}
+                        <span class="dlg__sub">One row = one physical gauge</span>
+                    </h3>
+                    <button class="dlg__close" @click="itemModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Department <span style="color:var(--danger)">*</span></label>
+                            <select v-model="itemForm.owner_dept">
+                                <option value="QA">QA</option>
+                                <option value="PROD">PROD</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">Member</label>
+                            <select v-model="itemForm.member">
+                                <option v-for="m in MEMBERS" :key="m" :value="m">{{ m }}</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">Marking</label>
+                            <input v-model="itemForm.marking" type="text" placeholder="290526-01" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Serial number</label>
+                            <input v-model="itemForm.serial_number" type="text" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Brand</label>
+                            <input v-model="itemForm.brand" type="text" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Location</label>
+                            <input v-model="itemForm.location" type="text" placeholder="DRAWER A" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Storage box</label>
+                            <input v-model="itemForm.storage_box" type="text" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Date received</label>
+                            <input v-model="itemForm.date_received" type="date" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Status</label>
+                            <select v-model="itemForm.status">
+                                <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">Calibration due</label>
+                            <input v-model="itemForm.calibration_due" type="date" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Last reading (mm)</label>
+                            <input v-model.number="itemForm.last_reading_mm" type="number" step="0.0001" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Source ref</label>
+                            <input v-model="itemForm.source_ref" type="text" placeholder="TPG-1-L1-01" />
+                            <p class="hint">Traceability back to the Excel row. Must be unique.</p>
+                        </div>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Remarks</label>
+                        <textarea v-model="itemForm.remarks" rows="2"></textarea>
+                    </div>
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <button v-if="itemForm.id" @click="removeItem()" class="btn btn--danger" :disabled="saving">Delete</button>
+                    <span class="flex-1"></span>
+                    <button @click="itemModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveItem()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save piece' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Category form ================= -->
+        <div v-if="catModal" class="modal-overlay" style="display:flex" @click.self="catModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">New gauge category
+                        <span class="dlg__sub">Appears as a tab immediately — no database migration</span>
+                    </h3>
+                    <button class="dlg__close" @click="catModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Code <span style="color:var(--danger)">*</span></label>
+                            <input v-model="catForm.code" type="text" maxlength="12" placeholder="SNAP"
+                                   @input="catForm.code = catForm.code.toUpperCase()" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Name <span style="color:var(--danger)">*</span></label>
+                            <input v-model="catForm.name" type="text" placeholder="Snap Gauge" />
+                        </div>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Measurement kind <span style="color:var(--danger)">*</span></label>
+                        <select v-model="catForm.measurement_kind">
+                            <option value="thread">thread — size + pitch/TPI + class + hand</option>
+                            <option value="diameter">diameter — one diameter, no pitch</option>
+                            <option value="other">other — nothing enforced, free-form attributes</option>
+                        </select>
+                        <p class="hint">
+                            This decides which fields the gauge form shows and which the database requires.
+                            It cannot be changed once gauges exist in the category.
+                        </p>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Description</label>
+                        <input v-model="catForm.description" type="text" />
+                    </div>
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <span class="flex-1"></span>
+                    <button @click="catModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveCategory()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Add category' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </div>
+
+    <style>
+        /* Dialog chrome — same vocabulary as AdminLogin's detail modal. */
+        .modal-overlay > .modal--form {
+            display: flex; flex-direction: column;
+            max-width: 760px; max-height: min(86vh, 820px);
+            padding: 0; text-align: left;
+        }
+        .dlg__head {
+            display: flex; align-items: flex-start; gap: var(--space-4);
+            padding: var(--space-5) var(--space-6);
+            border-bottom: 1px solid var(--border);
+        }
+        .dlg__title { flex: 1; margin: 0; font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .dlg__sub { display: block; margin-top: 3px; font-size: var(--fs-sm); font-weight: 400; color: var(--text-muted); }
+        .dlg__close {
+            flex-shrink: 0; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; line-height: 1; color: var(--text-muted);
+            background: none; border: 1px solid transparent;
+            border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .dlg__close:hover { background: var(--surface-muted); color: var(--text-main); }
+        .dlg__body { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6) var(--space-6); }
+        .dlg__foot {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-4) var(--space-6);
+            border-top: 1px solid var(--border); background: var(--surface-muted);
+        }
+        .hint { margin: 6px 0 0; font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+
+        /* ---- One control size everywhere -------------------------------
+           theme.css gives inputs and selects the same padding, but a <select>
+           still lands a few pixels shorter than an <input> in Chrome because
+           it does not inherit line-height the same way, and date/number inputs
+           drift again on top of that. In the two-column form grid they sit
+           side by side, so the mismatch is obvious. Pin the height instead of
+           relying on padding, and give every toolbar control one width. */
+        :root { --control-h: 42px; }
+
+        .dlg__body input,
+        .dlg__body select,
+        .gm-field {
+            height: var(--control-h);
+            line-height: normal;
+            box-sizing: border-box;
+        }
+
+        /* Selects need the arrow gutter or long options collide with it. */
+        .dlg__body select,
+        select.gm-field { padding-right: var(--space-8); }
+
+        /* Textareas are the one control that must grow — match the others at
+           rest, then let rows= take over. */
+        .dlg__body textarea {
+            min-height: var(--control-h);
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        /* Toolbar: search and both dropdowns identical, not 288/160/176. */
+        .gm-field { width: 220px; flex: none; }
+
+        @media (max-width: 720px) {
+            .gm-field { width: 100%; }
+        }
+    </style>
+
+    <script>
+        /* Writes into the #boot panel that is already on screen, rather than
+           trying to un-hide #app. #boot is removed only on a successful mount,
+           so there is no path that ends in a blank page. */
+        function bootFailed(what, detail) {
+            const box = document.getElementById('boot');
+            if (!box) return;
+            box.style.borderColor = '#fde68a';
+            box.style.background = '#fffbeb';
+            const h = box.querySelector('h1');
+            if (h) h.textContent = 'This page could not start';
+            const msg = document.getElementById('boot-msg');
+            if (msg) msg.textContent = what;
+            const errs = (window.__bootErrors || []).join('\n');
+            const body = [detail, errs].filter(Boolean).join('\n\n');
+            const pre = document.getElementById('boot-detail');
+            if (pre && body) { pre.style.display = 'block'; pre.textContent = body; }
+            console.error('Gauge masterlist could not start:', what, body);
+        }
+
+        // Lets the early error listener surface a CDN failure through the panel.
+        window.__bootReport = function () {
+            if (!document.getElementById('boot')) return;   // already mounted fine
+            bootFailed('Something failed to load before the page could start.');
+        };
+
+        // Named so the message says which one, rather than "undefined is not an object".
+        if (typeof Vue === 'undefined') {
+            bootFailed('Vue did not load. It comes from unpkg.com — check the network tab, ' +
+                'or whether this machine can reach that CDN.');
+            throw new Error('Vue missing');
+        }
+        if (typeof supabase === 'undefined') {
+            bootFailed('The Supabase client did not load. It comes from unpkg.com — check the ' +
+                'network tab, or whether this machine can reach that CDN.');
+            throw new Error('supabase missing');
+        }
+        if (!window.APP_CONFIG) {
+            bootFailed('/assets/app-config.js did not load, so there is no database address. ' +
+                'That path is absolute, so it only resolves when the page is served by the ' +
+                'app — opening the .html file directly from disk will always fail here.');
+            throw new Error('APP_CONFIG missing');
+        }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Mirrors AdminLogin's grant for the two gauge cards exactly: btn-gv and
+        // btn-gauge-masterlist are enabled for ALL and QUALITY only. Keep the two
+        // in step — a role that cannot see the card should not be able to write.
+        const WRITE_ROLES = ['ALL', 'QUALITY'];
+
+        const app = createApp({
+            setup() {
+                const STATUSES = ['active', 'in_calibration', 'quarantine', 'worn', 'scrapped', 'lost'];
+                const MEMBERS = ['NA', 'SET', 'GO', 'NOGO'];
+                const THREAD_STDS = ['M', 'UNC', 'UNF', 'UNEF', 'UNS', 'BSPT', 'BSPP', 'NPT', 'BSF', 'BSW'];
+                const pageSize = 50;
+
+                const categories = ref([]);
+                const activeCode = ref(null);
+                const specs = ref([]);
+                const counts = ref({});
+                const totalSpecs = ref(0);
+                const page = ref(0);
+                const loading = ref(true);
+                const loadError = ref('');
+                const search = ref('');
+                const ownerFilter = ref('');
+                const statusFilter = ref('');
+                const saving = ref(false);
+                const formError = ref('');
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+
+                const specModal = ref(null);
+                const itemsModal = ref(null);
+                const itemModal = ref(null);
+                const catModal = ref(null);
+                const items = ref([]);
+                const itemsLoading = ref(false);
+                const attrText = ref('{}');
+                const attrError = ref('');
+
+                const specForm = reactive({});
+                const itemForm = reactive({});
+                const catForm = reactive({});
+
+                // Special gauges live in `gauges`, not out_gauge_spec — a
+                // different table with its own revision model. Pinned as a
+                // synthetic tab rather than given an out_gauge_category row,
+                // because nothing about it maps onto spec/item.
+                const SPECIAL_CODE = 'Special';
+                const SPECIAL_STATUSES = ['ACTIVE', 'NOT APPLICABLE', 'OBSOLETE', 'NO STATUS'];
+
+                const tabs = computed(() => [
+                    ...categories.value,
+                    { code: SPECIAL_CODE, name: 'Special gauge', measurement_kind: 'special' }
+                ]);
+                const isSpecial = computed(() => activeCode.value === SPECIAL_CODE);
+                const activeCategory = computed(() =>
+                    tabs.value.find(c => c.code === activeCode.value) || null);
+                const kind = computed(() => activeCategory.value?.measurement_kind || 'other');
+                const colCount = computed(() => isSpecial.value ? 7
+                    : (kind.value === 'thread' ? 9 : (kind.value === 'diameter' ? 6 : 5)));
+                const statusOptions = computed(() => isSpecial.value ? SPECIAL_STATUSES : STATUSES);
+
+                const fmt = v => (v === null || v === undefined) ? '—' : Number(v).toString();
+                const statusClass = s => s === 'active' ? 'badge--success'
+                    : (s === 'scrapped' || s === 'lost') ? 'badge--danger'
+                        : 'badge--warning';
+                const specialStatusClass = s => s === 'ACTIVE' ? 'badge--success'
+                    : s === 'OBSOLETE' ? 'badge--danger' : '';
+
+                // ---- access ----------------------------------------------------
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (!userId) return;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                }
+
+                // ---- load ------------------------------------------------------
+                async function loadCategories() {
+                    const { data, error } = await _supabase
+                        .from('out_gauge_category').select('*')
+                        .eq('is_active', true).order('sort_order');
+                    if (error) { loadError.value = error.message; return; }
+                    categories.value = data || [];
+                    if (!activeCode.value) {
+                        // Falls through to Special gauge when the out_gauge_*
+                        // migration has not been run, so the page is still useful.
+                        activeCode.value = categories.value.length
+                            ? categories.value[0].code
+                            : SPECIAL_CODE;
+                    }
+                }
+
+                async function reload() {
+                    if (!activeCode.value) { loading.value = false; return; }
+                    if (isSpecial.value) return reloadSpecial();
+                    loading.value = true;
+                    try {
+                        let q = _supabase.from('out_gauge_spec')
+                            .select('*', { count: 'exact' })
+                            .eq('gauge_type', activeCode.value);
+                        if (search.value.trim()) q = q.ilike('designation', '%' + search.value.trim() + '%');
+                        // Sorted by name for every category. `id` is only a
+                        // tiebreaker — without it, rows that compare equal can
+                        // swap between pages and a spec shows twice or not at all.
+                        q = q.order('designation').order('id');
+                        const { data, count, error } = await q
+                            .range(page.value * pageSize, page.value * pageSize + pageSize - 1);
+                        if (error) throw error;
+                        specs.value = data || [];
+                        totalSpecs.value = count || 0;
+                        await loadCounts();
+                    } catch (e) {
+                        loadError.value = e.message;
+                        specs.value = [];
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                async function reloadSpecial() {
+                    loading.value = true;
+                    counts.value = {};
+                    try {
+                        let q = _supabase.from('gauges').select('*', { count: 'exact' });
+                        const s = search.value.trim();
+                        if (s) {
+                            // Commas and parens are PostgREST filter syntax — a
+                            // search for "GAUGE (A)" would otherwise 400.
+                            const safe = s.replace(/[,()]/g, ' ').trim();
+                            if (safe) q = q.or(`gauge_name.ilike.*${safe}*,gauge_no.ilike.*${safe}*`);
+                        }
+                        if (statusFilter.value) q = q.eq('status', statusFilter.value);
+                        const { data, count, error } = await q
+                            .order('gauge_name').order('id')
+                            .range(page.value * pageSize, page.value * pageSize + pageSize - 1);
+                        if (error) throw error;
+                        specs.value = data || [];
+                        totalSpecs.value = count || 0;
+                    } catch (e) {
+                        loadError.value = e.message;
+                        specs.value = [];
+                        totalSpecs.value = 0;
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                // Counts only for the specs on screen — the PIN category has 800.
+                async function loadCounts() {
+                    counts.value = {};
+                    if (!specs.value.length) return;
+                    let q = _supabase.from('out_gauge_item')
+                        .select('spec_id,owner_dept,status')
+                        .in('spec_id', specs.value.map(s => s.id));
+                    if (ownerFilter.value) q = q.eq('owner_dept', ownerFilter.value);
+                    if (statusFilter.value) q = q.eq('status', statusFilter.value);
+                    const { data, error } = await q;
+                    if (error) { console.error(error); return; }
+                    const acc = {};
+                    (data || []).forEach(r => {
+                        const c = acc[r.spec_id] || (acc[r.spec_id] = { QA: 0, PROD: 0, total: 0 });
+                        c[r.owner_dept] = (c[r.owner_dept] || 0) + 1;
+                        c.total++;
+                    });
+                    counts.value = acc;
+                }
+
+                let debounceTimer = null;
+                function debouncedReload() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => { page.value = 0; reload(); }, 300);
+                }
+                function selectCategory(code) { activeCode.value = code; page.value = 0; reload(); }
+                function go(p) { page.value = p; reload(); }
+
+                // ---- spec CRUD -------------------------------------------------
+                function openSpec(s) {
+                    formError.value = '';
+                    attrError.value = '';
+                    Object.keys(specForm).forEach(k => delete specForm[k]);
+                    if (s) {
+                        Object.assign(specForm, s);
+                        attrText.value = JSON.stringify(s.attributes || {}, null, 2);
+                    } else {
+                        Object.assign(specForm, {
+                            gauge_type: activeCode.value, designation: '', thread_starts: 1
+                        });
+                        attrText.value = '{}';
+                    }
+                    specModal.value = true;
+                }
+
+                function specPayload() {
+                    // measurement_kind is set by the database trigger, never sent.
+                    const p = {
+                        gauge_type: activeCode.value,
+                        designation: (specForm.designation || '').trim(),
+                        remarks: specForm.remarks || null,
+                        data_quality_flag: specForm.data_quality_flag || null,
+                        thread_standard: null, nominal_size_mm: null, nominal_size_label: null,
+                        pitch_mm: null, threads_per_inch: null, tolerance_class: null,
+                        hand: null, thread_starts: null, lead_mm: null,
+                        pin_dia_mm: null, pin_class: null, attributes: {}
+                    };
+                    if (kind.value === 'thread') {
+                        Object.assign(p, {
+                            thread_standard: specForm.thread_standard || null,
+                            nominal_size_mm: specForm.nominal_size_mm ?? null,
+                            nominal_size_label: specForm.nominal_size_label || null,
+                            pitch_mm: specForm.pitch_mm ?? null,
+                            threads_per_inch: specForm.threads_per_inch ?? null,
+                            tolerance_class: specForm.tolerance_class || null,
+                            hand: specForm.hand || null,
+                            thread_starts: specForm.thread_starts ?? 1,
+                            lead_mm: specForm.lead_mm ?? null
+                        });
+                    } else if (kind.value === 'diameter') {
+                        p.pin_dia_mm = specForm.pin_dia_mm ?? null;
+                        p.pin_class = specForm.pin_class || null;
+                    } else {
+                        p.attributes = JSON.parse(attrText.value || '{}');
+                    }
+                    return p;
+                }
+
+                async function saveSpec() {
+                    formError.value = '';
+                    attrError.value = '';
+                    if (!(specForm.designation || '').trim()) {
+                        formError.value = 'Description is required.'; return;
+                    }
+                    if (kind.value === 'diameter' && (specForm.pin_dia_mm === null || specForm.pin_dia_mm === undefined || specForm.pin_dia_mm === '')) {
+                        formError.value = 'Diameter is required for this category.'; return;
+                    }
+                    if (kind.value === 'other') {
+                        try {
+                            const parsed = JSON.parse(attrText.value || '{}');
+                            if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('must be an object');
+                        } catch (e) {
+                            attrError.value = 'Attributes must be a JSON object — ' + e.message; return;
+                        }
+                    }
+                    saving.value = true;
+                    try {
+                        const payload = specPayload();
+                        const { error } = specForm.id
+                            ? await _supabase.from('out_gauge_spec').update(payload).eq('id', specForm.id)
+                            : await _supabase.from('out_gauge_spec').insert(payload);
+                        if (error) throw error;
+                        specModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = e.message;
+                    } finally { saving.value = false; }
+                }
+
+                async function removeSpec() {
+                    if (!confirm('Delete this gauge? Pieces recorded against it must be removed first.')) return;
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('out_gauge_spec').delete().eq('id', specForm.id);
+                        if (error) throw error;
+                        specModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = e.message.includes('violates foreign key')
+                            ? 'This gauge still has physical pieces recorded. Delete those first.'
+                            : e.message;
+                    } finally { saving.value = false; }
+                }
+
+                // ---- item CRUD -------------------------------------------------
+                async function openItems(s) {
+                    itemsModal.value = s;
+                    itemsLoading.value = true;
+                    items.value = [];
+                    try {
+                        const { data, error } = await _supabase.from('out_gauge_item')
+                            .select('*').eq('spec_id', s.id).order('source_ref');
+                        if (error) throw error;
+                        items.value = data || [];
+                    } catch (e) { console.error(e); }
+                    finally { itemsLoading.value = false; }
+                }
+
+                function openItem(it) {
+                    formError.value = '';
+                    Object.keys(itemForm).forEach(k => delete itemForm[k]);
+                    Object.assign(itemForm, it ? { ...it } : {
+                        spec_id: itemsModal.value.id, owner_dept: 'QA', member: 'NA', status: 'active'
+                    });
+                    itemModal.value = true;
+                }
+
+                async function saveItem() {
+                    formError.value = '';
+                    saving.value = true;
+                    try {
+                        const p = {
+                            spec_id: itemsModal.value.id,
+                            owner_dept: itemForm.owner_dept,
+                            member: itemForm.member || 'NA',
+                            marking: itemForm.marking || null,
+                            serial_number: itemForm.serial_number || null,
+                            brand: itemForm.brand || null,
+                            location: itemForm.location || null,
+                            storage_box: itemForm.storage_box || null,
+                            date_received: itemForm.date_received || null,
+                            status: itemForm.status || 'active',
+                            calibration_due: itemForm.calibration_due || null,
+                            last_reading_mm: itemForm.last_reading_mm ?? null,
+                            source_ref: itemForm.source_ref || null,
+                            remarks: itemForm.remarks || null
+                        };
+                        const { error } = itemForm.id
+                            ? await _supabase.from('out_gauge_item').update(p).eq('id', itemForm.id)
+                            : await _supabase.from('out_gauge_item').insert(p);
+                        if (error) throw error;
+                        itemModal.value = null;
+                        await openItems(itemsModal.value);
+                        await loadCounts();
+                    } catch (e) {
+                        formError.value = e.message.includes('duplicate key') && e.message.includes('source_ref')
+                            ? 'That source ref is already used by another piece.'
+                            : e.message;
+                    } finally { saving.value = false; }
+                }
+
+                async function removeItem() {
+                    if (!confirm('Delete this physical piece from the masterlist?')) return;
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('out_gauge_item').delete().eq('id', itemForm.id);
+                        if (error) throw error;
+                        itemModal.value = null;
+                        await openItems(itemsModal.value);
+                        await loadCounts();
+                    } catch (e) { formError.value = e.message; }
+                    finally { saving.value = false; }
+                }
+
+                // ---- category --------------------------------------------------
+                function openCategory() {
+                    formError.value = '';
+                    Object.keys(catForm).forEach(k => delete catForm[k]);
+                    Object.assign(catForm, { code: '', name: '', measurement_kind: 'thread', description: '' });
+                    catModal.value = true;
+                }
+
+                async function saveCategory() {
+                    formError.value = '';
+                    if (!catForm.code.trim() || !catForm.name.trim()) {
+                        formError.value = 'Code and name are both required.'; return;
+                    }
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('out_gauge_category').insert({
+                            code: catForm.code.trim(),
+                            name: catForm.name.trim(),
+                            measurement_kind: catForm.measurement_kind,
+                            description: catForm.description || null,
+                            sort_order: 500
+                        });
+                        if (error) throw error;
+                        catModal.value = null;
+                        await loadCategories();
+                        selectCategory(catForm.code.trim());
+                    } catch (e) {
+                        formError.value = e.message.includes('duplicate key')
+                            ? 'That category code already exists.' : e.message;
+                    } finally { saving.value = false; }
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    await loadCategories();
+                    await reload();
+                });
+
+                return {
+                    STATUSES, MEMBERS, THREAD_STDS, pageSize,
+                    categories, tabs, isSpecial, statusOptions, specialStatusClass,
+                    activeCode, activeCategory, kind, colCount,
+                    specs, counts, totalSpecs, page, loading, loadError,
+                    search, ownerFilter, statusFilter, saving, formError,
+                    accessLevel, canWrite,
+                    specModal, itemsModal, itemModal, catModal, items, itemsLoading,
+                    specForm, itemForm, catForm, attrText, attrError,
+                    fmt, statusClass, selectCategory, go, reload, debouncedReload,
+                    openSpec, saveSpec, removeSpec,
+                    openItems, openItem, saveItem, removeItem,
+                    openCategory, saveCategory
+                };
+            }
+        });
+
+        try {
+            app.config.errorHandler = (err) => {
+                console.error('Gauge masterlist:', err);
+                bootFailed('The page hit an error while rendering.', String(err && err.stack || err));
+            };
+            app.mount('#app');
+            // Mounted. Only now is it safe to take the panel away.
+            const boot = document.getElementById('boot');
+            if (boot) boot.remove();
+        } catch (err) {
+            console.error('Gauge masterlist: mount failed', err);
+            bootFailed('Vue could not mount the page.', String(err && err.stack || err));
+        }
+    </script>
+</body>
+
+</html>

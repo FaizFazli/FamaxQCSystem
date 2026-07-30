@@ -960,7 +960,7 @@
           <div class="group-head">
             <span class="group-dot" style="background: #0f766e"></span>
             <h2 class="group-title">Quality</h2>
-            <span class="group-count">2</span>
+            <span class="group-count">3</span>
           </div>
           <div class="module-list">
             <div
@@ -981,6 +981,30 @@
                 <span class="card-title">Gauge Verification</span>
                 <span class="card-desc"
                   >Record and submit the gauge verification form</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="btn-gauge-masterlist"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/gauge/gauge_masterlist.html')"
+            >
+              <div class="icon-box tint-quality">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Gauge Masterlist</span>
+                <span class="card-desc"
+                  >Register gauges and browse the thread, pin, ring
+                  and special gauge</span
                 >
               </div>
               <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
@@ -1568,6 +1592,7 @@
           "btn-do-report",
           "btn-dms",
           "btn-gv",
+          "btn-gauge-masterlist",
           "btn-sales-order-form",
         ];
 
@@ -1633,6 +1658,7 @@
               "notifyEmailBtn",
               "btn-do-report",
               "btn-gv",
+              "btn-gauge-masterlist",
               "btn-traveler-card",
             ]);
             break;
