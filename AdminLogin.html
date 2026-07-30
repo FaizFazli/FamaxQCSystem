@@ -1,740 +1,2477 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard</title>
     <!-- Add /FamaxQCSystem to the beginning of the path -->
-    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <link
+      rel="icon"
+      type="png"
+      href="/FamaxQCSystem/assets/LogoRound.png?v=2"
+    />
     <!-- Add Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Add Axios for HTTP requests -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Shared design system (tokens + UI primitives) -->
-    <link rel="stylesheet" href="/assets/theme.css">
+    <link rel="stylesheet" href="/assets/theme.css" />
 
     <style>
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        body {
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-body);
+      /* ================================================================
+           Control Panel — rail + grouped module list
+           Layout only; every JS hook (ids, .dashboard-card, .module-group,
+           .disabled, .hidden, #loading-overlay, #userName, #accessLevel)
+           is unchanged.
+           ================================================================ */
+      body {
+        display: flex;
+        align-items: flex-start;
+        background: var(--bg-body);
+      }
+
+      /* ---- Left identity rail ---- */
+      .rail {
+        position: sticky;
+        top: 0;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        width: 284px;
+        height: 100vh;
+        padding: 28px 24px;
+        background: var(--text-main);
+        color: #fff;
+      }
+
+      .rail__brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+      }
+      .rail__mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .rail__mark img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .rail__name {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        line-height: 1;
+        color: #fff;
+      }
+      .rail__sub {
+        display: block;
+        margin-top: 2px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .identity {
+        margin-top: 32px;
+        padding: var(--space-4);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .identity__label {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+      .identity__row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .identity__avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-full);
+        background: rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .identity__avatar svg {
+        width: 17px;
+        height: 17px;
+        fill: rgba(255, 255, 255, 0.75);
+      }
+
+      .user-name {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: -0.1px;
+        color: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .access-level {
+        display: inline-block;
+        margin-top: var(--space-3);
+        padding: 4px 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--on-primary);
+        background: var(--primary);
+        border-radius: var(--radius-full);
+      }
+
+      .session {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-top: 18px;
+        padding-left: 2px;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .session::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: var(--radius-full);
+        background: var(--success);
+        flex-shrink: 0;
+      }
+
+      .rail__spacer {
+        flex: 1;
+      }
+
+      .rail__note {
+        margin: 0 0 18px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.5);
+        text-wrap: pretty;
+      }
+
+      /* Rail-inverted logout button (same .logout-btn hook) */
+      .logout-btn {
+        width: 100%;
+        padding: 11px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: var(--radius);
+      }
+      .logout-btn:hover {
+        background: var(--danger);
+        border-color: var(--danger);
+        transform: none;
+        box-shadow: none;
+      }
+      .logout-btn svg {
+        width: 15px;
+        height: 15px;
+        fill: currentColor;
+      }
+
+      /* ---- Right column ---- */
+      .column {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      /* Content + insights sit side by side; this row is what collapses to a
+         stack at 1280, so the panel flows under the modules instead of
+         squeezing them. */
+      .workspace {
+        flex: 1;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .content {
+        flex: 1;
+        min-width: 0;
+        max-width: 1100px;
+        padding: 44px 48px 28px;
+      }
+
+      .page-head {
+        margin-bottom: 20px;
+      }
+      .page-head h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.7px;
+        color: var(--text-main);
+      }
+      .page-head p {
+        margin: 8px 0 0;
+        font-size: var(--fs-base);
+        color: var(--text-muted);
+      }
+
+      /* ---- Module group ---- */
+      .module-group {
+        margin-bottom: 28px;
+      }
+      .module-group.hidden {
+        display: none;
+      }
+
+      .group-head {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 10px 0 12px;
+        background: var(--bg-body);
+      }
+      .group-head::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+      .group-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        flex-shrink: 0;
+      }
+      .group-title {
+        margin: 0;
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .group-count {
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-faint);
+        background: var(--surface-muted);
+        border-radius: var(--radius-full);
+      }
+
+      .module-list {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+
+      /* ---- Module row (same .dashboard-card hook as before) ---- */
+      .dashboard-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        padding: 15px 20px;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      /* Divider on every visible row that follows a visible row, so hidden
+           rows never leave a stray hairline at the top of the list. */
+      .dashboard-card:not(.disabled) ~ .dashboard-card:not(.disabled) {
+        border-top: 1px solid var(--border);
+      }
+      .dashboard-card:hover {
+        background: var(--surface-muted);
+      }
+
+      /* Access control hook — unchanged behaviour.
+           :first-child can land on a hidden row, so the divider is drawn on
+           the row after a visible one instead. */
+      .dashboard-card.disabled {
+        display: none !important;
+      }
+
+      .icon-box {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .card-icon {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+      }
+      .card-icon--stroke {
+        fill: none;
+        stroke: currentColor;
+      }
+
+      /* Group tints — one tint per module group */
+      .tint-docs {
+        background: #e0f2fe;
+        color: #0369a1;
+      }
+      .tint-quality {
+        background: #ccfbf1;
+        color: #0f766e;
+      }
+      .tint-reports {
+        background: #f3e8ff;
+        color: #7e22ce;
+      }
+      .tint-planning {
+        background: #ffedd5;
+        color: #c2410c;
+      }
+      .tint-store {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .tint-system {
+        background: #ffe4e6;
+        color: #be123c;
+      }
+
+      .card-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .card-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.1px;
+        color: var(--text-main);
+      }
+      .card-desc {
+        display: block;
+        margin-top: 2px;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .card-go {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        fill: var(--border-strong);
+        transition:
+          fill var(--transition),
+          transform var(--transition);
+      }
+      .dashboard-card:hover .card-go {
+        fill: var(--primary);
+        transform: translateX(3px);
+      }
+
+      .footer {
+        padding: 20px 48px 28px;
+        text-align: left;
+        font-size: var(--fs-xs);
+        font-weight: 500;
+        color: var(--text-faint);
+      }
+
+      /* ---- Right insights column ---- */
+      .insights {
+        position: sticky;
+        top: 0;
+        flex-shrink: 0;
+        width: 320px;
+        max-height: 100vh;
+        overflow-y: auto;
+        padding: 44px 48px 28px 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+      }
+
+      .insights__head {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+        margin-bottom: 2px;
+      }
+      .insights__title {
+        margin: 0;
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .insights__refreshed {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-faint);
+      }
+
+      .stat {
+        padding: var(--space-4) var(--space-5);
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+      }
+      .stat__top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .stat__icon {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .stat__icon svg {
+        width: 15px;
+        height: 15px;
+        fill: currentColor;
+      }
+      .stat__label {
+        font-size: var(--fs-xs);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+      .stat__value {
+        display: block;
+        margin-top: 10px;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.8px;
+        line-height: 1;
+        color: var(--text-main);
+        font-variant-numeric: tabular-nums;
+      }
+      /* Placeholder + unavailable both read as a quiet dash, never a fake 0. */
+      .stat__value.is-empty {
+        color: var(--border-strong);
+      }
+      .stat__note {
+        display: block;
+        margin-top: 6px;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+      }
+
+      /* Needs-attention list */
+      .attention {
+        padding: var(--space-4) var(--space-5) var(--space-2);
+      }
+      .attention__list {
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+        max-height: 232px;
+        overflow-y: auto;
+      }
+      .attention__item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid var(--border);
+      }
+      .attention__item:first-child {
+        border-top: 0;
+      }
+      .attention__text {
+        flex: 1;
+        min-width: 0;
+      }
+      .attention__part {
+        display: block;
+        font-size: var(--fs-sm);
+        font-weight: 600;
+        color: var(--text-main);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .attention__age {
+        display: block;
+        margin-top: 1px;
+        font-size: 11px;
+        color: var(--text-faint);
+      }
+      .attention__badge {
+        flex-shrink: 0;
+        padding: 3px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        border-radius: var(--radius-full);
+        white-space: nowrap;
+      }
+      .attention__badge--qa {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .attention__badge--mgmt {
+        background: #e0e7ff;
+        color: #4338ca;
+      }
+      .attention__badge--other {
+        background: var(--surface-muted);
+        color: var(--text-muted);
+      }
+      .attention__empty {
+        padding: 12px 0 14px;
+        font-size: var(--fs-sm);
+        color: var(--text-faint);
+      }
+
+      /* Clickable stat tiles */
+      .stat--clickable {
+        cursor: pointer;
+        transition:
+          border-color var(--transition),
+          box-shadow var(--transition);
+      }
+      .stat--clickable:hover {
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow);
+      }
+      .stat__more {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--primary);
+      }
+      .stat__more svg {
+        width: 12px;
+        height: 12px;
+        fill: currentColor;
+      }
+
+      /* ---- Detail modal ----
+         Wins over theme.css's `.modal-overlay > .modal` (420px, centred) by
+         matching the same two-class specificity later in the cascade. */
+      .modal-overlay > .modal--wide {
+        display: flex;
+        flex-direction: column;
+        max-width: 640px;
+        max-height: min(82vh, 760px);
+        padding: 0;
+        text-align: left;
+      }
+      .detail__head {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-4);
+        padding: var(--space-5) var(--space-6);
+        border-bottom: 1px solid var(--border);
+      }
+      .detail__title {
+        flex: 1;
+        margin: 0;
+        font-size: var(--fs-md);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .detail__sub {
+        display: block;
+        margin-top: 3px;
+        font-size: var(--fs-sm);
+        font-weight: 400;
+        color: var(--text-muted);
+      }
+      .detail__close {
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        line-height: 1;
+        color: var(--text-muted);
+        background: none;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+      }
+      .detail__close:hover {
+        background: var(--surface-muted);
+        color: var(--text-main);
+      }
+      .detail__body {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-5) var(--space-6) var(--space-6);
+      }
+
+      .detail__section {
+        margin-bottom: var(--space-6);
+      }
+      .detail__section:last-child {
+        margin-bottom: 0;
+      }
+      .detail__sec-head {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: 6px;
+      }
+      .detail__sec-title {
+        margin: 0;
+        font-size: var(--fs-sm);
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .detail__lead {
+        margin: 0 0 10px;
+        font-size: var(--fs-sm);
+        line-height: 1.6;
+        color: var(--text-muted);
+      }
+      .detail__rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .detail__row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: 9px 12px;
+        border-top: 1px solid var(--border);
+      }
+      .detail__row:first-child {
+        border-top: 0;
+      }
+      .detail__row:nth-child(even) {
+        background: rgba(241, 245, 249, 0.5);
+      }
+      .detail__row-name {
+        min-width: 0;
+        font-size: var(--fs-sm);
+        font-weight: 500;
+        color: var(--text-main);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .detail__row-meta {
+        flex-shrink: 0;
+        font-size: 11px;
+        color: var(--text-faint);
+        font-variant-numeric: tabular-nums;
+      }
+      .detail__row-sub {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--text-faint);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .detail__row-sub code {
+        font-family: ui-monospace, Menlo, monospace;
+        color: var(--text-muted);
+      }
+      .detail__clear {
+        padding: 10px 12px;
+        font-size: var(--fs-sm);
+        color: var(--text-muted);
+        background: var(--surface-muted);
+        border-radius: var(--radius-sm);
+      }
+      .detail__truncated {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--text-faint);
+      }
+
+      /* Below 1280 the panel stops being a column and flows under the modules. */
+      @media (max-width: 1280px) {
+        .workspace {
+          flex-direction: column;
+          align-items: stretch;
         }
-
-        /* Enterprise top app bar */
-        .header {
-            position: sticky;
-            top: 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 64px;
-            padding: 0 32px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-            z-index: var(--z-header);
-        }
-
-        .brand-title {
-            font-size: var(--fs-md);
-            font-weight: 700;
-            letter-spacing: -0.2px;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-        }
-
-        .brand-title svg { fill: var(--primary); }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: var(--space-4);
-        }
-
-        .user-details {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            padding-right: var(--space-4);
-            border-right: 1px solid var(--border);
-        }
-
-        .user-name {
-            font-weight: 600;
-            font-size: var(--fs-sm);
-            color: var(--text-main);
-        }
-
-        .access-level {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--primary);
-            background: var(--primary-soft);
-            padding: 3px 9px;
-            border-radius: var(--radius-full);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        /* Content shell with page heading */
         .content {
-            flex: 1;
-            width: 100%;
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 40px 32px;
+          max-width: none;
+          padding-bottom: 0;
         }
-
-        .page-head { margin-bottom: var(--space-8); }
-        .page-head h1 {
-            margin: 0;
-            font-size: var(--fs-xl);
-            font-weight: 700;
-            letter-spacing: -0.4px;
-            color: var(--text-main);
+        .insights {
+          position: static;
+          width: auto;
+          max-height: none;
+          overflow: visible;
+          padding: 28px 48px 28px;
         }
-        .page-head p {
-            margin: 6px 0 0;
-            font-size: var(--fs-base);
-            color: var(--text-muted);
+        .attention__list {
+          max-height: none;
         }
+      }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(264px, 1fr));
-            gap: 20px;
+      @media (max-width: 900px) {
+        body {
+          flex-direction: column;
+          align-items: stretch;
         }
-
-        /* Module grouping */
-        .module-group { margin-bottom: var(--space-8); }
-        .module-group.hidden { display: none; }
-
-        .group-title {
-            margin: 0 0 var(--space-4);
-            padding-bottom: var(--space-2);
-            border-bottom: 1px solid var(--border);
-            font-size: var(--fs-xs);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-muted);
+        .rail {
+          position: static;
+          width: 100%;
+          height: auto;
+          flex-direction: row;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: var(--space-4);
+          padding: 16px 20px;
         }
-
-        /* Refined module card */
-        .dashboard-card {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            min-height: 188px;
-            padding: 24px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            text-decoration: none;
-            cursor: pointer;
-            overflow: hidden;
-            transition: transform var(--transition-emphasis), box-shadow var(--transition-emphasis), border-color var(--transition-emphasis);
+        .identity {
+          margin-top: 0;
+          padding: 8px 12px;
         }
-
-        /* Accent bar revealed on hover */
-        .dashboard-card::before {
-            content: "";
-            position: absolute;
-            inset: 0 0 auto 0;
-            height: 3px;
-            background: var(--primary);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform var(--transition-emphasis);
+        .identity__label,
+        .rail__note,
+        .session {
+          display: none;
         }
-
-        .dashboard-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--border-strong);
+        .access-level {
+          margin-top: 0;
         }
-        .dashboard-card:hover::before { transform: scaleX(1); }
-
-        .icon-box {
-            width: 44px;
-            height: 44px;
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: var(--space-5);
-            flex-shrink: 0;
+        .rail__spacer {
+          flex: 1;
         }
-
-        .bg-blue { background: #e0f2fe; color: #0369a1; }
-        .bg-green { background: #dcfce7; color: #15803d; }
-        .bg-purple { background: #f3e8ff; color: #7e22ce; }
-        .bg-orange { background: #ffedd5; color: #c2410c; }
-        .bg-rose { background: #ffe4e6; color: #be123c; }
-
-        .card-icon { width: 24px; height: 24px; fill: currentColor; }
-
-        .card-title {
-            font-size: var(--fs-md);
-            font-weight: 700;
-            letter-spacing: -0.2px;
-            color: var(--text-main);
-            margin-bottom: var(--space-2);
+        .logout-btn {
+          width: auto;
         }
-
+        .content,
+        .footer,
+        .insights {
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+        .content {
+          padding-top: 28px;
+        }
         .card-desc {
-            font-size: var(--fs-sm);
-            color: var(--text-muted);
-            line-height: 1.5;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+          white-space: normal;
         }
-
-        .dashboard-card.disabled { display: none !important; }
-
-        .footer {
-            padding: 24px 32px;
-            text-align: center;
-            font-size: var(--fs-sm);
-            font-weight: 500;
-            color: var(--text-faint);
-            border-top: 1px solid var(--border);
-        }
-
-        @media (max-width: 768px) {
-            .header { height: auto; padding: 14px 20px; flex-direction: column; gap: 14px; }
-            .user-details { border: none; padding: 0; }
-            .content { padding: 28px 20px; }
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .dashboard-card { min-height: auto; }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p style="font-weight: 600; color: var(--text-muted);">Securing Environment...</p>
+      <div class="spinner"></div>
+      <p style="font-weight: 600; color: var(--text-muted)">
+        Securing Environment...
+      </p>
     </div>
 
-    <header class="header">
-        <div class="brand-title">
-            <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true">
-                <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-            </svg>
-            <span>FAMAX <span style="font-weight: 300;">ADMIN</span></span>
+    <aside class="rail">
+      <div class="rail__brand">
+        <div class="rail__mark">
+          <!-- Falcon mark only — the full lockup would repeat the FAMAX
+               wordmark that already sits beside it in text.
+               Relative path: AdminLogin.html sits at the repo root, so this
+               resolves whether the app is served at / or at /FamaxQCSystem.
+               alt="" — the brand name is adjacent as real text. -->
+          <img src="assets/Famax%20Falcon.png" alt="" />
         </div>
-        <div class="user-profile">
-            <div class="user-details">
-                <span class="user-name" id="userName">Admin</span>
-                <span class="access-level" id="accessLevel">Superuser</span>
-            </div>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+        <div>
+          <span class="rail__name">FAMAX</span>
+          <span class="rail__sub">Admin System</span>
         </div>
-    </header>
+      </div>
 
-    <main class="content">
+      <div class="identity">
+        <div class="identity__label">Signed in as</div>
+        <div class="identity__row">
+          <span class="identity__avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+              />
+            </svg>
+          </span>
+          <span class="user-name" id="userName">Admin</span>
+        </div>
+        <span class="access-level" id="accessLevel">Superuser</span>
+      </div>
+
+      <div class="session">Session active</div>
+
+      <div class="rail__spacer"></div>
+
+      <p class="rail__note">
+        Modules are scoped to your access level — anything you cannot open is
+        hidden from this list.
+      </p>
+
+      <button class="logout-btn" onclick="logout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"
+          />
+        </svg>
+        Log out
+      </button>
+    </aside>
+
+    <div class="column">
+      <div class="workspace">
+        <main class="content">
         <div class="page-head">
-            <h1>Control Panel</h1>
-            <p>Select a module to continue.</p>
+          <h1>Control Panel</h1>
+          <p>Choose a module to open.</p>
         </div>
 
         <!-- Documents & Files -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #0369a1"></span>
             <h2 class="group-title">Documents &amp; Files</h2>
-            <div class="dashboard-grid">
-                <div id="generateFileBtn" class="dashboard-card"
-                    onclick="navigateTo('screen_page/generate_file/FileGenerator.html')">
-                    <div class="icon-box bg-blue">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">File Generator</span>
-                    <span class="card-desc">Create and export new quality documentation files.</span>
-                </div>
-
-                <div id="btn-dms" class="dashboard-card" onclick="navigateTo('screen_page/dms/dms_dashboard.html')">
-                    <div class="icon-box" style="background-color: #afcde2;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: none; stroke: #01232e;" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2">
-                            </path>
-                        </svg>
-                    </div>
-                    <span class="card-title">DMS</span>
-                    <span class="card-desc">Document Management System</span>
-                </div>
-
-                <div id="addPartBtn" class="dashboard-card" onclick="navigateTo('screen_page/add_part/addPart.html')">
-                    <div class="icon-box bg-green">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Register/Revise Part</span>
-                    <span class="card-desc">Upload WI, process images, and customer drawing for a part revision.</span>
-                </div>
+            <span class="group-count">3</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="generateFileBtn"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/generate_file/FileGenerator.html')
+              "
+            >
+              <div class="icon-box tint-docs">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Work Instructions Generator</span>
+                <span class="card-desc"
+                  >Create and export new Work Instruction files</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
+
+            <div
+              id="btn-dms"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/dms/dms_dashboard.html')"
+            >
+              <div class="icon-box tint-docs">
+                <svg
+                  class="card-icon card-icon--stroke"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
+                  ></path>
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">DMS</span>
+                <span class="card-desc">Document Management System</span>
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="addPartBtn"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/add_part/addPart.html')"
+            >
+              <div class="icon-box tint-docs">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Register / Revise Part</span>
+                <span class="card-desc"
+                  >Upload WI, process images and customer drawing for a
+                  revision</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
         </section>
 
         <!-- Quality -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #0f766e"></span>
             <h2 class="group-title">Quality</h2>
-            <div class="dashboard-grid">
-                <div id="btn-gv" class="dashboard-card"
-                    onclick="navigateTo('screen_page/gauge/gauge_verification_form.html')">
-                    <div class="icon-box" style="background-color: #ccfbf1;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: none; stroke: #0f766e;" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2">
-                            </path>
-                        </svg>
-                    </div>
-                    <span class="card-title">Gauge Verification</span>
-                    <span class="card-desc">Gauge Verification Form</span>
-                </div>
-
-                <div id="dataEditor" class="dashboard-card"
-                    onclick="navigateTo('screen_page/table_editor/table_editor.html')">
-                    <div class="icon-box bg-orange">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M3 3v18h13v-2H5V5h14v6h2V3H3zM7 7h10v2H7zm0 4h7v2H7zm0 4h4v2H7z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Data Editor</span>
-                    <span class="card-desc">Directly modify and clean up database records.</span>
-                </div>
+            <span class="group-count">2</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="btn-gv"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/gauge/gauge_verification_form.html')
+              "
+            >
+              <div class="icon-box tint-quality">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M20.38 8.57l-1.23 1.85a8 8 0 01-.22 7.58H5.07A8 8 0 0115.58 6.85l1.85-1.23A10 10 0 003.35 19a2 2 0 001.72 1h13.85a2 2 0 001.74-1 10 10 0 00-.27-10.44zm-9.79 6.84a2 2 0 002.83 0l5.66-8.49-8.49 5.66a2 2 0 000 2.83z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Gauge Verification</span>
+                <span class="card-desc"
+                  >Record and submit the gauge verification form</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
+
+            <div
+              id="dataEditor"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/table_editor/table_editor.html')"
+            >
+              <div class="icon-box tint-quality">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M3 3v18h13v-2H5V5h14v6h2V3H3zM7 7h10v2H7zm0 4h7v2H7zm0 4h4v2H7z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Data Editor</span>
+                <span class="card-desc"
+                  >Directly modify and clean up database records</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
         </section>
 
         <!-- Reports -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #7e22ce"></span>
             <h2 class="group-title">Reports</h2>
-            <div class="dashboard-grid">
-                <div id="generateReport" class="dashboard-card"
-                    onclick="navigateTo('screen_page/report_generator/report_page.html')">
-                    <div class="icon-box" style="background-color: #ecfccb; color: #4d7c0f;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Generate Report</span>
-                    <span class="card-desc">Compile and download quality and production reports.</span>
-                </div>
-
-                <div id="btn-do-report" class="dashboard-card"
-                    onclick="navigateTo('screen_page/inspection/inspectionReportDO.html')">
-                    <div class="icon-box" style="background-color: #f3e5f5;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: #7b1fa2;" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                            </path>
-                        </svg>
-                    </div>
-                    <span class="card-title">OQC & IQC Report</span>
-                    <span class="card-desc">Ongoing and Incoming Report By Delivery Order</span>
-                </div>
+            <span class="group-count">2</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="generateReport"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/report_generator/report_page.html')
+              "
+            >
+              <div class="icon-box tint-reports">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Generate Report</span>
+                <span class="card-desc"
+                  >Compile and download quality and production reports</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
+
+            <div
+              id="btn-do-report"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/inspection/inspectionReportDO.html')
+              "
+            >
+              <div class="icon-box tint-reports">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.06 14.5L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.62z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">OQC &amp; IQC Report</span>
+                <span class="card-desc"
+                  >Ongoing and incoming inspection report by delivery
+                  order</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
         </section>
 
         <!-- Production Planning -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #c2410c"></span>
             <h2 class="group-title">Production Planning</h2>
-            <div class="dashboard-grid">
-                <div id="btn-sales-order-form" class="dashboard-card"
-                    onclick="navigateTo('screen_page/production_planning/sales_order_entry.html')">
-                    <div class="icon-box" style="background-color: #fff8e1;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: #ffa000;" aria-hidden="true">
-                            <path
-                                d="M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2l-1.5 1.5L6 2l-1.5 1.5L3 2v20z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Sales Order Form</span>
-                    <span class="card-desc">Create and manage customer sales records to begin production.</span>
-                </div>
-
-                <div id="updateJOBtn" class="dashboard-card" onclick="navigateTo('screen_page/job_order/UpdateJO.html')">
-                    <div class="icon-box" style="background-color: #e0e7ff; color: #4338ca;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Update JO</span>
-                    <span class="card-desc">Modify quantities and dates for production batches.</span>
-                </div>
-
-                <div id="btn-traveler-card" class="dashboard-card"
-                    onclick="navigateTo('screen_page/job_order/jobTravelerCard.html')">
-                    <div class="icon-box" style="background-color: #dcfce7; color: #15803d;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h6v2H6v-2zm0 4h6v2H6v-2zm9-4h3v6h-3v-6z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Job Traveler Card</span>
-                    <span class="card-desc">Track a JO through its routing: QC status, sign-off and production output.</span>
-                </div>
+            <span class="group-count">3</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="btn-sales-order-form"
+              class="dashboard-card"
+              onclick="
+                navigateTo(
+                  'screen_page/production_planning/sales_order_entry.html',
+                )
+              "
+            >
+              <div class="icon-box tint-planning">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2l-1.5 1.5L6 2l-1.5 1.5L3 2v20z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Sales Order Form</span>
+                <span class="card-desc"
+                  >Create and manage customer sales records to begin
+                  production</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
+
+            <div
+              id="updateJOBtn"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/job_order/UpdateJO.html')"
+            >
+              <div class="icon-box tint-planning">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Job Order Manager</span>
+                <span class="card-desc"
+                  >Create and manage job orders for production</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="btn-traveler-card"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/job_order/jobTravelerCard.html')"
+            >
+              <div class="icon-box tint-planning">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h6v2H6v-2zm0 4h6v2H6v-2zm9-4h3v6h-3v-6z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Job Traveler Card</span>
+                <span class="card-desc"
+                  >Track a JO through routing: QC status, sign-off and
+                  output</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
         </section>
 
         <!-- Materials & Store -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #15803d"></span>
             <h2 class="group-title">Materials &amp; Store</h2>
-            <div class="dashboard-grid">
-                <div id="btn-raw-material" class="dashboard-card"
-                    onclick="navigateTo('screen_page/raw_material/raw_material_dashboard.html')">
-                    <div class="icon-box" style="background-color: #dbeafe; color: #1d4ed8;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <rect x="3" y="4" width="18" height="4" rx="1" />
-                            <rect x="3" y="10" width="18" height="4" rx="1" />
-                            <rect x="3" y="16" width="14" height="4" rx="1" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Raw Material</span>
-                    <span class="card-desc">Track incoming materials and warehouse stock levels.</span>
-                </div>
-
-                <div id="btn-fg-store" class="dashboard-card"
-                    onclick="navigateTo('screen_page/store/inventory_dashboard.html')">
-                    <div class="icon-box bg-rose">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">FG Store</span>
-                    <span class="card-desc">Manage warehouse inventory and shipments.</span>
-                </div>
-
-                <div id="btn-packing-list-form" class="dashboard-card"
-                    onclick="navigateTo('screen_page/packaging_checklist/packingList.html')">
-                    <div class="icon-box" style="background-color: #f1f5f9;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: #1e293b;" aria-hidden="true">
-                            <path
-                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Packing List Form</span>
-                    <span class="card-desc">Auto-generated packing list pdf.</span>
-                </div>
-
-                <div id="btn-shipment-checklist" class="dashboard-card"
-                    onclick="navigateTo('screen_page/packaging_checklist/shipmentChecklist.html')">
-                    <div class="icon-box" style="background-color: #f5f0ed;">
-                        <svg class="card-icon" viewBox="0 0 24 24" style="fill: #5d4037;" aria-hidden="true">
-                            <path
-                                d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Shipment Checklist Form</span>
-                    <span class="card-desc">Checklist to ensure product is in perfect condition before shipment.</span>
-                </div>
+            <span class="group-count">4</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="btn-raw-material"
+              class="dashboard-card"
+              onclick="
+                navigateTo(
+                  'screen_page/raw_material/raw_material_dashboard.html',
+                )
+              "
+            >
+              <div class="icon-box tint-store">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="4" rx="1" />
+                  <rect x="3" y="10" width="18" height="4" rx="1" />
+                  <rect x="3" y="16" width="14" height="4" rx="1" />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Raw Material</span>
+                <span class="card-desc"
+                  >Track incoming materials and warehouse stock levels</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
+
+            <div
+              id="btn-fg-store"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/store/inventory_dashboard.html')"
+            >
+              <div class="icon-box tint-store">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2L3 7v10l9 5 9-5V7l-9-5z" />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">FG Store</span>
+                <span class="card-desc"
+                  >Manage finished-goods inventory and shipments</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="btn-packing-list-form"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/packaging_checklist/packingList.html')
+              "
+            >
+              <div class="icon-box tint-store">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Packing List Form</span>
+                <span class="card-desc">Auto-generated packing list PDF</span>
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="btn-shipment-checklist"
+              class="dashboard-card"
+              onclick="
+                navigateTo(
+                  'screen_page/packaging_checklist/shipmentChecklist.html',
+                )
+              "
+            >
+              <div class="icon-box tint-store">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Shipment Checklist Form</span>
+                <span class="card-desc"
+                  >Confirm product condition before shipment leaves the
+                  floor</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
         </section>
 
         <!-- System & Admin -->
         <section class="module-group">
+          <div class="group-head">
+            <span class="group-dot" style="background: #be123c"></span>
             <h2 class="group-title">System &amp; Admin</h2>
-            <div class="dashboard-grid">
-                <div id="usersBtn" class="dashboard-card" onclick="navigateTo('screen_page/users/user.html')">
-                    <div class="icon-box" style="background-color: #ede9fe; color: #6d28d9;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">User Management</span>
-                    <span class="card-desc">Control access levels and manage employee credentials.</span>
-                </div>
-
-                <div id="removeFolderBtn" class="dashboard-card"
-                    onclick="navigateTo('screen_page/remove_folder/removefolder.html')">
-                    <div class="icon-box" style="background-color: #fee2e2; color: #b91c1c;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Remove Folder</span>
-                    <span class="card-desc">Clean up old production directories and files.</span>
-                </div>
-
-                <div id="notifyEmailBtn" class="dashboard-card"
-                    onclick="navigateTo('screen_page/notification/teamsNotification.html')">
-                    <div class="icon-box" style="background-color: #fce7f3; color: #be185d;">
-                        <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V8l7 5 7-5v9zm-7-6.5L5 6h14l-7 4.5z" />
-                        </svg>
-                    </div>
-                    <span class="card-title">Notify Teams</span>
-                    <span class="card-desc">Send automated alerts to Microsoft Teams channels.</span>
-                </div>
+            <span class="group-count">3</span>
+          </div>
+          <div class="module-list">
+            <div
+              id="usersBtn"
+              class="dashboard-card"
+              onclick="navigateTo('screen_page/users/user.html')"
+            >
+              <div class="icon-box tint-system">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">User Management</span>
+                <span class="card-desc"
+                  >Control access levels and manage employee credentials</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
             </div>
-        </section>
-    </main>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+            <div
+              id="removeFolderBtn"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/remove_folder/removefolder.html')
+              "
+            >
+              <div class="icon-box tint-system">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Remove Folder</span>
+                <span class="card-desc"
+                  >Clean up old production directories and files</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+
+            <div
+              id="notifyEmailBtn"
+              class="dashboard-card"
+              onclick="
+                navigateTo('screen_page/notification/teamsNotification.html')
+              "
+            >
+              <div class="icon-box tint-system">
+                <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H5V8l7 5 7-5v9zm-7-6.5L5 6h14l-7 4.5z"
+                  />
+                </svg>
+              </div>
+              <div class="card-text">
+                <span class="card-title">Notify Teams</span>
+                <span class="card-desc"
+                  >Send automated alerts to Microsoft Teams channels</span
+                >
+              </div>
+              <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </div>
+          </div>
+        </section>
+        </main>
+
+        <aside class="insights">
+          <div class="insights__head">
+            <h2 class="insights__title">At a glance</h2>
+            <span class="insights__refreshed" id="insightsRefreshed"></span>
+          </div>
+
+          <!-- Registered parts -->
+          <div
+            class="stat stat--clickable"
+            id="statPartsCard"
+            role="button"
+            tabindex="0"
+            aria-haspopup="dialog"
+          >
+            <div class="stat__top">
+              <span class="stat__icon tint-docs">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+              </span>
+              <span class="stat__label">Registered Parts</span>
+            </div>
+            <span class="stat__value is-empty" id="statParts">—</span>
+            <span class="stat__note" id="statPartsNote">Loading…</span>
+            <span class="stat__more"
+              >Breakdown
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </span>
+          </div>
+
+          <!-- DMS products -->
+          <div
+            class="stat stat--clickable"
+            id="statDmsCard"
+            role="button"
+            tabindex="0"
+            aria-haspopup="dialog"
+          >
+            <div class="stat__top">
+              <span class="stat__icon tint-docs">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+                  />
+                </svg>
+              </span>
+              <span class="stat__label">Products in DMS</span>
+            </div>
+            <span class="stat__value is-empty" id="statDms">—</span>
+            <span class="stat__note" id="statDmsNote">Loading…</span>
+            <span class="stat__more"
+              >Coverage gaps
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+              </svg>
+            </span>
+          </div>
+
+          <!-- Open job orders -->
+          <div class="stat">
+            <div class="stat__top">
+              <span class="stat__icon tint-planning">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM6 10h6v2H6v-2zm0 4h6v2H6v-2zm9-4h3v6h-3v-6z"
+                  />
+                </svg>
+              </span>
+              <span class="stat__label">Open Job Orders</span>
+            </div>
+            <span class="stat__value is-empty" id="statJo">—</span>
+            <span class="stat__note" id="statJoNote">Loading…</span>
+          </div>
+
+          <!-- Needs attention (from Notify Teams / TeamsLog) -->
+          <div class="stat attention">
+            <div class="stat__top">
+              <span class="stat__icon tint-system">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
+                  />
+                </svg>
+              </span>
+              <span class="stat__label">Needs Attention</span>
+            </div>
+            <ul class="attention__list" id="attentionList">
+              <li class="attention__empty">Loading…</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+      </div>
+    </div>
+
+    <!-- Reusable detail modal for the At-a-glance tiles -->
+    <div id="detailOverlay" class="modal-overlay" style="display: none">
+      <div
+        class="modal modal--wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detailTitle"
+      >
+        <div class="detail__head">
+          <h3 class="detail__title" id="detailTitle">
+            <span id="detailTitleText">Details</span>
+            <span class="detail__sub" id="detailSub"></span>
+          </h3>
+          <button class="detail__close" id="detailClose" aria-label="Close">
+            &times;
+          </button>
+        </div>
+        <div class="detail__body" id="detailBody"></div>
+      </div>
+    </div>
 
     <!-- Confirmation modal for back navigation -->
-    <div id="backConfirmOverlay" class="modal-overlay" style="display:none;">
-        <div class="modal">
-            <h3 style="margin-top:0; color:var(--text-main);">Leave page?</h3>
-            <p style="margin:12px 0; color:var(--text-muted); line-height:1.5;">Do you want to log out and leave this
-                page? Selecting "Stay" will keep you on this page with your current session.</p>
-            <div style="margin-top:20px;display:flex;gap:15px;justify-content:center;">
-                <button id="confirmLogoutBtn" class="btn btn--danger">Log out &amp; Leave</button>
-                <button id="cancelLogoutBtn" class="btn btn--secondary">Stay</button>
-            </div>
+    <div id="backConfirmOverlay" class="modal-overlay" style="display: none">
+      <div class="modal">
+        <h3 style="margin-top: 0; color: var(--text-main)">Leave page?</h3>
+        <p style="margin: 12px 0; color: var(--text-muted); line-height: 1.5">
+          Do you want to log out and leave this page? Selecting "Stay" will keep
+          you on this page with your current session.
+        </p>
+        <div
+          style="
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+          "
+        >
+          <button id="confirmLogoutBtn" class="btn btn--danger">
+            Log out &amp; Leave
+          </button>
+          <button id="cancelLogoutBtn" class="btn btn--secondary">Stay</button>
         </div>
+      </div>
     </div>
 
     <script src="/assets/app-config.js"></script>
     <script>
-        // Supabase configuration (centralized in /assets/app-config.js)
-        const SUPABASE_URL = window.APP_CONFIG.url;
-        const SUPABASE_KEY = window.APP_CONFIG.key;
+      // Supabase configuration (centralized in /assets/app-config.js)
+      const SUPABASE_URL = window.APP_CONFIG.url;
+      const SUPABASE_KEY = window.APP_CONFIG.key;
 
-        // Initialize Supabase client
-        const supabaseClient = axios.create({
-            baseURL: SUPABASE_URL,
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
-            }
+      // Initialize Supabase client
+      const supabaseClient = axios.create({
+        baseURL: SUPABASE_URL,
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+      });
+
+      // Function to handle button navigation
+      function navigateTo(url) {
+        const el = event.currentTarget;
+        if (el.classList.contains("disabled")) {
+          alert("Access Denied");
+          return;
+        }
+        window.location.href = url;
+      }
+
+      // Function to fetch user access level from Supabase
+      async function fetchUserAccessLevel(userId) {
+        try {
+          const response = await supabaseClient.get(
+            "/rest/v1/AdminCredential",
+            {
+              params: {
+                select: "Access",
+                UserId: `eq.${userId}`,
+              },
+            },
+          );
+
+          if (response.data && response.data.length > 0) {
+            return response.data[0].Access;
+          } else {
+            throw new Error("User not found in database");
+          }
+        } catch (error) {
+          console.error("Error fetching user access level:", error);
+          return null;
+        }
+      }
+
+      // Function to set button access based on user role
+      function setButtonAccess(accessLevel) {
+        // List of all possible button IDs
+        const allButtons = [
+          "generateFileBtn",
+          "addPartBtn",
+          "updateJOBtn",
+          "btn-traveler-card",
+          "usersBtn",
+          "removeFolderBtn",
+          "generateReport",
+          "dataEditor",
+          "btn-raw-material",
+          "btn-fg-store",
+          "notifyEmailBtn",
+          "btn-shipment-checklist",
+          "btn-packing-list-form",
+          "btn-do-report",
+          "btn-dms",
+          "btn-gv",
+          "btn-sales-order-form",
+        ];
+
+        // First, disable everything safely
+        allButtons.forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add("disabled");
         });
 
-        // Function to handle button navigation
-        function navigateTo(url) {
-            const el = event.currentTarget;
-            if (el.classList.contains('disabled')) {
-                alert('Access Denied');
-                return;
-            }
-            window.location.href = url;
+        // Helper function to enable buttons safely
+        const enable = (ids) => {
+          ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("disabled");
+          });
+        };
+
+        // Enable based on access level
+        switch (accessLevel) {
+          case "ALL":
+            enable(allButtons);
+            break;
+
+          case "ENGINEER":
+            enable([
+              "generateFileBtn",
+              "removeFolderBtn",
+              "notifyEmailBtn",
+              "btn-dms",
+            ]);
+            break;
+
+          case "PRODUCTION":
+            enable(["updateJOBtn", "btn-traveler-card", "btn-fg-store"]);
+            break;
+
+          case "REGISTER":
+            enable([
+              "addPartBtn",
+              "generateReport",
+              "notifyEmailBtn",
+              "btn-dms",
+            ]);
+            break;
+
+          case "RESOURCE":
+            enable(["btn-raw-material", "btn-fg-store"]);
+            break;
+
+          case "BUSINESSDEV":
+            enable([
+              "btn-shipment-checklist",
+              "btn-packing-list-form",
+              "btn-sales-order-form",
+            ]);
+            break;
+
+          case "QUALITY":
+            enable([
+              "generateFileBtn",
+              "generateReport",
+              "dataEditor",
+              "notifyEmailBtn",
+              "btn-do-report",
+              "btn-gv",
+              "btn-traveler-card",
+            ]);
+            break;
+          case "MANAGEMENT":
+            enable([
+              "generateFileBtn",
+              "addPartBtn",
+              "updateJOBtn",
+              "btn-traveler-card",
+              "removeFolderBtn",
+              "generateReport",
+              "dataEditor",
+              "btn-raw-material",
+              "btn-fg-store",
+              "notifyEmailBtn",
+              "btn-shipment-checklist",
+              "btn-packing-list-form",
+              "btn-do-report",
+              "btn-dms",
+            ]);
+            break;
+
+          default:
+            console.error("Unknown access level:", accessLevel);
         }
 
-        // Function to fetch user access level from Supabase
-        async function fetchUserAccessLevel(userId) {
+        // Hide any module group whose cards are all disabled for this user.
+        document.querySelectorAll(".module-group").forEach((group) => {
+          const cards = group.querySelectorAll(".dashboard-card");
+          const anyVisible = Array.from(cards).some(
+            (c) => !c.classList.contains("disabled"),
+          );
+          group.classList.toggle("hidden", !anyVisible);
+        });
+      }
+
+      /* ==================================================================
+         "At a glance" panel
+         Each tile loads independently and swallows its own failure. DMS is
+         a different host and port to Supabase, so one being down must never
+         blank the other three. A tile that cannot load shows an em dash and
+         says so — it never falls back to 0, which would read as real data.
+         ================================================================== */
+
+      function setStat(valueId, noteId, value, note) {
+        const el = document.getElementById(valueId);
+        el.textContent = value;
+        el.classList.toggle("is-empty", value === "—");
+        document.getElementById(noteId).textContent = note;
+      }
+
+      const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+      // Raw rows kept so the detail modals can compare without re-querying.
+      const insightsCache = { parts: null, dms: null, joParts: null };
+
+      /* Registration lives in IPQC, not Parts — same query addPart.html:1047
+         uses to list registered parts. IPQC stores one row per inspection
+         point, so a part spans many rows; the count that means "registered
+         parts" is the number of distinct Part_Name at Status = Active. */
+      async function loadRegisteredParts() {
+        try {
+          const { data } = await supabaseClient.get("/rest/v1/IPQC", {
+            params: {
+              select: "Part_Name,Process,created_at",
+              Status: "eq.Active",
+            },
+          });
+          const rows = data || [];
+          insightsCache.parts = rows;
+          const names = new Set();
+          const processes = new Set();
+          rows.forEach((r) => {
+            const n = normName(r.Part_Name);
+            if (n) names.add(n);
+            const p = normName(r.Process);
+            if (p) processes.add(p);
+          });
+          setStat(
+            "statParts",
+            "statPartsNote",
+            String(names.size),
+            `${plural(rows.length, "active inspection row")} · ${plural(processes.size, "process")}`,
+          );
+        } catch (err) {
+          console.error("Insights · IPQC:", err);
+          setStat("statParts", "statPartsNote", "—", "Could not load");
+        }
+      }
+
+      async function loadDmsProducts() {
+        try {
+          // Plain axios, not supabaseClient — DMS is the app host on :80,
+          // and it takes no Supabase auth headers.
+          const { data } = await axios.get(
+            `${window.APP_CONFIG.host}/FamaxDMS/list`,
+          );
+          const products = Array.isArray(data) ? data : [];
+          insightsCache.dms = products;
+          const revisions = products.reduce(
+            (n, p) => n + (Array.isArray(p.revisions) ? p.revisions.length : 0),
+            0,
+          );
+          setStat(
+            "statDms",
+            "statDmsNote",
+            String(products.length),
+            plural(revisions, "revision folder"),
+          );
+        } catch (err) {
+          console.error("Insights · DMS:", err);
+          setStat("statDms", "statDmsNote", "—", "DMS service unreachable");
+        }
+      }
+
+      async function loadOpenJobOrders() {
+        try {
+          const { data } = await supabaseClient.get("/rest/v1/JobOrder", {
+            params: { select: "JO_Number,Part_Name", Status: "eq.active" },
+          });
+          const rows = data || [];
+          // JobOrder stores one row per process, so a single JO spans several
+          // rows — the headline counts distinct JO numbers, not rows.
+          const jos = new Set(rows.map((r) => r.JO_Number).filter(Boolean));
+          const parts = new Set(rows.map((r) => r.Part_Name).filter(Boolean));
+          setStat(
+            "statJo",
+            "statJoNote",
+            String(jos.size),
+            `${plural(rows.length, "process row")} · ${plural(parts.size, "part")}`,
+          );
+        } catch (err) {
+          console.error("Insights · JobOrder:", err);
+          setStat("statJo", "statJoNote", "—", "Could not load");
+        }
+      }
+
+      function daysSince(iso) {
+        if (!iso) return null;
+        const then = new Date(iso);
+        if (isNaN(then)) return null;
+        return Math.floor((Date.now() - then.getTime()) / 86400000);
+      }
+
+      async function loadNeedsAttention() {
+        const list = document.getElementById("attentionList");
+        try {
+          // Same filter the Notify Teams page uses for its tracking list:
+          // anything not yet Completed is still awaiting a signature.
+          const { data } = await supabaseClient.get("/rest/v1/TeamsLog", {
+            params: {
+              select: "part_names,status,eng_initiated_at",
+              status: "neq.Completed",
+              order: "eng_initiated_at.asc",
+            },
+          });
+          const rows = data || [];
+          list.innerHTML = "";
+
+          if (!rows.length) {
+            const li = document.createElement("li");
+            li.className = "attention__empty";
+            li.textContent = "Nothing awaiting sign-off.";
+            list.appendChild(li);
+            return;
+          }
+
+          rows.forEach((row) => {
+            const status = row.status || "";
+            const li = document.createElement("li");
+            li.className = "attention__item";
+
+            const text = document.createElement("div");
+            text.className = "attention__text";
+
+            const part = document.createElement("span");
+            part.className = "attention__part";
+            // textContent, not innerHTML — part names come from the database.
+            part.textContent = row.part_names || "(unnamed part)";
+            part.title = row.part_names || "";
+
+            const age = document.createElement("span");
+            age.className = "attention__age";
+            const d = daysSince(row.eng_initiated_at);
+            age.textContent =
+              d === null
+                ? "Waiting"
+                : d === 0
+                  ? "Raised today"
+                  : `Waiting ${plural(d, "day")}`;
+
+            text.appendChild(part);
+            text.appendChild(age);
+
+            const badge = document.createElement("span");
+            const isQa = /qa/i.test(status);
+            const isMgmt = /mgmt|management/i.test(status);
+            badge.className =
+              "attention__badge " +
+              (isQa
+                ? "attention__badge--qa"
+                : isMgmt
+                  ? "attention__badge--mgmt"
+                  : "attention__badge--other");
+            badge.textContent = status.replace(/^Pending\s*/i, "") || "Pending";
+
+            li.appendChild(text);
+            li.appendChild(badge);
+            list.appendChild(li);
+          });
+        } catch (err) {
+          console.error("Insights · TeamsLog:", err);
+          list.innerHTML = "";
+          const li = document.createElement("li");
+          li.className = "attention__empty";
+          li.textContent = "Could not load pending approvals.";
+          list.appendChild(li);
+        }
+      }
+
+      function loadInsights() {
+        loadRegisteredParts();
+        loadDmsProducts();
+        loadOpenJobOrders();
+        loadNeedsAttention();
+        document.getElementById("insightsRefreshed").textContent =
+          new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+      }
+
+      /* ---- Detail modal ------------------------------------------------ */
+
+      const ROW_CAP = 200; // long lists are capped, and the cap is announced
+
+      const normName = (s) => (s || "").trim().toUpperCase();
+
+      /* Folder names on the DMS share are NOT produced by one rule:
+           - dmsController prepareFolder/uploadProgramFile/uploadGeneric use '-'
+           - dmsController getPartData/saveDmsFile/downloadFile use the raw name
+           - folders on \\FAMAX\Famax DMS are also created by hand
+         So `2 1/2" KNOCKOUT DIE (N554198)` can sit on disk as
+         `2 1_2_ KNOCKOUT DIE (N554198)`. Reproducing any single substitution
+         would just relocate the false "missing folder" reports.
+
+         Instead: match exactly first, then fall back to a key that treats any
+         run of Windows-illegal characters, their common stand-ins (- _ space)
+         and whitespace as one separator. Both sides get the same treatment. */
+      const ILLEGAL_OR_STANDIN = /[/\\?%*:|"<>_\-\s]+/g;
+      const looseKey = (s) =>
+        normName(s).replace(ILLEGAL_OR_STANDIN, "\u0001").replace(/^\u0001|\u0001$/g, "");
+
+      /* Primary identity is the part number in the trailing bracket:
+           '2 1/2" KNOCKOUT DIE (N554198)'   -> N554198
+           'FLANGE PLATE (N554198(A))'       -> N554198(A)   (number + series)
+         Parentheses are legal in Windows paths, so the bracket survives the
+         DMS's substitution of / \ : " intact. That makes the number a far
+         more stable key than the descriptive text wrapped around it.
+         Walks back from the last ')' to its matching '(' so a nested series
+         group is kept whole instead of being cut at the inner bracket. */
+      function bracketKey(s) {
+        const str = (s || "").trim();
+        const end = str.lastIndexOf(")");
+        if (end === -1) return "";
+        let depth = 0;
+        for (let i = end; i >= 0; i--) {
+          const ch = str[i];
+          if (ch === ")") depth++;
+          else if (ch === "(") {
+            depth--;
+            if (depth === 0) {
+              // Uppercased, whitespace stripped: "(N554198 (A))" == "(N554198(A))"
+              return str
+                .slice(i + 1, end)
+                .toUpperCase()
+                .replace(/\s+/g, "");
+            }
+          }
+        }
+        return ""; // unbalanced brackets — treat as having no part number
+      }
+
+      let detailLastFocus = null;
+
+      function openDetail(title, subtitle) {
+        detailLastFocus = document.activeElement;
+        document.getElementById("detailTitleText").textContent = title;
+        document.getElementById("detailSub").textContent = subtitle || "";
+        document.getElementById("detailOverlay").style.display = "flex";
+        document.getElementById("detailClose").focus();
+      }
+
+      function closeDetail() {
+        document.getElementById("detailOverlay").style.display = "none";
+        if (detailLastFocus && detailLastFocus.focus) detailLastFocus.focus();
+        detailLastFocus = null;
+      }
+
+      function isDetailOpen() {
+        return (
+          document.getElementById("detailOverlay").style.display === "flex"
+        );
+      }
+
+      function detailMessage(text) {
+        const p = document.createElement("p");
+        p.className = "detail__lead";
+        p.textContent = text;
+        return p;
+      }
+
+      /* Build one titled section. `items` is [{name, meta}]. */
+      function detailSection(opts) {
+        const wrap = document.createElement("div");
+        wrap.className = "detail__section";
+
+        const head = document.createElement("div");
+        head.className = "detail__sec-head";
+        const h = document.createElement("h4");
+        h.className = "detail__sec-title";
+        h.textContent = opts.title;
+        head.appendChild(h);
+
+        if (opts.items.length) {
+          const badge = document.createElement("span");
+          badge.className = "badge " + (opts.badgeClass || "");
+          badge.textContent = String(opts.items.length);
+          head.appendChild(badge);
+        }
+        wrap.appendChild(head);
+
+        if (opts.lead) {
+          const lead = document.createElement("p");
+          lead.className = "detail__lead";
+          lead.textContent = opts.lead;
+          wrap.appendChild(lead);
+        }
+
+        if (!opts.items.length) {
+          const ok = document.createElement("div");
+          ok.className = "detail__clear";
+          ok.textContent = opts.empty;
+          wrap.appendChild(ok);
+          return wrap;
+        }
+
+        const ul = document.createElement("ul");
+        ul.className = "detail__rows";
+        opts.items.slice(0, ROW_CAP).forEach((it) => {
+          const li = document.createElement("li");
+          li.className = "detail__row";
+          const name = document.createElement("span");
+          name.className = "detail__row-name";
+          name.textContent = it.name;
+          name.title = it.name;
+          if (it.sub) {
+            // Two-line row: primary name plus the thing it resolved to.
+            const holder = document.createElement("div");
+            holder.style.minWidth = "0";
+            holder.style.flex = "1";
+            holder.appendChild(name);
+            const sub = document.createElement("span");
+            sub.className = "detail__row-sub";
+            sub.textContent = it.sub;
+            sub.title = it.sub;
+            holder.appendChild(sub);
+            li.appendChild(holder);
+          } else {
+            li.appendChild(name);
+          }
+          if (it.meta) {
+            const meta = document.createElement("span");
+            meta.className = "detail__row-meta";
+            meta.textContent = it.meta;
+            li.appendChild(meta);
+          }
+          ul.appendChild(li);
+        });
+        wrap.appendChild(ul);
+
+        if (opts.items.length > ROW_CAP) {
+          const note = document.createElement("p");
+          note.className = "detail__truncated";
+          note.textContent = `Showing first ${ROW_CAP} of ${opts.items.length}.`;
+          wrap.appendChild(note);
+        }
+        return wrap;
+      }
+
+      /* JobOrder part names across every status — fetched only when a modal
+         that needs them is actually opened. */
+      async function ensureJobOrderParts() {
+        if (insightsCache.joParts) return insightsCache.joParts;
+        const { data } = await supabaseClient.get("/rest/v1/JobOrder", {
+          params: { select: "Part_Name" },
+        });
+        insightsCache.joParts = data || [];
+        return insightsCache.joParts;
+      }
+
+      async function showPartsDetail() {
+        openDetail("Registered Parts", "");
+        const body = document.getElementById("detailBody");
+        body.innerHTML = "";
+
+        if (!insightsCache.parts) {
+          body.appendChild(
+            detailMessage("Part data has not loaded yet — try again shortly."),
+          );
+          return;
+        }
+        body.appendChild(detailMessage("Comparing against Job Orders…"));
+
+        const rows = insightsCache.parts;
+        const total = rows.length;
+
+        // Rows per part, and the distinct processes each part is set up for.
+        const counts = new Map();
+        const procsByPart = new Map();
+        const firstSeen = new Map();
+        rows.forEach((r) => {
+          const k = normName(r.Part_Name);
+          if (!k) return;
+          counts.set(k, (counts.get(k) || 0) + 1);
+          if (!procsByPart.has(k)) procsByPart.set(k, new Set());
+          const p = normName(r.Process);
+          if (p) procsByPart.get(k).add(p);
+          if (r.created_at) {
+            const prev = firstSeen.get(k);
+            if (!prev || r.created_at < prev) firstSeen.set(k, r.created_at);
+          }
+        });
+        const blank = rows.filter((r) => !normName(r.Part_Name)).length;
+        const allProcs = new Set();
+        procsByPart.forEach((set) => set.forEach((p) => allProcs.add(p)));
+
+        const byPoints = [...counts.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .map(([name, n]) => ({
+            name,
+            meta: plural(n, "point"),
+            sub: plural(procsByPart.get(name).size, "process"),
+          }));
+
+        let joRows = null;
+        try {
+          joRows = await ensureJobOrderParts();
+        } catch (err) {
+          console.error("Insights · JobOrder parts:", err);
+        }
+
+        body.innerHTML = "";
+
+        const distinct = counts.size;
+        const summary = document.createElement("p");
+        summary.className = "detail__lead";
+        summary.textContent =
+          `Registration comes from IPQC at Status "Active" — ${plural(total, "row")} covering ${plural(distinct, "part")} across ${plural(allProcs.size, "process")}. ` +
+          `Each row is one inspection point, so a part appears once per point per process. That is why the row count is far larger than the part count — it is the structure of the table, not duplicate registrations.` +
+          (blank
+            ? ` ${blank} row${blank === 1 ? " has" : "s have"} no part name.`
+            : "");
+        body.appendChild(summary);
+
+        body.appendChild(
+          detailSection({
+            title: "Inspection points per part",
+            badgeClass: "badge--primary",
+            lead: "Most-defined parts first. These counts add up to the total row count above.",
+            items: byPoints,
+            empty: "No active IPQC rows.",
+          }),
+        );
+
+        if (!joRows) {
+          body.appendChild(
+            detailMessage("Could not load Job Orders to compare against."),
+          );
+          return;
+        }
+
+        const registered = new Set([...counts.keys()]);
+        const joNames = new Map();
+        joRows.forEach((r) => {
+          const k = normName(r.Part_Name);
+          if (!k) return;
+          joNames.set(k, (joNames.get(k) || 0) + 1);
+        });
+
+        const unregistered = [...joNames.entries()]
+          .filter(([k]) => !registered.has(k))
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, n]) => ({ name, meta: `${n} JO row${n === 1 ? "" : "s"}` }));
+
+        const neverUsed = [...registered]
+          .filter((k) => !joNames.has(k))
+          .sort()
+          .map((name) => ({ name, meta: "no JO" }));
+
+        body.appendChild(
+          detailSection({
+            title: "In Job Orders but not registered",
+            badgeClass: "badge--danger",
+            lead: "Parts being produced that have no active IPQC registration.",
+            items: unregistered,
+            empty: "Every part in a Job Order is registered.",
+          }),
+        );
+
+        body.appendChild(
+          detailSection({
+            title: "Registered but never job-ordered",
+            badgeClass: "",
+            lead: "Active IPQC parts that have never appeared on a Job Order.",
+            items: neverUsed,
+            empty: "Every registered part has been job-ordered.",
+          }),
+        );
+      }
+
+      function showDmsDetail() {
+        openDetail("Products in DMS", "");
+        const body = document.getElementById("detailBody");
+        body.innerHTML = "";
+
+        if (!insightsCache.dms) {
+          body.appendChild(
+            detailMessage(
+              "The DMS folder list could not be loaded, so coverage cannot be compared.",
+            ),
+          );
+          return;
+        }
+        if (!insightsCache.parts) {
+          body.appendChild(
+            detailMessage("Part data has not loaded yet — try again shortly."),
+          );
+          return;
+        }
+
+        const folders = insightsCache.dms;
+
+        // Index folders by both keys. A loose key can collide, so keep a list.
+        const byExact = new Map();
+        const byLoose = new Map();
+        const byNumber = new Map();
+        folders.forEach((f) => {
+          byExact.set(normName(f.name), f);
+          const lk = looseKey(f.name);
+          if (!byLoose.has(lk)) byLoose.set(lk, []);
+          byLoose.get(lk).push(f);
+          const bk = bracketKey(f.name);
+          if (bk) {
+            if (!byNumber.has(bk)) byNumber.set(bk, []);
+            byNumber.get(bk).push(f);
+          }
+        });
+
+        // IPQC holds one row per inspection point, so collapse to distinct
+        // part names first — otherwise a part would be counted many times.
+        const partsByExact = new Map();
+        insightsCache.parts.forEach((p) => {
+          const raw = (p.Part_Name || "").trim();
+          if (!raw) return;
+          if (!partsByExact.has(normName(raw))) partsByExact.set(normName(raw), raw);
+        });
+
+        const claimed = new Set(); // folder names already matched to a part
+        const missing = [];
+        const renamed = []; // matched, but the folder is spelled differently
+        const noNumber = []; // registered part with no bracketed part number
+
+        const revs = (f) =>
+          plural(Array.isArray(f.revisions) ? f.revisions.length : 0, "rev");
+        const free = (list) => (list || []).filter((f) => !claimed.has(f.name));
+
+        partsByExact.forEach((raw) => {
+          const bk = bracketKey(raw);
+          if (!bk) noNumber.push({ name: raw, meta: "no part number" });
+
+          // 1. Part number in the trailing bracket — the primary key.
+          if (bk) {
+            const hit = free(byNumber.get(bk))[0];
+            if (hit) {
+              claimed.add(hit.name);
+              if (normName(hit.name) !== normName(raw)) {
+                renamed.push({
+                  name: raw,
+                  sub: "folder: " + hit.name,
+                  meta: revs(hit),
+                });
+              }
+              return;
+            }
+          }
+
+          // 2. No part number on one side — fall back to the name itself.
+          const exact = byExact.get(normName(raw));
+          if (exact && !claimed.has(exact.name)) {
+            claimed.add(exact.name);
+            return;
+          }
+          const loose = free(byLoose.get(looseKey(raw)))[0];
+          if (loose) {
+            claimed.add(loose.name);
+            renamed.push({
+              name: raw,
+              sub: "folder: " + loose.name,
+              meta: revs(loose),
+            });
+            return;
+          }
+          missing.push({
+            name: raw,
+            meta: bk ? bk : "no part number",
+          });
+        });
+
+        missing.sort((a, b) => a.name.localeCompare(b.name));
+        renamed.sort((a, b) => a.name.localeCompare(b.name));
+        noNumber.sort((a, b) => a.name.localeCompare(b.name));
+
+        const orphanFolders = folders
+          .filter((f) => !claimed.has(f.name))
+          .map((f) => ({
+            name: f.name,
+            meta: plural(
+              Array.isArray(f.revisions) ? f.revisions.length : 0,
+              "rev",
+            ),
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        const totalParts = partsByExact.size;
+        const covered = totalParts - missing.length;
+        const pct = totalParts ? Math.round((covered / totalParts) * 100) : 0;
+
+        const summary = document.createElement("p");
+        summary.className = "detail__lead";
+        summary.textContent =
+          `${covered} of ${totalParts} registered parts have a DMS folder (${pct}%). ` +
+          `Matching is on the part number in the trailing bracket — (N554198) or (N554198(SERIES)) — because brackets survive the DMS renaming of / \\ : " while the descriptive text does not. Parts with no bracketed number fall back to matching on the name.`;
+        body.appendChild(summary);
+
+        body.appendChild(
+          detailSection({
+            title: "Registered parts with no DMS folder",
+            badgeClass: "badge--danger",
+            lead: "No folder carries this part number, and no folder name matches either.",
+            items: missing,
+            empty: "Every registered part has a DMS folder.",
+          }),
+        );
+
+        body.appendChild(
+          detailSection({
+            title: "Folder name differs from the part name",
+            badgeClass: "badge--warning",
+            lead: "Matched on part number, but the folder text is spelled differently. Not broken — worth tidying so the names read the same.",
+            items: renamed,
+            empty: "Every matched folder is spelled exactly like its part.",
+          }),
+        );
+
+        body.appendChild(
+          detailSection({
+            title: "Registered parts with no part number",
+            badgeClass: "",
+            lead: "No (part number) in the name, so these can only be matched on text and are the most fragile.",
+            items: noNumber,
+            empty: "Every registered part carries a bracketed part number.",
+          }),
+        );
+
+        body.appendChild(
+          detailSection({
+            title: "DMS folders with no registered part",
+            badgeClass: "",
+            lead: "Folders on disk that match no registered part — a rename, a typo, or a part removed from Parts.",
+            items: orphanFolders,
+            empty: "Every DMS folder matches a registered part.",
+          }),
+        );
+      }
+
+      // Function to check if user is logged in and set up the UI
+      async function checkLogin() {
+        // Look for data in storage
+        const isLoggedIn = sessionStorage.getItem("isLoggedIn");
+        const userId = sessionStorage.getItem("userId");
+
+        // If storage is empty, redirect back to login
+        if (isLoggedIn === "true" && userId) {
+          document.getElementById("userName").textContent = userId;
+
+          try {
+            const accessLevel = await fetchUserAccessLevel(userId);
+            if (accessLevel) {
+              // Display label only — setButtonAccess still switches on the raw
+              // value from the database, so permissions are unaffected.
+              document.getElementById("accessLevel").textContent =
+                accessLevel === "ALL" ? "Superuser" : accessLevel;
+              setButtonAccess(accessLevel);
+            }
+            // Not awaited: the panel fills in on its own, so a slow or dead
+            // DMS host never holds up the dashboard behind the overlay.
+            loadInsights();
+          } catch (error) {
+            logout();
+          }
+        } else {
+          alert("You must be logged in to access this page.");
+          window.location.href = "index.html"; // Or whatever your main page is
+        }
+
+        document.getElementById("loading-overlay").style.display = "none";
+      }
+
+      // Function to handle logout
+      function logout() {
+        // Clear session storage
+        sessionStorage.removeItem("isLoggedIn");
+        sessionStorage.removeItem("userId");
+        sessionStorage.removeItem("userPassword");
+
+        // Redirect to main page
+        window.location.href = "index.html";
+      }
+
+      // Perform logout from modal (keeps duality clear)
+      function performLogoutFromModal() {
+        // Clear session and navigate away
+        sessionStorage.removeItem("isLoggedIn");
+        sessionStorage.removeItem("userId");
+        sessionStorage.removeItem("userPassword");
+        // Allow the back navigation to proceed by navigating to index
+        window.location.href = "index.html";
+      }
+
+      // Back-button intercept logic
+      (function () {
+        let modalOpen = false;
+        const overlay = document.getElementById("backConfirmOverlay");
+        const confirmBtn = document.getElementById("confirmLogoutBtn");
+        const cancelBtn = document.getElementById("cancelLogoutBtn");
+
+        function showBackConfirm() {
+          overlay.style.display = "flex";
+          modalOpen = true;
+        }
+
+        function hideBackConfirm() {
+          overlay.style.display = "none";
+          modalOpen = false;
+        }
+
+        confirmBtn.addEventListener("click", function () {
+          // User chose to log out and leave
+          hideBackConfirm();
+          performLogoutFromModal();
+        });
+
+        cancelBtn.addEventListener("click", function () {
+          // User chose to stay; re-push a history state so they remain here
+          hideBackConfirm();
+          try {
+            history.pushState(null, "", window.location.href);
+          } catch (e) {
+            // ignore
+          }
+        });
+
+        // Push an initial state so back button triggers popstate
+        document.addEventListener("DOMContentLoaded", function () {
+          try {
+            history.replaceState({ initial: true }, "", window.location.href);
+            history.pushState(null, "", window.location.href);
+          } catch (e) {
+            // ignore
+          }
+        });
+
+        // Listen for popstate (back button)
+        window.addEventListener(
+          "popstate",
+          function (e) {
+            // If modal already open, do nothing
+            if (modalOpen) return;
+            // Show confirmation modal instead of leaving
+            showBackConfirm();
+            // Re-push same state to prevent immediate navigation away in some browsers
             try {
-                const response = await supabaseClient.get('/rest/v1/AdminCredential', {
-                    params: {
-                        select: 'Access',
-                        UserId: `eq.${userId}`
-                    }
-                });
-
-                if (response.data && response.data.length > 0) {
-                    return response.data[0].Access;
-                } else {
-                    throw new Error('User not found in database');
-                }
-            } catch (error) {
-                console.error('Error fetching user access level:', error);
-                return null;
+              history.pushState(null, "", window.location.href);
+            } catch (err) {
+              // ignore
             }
-        }
+          },
+          false,
+        );
+      })();
 
-        // Function to set button access based on user role
-        function setButtonAccess(accessLevel) {
-            // List of all possible button IDs
-            const allButtons = [
-                'generateFileBtn', 'addPartBtn', 'updateJOBtn', 'btn-traveler-card',
-                'usersBtn', 'removeFolderBtn', 'generateReport', 'dataEditor',
-                'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
-                'btn-packing-list-form', 'btn-do-report', 'btn-dms', 'btn-gv', 'btn-sales-order-form'
-            ];
-
-            // First, disable everything safely
-            allButtons.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('disabled');
-            });
-
-            // Helper function to enable buttons safely
-            const enable = (ids) => {
-                ids.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.classList.remove('disabled');
-                });
-            };
-
-            // Enable based on access level
-            switch (accessLevel) {
-                case 'ALL':
-                    enable(allButtons);
-                    break;
-
-                case 'ENGINEER':
-                    enable(['generateFileBtn', 'removeFolderBtn', 'notifyEmailBtn', 'btn-dms']);
-                    break;
-
-                case 'PRODUCTION':
-                    enable(['updateJOBtn', 'btn-traveler-card', 'btn-fg-store']);
-                    break;
-
-                case 'REGISTER':
-                    enable(['addPartBtn', 'generateReport', 'notifyEmailBtn', 'btn-dms']);
-                    break;
-
-                case 'RESOURCE':
-                    enable(['btn-raw-material', 'btn-fg-store']);
-                    break;
-
-                case 'BUSINESSDEV':
-                    enable(['btn-shipment-checklist', 'btn-packing-list-form','btn-sales-order-form']);
-                    break;
-
-                case 'QUALITY':
-                    enable(['generateFileBtn', 'generateReport', 'dataEditor',
-                        'notifyEmailBtn', 'btn-do-report', 'btn-gv', 'btn-traveler-card']);
-                    break;
-                case 'MANAGEMENT':
-                    enable(['generateFileBtn', 'addPartBtn', 'updateJOBtn', 'btn-traveler-card',
-                        'removeFolderBtn', 'generateReport', 'dataEditor',
-                        'btn-raw-material', 'btn-fg-store', 'notifyEmailBtn', 'btn-shipment-checklist',
-                        'btn-packing-list-form', 'btn-do-report', 'btn-dms']);
-                    break;
-
-                default:
-                    console.error('Unknown access level:', accessLevel);
+      /* Wire the At-a-glance tiles to their detail modals. Unlike the module
+         cards these are keyboard-operable: role="button" + tabindex, so Enter
+         and Space activate them and the theme's focus ring applies. */
+      (function () {
+        const bind = (cardId, handler) => {
+          const card = document.getElementById(cardId);
+          if (!card) return;
+          card.addEventListener("click", handler);
+          card.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handler();
             }
+          });
+        };
 
-            // Hide any module group whose cards are all disabled for this user.
-            document.querySelectorAll('.module-group').forEach(group => {
-                const cards = group.querySelectorAll('.dashboard-card');
-                const anyVisible = Array.from(cards).some(c => !c.classList.contains('disabled'));
-                group.classList.toggle('hidden', !anyVisible);
-            });
-        }
+        bind("statPartsCard", showPartsDetail);
+        bind("statDmsCard", showDmsDetail);
 
-        // Function to check if user is logged in and set up the UI
-        async function checkLogin() {
-            // Look for data in storage
-            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-            const userId = sessionStorage.getItem('userId');
+        document
+          .getElementById("detailClose")
+          .addEventListener("click", closeDetail);
 
-            // If storage is empty, redirect back to login
-            if (isLoggedIn === 'true' && userId) {
-                document.getElementById('userName').textContent = userId;
+        // Backdrop click closes; clicks inside the panel must not.
+        document
+          .getElementById("detailOverlay")
+          .addEventListener("click", function (e) {
+            if (e.target === this) closeDetail();
+          });
 
-                try {
-                    const accessLevel = await fetchUserAccessLevel(userId);
-                    if (accessLevel) {
-                        document.getElementById('accessLevel').textContent = accessLevel;
-                        setButtonAccess(accessLevel);
-                    }
-                } catch (error) {
-                    logout();
-                }
-            } else {
-                alert('You must be logged in to access this page.');
-                window.location.href = 'index.html'; // Or whatever your main page is
-            }
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && isDetailOpen()) closeDetail();
+        });
+      })();
 
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-
-        // Function to handle logout
-        function logout() {
-            // Clear session storage
-            sessionStorage.removeItem('isLoggedIn');
-            sessionStorage.removeItem('userId');
-            sessionStorage.removeItem('userPassword');
-
-            // Redirect to main page
-            window.location.href = 'index.html';
-        }
-
-        // Perform logout from modal (keeps duality clear)
-        function performLogoutFromModal() {
-            // Clear session and navigate away
-            sessionStorage.removeItem('isLoggedIn');
-            sessionStorage.removeItem('userId');
-            sessionStorage.removeItem('userPassword');
-            // Allow the back navigation to proceed by navigating to index
-            window.location.href = 'index.html';
-        }
-
-        // Back-button intercept logic
-        (function () {
-            let modalOpen = false;
-            const overlay = document.getElementById('backConfirmOverlay');
-            const confirmBtn = document.getElementById('confirmLogoutBtn');
-            const cancelBtn = document.getElementById('cancelLogoutBtn');
-
-            function showBackConfirm() {
-                overlay.style.display = 'flex';
-                modalOpen = true;
-            }
-
-            function hideBackConfirm() {
-                overlay.style.display = 'none';
-                modalOpen = false;
-            }
-
-            confirmBtn.addEventListener('click', function () {
-                // User chose to log out and leave
-                hideBackConfirm();
-                performLogoutFromModal();
-            });
-
-            cancelBtn.addEventListener('click', function () {
-                // User chose to stay; re-push a history state so they remain here
-                hideBackConfirm();
-                try {
-                    history.pushState(null, '', window.location.href);
-                } catch (e) {
-                    // ignore
-                }
-            });
-
-            // Push an initial state so back button triggers popstate
-            document.addEventListener('DOMContentLoaded', function () {
-                try {
-                    history.replaceState({ initial: true }, '', window.location.href);
-                    history.pushState(null, '', window.location.href);
-                } catch (e) {
-                    // ignore
-                }
-            });
-
-            // Listen for popstate (back button)
-            window.addEventListener('popstate', function (e) {
-                // If modal already open, do nothing
-                if (modalOpen) return;
-                // Show confirmation modal instead of leaving
-                showBackConfirm();
-                // Re-push same state to prevent immediate navigation away in some browsers
-                try {
-                    history.pushState(null, '', window.location.href);
-                } catch (err) {
-                    // ignore
-                }
-            }, false);
-        })();
-
-        // Run login check when page loads
-        document.addEventListener('DOMContentLoaded', checkLogin);
+      // Run login check when page loads
+      document.addEventListener("DOMContentLoaded", checkLogin);
     </script>
-</body>
-
+  </body>
 </html>
