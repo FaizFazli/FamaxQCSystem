@@ -9,7 +9,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/assets/app-config.js"></script>
@@ -25,9 +25,7 @@
         :root {
             --primary-dark: var(--primary-hover);
             --border-color: var(--border);
-            --focus-ring: var(--primary-ring);
             --input-height: 46px;
-            --shadow-card: var(--shadow-lg);
         }
 
         body {
@@ -95,7 +93,7 @@
         .btn-view-list {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.35);
-            color: #fff;
+            color: var(--on-primary);
             border-radius: var(--radius-sm);
             padding: 8px 12px;
             font-weight: 700;
@@ -157,10 +155,10 @@
             gap: 10px;
         }
         .upload-card.required-ready {
-            border-color: #10b981;
-            box-shadow: 0 0 0 1px #10b98133;
+            border-color: var(--success);
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.20); /* --success @20% */
         }
-        .upload-card.required-missing { border-color: #f59e0b; }
+        .upload-card.required-missing { border-color: var(--warning); }
 
         .card-title-row {
             display: flex;
@@ -171,20 +169,22 @@
         .upload-card h3 {
             margin: 0;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
         .badge {
             font-size: 10px;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
             padding: 3px 8px;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
         }
+        /* Values mirror theme.css .badge--success / .badge--warning, but the
+           class names differ and the JS writes these names — not deletable. */
         .badge-ok { background: #dcfce7; color: #15803d; }
         .badge-need { background: #fef3c7; color: #b45309; }
-        .badge-opt { background: #e2e8f0; color: #475569; }
+        .badge-opt { background: var(--border); color: var(--text-main); }
 
         .hint {
             margin: 0;
@@ -198,7 +198,7 @@
         .file-chip {
             font-size: 11px;
             font-weight: 600;
-            background: #fff;
+            background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 4px 8px;
@@ -218,8 +218,8 @@
         .chip-remove {
             flex: none;
             border: none;
-            background: #fee2e2;
-            color: #991b1b;
+            background: #fee2e2;    /* = theme.css .badge--danger pair */
+            color: #b91c1c;
             border-radius: 50%;
             width: 16px;
             height: 16px;
@@ -233,7 +233,7 @@
         .chip-remove:hover { background: #fecaca; }
 
         .process-slot {
-            background: #fff;
+            background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 10px;
@@ -243,18 +243,20 @@
         }
         .process-slot .slot-head {
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 700;
             display: flex;
             justify-content: space-between;
             gap: 8px;
         }
+        /* Sky pair = AdminLogin's .tint-docs, the same blue FileGenerator's
+           .btn-add uses. No token exists for it. */
         .slot-cat {
             font-size: 10px;
-            font-weight: 800;
-            color: #1d4ed8;
-            background: #dbeafe;
+            font-weight: 700;
+            color: #0369a1;
+            background: #e0f2fe;
             padding: 2px 6px;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
         }
 
         .file-pick-btn {
@@ -264,7 +266,7 @@
             height: 40px;
             padding: 0 14px;
             border-radius: var(--radius-sm);
-            background: #fff;
+            background: var(--bg-card);
             border: 1px solid var(--border);
             font-size: 12px;
             font-weight: 700;
@@ -286,8 +288,8 @@
             border: none;
             border-radius: var(--radius);
             background: var(--primary);
-            color: #fff;
-            font-weight: 800;
+            color: var(--on-primary);
+            font-weight: 700;
             font-size: 14px;
             cursor: pointer;
             font-family: inherit;
@@ -295,15 +297,19 @@
         .btn-action:hover:not(:disabled) { background: var(--primary-dark); }
         .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
 
+        /* Deliberately inverts theme.css's white #loading-overlay into a dark
+           scrim so the card stays visible behind it; the spinner below is the
+           white-on-dark counterpart. display:none is load-bearing — the JS
+           only ever writes inline styles. */
         #loading-overlay {
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.55);
-            z-index: 9999;
+            z-index: var(--z-overlay);
             display: none;
             align-items: center;
             justify-content: center;
-            color: #fff;
+            color: var(--on-primary);
             font-weight: 700;
             flex-direction: column;
             gap: 12px;
@@ -311,49 +317,26 @@
         #loading-overlay .spinner {
             width: 36px;
             height: 36px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--on-primary);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* @keyframes spin removed — theme.css defines an identical one. */
 
-        /* Full-viewport scrim (overrides theme .modal max-width) */
-        #wiModal.modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 2000;
-            width: 100% !important;
-            max-width: none !important;
-            height: 100%;
-            margin: 0;
-            padding: 16px;
-            box-sizing: border-box;
-            background: rgba(15, 23, 42, 0.55);
-            align-items: center;
-            justify-content: center;
-            border-radius: 0;
-            box-shadow: none;
-        }
-        #wiModal .modal-content {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            width: min(720px, 100%);
-            max-height: 90vh;
-            overflow: auto;
-            position: relative;
-            text-align: left;
-            box-shadow: var(--shadow-lg);
-        }
+        /* The markup is theme.css's `.modal > .modal-content` pattern, so
+           theme already supplies the full-viewport scrim, sizing, blur and the
+           inner panel. Only display:none needs to live here: theme leaves
+           `display` undeclared on purpose, and closeWIModal() only ever writes
+           an inline style, so this is what hides the modal on load. */
+        #wiModal.modal { display: none; }
         .close-modal {
             position: absolute;
             right: 16px;
             top: 12px;
             font-size: 24px;
             cursor: pointer;
-            color: #64748b;
+            color: var(--text-muted);
         }
         .wi-search-container { margin: 12px 0 16px; }
         .wi-search-container input {
@@ -371,18 +354,21 @@
             border-bottom: 1px solid var(--border);
             font-size: 13px;
         }
+        /* Same pair as .badge-ok / theme.css .badge--success; separate class
+           because the JS writes this name into the WI modal table. */
         .status-pill {
             background: #dcfce7;
             color: #15803d;
             padding: 2px 8px;
-            border-radius: 999px;
+            border-radius: var(--radius-full);
             font-size: 11px;
             font-weight: 700;
         }
+        /* Only the spacing is page-specific — theme.css supplies the size
+           (!important) and --text-faint colour. Keeping margin-top rather than
+           theme's `auto` so the footer stays with the card, not the viewport. */
         .footer {
-            margin-top: 24px;
-            font-size: 12px;
-            color: var(--text-muted);
+            margin-top: var(--space-6);
         }
     </style>
 </head>
@@ -1061,7 +1047,7 @@
                 renderWITable(uniqueParts);
             } catch (e) {
                 console.error(e);
-                $("#wiTableBody").html('<tr><td colspan="3" style="text-align:center;color:red;">Failed to load data.</td></tr>');
+                $("#wiTableBody").html('<tr><td colspan="3" style="text-align:center;color:var(--danger);">Failed to load data.</td></tr>');
             }
         }
 
@@ -1080,7 +1066,7 @@
                 container.append(`
                     <tr>
                         <td style="font-weight:500;">${item.Part_Name}</td>
-                        <td style="color:#6b7280;">${date}</td>
+                        <td style="color:var(--text-muted);">${date}</td>
                         <td><span class="status-pill">${item.Status}</span></td>
                     </tr>
                 `);

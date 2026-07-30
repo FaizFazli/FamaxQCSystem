@@ -7,6 +7,67 @@
     <title>Famax DMS - Dashboard</title>
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        /* Remap Tailwind's palette onto the design tokens in /assets/theme.css.
+           The Play CDN injects its stylesheet at runtime, so it lands AFTER
+           theme.css and every utility beats every theme rule — retuning the
+           palette here is the only way to align colours without touching the
+           ~800 utility classes in the markup (and the Vue :class ternaries).
+
+           Must stay `theme.extend`: a bare `theme.colors` REPLACES the palette
+           and would kill bg-white, text-white and the bg-black/* modal scrims.
+           Values must stay hex: `bg-blue-600/20` (line ~662) can only have its
+           alpha synthesised from a hex.
+           Blue ramp is generated on hue 206 — the hue --primary and
+           --primary-hover already share — tints mixed toward white, shades
+           scaled from --primary-hover. gray maps stop-for-stop onto the theme
+           slate scale. green folds onto the --success ramp so the page stops
+           carrying two competing success hues.
+           emerald and red are deliberately NOT declared: emerald-500 is
+           already #10b981 (--success) and red-500 already #ef4444 (--danger).
+           Do NOT add `animation`/`keyframes` keys — Tailwind would then emit
+           .animate-fadeIn after this page's <style> and override it. */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617'
+                        },
+                        blue: {
+                            50: '#e6f2fb', 100: '#cce4f6', 200: '#b3d7f2', 300: '#8cc2ec',
+                            400: '#59a7e3', 500: '#268cda', 600: '#0078d4', 700: '#0067b8',
+                            800: '#00589c', 900: '#004881', 950: '#003965'
+                        },
+                        green: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b'
+                        },
+                        /* Amber ramp. 500 is amber-600 #d97706, not --warning
+                           #f59e0b: white-on-amber is already below AA on the
+                           upload buttons and the token value would deepen that.
+                           --warning is still carried here at orange-400. */
+                        orange: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#f59e0b', 500: '#d97706', 600: '#b45309', 700: '#92400e',
+                            800: '#78350f', 900: '#451a03'
+                        },
+                        /* No purple token exists. Kept as a distinct category
+                           accent (CMM tab) so the four tab colours stay
+                           separable, but retuned to the brand's saturation. */
+                        purple: { 50: '#f1ecf9', 100: '#e2d8f3', 600: '#6e3dc2', 700: '#5a329f' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+                        /* mono deliberately unmapped — the code console keeps Tailwind's stack */
+                    }
+                }
+            }
+        };
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/assets/theme.css">
