@@ -3,6 +3,35 @@ const path = require("path");
 const XLSX = require("xlsx");
 const config = require("../config/config");
 
+/* The folders every revision is expected to have. prepareFolder() creates them
+   for a new registration; ensureSubFolders() backfills them for revisions that
+   were prepared before a folder was added to this list. */
+const DMS_SUBFOLDERS = [
+    "Process Image",
+    "Program FIle",
+    "Samples",
+    "Tooling List",
+    "Work Instruction (WI)",
+    "Drawing File",
+    "CMM Program",
+    "Other Work",
+    "Inspection Guide"
+];
+
+/* Best-effort: the DMS lives on a network share, so a caller without write
+   permission must still be able to READ the revision. A failure here is logged
+   and ignored rather than failing the request. */
+function ensureSubFolders(rootPath) {
+    DMS_SUBFOLDERS.forEach(folder => {
+        const p = path.join(rootPath, folder);
+        try {
+            if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+        } catch (e) {
+            console.warn(`DMS: could not create "${folder}" in ${rootPath}:`, e.message);
+        }
+    });
+}
+
 exports.getPartData = async (req, res) => {
     try {
         const { productName, revision } = req.params;
@@ -11,6 +40,10 @@ exports.getPartData = async (req, res) => {
         if (!fs.existsSync(rootPath)) {
             return res.status(404).json({ message: "Folder not found" });
         }
+
+        // Opening a revision backfills any folder it is missing, so an older
+        // part gains new categories without being re-registered.
+        ensureSubFolders(rootPath);
 
         const data = {
             instructionModules: [],
@@ -114,6 +147,11 @@ exports.getPartData = async (req, res) => {
         data.samples = getFiles("Samples");
         data.drawingFiles = getFiles("Drawing File"); // <--- ADD THIS LINE
         data.cmmPrograms = getFiles("CMM Program");
+        // getFiles() returns [] when the folder is absent, so parts prepared
+        // before these two were added still load; the folder appears the first
+        // time something is uploaded into it.
+        data.otherWork = getFiles("Other Work");
+        data.inspectionGuides = getFiles("Inspection Guide");
         data.processImages = getFiles("Process Image").filter(f => imgRegex.test(f));
 
         res.json(data);
@@ -366,22 +404,13 @@ exports.prepareFolder = async (req, res) => {
 
         const rootPath = path.join(config.DMS_FOLDER, cleanProduct, revFolder);
 
-        const subFolders = [
-            "Process Image",
-            "Program FIle",
-            "Samples",
-            "Tooling List",
-            "Work Instruction (WI)",
-            "Drawing File",
-            "CMM Program"
-        ];
-
-        // Create folders
+        // Create folders — the list is shared with ensureSubFolders() at the
+        // top of this file so the two can never drift apart.
         if (!fs.existsSync(rootPath)) {
             fs.mkdirSync(rootPath, { recursive: true });
         }
 
-        subFolders.forEach(folder => {
+        DMS_SUBFOLDERS.forEach(folder => {
             const folderPath = path.join(rootPath, folder);
             if (!fs.existsSync(folderPath)) {
                 fs.mkdirSync(folderPath);
