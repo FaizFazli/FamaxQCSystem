@@ -25,36 +25,156 @@
 
     <style>
         /* Page-specific layout & component overrides. Tokens/reset/base come from theme.css. */
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html) ---- */
         body {
+            display: flex;
+            align-items: flex-start;
+            padding: 0;
+            background: var(--bg-body);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: var(--space-8) var(--space-5);
         }
 
-        .nav-top {
-            width: 100%;
-            max-width: 1240px;
-            margin-bottom: var(--space-6);
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
         }
 
-        .back-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: var(--fs-sm);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 26px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        /* Scoped: this page styles bare `label` as a space-between flex row,
+           which would otherwise capture the rail's labels. */
+        .rail .identity__label {
+            display: block;
+            justify-content: initial;
+            margin: 0;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        .rail__note {
+            margin: 0 0 18px;
+            font-size: 12px; line-height: 1.6;
+            color: rgba(255, 255, 255, 0.5);
+            text-wrap: pretty;
+        }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
             gap: var(--space-2);
-            transition: color var(--transition), transform var(--transition);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
             cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
         }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
 
-        .back-link:hover {
-            color: var(--primary);
-            transform: translateX(-3px);
+        @media (max-width: 1000px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity { margin-top: 16px; }
+            .rail .identity__label, .session, .rail__note { display: none; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
         }
 
         .main-container {
@@ -368,15 +488,53 @@
 </head>
 
 <body>
-    <div class="nav-top">
-        <a onclick="window.history.back()" class="back-link">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="">
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Notify Teams</span>
+            </div>
+        </div>
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <div class="rail__spacer"></div>
+
+        <p class="rail__note">
+            The card is posted to the Teams channel and @mentions whoever is
+            listed for the selected role.
+        </p>
+
+        <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
             Back to Dashboard
-        </a>
-    </div>
+        </button>
+    </aside>
+
+    <div class="column">
+    <main class="content">
 
     <div class="main-container">
         <!-- FORM CARD -->
@@ -587,7 +745,10 @@
         }
     </style>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </div>
 
     <script>
         const TEAMS_WEBHOOK_URL = window.APP_CONFIG.host + "/FamaxQCSystem/api/teams";
@@ -1078,10 +1239,24 @@
             try {
                 const userId = sessionStorage.getItem("userId");
                 if (!userId) return;
+
+                // Rail identity, display only. The name is known from the
+                // session; the badge is filled from the lookup below, so it
+                // costs no extra request.
+                document.getElementById("userName").textContent = userId;
+                document.getElementById("railSession").style.display = "flex";
+
                 const res = await api.get(
                     `/rest/v1/AdminCredential?select=Access&UserId=eq.${encodeURIComponent(userId)}`
                 );
                 const access = (res.data[0] && res.data[0].Access || "").toUpperCase();
+
+                if (access) {
+                    const badge = document.getElementById("accessLevel");
+                    badge.textContent = access === "ALL" ? "Superuser" : access;
+                    badge.style.display = "inline-block";
+                }
+
                 if (access === "ALL" || access === "MANAGEMENT") {
                     document.getElementById("manage-recipients-btn").style.display = "inline-block";
                 }

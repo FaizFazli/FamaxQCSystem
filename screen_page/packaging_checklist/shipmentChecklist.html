@@ -32,8 +32,167 @@
             --radius: var(--radius-sm);
         }
 
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The "View / Re-download Records" button moved out of the floating
+               .nav-top strip into the rail; its onclick is unchanged. ---- */
         body {
-            padding: var(--space-5);
+            display: flex;
+            align-items: flex-start;
+            padding: 0;
+            background: var(--bg-body);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content { flex: 1; padding: var(--space-5); }
+
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 26px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label,
+        .rail-nav__label {
+            display: block;
+            margin: 0;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        .rail-nav { margin-top: 24px; display: flex; flex-direction: column; gap: 4px; }
+        .rail-nav__label { margin-bottom: 6px; padding-left: 2px; }
+
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .rail-nav__item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.16);
+            color: #fff;
+        }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: 14px; font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        @media (max-width: 1000px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
         }
 
         .card {
@@ -284,33 +443,6 @@
 
         /* .spinner + @keyframes spin provided by theme.css */
 
-        /* --- Navigation --- */
-        .nav-top {
-            width: 100%;
-            max-width: 900px;
-            margin: 0 auto 15px auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
-
-        .back-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .back-link:hover {
-            color: var(--primary);
-        }
-
         /* @keyframes spin provided by theme.css */
 
         /* GLOBAL DROPDOWN STYLE */
@@ -372,16 +504,10 @@
 
         /* Mobile Responsive Adjustments */
         @media screen and (max-width: 768px) {
-            body {
+            /* Padding lives on .content now — putting it back on the flex body
+               would inset the rail as well. */
+            .content {
                 padding: 10px;
-            }
-
-            /* Stack Navigation */
-            .nav-top {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 12px;
-                padding: 0 5px;
             }
 
             .btn-secondary {
@@ -542,17 +668,56 @@
         </div>
     </div>
 
-    <div class="nav-top">
-        <!-- <a onclick="window.history.back()" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="">
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Shipment Checklist</span>
+            </div>
+        </div>
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <!-- Same button as the old nav strip; onclick unchanged. -->
+        <nav class="rail-nav">
+            <div class="rail-nav__label">Records</div>
+            <button class="rail-nav__item" onclick="openModal()">
+                📄 View / Re-download
+            </button>
+        </nav>
+
+        <div class="rail__spacer"></div>
+
+        <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
             Back to Dashboard
-        </a> -->
-        <button class="btn-secondary" onclick="openModal()">View / Re-download Records</button>
-    </div>
+        </button>
+    </aside>
 
+    <div class="column">
+    <main class="content">
     <div class="card">
         <div class="card-header">
             <h2 style="margin:0">Shipment Checklist Form</h2>
@@ -740,6 +905,10 @@
             <button class="btn-submit" onclick="submitForm()">Save Data & Generate PDF</button>
         </div>
     </div>
+    </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </div>
 
     <script>
         const SUPABASE_URL = window.APP_CONFIG.url;
@@ -748,8 +917,27 @@
         const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let invoiceData = [];
 
+        /* Rail identity — display only. Writes into the three rail elements and
+           nothing else; reuses the client above and swallows its own failure. */
+        async function fillRailIdentity() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) return;
+            $('#userName').text(userId);
+            $('#railSession').css('display', 'flex');
+            try {
+                const { data } = await _supabase
+                    .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                if (data && data.length) {
+                    $('#accessLevel')
+                        .text(data[0].Access === 'ALL' ? 'Superuser' : data[0].Access)
+                        .css('display', 'inline-block');
+                }
+            } catch (e) { console.error('Access lookup failed', e); }
+        }
+
         $(document).ready(function () {
             fetchInvoiceNumbers();
+            fillRailIdentity();
 
             function showSuggestions() {
                 const $input = $('#packaging_list_no');
@@ -963,7 +1151,6 @@
             doc.save(`Checklist_${data.document_no}.pdf`);
         }
     </script>
-<div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

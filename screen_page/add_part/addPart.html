@@ -28,35 +28,246 @@
             --input-height: 46px;
         }
 
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html) ---- */
         body {
+            display: flex;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 0;
+            background: var(--bg-body);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
             padding: var(--space-5);
         }
 
-        .nav-top {
+        /* ---- Left identity rail ---- */
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+        }
+
+        .rail__brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .rail__mark img {
             width: 100%;
-            max-width: 960px;
-            margin-bottom: var(--space-4);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            height: 100%;
+            object-fit: contain;
         }
 
-        .back-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: var(--fs-base);
+        .rail__name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            line-height: 1;
+            color: #fff;
+        }
+
+        .rail__sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 32px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .identity__label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity__row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .identity__avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .identity__avatar svg {
+            width: 17px;
+            height: 17px;
+            fill: rgba(255, 255, 255, 0.75);
+        }
+
+        .user-name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.1px;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block;
+            margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--on-primary);
+            background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-top: 18px;
+            padding-left: 2px;
+            font-size: 12px;
             font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
+            color: rgba(255, 255, 255, 0.6);
         }
 
-        .back-link:hover { color: var(--primary); }
+        .session::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success);
+            flex-shrink: 0;
+        }
+
+        .rail__spacer {
+            flex: 1;
+        }
+
+        .rail__note {
+            margin: 0 0 18px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.5);
+            text-wrap: pretty;
+        }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            width: 100%;
+            padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base);
+            font-weight: 600;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .rail__back:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .rail__back svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .rail {
+                position: static;
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: var(--space-4);
+                padding: 16px 20px;
+            }
+            .identity {
+                margin-top: 0;
+                padding: 8px 12px;
+            }
+            .identity__label,
+            .rail__note,
+            .session {
+                display: none;
+            }
+            .access-level {
+                margin-top: 0;
+            }
+            .rail__back {
+                width: auto;
+            }
+        }
 
         .card {
             background: var(--bg-card);
@@ -259,6 +470,31 @@
             border-radius: var(--radius-full);
         }
 
+        /* Program rows reuse .process-slot's shell; only the process/machine
+           pair needs its own two-up row. */
+        .program-slot .slot-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .program-slot label {
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .program-slot select,
+        .program-slot input[type="text"] {
+            width: 100%;
+            height: 34px;
+            padding: 0 8px;
+            font-size: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+        }
+        .program-slot.is-incomplete {
+            border-color: var(--warning);
+        }
+
         .file-pick-btn {
             display: inline-flex;
             align-items: center;
@@ -275,6 +511,7 @@
         }
         .file-pick-btn:hover { border-color: var(--primary); color: var(--primary); }
         label.file-pick-btn[for][aria-disabled="true"],
+        .file-pick-btn.is-disabled,
         #processFolderLabel.is-disabled {
             opacity: 0.45;
             pointer-events: none;
@@ -379,91 +616,176 @@
         <div id="loadingText">Processing…</div>
     </div>
 
-    <div class="nav-top">
-        <a onclick="window.location.href='../../AdminLogin.html'" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="" />
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Register Part</span>
+            </div>
+        </div>
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <div class="rail__spacer"></div>
+
+        <p class="rail__note">
+            A revision needs the WI folder, a process image per process and the
+            customer drawing before it can be submitted.
+        </p>
+
+        <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
             Back to Dashboard
-        </a>
-    </div>
+        </button>
+    </aside>
 
-    <div class="card">
-        <div class="card-header">
-            <h1>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                Register/Revise Part
-            </h1>
-            <button type="button" class="btn-view-list" onclick="openWIModal()">View Active WI</button>
-        </div>
+    <div class="column">
+        <main class="content">
+            <div class="card">
+                <div class="card-header">
+                    <h1>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Register/Revise Part
+                    </h1>
+                    <button type="button" class="btn-view-list" onclick="openWIModal()">View Active WI</button>
+                </div>
 
-        <div class="card-body">
-            <div class="form-group">
-                <label>Part Name (from Parts)</label>
-                <select id="partNameInput" class="select2">
-                    <option value=""></option>
-                </select>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Part Name (from Parts)</label>
+                        <select id="partNameInput" class="select2">
+                            <option value=""></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Revision (e.g., 0, 1, A)</label>
+                        <input type="text" id="revInput" placeholder="Enter revision…" />
+                    </div>
+
+                    <div class="upload-grid">
+                        <div class="upload-card required-missing" id="cardWi">
+                            <div class="card-title-row">
+                                <h3>1. Work Instruction (WI)</h3>
+                                <span class="badge badge-need" id="statusWi">Required</span>
+                            </div>
+                            <p class="hint">Select a <strong>folder</strong> — only <code>.xlsx</code> / <code>.xls</code> are used. Process = text before <code>_</code> in the filename (any leading <code>NN_</code> number is ignored).</p>
+                            <label class="file-pick-btn" for="wiFolderInput">Choose WI folder</label>
+                            <input type="file" id="wiFolderInput" webkitdirectory directory multiple style="display:none" />
+                            <div class="file-chip-list" id="wiFileList"></div>
+                        </div>
+
+                        <div class="upload-card required-missing" id="cardProcess">
+                            <div class="card-title-row">
+                                <h3>2. Process Image</h3>
+                                <span class="badge badge-need" id="statusProcess">Required</span>
+                            </div>
+                            <p class="hint">Select a <strong>folder</strong> — only <code>.jpg</code> / <code>.jpeg</code> / <code>.png</code> are used. File name must contain the process name. IQC/OQC still need PDF per process.</p>
+                            <label class="file-pick-btn" for="processFolderInput" id="processFolderLabel">Choose process image folder</label>
+                            <input type="file" id="processFolderInput" webkitdirectory directory multiple accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" disabled />
+                            <div id="processSlots">
+                                <div class="hint">Upload WI folder first…</div>
+                            </div>
+                        </div>
+
+                        <div class="upload-card required-missing" id="cardDrawing">
+                            <div class="card-title-row">
+                                <h3>3. Customer Drawing</h3>
+                                <span class="badge badge-need" id="statusDrawing">Required</span>
+                            </div>
+                            <p class="hint">Saved to DMS <strong>Samples</strong> folder.</p>
+                            <label class="file-pick-btn" for="drawingFileInput">Choose drawing files</label>
+                            <input type="file" id="drawingFileInput" accept="image/*,.pdf,application/pdf" multiple
+                                style="display:none" />
+                            <div class="file-chip-list" id="drawingFileList"></div>
+                        </div>
+
+                        <div class="upload-card" id="cardDrawingFile">
+                            <div class="card-title-row">
+                                <h3>4. Technical Drawing File</h3>
+                                <span class="badge badge-opt" id="statusDrawingFile">Optional</span>
+                            </div>
+                            <p class="hint">Technical drawings — DMS <strong>Drawing File</strong> folder. Separate from
+                                the customer drawing in card 3.</p>
+                            <label class="file-pick-btn" for="drawingTechInput">Choose technical drawings</label>
+                            <input type="file" id="drawingTechInput" multiple style="display:none" />
+                            <div class="file-chip-list" id="drawingTechList"></div>
+                        </div>
+
+                        <div class="upload-card" id="cardCmm">
+                            <div class="card-title-row">
+                                <h3>5. CMM Program</h3>
+                                <span class="badge badge-opt" id="statusCmm">Optional</span>
+                            </div>
+                            <p class="hint">CMM measuring programs — DMS <strong>CMM Program</strong> folder.</p>
+                            <label class="file-pick-btn" for="cmmFileInput">Choose CMM files</label>
+                            <input type="file" id="cmmFileInput" multiple style="display:none" />
+                            <div class="file-chip-list" id="cmmFileList"></div>
+                        </div>
+
+                        <!-- Program files are the one DMS folder that is nested
+                             (Program FIle/{Process}/{Machine}), so each file needs
+                             its own process and machine before it can be sent. -->
+                        <div class="upload-card" id="cardProgram">
+                            <div class="card-title-row">
+                                <h3>6. Program File</h3>
+                                <span class="badge badge-opt" id="statusProgram">Optional</span>
+                            </div>
+                            <p class="hint">Machine programs — filed in the DMS <strong>Program</strong> tab by process
+                                and machine. Pick the WI folder first so the processes are known.</p>
+                            <label class="file-pick-btn is-disabled" for="programFileInput"
+                                id="programFileLabel">Choose program files</label>
+                            <input type="file" id="programFileInput" multiple disabled style="display:none" />
+                            <div id="programEntries">
+                                <div class="hint">Select a WI folder first…</div>
+                            </div>
+                        </div>
+
+                        <div class="upload-card" id="cardRefs">
+                            <div class="card-title-row">
+                                <h3>7. Other References</h3>
+                                <span class="badge badge-opt" id="statusRefs">Optional</span>
+                            </div>
+                            <p class="hint">Optional extra files — also go to DMS <strong>Samples</strong>.</p>
+                            <label class="file-pick-btn" for="refFileInput">Choose reference files</label>
+                            <input type="file" id="refFileInput" multiple style="display:none" />
+                            <div class="file-chip-list" id="refFileList"></div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="submitButton" class="btn-action" disabled>
+                        Submit Register/Revise
+                    </button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Revision (e.g., 0, 1, A)</label>
-                <input type="text" id="revInput" placeholder="Enter revision…" />
-            </div>
 
-            <div class="upload-grid">
-                <div class="upload-card required-missing" id="cardWi">
-                    <div class="card-title-row">
-                        <h3>1. Work Instruction (WI)</h3>
-                        <span class="badge badge-need" id="statusWi">Required</span>
-                    </div>
-                    <p class="hint">Select a <strong>folder</strong> — only <code>.xlsx</code> / <code>.xls</code> are used. Process = text before <code>_</code> in the filename (any leading <code>NN_</code> number is ignored).</p>
-                    <label class="file-pick-btn" for="wiFolderInput">Choose WI folder</label>
-                    <input type="file" id="wiFolderInput" webkitdirectory directory multiple style="display:none" />
-                    <div class="file-chip-list" id="wiFileList"></div>
-                </div>
-
-                <div class="upload-card required-missing" id="cardProcess">
-                    <div class="card-title-row">
-                        <h3>2. Process Image</h3>
-                        <span class="badge badge-need" id="statusProcess">Required</span>
-                    </div>
-                    <p class="hint">Select a <strong>folder</strong> — only <code>.jpg</code> / <code>.jpeg</code> / <code>.png</code> are used. File name must contain the process name. IQC/OQC still need PDF per process.</p>
-                    <label class="file-pick-btn" for="processFolderInput" id="processFolderLabel">Choose process image folder</label>
-                    <input type="file" id="processFolderInput" webkitdirectory directory multiple accept=".jpg,.jpeg,.png,image/jpeg,image/png" style="display:none" disabled />
-                    <div id="processSlots">
-                        <div class="hint">Upload WI folder first…</div>
-                    </div>
-                </div>
-
-                <div class="upload-card required-missing" id="cardDrawing">
-                    <div class="card-title-row">
-                        <h3>3. Customer Drawing</h3>
-                        <span class="badge badge-need" id="statusDrawing">Required</span>
-                    </div>
-                    <p class="hint">Saved to DMS <strong>Samples</strong> folder.</p>
-                    <input type="file" id="drawingFileInput" accept="image/*,.pdf,application/pdf" multiple />
-                    <div class="file-chip-list" id="drawingFileList"></div>
-                </div>
-
-                <div class="upload-card" id="cardRefs">
-                    <div class="card-title-row">
-                        <h3>4. Other References</h3>
-                        <span class="badge badge-opt" id="statusRefs">Optional</span>
-                    </div>
-                    <p class="hint">Optional extra files — also go to DMS <strong>Samples</strong>.</p>
-                    <input type="file" id="refFileInput" multiple />
-                    <div class="file-chip-list" id="refFileList"></div>
-                </div>
-            </div>
-
-            <button type="button" id="submitButton" class="btn-action" disabled>
-                Submit Register/Revise
-            </button>
-        </div>
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </main>
     </div>
 
     <div id="wiModal" class="modal">
@@ -488,8 +810,6 @@
         </div>
     </div>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
-
     <script>
         const SUPABASE_URL = window.APP_CONFIG.url;
         const SUPABASE_KEY = window.APP_CONFIG.key;
@@ -502,10 +822,39 @@
         let drawingFiles = [];
         let refFiles = [];
         let processSlots = [];
+        // Optional DMS folders — one bucket per folder the DMS dashboard reads.
+        let drawingTechFiles = [];
+        let cmmFiles = [];
+        // { file, process, machine } — Program FIle is nested per process/machine.
+        let programEntries = [];
+
+        /* Rail identity — display only. The session gate above already decides
+           access; this just names the signed-in user and shows their role. */
+        async function fillRailIdentity(userId) {
+            if (!userId) return;
+            document.getElementById("userName").textContent = userId;
+            document.getElementById("railSession").style.display = "flex";
+            try {
+                const { data } = await supabaseClient
+                    .from("AdminCredential")
+                    .select("Access")
+                    .eq("UserId", userId)
+                    .limit(1);
+                if (data && data.length) {
+                    const badge = document.getElementById("accessLevel");
+                    badge.textContent = data[0].Access === "ALL" ? "Superuser" : data[0].Access;
+                    badge.style.display = "inline-block";
+                }
+            } catch (e) {
+                console.error("Access lookup failed", e);
+            }
+        }
 
         $(document).ready(function () {
             const userId = sessionStorage.getItem("userId");
             if (!userId) window.location.href = "../../index.html";
+
+            fillRailIdentity(userId);
 
             $("#partNameInput").select2({
                 placeholder: "Search and select part…",
@@ -555,6 +904,30 @@
             $("#refFileInput").on("change", function () {
                 refFiles = Array.from(this.files || []);
                 renderChips($("#refFileList"), refFiles);
+                updateCardUI();
+            });
+            $("#drawingTechInput").on("change", function () {
+                drawingTechFiles = Array.from(this.files || []);
+                renderChips($("#drawingTechList"), drawingTechFiles);
+                updateCardUI();
+            });
+            $("#cmmFileInput").on("change", function () {
+                cmmFiles = Array.from(this.files || []);
+                renderChips($("#cmmFileList"), cmmFiles);
+                updateCardUI();
+            });
+            $("#programFileInput").on("change", function () {
+                // Default each file to the first process; the machine is always
+                // typed, so a fresh pick is deliberately incomplete until then.
+                const firstProcess = processSlots.length ? processSlots[0].process : "";
+                programEntries = Array.from(this.files || []).map((file) => ({
+                    file,
+                    process: firstProcess,
+                    machine: "",
+                }));
+                renderProgramEntries();
+                updateCardUI();
+                this.value = "";
             });
             $("#revInput").on("input", updateCardUI);
             $("#submitButton").on("click", submitRegisterRevise);
@@ -631,6 +1004,19 @@
             else $badge.attr("class", "badge badge-need").text("Required");
         }
 
+        /* Optional cards never read "Required": empty is a valid end state, so
+           they sit at "Optional" until files arrive and only warn when what was
+           supplied is unusable (a program file with no process or machine). */
+        function setOptionalBadge($badge, count, incomplete) {
+            if (incomplete) $badge.attr("class", "badge badge-need").text("Incomplete");
+            else if (count) $badge.attr("class", "badge badge-ok").text(`${count} file${count === 1 ? "" : "s"}`);
+            else $badge.attr("class", "badge badge-opt").text("Optional");
+        }
+
+        function isProgramReady() {
+            return programEntries.every((e) => e.process && String(e.machine || "").trim());
+        }
+
         function isProcessReady() {
             return (
                 processSlots.length > 0 &&
@@ -644,7 +1030,10 @@
                 !!($("#revInput").val() || "").trim() &&
                 wiFiles.length > 0 &&
                 isProcessReady() &&
-                drawingFiles.length > 0
+                drawingFiles.length > 0 &&
+                // Optional, but a program file with no process/machine has
+                // nowhere to land — block rather than drop it silently.
+                isProgramReady()
             );
         }
 
@@ -661,12 +1050,95 @@
             setBadge($("#statusProcess"), procOk);
             setBadge($("#statusDrawing"), drawOk);
 
+            const programIncomplete = programEntries.length > 0 && !isProgramReady();
+            setOptionalBadge($("#statusRefs"), refFiles.length, false);
+            setOptionalBadge($("#statusDrawingFile"), drawingTechFiles.length, false);
+            setOptionalBadge($("#statusCmm"), cmmFiles.length, false);
+            setOptionalBadge($("#statusProgram"), programEntries.length, programIncomplete);
+            $("#cardProgram").toggleClass("required-missing", programIncomplete);
+
             $("#submitButton").prop("disabled", !canSubmit());
         }
 
         function setProcessFolderEnabled(on) {
             $("#processFolderInput").prop("disabled", !on);
             $("#processFolderLabel").toggleClass("is-disabled", !on);
+        }
+
+        // Program files are filed per process, so the picker waits on the WI
+        // folder the same way the process-image picker does.
+        function setProgramPickerEnabled(on) {
+            $("#programFileInput").prop("disabled", !on);
+            $("#programFileLabel").toggleClass("is-disabled", !on);
+        }
+
+        function renderProgramEntries() {
+            const root = $("#programEntries");
+            if (!processSlots.length) {
+                root.html('<div class="hint">Select a WI folder first…</div>');
+                return;
+            }
+            if (!programEntries.length) {
+                root.html('<div class="hint">No program files selected.</div>');
+                return;
+            }
+
+            const options = processSlots
+                .map((s) => `<option value="${s.process}">${s.process}</option>`)
+                .join("");
+
+            root.empty();
+            programEntries.forEach((entry, index) => {
+                const incomplete = !entry.process || !String(entry.machine || "").trim();
+                root.append(`
+                    <div class="process-slot program-slot${incomplete ? " is-incomplete" : ""}" data-index="${index}">
+                        <div class="slot-head">
+                            <span>${entry.file.name}</span>
+                            <button type="button" class="chip-remove" data-role="drop" data-index="${index}" title="Remove">&times;</button>
+                        </div>
+                        <div class="slot-fields">
+                            <div>
+                                <label>Process *</label>
+                                <select data-role="process" data-index="${index}">${options}</select>
+                            </div>
+                            <div>
+                                <label>Machine *</label>
+                                <input type="text" data-role="machine" data-index="${index}" placeholder="e.g. K315D" />
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+
+            // Values are set after the fact so a machine name with quotes or a
+            // process that vanished from the WI folder cannot break the markup.
+            root.find('select[data-role="process"]').each(function () {
+                const entry = programEntries[Number(this.dataset.index)];
+                this.value = processSlots.some((s) => s.process === entry.process) ? entry.process : "";
+            });
+            root.find('input[data-role="machine"]').each(function () {
+                this.value = programEntries[Number(this.dataset.index)].machine || "";
+            });
+
+            root.find('select[data-role="process"]').on("change", function () {
+                programEntries[Number(this.dataset.index)].process = this.value;
+                renderProgramEntries();
+                updateCardUI();
+            });
+            root.find('input[data-role="machine"]').on("input", function () {
+                const entry = programEntries[Number(this.dataset.index)];
+                entry.machine = this.value;
+                // Toggled in place rather than re-rendering, which would take
+                // the caret out of the field mid-word.
+                $(this).closest(".program-slot")
+                    .toggleClass("is-incomplete", !entry.process || !entry.machine.trim());
+                updateCardUI();
+            });
+            root.find('button[data-role="drop"]').on("click", function () {
+                programEntries.splice(Number(this.dataset.index), 1);
+                renderProgramEntries();
+                updateCardUI();
+            });
         }
 
         function isImageFile(name) {
@@ -740,7 +1212,14 @@
                 return { ...s, imageFile: old.imageFile, pdfFile: old.pdfFile };
             });
             setProcessFolderEnabled(processSlots.length > 0);
+            setProgramPickerEnabled(processSlots.length > 0);
+            // A process can disappear when a WI is dropped; blank the pick so the
+            // entry reads as incomplete instead of pointing at a dead folder.
+            programEntries.forEach((e) => {
+                if (!processSlots.some((s) => s.process === e.process)) e.process = "";
+            });
             renderProcessSlots();
+            renderProgramEntries();
             updateCardUI();
         }
 
@@ -764,13 +1243,15 @@
                         <div>
                             <label style="font-size:11px;font-weight:700;">Image (jpg/png) *</label>
                             <div class="file-chip">${imgName}</div>
-                            <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" data-role="img" data-index="${index}" style="margin-top:6px" />
+                            <label class="file-pick-btn" for="slotImg${index}" style="margin-top:6px">Choose image</label>
+                            <input type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" data-role="img" data-index="${index}" id="slotImg${index}" style="display:none" />
                         </div>
                         ${slot.needsPdf ? `
                         <div>
                             <label style="font-size:11px;font-weight:700;">PDF guide *</label>
                             <div class="file-chip">${pdfName}</div>
-                            <input type="file" accept="application/pdf,.pdf" data-role="pdf" data-index="${index}" style="margin-top:6px" />
+                            <label class="file-pick-btn" for="slotPdf${index}" style="margin-top:6px">Choose PDF</label>
+                            <input type="file" accept="application/pdf,.pdf" data-role="pdf" data-index="${index}" id="slotPdf${index}" style="display:none" />
                         </div>` : ""}
                     </div>
                 `);
@@ -818,6 +1299,26 @@
             const data = await res.json().catch(() => ({ success: false }));
             if (!res.ok || !data.success) {
                 throw new Error(data.error || data.message || `DMS upload failed (${subFolder})`);
+            }
+        }
+
+        /* Program files go through their own endpoint — it nests them under
+           Program FIle/{Process}/{Machine}. Note it takes the revision FOLDER
+           name ("REV-0"), unlike upload-multi which adds the prefix itself. */
+        async function uploadProgramEntry(entry, productName, revision) {
+            const fd = new FormData();
+            fd.append("file", entry.file);
+            fd.append("productName", productName);
+            fd.append("revision", `REV-${revision}`);
+            fd.append("process", entry.process);
+            fd.append("machine", entry.machine.trim());
+            const res = await fetch(`${window.APP_CONFIG.host}/FamaxDMS/upload-program`, {
+                method: "POST",
+                body: fd,
+            });
+            const data = await res.json().catch(() => ({ success: false }));
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || data.message || `Program upload failed (${entry.file.name})`);
             }
         }
 
@@ -915,6 +1416,21 @@
                 await uploadDms(partName, revision, "Samples", drawingFiles);
                 if (refFiles.length) {
                     await uploadDms(partName, revision, "Samples", refFiles);
+                }
+
+                if (drawingTechFiles.length) {
+                    setLoading(true, "Uploading drawing files…");
+                    await uploadDms(partName, revision, "Drawing File", drawingTechFiles);
+                }
+                if (cmmFiles.length) {
+                    setLoading(true, "Uploading CMM programs…");
+                    await uploadDms(partName, revision, "CMM Program", cmmFiles);
+                }
+                if (programEntries.length) {
+                    setLoading(true, "Uploading program files…");
+                    for (const entry of programEntries) {
+                        await uploadProgramEntry(entry, partName, revision);
+                    }
                 }
 
                 setLoading(true, "Updating Parts revision…");

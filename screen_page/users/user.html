@@ -23,68 +23,192 @@
 
     <style>
         /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The segmented User List / Add New User control moved into the rail
+               as side navigation. Those buttons keep their .tab-btn class, their
+               .active class AND their document order — switchView() selects them
+               by index (`.tab-btn`[0] and [1]), so none of that is cosmetic. ---- */
         body {
+            display: flex;
+            align-items: flex-start;
+            padding: 0;
+            background: var(--bg-body);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: var(--space-8) var(--space-4);
         }
 
-        /* --- Navigation --- */
-        .nav-top {
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: var(--space-5);
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: var(--space-4);
-            flex-wrap: wrap;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
         }
 
-        .back-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: var(--fs-sm);
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: color var(--transition);
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
         }
 
-        .back-link:hover {
-            color: var(--primary);
-        }
-
-        /* --- Tab Switcher (segmented control) --- */
-        .tab-container {
-            background: var(--surface-muted);
-            padding: var(--space-1);
-            border: 1px solid var(--border);
+        .identity {
+            margin-top: 26px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: var(--radius);
-            display: flex;
-            gap: var(--space-1);
+            background: rgba(255, 255, 255, 0.06);
         }
+        .identity__label,
+        .rail-nav__label {
+            display: block;
+            margin: 0;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* --- Side navigation (was the segmented .tab-container) --- */
+        .rail-nav { margin-top: 24px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label { margin-bottom: 8px; padding-left: 2px; }
 
         .tab-btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: var(--fs-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px;
             font-weight: 600;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none;
+            border: 0;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            background: transparent;
-            color: var(--text-muted);
-            transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+            transition: background var(--transition), color var(--transition);
         }
 
-        .tab-btn.active {
-            background: var(--bg-card);
-            color: var(--primary);
-            box-shadow: var(--shadow-sm);
+        .tab-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+        /* .active is written by switchView() — name is load-bearing. */
+        .tab-btn.active { background: var(--primary); color: var(--on-primary); }
+
+        /* Marker doubles as the active indicator, so the state reads without
+           relying on the fill colour alone. */
+        .rail-nav__dot {
+            width: 6px; height: 6px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.28);
+            flex-shrink: 0;
+        }
+        .tab-btn.active .rail-nav__dot,
+        .tab-btn:hover .rail-nav__dot { background: currentColor; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        @media (max-width: 900px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .tab-btn { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
         }
 
         /* --- Main Card (panel) --- */
@@ -186,6 +310,42 @@
             transition: background var(--transition);
         }
 
+        /* --- Password cell: masked by default, revealed only on request --- */
+        .pw-cell {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            white-space: nowrap;
+        }
+
+        .pw-mask {
+            font-family: ui-monospace, Menlo, Consolas, monospace;
+            font-size: var(--fs-sm);
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            /* Long passwords must not stretch the column. */
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pw-mask[data-shown="true"] {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .btn-reveal {
+            margin-left: 0;
+            color: var(--text-muted);
+            background: var(--surface-muted);
+            border-color: var(--border);
+        }
+
+        .btn-reveal:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
         .btn-edit {
             background: var(--surface-muted);
             color: var(--text-main);
@@ -244,22 +404,61 @@
         <div style="font-weight:600; color:var(--text-muted);">Loading System...</div>
     </div>
 
-    <!-- Navigation Bar -->
-    <div class="nav-top">
-        <a onclick="goBack()" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="">
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">User Management</span>
+            </div>
+        </div>
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <!-- Same two buttons as the segmented control: identical onclick,
+             identical .tab-btn/.active classes, and — critically — the same
+             order, because switchView() addresses them by index. -->
+        <nav class="rail-nav">
+            <div class="rail-nav__label">Views</div>
+            <button class="tab-btn active" onclick="switchView('list')">
+                <span class="rail-nav__dot"></span>User List
+            </button>
+            <button class="tab-btn" onclick="switchView('add')">
+                <span class="rail-nav__dot"></span>Add New User
+            </button>
+        </nav>
+
+        <div class="rail__spacer"></div>
+
+        <button class="rail__back" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
             Back to Dashboard
-        </a>
+        </button>
+    </aside>
 
-        <!-- Tab Switcher -->
-        <div class="tab-container">
-            <button class="tab-btn active" onclick="switchView('list')">User List</button>
-            <button class="tab-btn" onclick="switchView('add')">Add New User</button>
-        </div>
-    </div>
+    <div class="column">
+    <main class="content">
 
     <!-- CARD 1: User List (Wide) -->
     <div id="card-list" class="main-card active">
@@ -285,6 +484,8 @@
                             <th>Name</th>
                             <th>User ID</th>
                             <th>Role</th>
+                            <!-- Hidden unless the session is an admin; see loadUsers(). -->
+                            <th id="th-password" style="display:none;">Password</th>
                             <th style="text-align:right;">Actions</th>
                         </tr>
                     </thead>
@@ -352,6 +553,11 @@
         </div>
     </div>
 
+    </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </div>
+
     <!-- Edit Modal (Simplified) -->
     <div id="edit-modal" class="modal">
         <div class="modal-content">
@@ -409,6 +615,35 @@
         // --- Navigation ---
         function goBack() { window.location.href = '../../AdminLogin.html'; }
 
+        // Set only by checkLogin() once the session is confirmed as Access=ALL.
+        let isAdmin = false;
+
+        /* The password goes into an HTML attribute, so anything that could close
+           the attribute or open a tag has to be neutralised first. */
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[c]);
+        }
+
+        /* Reveal is per row and per press — nothing is shown until an admin
+           asks for it, and pressing again puts it straight back. */
+        function togglePassword(btn) {
+            const span = btn.closest('.pw-cell').querySelector('.pw-mask');
+            const shown = span.dataset.shown === 'true';
+
+            if (shown) {
+                span.textContent = '••••••••';
+                span.dataset.shown = 'false';
+                btn.textContent = 'Show';
+            } else {
+                // dataset returns the decoded original, so no unescaping needed.
+                span.textContent = span.dataset.pw || '(not set)';
+                span.dataset.shown = 'true';
+                btn.textContent = 'Hide';
+            }
+        }
+
         function switchView(viewName) {
             // Toggle Cards
             document.querySelectorAll('.main-card').forEach(el => el.classList.remove('active'));
@@ -434,6 +669,16 @@
                 });
 
                 if (data.length > 0 && data[0].Access === 'ALL') {
+                    isAdmin = true;
+
+                    // Rail identity, display only — the gate above already
+                    // fetched this, so it costs no extra request.
+                    document.getElementById('userName').textContent = userId;
+                    document.getElementById('railSession').style.display = 'flex';
+                    const badge = document.getElementById('accessLevel');
+                    badge.textContent = 'Superuser';
+                    badge.style.display = 'inline-block';
+
                     loadUsers();
                 } else {
                     alert('Access Denied. Admins Only.');
@@ -454,15 +699,32 @@
                 const tbody = document.getElementById('users-table-body');
                 tbody.innerHTML = '';
 
+                // The column exists only for an admin session. checkLogin()
+                // already turns everyone else away, so this is a second latch
+                // rather than the only one.
+                document.getElementById('th-password').style.display = isAdmin ? '' : 'none';
+
                 data.forEach(user => {
                     const tr = document.createElement('tr');
                     // This forces the class to be uppercase and removes any spaces
                     const safeRole = (user.Access || "").toUpperCase().replace(/\s/g, '');
 
+                    // Masked by default: the value is only in the cell's data
+                    // attribute until someone presses Show.
+                    const passwordCell = isAdmin
+                        ? `<td>
+                                        <div class="pw-cell">
+                                            <span class="pw-mask" data-shown="false" data-pw="${escapeHtml(user.Password || '')}">••••••••</span>
+                                            <button type="button" class="btn-sm btn-reveal" onclick="togglePassword(this)">Show</button>
+                                        </div>
+                                    </td>`
+                        : '';
+
                     tr.innerHTML = `
                                     <td style="font-weight:500;">${user.Name}</td>
                                     <td style="color:var(--text-muted);">${user.UserId}</td>
                                     <td><span class="badge badge-${safeRole}">${user.Access}</span></td>
+                                    ${passwordCell}
                                     <td style="text-align:right;">
                                     <button class="btn-sm btn-edit" onclick='openEditModal(${JSON.stringify(user)})'>Edit</button>
                                     <button class="btn-sm btn-delete" onclick="deleteUser('${user.UserId}')">Delete</button>
@@ -571,7 +833,6 @@
             if (e.target == document.getElementById('edit-modal')) closeModal();
         }
     </script>
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

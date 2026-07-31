@@ -79,6 +79,192 @@
         .tint-thread   { background: #e0f2fe; color: #0369a1; }
         .tint-diameter { background: #ccfbf1; color: #0f766e; }
         .tint-other    { background: #f3e8ff; color: #7e22ce; }
+
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The category tabs that used to sit in a strip under the header are
+               the rail's navigation now; they keep selectCategory() and the same
+               activeCode check, only the chrome around them changed. ---- */
+        #app.shell { display: flex; align-items: flex-start; }
+
+        /* Must out-specify #app.shell, or its display:flex beats the plain
+           [v-cloak] rule and the uncompiled template flashes before Vue mounts. */
+        #app[v-cloak] { display: none; }
+
+        .column {
+            flex: 1; min-width: 0;
+            display: flex; flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .rail {
+            position: sticky; top: 0;
+            flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+        /* Read-only carries the same weight as the write badge but reads as a
+           state, not a grant — matches the grey pill the old header used. */
+        .access-level--read {
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Side navigation (was the category tab strip) ---- */
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none; border: 0;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        /* Category code, same chip the tab strip carried. */
+        .rail-nav__code {
+            flex-shrink: 0;
+            padding: 2px 6px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.65);
+        }
+        .rail-nav__item.is-active .rail-nav__code {
+            background: rgba(255, 255, 255, 0.22); color: #fff;
+        }
+        .rail-nav__add {
+            margin-top: 6px; padding: 8px 12px;
+            font-family: var(--font-sans);
+            font-size: 12px; font-weight: 700; text-align: left;
+            color: rgba(255, 255, 255, 0.5);
+            background: none; border: 1px dashed rgba(255, 255, 255, 0.18);
+            border-radius: var(--radius-sm); cursor: pointer;
+            transition: color var(--transition), border-color var(--transition);
+        }
+        .rail-nav__add:hover { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail-nav__add { margin-top: 0; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
+        }
     </style>
 </head>
 
@@ -101,30 +287,78 @@
         </p>
     </div>
 
-    <div id="app" v-cloak>
+    <div id="app" v-cloak class="shell">
 
-        <!-- ---------- Top bar ---------- -->
-        <header class="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-            <div class="max-w-[1600px] mx-auto px-6 h-16 flex items-center gap-4">
-                <a href="../../AdminLogin.html"
-                   class="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-blue-600">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-                    </svg>
-                    Back
-                </a>
-                <span class="w-px h-6 bg-gray-200"></span>
-                <h1 class="text-base font-bold tracking-tight text-gray-900">Gauge Masterlist</h1>
-                <span class="flex-1"></span>
-                <span v-if="canWrite" class="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full"
-                      style="background:var(--primary-soft);color:var(--primary)">{{ accessLevel }}</span>
-                <span v-else class="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-gray-100 text-gray-500">
-                    Read only
-                </span>
+        <!-- ---------- Identity rail / side nav ---------- -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                     text. Relative like every other asset on this page, so it
+                     resolves under /, under /FamaxQCSystem and from file://. -->
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">Gauge Masterlist</span>
+                </div>
             </div>
-        </header>
 
-        <main class="max-w-[1600px] mx-auto px-6 py-6">
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <!-- Same two states the old header badge carried: the granted
+                     level when the user can write, "Read only" otherwise. -->
+                <span v-if="canWrite" class="access-level">{{ accessLevel }}</span>
+                <span v-else class="access-level access-level--read">Read only</span>
+            </div>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <!-- Same category buttons as the old tab strip: identical
+                 selectCategory() call and activeCode check, laid out vertically. -->
+            <nav class="rail-nav">
+                <div class="rail-nav__label">Categories</div>
+
+                <button v-for="c in tabs" :key="c.code" @click="selectCategory(c.code)"
+                    :class="['rail-nav__item', activeCode === c.code ? 'is-active' : '']">
+                    <span class="rail-nav__name">{{ c.name }}</span>
+                    <span class="rail-nav__code">{{ c.code }}</span>
+                </button>
+
+                <button v-if="canWrite" @click="openCategory()" class="rail-nav__add">
+                    + Category
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+        <main class="max-w-[1600px] w-full mx-auto px-6 py-6">
+
+            <div class="mb-5">
+                <h1 class="text-xl font-bold tracking-tight text-gray-900">
+                    {{ activeCategory ? activeCategory.name : 'Gauge Masterlist' }}
+                </h1>
+                <p class="text-sm text-gray-500 mt-0.5">Gauge Masterlist</p>
+            </div>
+
 
             <!-- ---------- Migration not applied ---------- -->
             <!-- Shown ABOVE the tabs, not instead of them: the Special gauge tab
@@ -151,24 +385,7 @@
                  in .content and are never rendered — it silently swallowed the
                  whole page. Only use <template> with v-if/v-else/v-for. -->
 
-            <!-- ---------- Category tabs ---------- -->
-            <div class="flex items-end gap-1 border-b border-gray-200 mb-5 overflow-x-auto">
-                    <button v-for="c in tabs" :key="c.code" @click="selectCategory(c.code)"
-                        :class="['px-4 py-2.5 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors',
-                                 activeCode === c.code
-                                   ? 'border-blue-600 text-blue-600'
-                                   : 'border-transparent text-gray-500 hover:text-gray-800']">
-                        {{ c.name }}
-                        <span class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400">
-                            {{ c.code }}
-                        </span>
-                    </button>
-                    <span class="flex-1"></span>
-                    <button v-if="canWrite" @click="openCategory()"
-                        class="mb-1 px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-blue-600">
-                        + Category
-                    </button>
-                </div>
+                <!-- Category selection moved to the rail nav above. -->
 
                 <!-- Special gauges are owned by the Gauge Verification module,
                      which versions them (Rev 1A, 1B, 2A…). Editing them here
@@ -312,6 +529,9 @@
                     </div>
                 </div>
         </main>
+
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </div>
 
         <!-- ================= Spec drawer ================= -->
         <div v-if="specModal" class="modal-overlay" style="display:flex" @click.self="specModal = null">
@@ -602,7 +822,6 @@
             </div>
         </div>
 
-        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
     </div>
 
     <style>
@@ -747,6 +966,9 @@
                 const formError = ref('');
                 const accessLevel = ref('');
                 const canWrite = ref(false);
+                // Rail identity — display only, filled from the same lookup
+                // resolveAccess() already does.
+                const railUser = ref('—');
 
                 const specModal = ref(null);
                 const itemsModal = ref(null);
@@ -791,6 +1013,7 @@
                 async function resolveAccess() {
                     const userId = sessionStorage.getItem('userId');
                     if (!userId) return;
+                    railUser.value = userId;
                     try {
                         const { data } = await _supabase
                             .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
@@ -817,6 +1040,41 @@
                     }
                 }
 
+                /* ---- Search --------------------------------------------------
+                   Separator-blind and field-blind. The term is split on anything
+                   that is not a letter or a digit, and every token has to appear
+                   in at least one searchable column — so "sbd 0035", "sbd-0035"
+                   and "0035 sbd" all find GAU-SBD-0035, and a bare "0035" or
+                   "sbd" finds it too.
+
+                   Tokenising on non-alphanumerics also sanitises the input:
+                   commas, parens and dots are PostgREST filter syntax and would
+                   otherwise 400 the request. Nothing can survive the split. */
+                const SPEC_SEARCH_COLS = [
+                    'designation', 'nominal_size_label', 'thread_standard',
+                    'tolerance_class', 'hand', 'pin_class', 'remarks'
+                ];
+                const SPECIAL_SEARCH_COLS = [
+                    'gauge_name', 'gauge_no', 'for_process',
+                    'location', 'drawing_no', 'status'
+                ];
+
+                function searchTokens() {
+                    return search.value
+                        .split(/[^a-zA-Z0-9]+/)
+                        .filter(Boolean)
+                        .slice(0, 6);   // a pasted paragraph must not build a 40-clause query
+                }
+
+                // One .or() per token. PostgREST ANDs repeated top-level filters,
+                // so this reads as (tok1 in any column) AND (tok2 in any column).
+                function applySearch(q, columns) {
+                    searchTokens().forEach(tok => {
+                        q = q.or(columns.map(c => `${c}.ilike.*${tok}*`).join(','));
+                    });
+                    return q;
+                }
+
                 async function reload() {
                     if (!activeCode.value) { loading.value = false; return; }
                     if (isSpecial.value) return reloadSpecial();
@@ -825,7 +1083,7 @@
                         let q = _supabase.from('out_gauge_spec')
                             .select('*', { count: 'exact' })
                             .eq('gauge_type', activeCode.value);
-                        if (search.value.trim()) q = q.ilike('designation', '%' + search.value.trim() + '%');
+                        q = applySearch(q, SPEC_SEARCH_COLS);
                         // Sorted by name for every category. `id` is only a
                         // tiebreaker — without it, rows that compare equal can
                         // swap between pages and a spec shows twice or not at all.
@@ -849,13 +1107,7 @@
                     counts.value = {};
                     try {
                         let q = _supabase.from('gauges').select('*', { count: 'exact' });
-                        const s = search.value.trim();
-                        if (s) {
-                            // Commas and parens are PostgREST filter syntax — a
-                            // search for "GAUGE (A)" would otherwise 400.
-                            const safe = s.replace(/[,()]/g, ' ').trim();
-                            if (safe) q = q.or(`gauge_name.ilike.*${safe}*,gauge_no.ilike.*${safe}*`);
-                        }
+                        q = applySearch(q, SPECIAL_SEARCH_COLS);
                         if (statusFilter.value) q = q.eq('status', statusFilter.value);
                         const { data, count, error } = await q
                             .order('gauge_name').order('id')
@@ -1110,7 +1362,7 @@
                     activeCode, activeCategory, kind, colCount,
                     specs, counts, totalSpecs, page, loading, loadError,
                     search, ownerFilter, statusFilter, saving, formError,
-                    accessLevel, canWrite,
+                    accessLevel, canWrite, railUser,
                     specModal, itemsModal, itemModal, catModal, items, itemsLoading,
                     specForm, itemForm, catForm, attrText, attrError,
                     fmt, statusClass, selectCategory, go, reload, debouncedReload,

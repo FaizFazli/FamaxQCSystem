@@ -36,6 +36,307 @@
             text-transform: uppercase;
         }
 
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The five view buttons that used to sit in a .tabs strip are the
+               rail's navigation now; they keep their original click handlers and
+               is-active binding, only the chrome around them changed. ---- */
+        #app.shell {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        /* Must out-specify #app.shell above, or its display:flex beats the
+           plain [v-cloak] rule and the uncompiled template — every v-if modal
+           at once — flashes on each refresh before Vue mounts. */
+        #app[v-cloak] {
+            display: none;
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .rail__mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .rail__name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            line-height: 1;
+            color: #fff;
+        }
+
+        .rail__sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .identity__label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity__row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .identity__avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .identity__avatar svg {
+            width: 17px;
+            height: 17px;
+            fill: rgba(255, 255, 255, 0.75);
+        }
+
+        .user-name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.1px;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block;
+            margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--on-primary);
+            background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-top: 16px;
+            padding-left: 2px;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .session::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success);
+            flex-shrink: 0;
+        }
+
+        /* ---- Side navigation (was the .tabs strip) ---- */
+        .rail-nav {
+            margin-top: 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .rail-nav__label {
+            margin-bottom: 8px;
+            padding-left: 2px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .rail-nav__item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none;
+            border: 0;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        .rail-nav__item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .rail-nav__item.is-active {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+        /* Marker doubles as the active indicator, so the state reads without
+           relying on the fill colour alone. */
+        .rail-nav__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.28);
+            flex-shrink: 0;
+        }
+
+        .rail-nav__item.is-active .rail-nav__dot,
+        .rail-nav__item:hover .rail-nav__dot {
+            background: currentColor;
+        }
+
+        .rail__spacer {
+            flex: 1;
+            min-height: 20px;
+        }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            width: 100%;
+            padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base);
+            font-weight: 600;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .rail__back:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .rail__back svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+        @media (max-width: 900px) {
+            #app.shell {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .rail {
+                position: static;
+                width: 100%;
+                height: auto;
+                padding: 16px 20px;
+            }
+            .identity,
+            .rail-nav {
+                margin-top: 16px;
+            }
+            .identity__label,
+            .session {
+                display: none;
+            }
+            .rail-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            .rail-nav__label {
+                width: 100%;
+                margin-bottom: 0;
+            }
+            .rail-nav__item {
+                width: auto;
+            }
+            .rail__spacer {
+                display: none;
+            }
+            .rail__back {
+                width: auto;
+                margin-top: 16px;
+            }
+        }
+
         /* Search dropdowns are pinned with `top-full`, not left to their static position.
            theme.css makes .field a flex column, and an absolutely-positioned child of a
            flex container takes its static position from the container's top-left corner
@@ -87,41 +388,80 @@
 
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
 
-    <div id="app" v-cloak class="container">
-        <!-- HEADER / NAV -->
-        <nav class="topbar" style="border-radius: var(--radius-lg); margin-bottom: var(--space-8);">
-            <!-- Grouped Buttons -->
-            <div class="tabs" style="border-bottom: none; margin-bottom: 0;">
-                <button @click="view = 'form'"
-                    :class="view === 'form' ? 'is-active' : ''"
-                    class="tab">Verification
-                    Form</button>
-
-                <button @click="openApprovalPage"
-                    :class="view === 'approval' ? 'is-active' : ''"
-                    class="tab">Approval
-                    Dashboard</button>
-
-                <button @click="view = 'report'"
-                    :class="view === 'report' ? 'is-active' : ''"
-                    class="tab">Reports</button>
-
-                <button @click="view = 'addgauge'"
-                    :class="view === 'addgauge' ? 'is-active' : ''"
-                    class="tab">Add Gauge</button>
-
-                <button @click="openRevisionPage"
-                    :class="view === 'revision' ? 'is-active' : ''"
-                    class="tab">Revision
-                    Control</button>
+    <div id="app" v-cloak class="shell">
+        <!-- IDENTITY RAIL / SIDE NAV -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                     text. Relative path so it resolves whether the app is served
+                     at / or at /FamaxQCSystem. alt="" — name is adjacent as text. -->
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">System Console</span>
+                </div>
             </div>
 
-            <!-- Branding Section -->
-            <div class="topbar__brand hidden md:block text-right">
-                <p class="text-xs font-black text-indigo-600 tracking-widest uppercase">Famax Technology</p>
-                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">System Console</p>
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span class="access-level" v-if="railAccess">{{ railAccess }}</span>
             </div>
-        </nav>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <!-- Same five buttons as the old tab strip: identical @click and
+                 is-active bindings, laid out vertically. -->
+            <nav class="rail-nav">
+                <div class="rail-nav__label">Sections</div>
+
+                <button @click="view = 'form'" :class="view === 'form' ? 'is-active' : ''" class="rail-nav__item">
+                    <span class="rail-nav__dot"></span>Verification Form
+                </button>
+
+                <button @click="openApprovalPage" :class="view === 'approval' ? 'is-active' : ''"
+                    class="rail-nav__item">
+                    <span class="rail-nav__dot"></span>Approval Dashboard
+                </button>
+
+                <button @click="view = 'report'" :class="view === 'report' ? 'is-active' : ''" class="rail-nav__item">
+                    <span class="rail-nav__dot"></span>Reports
+                </button>
+
+                <button @click="view = 'addgauge'" :class="view === 'addgauge' ? 'is-active' : ''"
+                    class="rail-nav__item">
+                    <span class="rail-nav__dot"></span>Add Gauge
+                </button>
+
+                <button @click="openRevisionPage" :class="view === 'revision' ? 'is-active' : ''"
+                    class="rail-nav__item">
+                    <span class="rail-nav__dot"></span>Revision Control
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+            <main class="container">
 
         <!-- 1. VERIFICATION FORM -->
         <div v-if="view === 'form'" class="animate-in fade-in duration-500">
@@ -1225,6 +1565,11 @@
             </div>
         </transition>
 
+            </main>
+
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </div>
+
         <!-- REBUILT STABLE ONE-PAGE MASTER TEMPLATE -->
         <!-- THE ULTIMATE 1-PAGE LOCK TEMPLATE -->
         <div id="print-template"
@@ -1544,6 +1889,24 @@
                 });
 
                 onUnmounted(() => window.removeEventListener('click', closeDropdown));
+
+                // --- Rail identity: display only, nothing on this page branches
+                //     on it. Registered as its own hook so the existing mount
+                //     sequence is untouched. ---
+                const railUser = ref('—');
+                const railAccess = ref('');
+                onMounted(async () => {
+                    const userId = sessionStorage.getItem('userId');
+                    if (!userId) return;
+                    railUser.value = userId;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            railAccess.value = data[0].Access === 'ALL' ? 'Superuser' : data[0].Access;
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                });
 
                 const fetchMasters = async () => {
                     const { data } = await _supabase.from('gauges').select('*');
@@ -2379,6 +2742,7 @@
                 };
 
                 return {
+                    railUser, railAccess,
                     view, gaugeMasters, form, pendingRecords, isSubmitting, showGaugeList, filteredGauges,
                     rotation, rotatePdf, rotationClass, isLocalPath, removeRow, updateDueDate, getToday,
                     selectGauge, addRow, calculateStatus, submitForm, openApprovalPage, approveRecord,
@@ -2400,7 +2764,6 @@
             }
         }).mount('#app');
     </script>
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
 
 </html>

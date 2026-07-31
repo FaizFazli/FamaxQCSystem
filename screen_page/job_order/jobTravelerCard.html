@@ -14,11 +14,157 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/theme.css">
     <style>
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The Save PDF / Print pair moved out of the sticky topbar into the
+               rail; both keep their ids, their .no-print class and their exact
+               inner markup (the PDF handler rewrites innerHTML). ---- */
         body {
             margin: 0;
+            display: flex;
+            align-items: flex-start;
             background: var(--bg-body);
             font-family: var(--font-sans);
             color: var(--text-main);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label,
+        .rail-actions__label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Document actions (were the topbar buttons) ---- */
+        .rail-actions { margin-top: 26px; display: flex; flex-direction: column; gap: 6px; }
+        .rail-actions__label { margin-bottom: 4px; padding-left: 2px; }
+
+        .rail-actions .btn,
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 10px 14px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail-actions .btn:hover,
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail-actions .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        .rail__back {
+            padding: 11px 16px;
+            font-size: var(--fs-base);
+            border-radius: var(--radius);
+        }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        @media (max-width: 900px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-actions { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-actions { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-actions__label { width: 100%; margin-bottom: 0; }
+            .rail-actions .btn { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
         }
 
         .panel,
@@ -132,8 +278,11 @@
         .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
 
         @media print {
-            .topbar, .panel, .no-print { display: none !important; }
-            body { background: #fff; }
+            /* .rail replaces the old .topbar here — leaving it out would print
+               the dark sidebar down the left of every page. */
+            .rail, .panel, .footer, .no-print { display: none !important; }
+            body { background: #fff; display: block; }
+            .column { min-height: 0; display: block; }
             .container { max-width: none; padding: 0; margin: 0; }
             .trav-card { border: none; box-shadow: none; padding: 0; }
             table.trav { page-break-inside: auto; }
@@ -147,18 +296,57 @@
 </head>
 
 <body>
-    <header class="topbar">
-        <div class="topbar__brand">
-            <i class="fas fa-id-card"></i>
-            <span>Job Traveler Card</span>
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="">
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Job Traveler</span>
+            </div>
         </div>
-        <div style="display:flex; gap:8px;">
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <!-- Same ids and .no-print class the topbar buttons carried. #btn-pdf's
+             inner markup is reset verbatim by its own handler, so it is kept
+             character-for-character. -->
+        <div class="rail-actions">
+            <div class="rail-actions__label">Document</div>
             <button class="btn btn--secondary no-print" id="btn-pdf"><i class="fas fa-file-pdf"></i> Save PDF</button>
             <button class="btn no-print" id="btn-print"><i class="fas fa-print"></i> Print</button>
         </div>
-    </header>
 
-    <div class="container">
+        <div class="rail__spacer"></div>
+
+        <button class="rail__back no-print" onclick="window.location.href='../../AdminLogin.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </button>
+    </aside>
+
+    <div class="column">
+    <main class="container">
         <div class="panel mb-8">
             <div class="panel__body">
                 <div class="toolbar">
@@ -176,6 +364,9 @@
         </div>
 
         <div id="printable"></div>
+    </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
     </div>
 
     <!-- Signature modal -->
@@ -640,6 +831,24 @@
                 const pre = params.get('jo');
                 if (pre) { joInput.value = pre; search(); }
             });
+
+            /* Rail identity — display only. Writes into the three rail elements
+               and nothing else; reuses the client above and swallows failures. */
+            (async function fillRailIdentity() {
+                const userId = sessionStorage.getItem('userId');
+                if (!userId) return;
+                document.getElementById('userName').textContent = userId;
+                document.getElementById('railSession').style.display = 'flex';
+                try {
+                    const { data } = await sb
+                        .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                    if (data && data.length) {
+                        const badge = document.getElementById('accessLevel');
+                        badge.textContent = data[0].Access === 'ALL' ? 'Superuser' : data[0].Access;
+                        badge.style.display = 'inline-block';
+                    }
+                } catch (e) { console.error('Access lookup failed', e); }
+            })();
         })();
     </script>
 </body>

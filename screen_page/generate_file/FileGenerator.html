@@ -32,11 +32,211 @@
       --shadow-card: var(--shadow-lg);
     }
 
+    /* ---- Shell: identity rail + content column (mirrors AdminLogin.html) ---- */
     body {
+      display: flex;
+      align-items: flex-start;
+      padding: 0;
+      background: var(--bg-body);
+    }
+
+    .column {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .content {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: var(--space-5);
+    }
+
+    /* ---- Left identity rail ---- */
+    .rail {
+      position: sticky;
+      top: 0;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      width: 284px;
+      height: 100vh;
+      padding: 28px 24px;
+      background: var(--text-main);
+      color: #fff;
+    }
+
+    .rail__brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* White tile: the falcon is navy/grey artwork, so it needs a light plate
+       to read against the dark rail. */
+    .rail__mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .rail__mark img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .rail__name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .rail__sub {
+      display: block;
+      margin-top: 2px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .identity {
+      margin-top: 32px;
+      padding: var(--space-4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .identity__label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .identity__row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .identity__avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .identity__avatar svg {
+      width: 17px;
+      height: 17px;
+      fill: rgba(255, 255, 255, 0.75);
+    }
+
+    .user-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.1px;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .access-level {
+      display: inline-block;
+      margin-top: var(--space-3);
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--on-primary);
+      background: var(--primary);
+      border-radius: var(--radius-full);
+    }
+
+    .session {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: 18px;
+      padding-left: 2px;
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .session::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: var(--radius-full);
+      background: var(--success);
+      flex-shrink: 0;
+    }
+
+    .rail__spacer {
+      flex: 1;
+    }
+
+    .rail__note {
+      margin: 0 0 18px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.5);
+      text-wrap: pretty;
+    }
+
+    /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but this
+       page only navigates back, so it warms to --primary instead of --danger. */
+    .rail__back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      width: 100%;
+      padding: 11px 16px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .rail__back:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .rail__back svg {
+      width: 15px;
+      height: 15px;
     }
 
     /* --- Navigation --- */
@@ -45,24 +245,8 @@
       max-width: 1000px;
       margin-bottom: 15px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
       align-items: center;
-    }
-
-    .back-link {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-
-    .back-link:hover {
-      color: var(--primary);
     }
 
     /* --- Main Card --- */
@@ -638,6 +822,39 @@
     .btn-submit:active, .btn-processFlow:active, .btn-add:active { transform: translateY(0); }
 
     /* Responsive */
+    /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .rail {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        padding: 16px 20px;
+      }
+      .identity {
+        margin-top: 0;
+        padding: 8px 12px;
+      }
+      .identity__label,
+      .rail__note,
+      .session {
+        display: none;
+      }
+      .access-level {
+        margin-top: 0;
+      }
+      .rail__back {
+        width: auto;
+      }
+    }
+
     @media (max-width: 640px) {
       .form-grid { grid-template-columns: 1fr; }
       .actions-row { flex-direction: column; align-items: stretch; gap: 12px; }
@@ -671,132 +888,174 @@
     </div>
   </div>
 
-  <!-- Navigation -->
-  <div class="nav-top">
-    <a onclick="window.location.href='../../AdminLogin.html'" class="back-link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <aside class="rail">
+    <div class="rail__brand">
+      <div class="rail__mark">
+        <img src="../../assets/Famax%20Falcon.png" alt="" />
+      </div>
+      <div>
+        <span class="rail__name">FAMAX</span>
+        <span class="rail__sub">W.I. Generator</span>
+      </div>
+    </div>
+
+    <div class="identity">
+      <div class="identity__label">Signed in as</div>
+      <div class="identity__row">
+        <span class="identity__avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
+        </span>
+        <span class="user-name" id="userName">—</span>
+      </div>
+      <span class="access-level" id="accessLevel" style="display: none"></span>
+    </div>
+
+    <div class="session" id="railSession" style="display: none">Session active</div>
+
+    <div class="rail__spacer"></div>
+
+    <p class="rail__note">
+      Submitting generates the Work Instruction and process flow documents for
+      this part and files them under a folder named after the part.
+    </p>
+
+    <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <line x1="19" y1="12" x2="5" y2="12"></line>
         <polyline points="12 19 5 12 12 5"></polyline>
       </svg>
       Back to Dashboard
-    </a>
-    <button class="btn-secondary" onclick="openModal()">
-      View Existing Parts / Add Process
     </button>
-  </div>
+  </aside>
 
-  <div class="card">
-    <div class="card-header">
-      <div class="header-text">
-        <h1 id="formTitle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
-          Generate New File
-        </h1>
-        <p class="header-subtitle">Register part details and define the process flow to generate quality documents.</p>
+  <div class="column">
+    <main class="content">
+      <!-- Navigation -->
+      <div class="nav-top">
+        <button class="btn-secondary" onclick="openModal()">
+          View Existing Parts / Add Process
+        </button>
       </div>
-      <button id="resetBtn" class="btn-remove" style="display: none" onclick="resetForm()">
-        Cancel Edit
-      </button>
-    </div>
 
-    <div class="card-body">
-      <!-- Part Info -->
-      <div class="section-title">Part Information</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="required">Part Description</label>
-          <input type="text" id="partDescription" placeholder="e.g. Housing Bracket" />
+      <div class="card">
+        <div class="card-header">
+          <div class="header-text">
+            <h1 id="formTitle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Generate New File
+            </h1>
+            <p class="header-subtitle">Register part details and define the process flow to generate quality documents.
+            </p>
+          </div>
+          <button id="resetBtn" class="btn-remove" style="display: none" onclick="resetForm()">
+            Cancel Edit
+          </button>
         </div>
-        <div class="form-group">
-          <label class="required">Part No</label>
-          <input type="text" id="partNo" placeholder="e.g. A-12345" />
-        </div>
-        <div class="form-group">
-          <label>WI Number</label>
-          <input type="text" id="docNumber1" placeholder="e.g. DOC-001" />
-        </div>
-        <div class="form-group">
-          <label>Drawing Number</label>
-          <input type="text" id="docNumber2" placeholder="e.g. DOC-002" />
-        </div>
-        <div class="form-group">
-          <label>Revision Number</label>
-          <input type="text" id="revNumber" placeholder="e.g. 01" />
-        </div>
-        <div class="form-group">
-          <label class="required">Raw Material</label>
-          <input type="text" id="rawMaterial" placeholder="e.g. Aluminum" />
-        </div>
-        <div class="form-group" style="grid-column: span 2">
-          <label>Material Grade</label>
-          <input type="text" id="rawMaterialGrade" placeholder="e.g. 6061-T6" />
-        </div>
-        <div class="form-group" style="grid-column: span 2">
-          <label>Material Size</label>
-          <div class="input-group">
-            <input type="text" id="rawMaterialSize" placeholder="e.g. Ø50mm x 100mm" style="flex-grow: 1" />
-            <button type="button" class="btn-symbol" onclick="insertSymbol('Ø')">
-              Ø
+
+        <div class="card-body">
+          <!-- Part Info -->
+          <div class="section-title">Part Information</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="required">Part Description</label>
+              <input type="text" id="partDescription" placeholder="e.g. Housing Bracket" />
+            </div>
+            <div class="form-group">
+              <label class="required">Part No</label>
+              <input type="text" id="partNo" placeholder="e.g. A-12345" />
+            </div>
+            <div class="form-group">
+              <label>WI Number</label>
+              <input type="text" id="docNumber1" placeholder="e.g. DOC-001" />
+            </div>
+            <div class="form-group">
+              <label>Drawing Number</label>
+              <input type="text" id="docNumber2" placeholder="e.g. DOC-002" />
+            </div>
+            <div class="form-group">
+              <label>Revision Number</label>
+              <input type="text" id="revNumber" placeholder="e.g. 01" />
+            </div>
+            <div class="form-group">
+              <label class="required">Raw Material</label>
+              <input type="text" id="rawMaterial" placeholder="e.g. Aluminum" />
+            </div>
+            <div class="form-group" style="grid-column: span 2">
+              <label>Material Grade</label>
+              <input type="text" id="rawMaterialGrade" placeholder="e.g. 6061-T6" />
+            </div>
+            <div class="form-group" style="grid-column: span 2">
+              <label>Material Size</label>
+              <div class="input-group">
+                <input type="text" id="rawMaterialSize" placeholder="e.g. Ø50mm x 100mm" style="flex-grow: 1" />
+                <button type="button" class="btn-symbol" onclick="insertSymbol('Ø')">
+                  Ø
+                </button>
+                <button type="button" class="btn-symbol" onclick="insertSymbol('±')">
+                  ±
+                </button>
+                <button type="button" class="btn-symbol" onclick="insertSymbol('°')">
+                  °
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Process List -->
+          <div class="section-title">
+            Process Flow
+            <span id="editModeBadge" style="display: none; font-size: 12px; color: var(--primary)">Adding to existing
+              part</span>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 50px">#</th>
+                  <th>Process Name</th>
+                  <th style="width: 250px">Process Image (Optional)</th>
+                  <th>Document Type</th>
+                  <th>Flow Type</th>
+                  <th style="width: 80px">Action</th>
+                </tr>
+              </thead>
+              <tbody id="processTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="actions-row">
+            <!-- Left Side -->
+            <button class="btn-add" onclick="addRow()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Process Step
             </button>
-            <button type="button" class="btn-symbol" onclick="insertSymbol('±')">
-              ±
-            </button>
-            <button type="button" class="btn-symbol" onclick="insertSymbol('°')">
-              °
-            </button>
+
+            <!-- Right Side Group -->
+            <div class="right-group">
+              <button id="processFlowBtn" class="btn-processFlow" onclick="generateProcessFlow()"
+                style="display: none">
+                Process Flow
+              </button>
+              <button class="btn-submit" onclick="submitForm()">
+                Submit & Generate
+              </button>
+            </div>
           </div>
         </div>
       </div>
+    </main>
 
-      <!-- Process List -->
-      <div class="section-title">
-        Process Flow
-        <span id="editModeBadge" style="display: none; font-size: 12px; color: var(--primary)">Adding to existing
-          part</span>
-      </div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 50px">#</th>
-              <th>Process Name</th>
-              <th style="width: 250px">Process Image (Optional)</th>
-              <th>Document Type</th>
-              <th>Flow Type</th>
-              <th style="width: 80px">Action</th>
-            </tr>
-          </thead>
-          <tbody id="processTableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="actions-row">
-        <!-- Left Side -->
-        <button class="btn-add" onclick="addRow()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Process Step
-        </button>
-
-        <!-- Right Side Group -->
-        <div class="right-group">
-          <button id="processFlowBtn" class="btn-processFlow" onclick="generateProcessFlow()" style="display: none">
-            Process Flow
-          </button>
-          <button class="btn-submit" onclick="submitForm()">
-            Submit & Generate
-          </button>
-        </div>
-      </div>
-    </div>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
   </div>
-
-  <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
   <script>
     const SUPABASE_URL = window.APP_CONFIG.url;
@@ -815,7 +1074,36 @@
     document.addEventListener("DOMContentLoaded", () => {
       addRow();
       document.addEventListener("paste", handleGlobalPaste);
+      fillRailIdentity();
     });
+
+    /* Rail identity — same session keys AdminLogin.html writes. This page does
+       not gate on the session, so a missing one just leaves the placeholder and
+       hides the access badge and the "Session active" line. */
+    async function fillRailIdentity() {
+      const userId = sessionStorage.getItem("userId");
+      if (sessionStorage.getItem("isLoggedIn") !== "true" || !userId) return;
+
+      document.getElementById("userName").textContent = userId;
+      document.getElementById("railSession").style.display = "flex";
+
+      try {
+        const { data } = await supabaseClient
+          .from("AdminCredential")
+          .select("Access")
+          .eq("UserId", userId)
+          .limit(1);
+        if (data && data.length) {
+          const badge = document.getElementById("accessLevel");
+          // Display label only — nothing on this page branches on it.
+          badge.textContent =
+            data[0].Access === "ALL" ? "Superuser" : data[0].Access;
+          badge.style.display = "inline-block";
+        }
+      } catch (e) {
+        console.error("Access lookup failed", e);
+      }
+    }
 
     function insertSymbol(symbol) {
       const input = document.getElementById("rawMaterialSize");

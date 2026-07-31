@@ -36,6 +36,23 @@
             --bg-img: radial-gradient(at 0% 0%, hsla(210, 100%, 98%, 1) 0, transparent 50%),
                 radial-gradient(at 50% 0%, hsla(206, 100%, 96%, 1) 0, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(190, 100%, 98%, 1) 0, transparent 50%);
+
+            /* Rail gets its own tokens rather than reusing --text-main: the
+               cyber theme flips --text-main to #fff, which would turn the dark
+               rail white. These are themed explicitly in both blocks instead. */
+            --rail-bg: #0f172a;
+            --rail-line: rgba(255, 255, 255, 0.12);
+            --rail-muted: rgba(255, 255, 255, 0.45);
+            --rail-dim: rgba(255, 255, 255, 0.65);
+            --rail-hover: rgba(255, 255, 255, 0.08);
+            --rail-accent: #0078d4;
+
+            /* Chart series. Two slots taken in fixed order from the categorical
+               palette (blue, orange) — validated on this surface: adjacent CVD
+               ΔE 24.7, normal-vision 33.6, both >= 3:1 contrast. Blue/orange
+               also reads warm/cool, which suits received vs issued. */
+            --series-in: #2a78d6;
+            --series-out: #eb6834;
         }
 
         body.cyber-theme {
@@ -58,23 +75,222 @@
             --shadow: 0 0 15px rgba(0, 255, 255, 0.4);
             --bg-img: linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+
+            /* Rail, cyber flavour — magenta accent, matching the header rule
+               and the primary buttons this theme already uses. */
+            --rail-bg: #0a0a0a;
+            --rail-line: rgba(0, 255, 255, 0.3);
+            --rail-muted: rgba(0, 255, 255, 0.55);
+            --rail-dim: rgba(0, 255, 255, 0.75);
+            --rail-hover: rgba(0, 255, 255, 0.08);
+            --rail-accent: #ff00ff;
+
+            /* The dark steps of the same two slots, validated on this surface
+               (adjacent CVD ΔE 26.8, normal-vision 31.8). Deliberately NOT the
+               theme's cyan/magenta: at equal lightness that pair collapses to
+               ΔE 3.9 for deuteranopes — the neon stays in the chrome, the chart
+               keeps colours a reader can actually separate. */
+            --series-in: #3987e5;
+            --series-out: #d95926;
         }
 
         /* --- GLOBAL STYLES --- */
+        /* Shell: identity rail + content column (mirrors AdminLogin.html). The
+           header's action cluster moved into the rail; every button keeps its
+           exact onclick, and #main-title stays put because updateLabels()
+           rewrites it on every theme switch. */
         body {
             font-family: var(--font-body);
             background-color: var(--bg);
             background-image: var(--bg-img);
             color: var(--text-main);
             margin: 0;
-            padding: var(--space-8);
+            padding: 0;
             min-height: 100vh;
-            transition: all 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content { flex: 1; padding: var(--space-8); }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
+        }
+
+        /* ---- Identity rail ---- */
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--rail-bg);
+            color: #fff;
+            overflow-y: auto;
+            border-right: 1px solid var(--rail-line);
+            transition: background 0.3s ease;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-family: var(--font-head);
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: var(--rail-muted);
+        }
+
+        .identity {
+            margin-top: 26px;
+            padding: var(--space-4);
+            border: 1px solid var(--rail-line);
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label,
+        .rail-nav__label {
+            display: block;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--rail-muted);
+            margin-bottom: 0;
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: #fff; background: var(--rail-accent);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: var(--rail-dim);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Rail actions (were .header-actions) ---- */
+        .rail-nav { margin-top: 24px; display: flex; flex-direction: column; gap: 4px; }
+        .rail-nav__label { margin-bottom: 6px; padding-left: 2px; }
+
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-head);
+            font-size: 13px; font-weight: 700;
+            text-align: left;
+            color: var(--rail-dim);
+            background: none;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+        }
+        .rail-nav__item:hover {
+            background: var(--rail-hover);
+            border-color: var(--rail-line);
+            color: #fff;
+        }
+        .rail-nav__item--accent {
+            border-color: var(--rail-line);
+            color: #fff;
+        }
+        .rail-nav__item--accent:hover {
+            background: var(--rail-accent);
+            border-color: var(--rail-accent);
+        }
+        .rail-nav__ico { width: 18px; text-align: center; flex-shrink: 0; }
+
+        body.cyber-theme .rail-nav__item {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 11px;
+        }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-head);
+            font-size: var(--fs-sm); font-weight: 700;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--rail-line);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--rail-accent); border-color: var(--rail-accent); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        @media (max-width: 1000px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+                border-right: none;
+                border-bottom: 1px solid var(--rail-line);
+            }
+            .identity { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { margin-top: 16px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
+            .content { padding: var(--space-5); }
         }
 
         /* --- HEADER --- */
@@ -100,13 +316,6 @@
             letter-spacing: -0.5px;
         }
 
-        .header-actions {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: var(--space-2);
-        }
-
         body.cyber-theme .header h1 {
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -114,60 +323,13 @@
             text-shadow: 0 0 15px var(--primary);
         }
 
-        .btn-sync {
-            padding: 10px 20px;
-            border-radius: var(--radius);
-            font-weight: 700;
-            font-size: var(--fs-sm);
-            border: none;
-            cursor: pointer;
-            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-            font-family: var(--font-head);
-            display: inline-flex;
-            align-items: center;
-            gap: var(--space-2);
+        .header-sub {
+            margin: var(--space-2) 0 0;
+            font-size: var(--fs-base);
+            color: var(--text-muted);
         }
 
-        .btn-sync.secondary:hover { background: var(--surface-muted); transform: translateY(-1px); }
-        .btn-sync.primary:hover { background: #000; transform: translateY(-1px); box-shadow: var(--shadow); }
-
-        body.cyber-theme .btn-sync {
-            border-radius: 0;
-            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
-            text-transform: uppercase;
-            font-size: 11px;
-        }
-
-        .btn-sync.secondary {
-            background: var(--glass-bg);
-            color: var(--text-main);
-            border: var(--border-style);
-        }
-
-        .btn-sync.primary {
-            background: var(--text-main);
-            color: var(--bg);
-        }
-
-        body.cyber-theme .btn-sync.primary {
-            background: #ff00ff;
-            color: #fff;
-        }
-
-        .theme-toggle {
-            background: var(--glass-bg);
-            border: var(--border-style);
-            color: var(--text-main);
-            padding: 8px 16px;
-            cursor: pointer;
-            font-family: var(--font-head);
-            font-weight: 700;
-            font-size: var(--fs-xs);
-            clip-path: var(--clip);
-            border-radius: var(--radius-sm);
-            transition: background var(--transition);
-        }
-        .theme-toggle:hover { background: var(--surface-muted); }
+        body.cyber-theme .header-sub { color: var(--primary); opacity: 0.8; }
 
         /* --- KPI CARDS --- */
         .kpi-grid {
@@ -175,6 +337,81 @@
             grid-template-columns: repeat(4, 1fr);
             gap: var(--space-5);
             margin-bottom: var(--space-6);
+        }
+
+        /* A KPI is only informative next to its comparator, so every tile has a
+           subtext line that says what the number is measured against. */
+        .stat-card .breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: var(--space-3);
+            margin-top: var(--space-2);
+            font-size: var(--fs-xs);
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .stat-card .breakdown span { display: inline-flex; align-items: center; gap: 5px; }
+
+        /* Dots tie the tile to the chart legend below — identity by mark, with
+           the label always beside it, never colour alone. */
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot--in { background: var(--series-in); }
+        .dot--out { background: var(--series-out); }
+
+        /* --- CHART ROW --- */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-5);
+            margin-bottom: var(--space-6);
+            align-items: start;
+        }
+
+        .card-note {
+            margin: -8px 0 var(--space-5);
+            font-size: var(--fs-xs);
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .chart-box { position: relative; height: 320px; }
+        .chart-box--scroll { overflow-y: auto; }
+        .chart-box--scroll > div { position: relative; min-height: 100%; }
+
+        /* --- Status chips (stock health) --- */
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: var(--radius-full);
+            font-size: var(--fs-xs);
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        /* Status colours are reserved for state and always ship with a label. */
+        .chip--out { background: rgba(208, 59, 59, 0.12); color: #d03b3b; }
+        .chip--low { background: rgba(250, 178, 25, 0.16); color: #96660a; }
+        body.cyber-theme .chip--out { background: rgba(255, 49, 49, 0.15); color: #ff3131; }
+        body.cyber-theme .chip--low { background: rgba(255, 255, 0, 0.12); color: #ffff00; }
+
+        .qty-in { color: var(--series-in); font-weight: 800; }
+        .qty-out { color: var(--series-out); font-weight: 800; }
+
+        @media (max-width: 1200px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 700px) {
+            .kpi-grid { grid-template-columns: 1fr; }
         }
 
         .glass-card {
@@ -311,51 +548,121 @@
 
 <body>
 
-    <div class="container">
-        <div class="header">
-            <div class="header-info">
-                <h1 id="main-title">Raw Material Analytics</h1>
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="">
             </div>
-
-            <div class="header-actions">
-                <button class="theme-toggle" onclick="toggleTheme()">Change Theme</button>
-                <button class="btn-sync secondary" onclick="fetchDashboardData()">🔄 Sync Data</button>
-                <button class="btn-sync primary" onclick="window.location.href='raw_material_movement.html'">➕ Update
-                    Stock</button>
-                <button class="btn-sync primary" onclick="window.location.href='raw_material_inventory.html'">📦
-                    Inventory</button>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Raw Material</span>
             </div>
         </div>
 
-        <!-- KPI Row -->
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <span class="user-name" id="userName">—</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <!-- Same four buttons as the old header cluster, with their onclick
+             handlers unchanged. -->
+        <nav class="rail-nav">
+            <div class="rail-nav__label">Raw material</div>
+
+            <button class="rail-nav__item rail-nav__item--accent"
+                onclick="window.location.href='raw_material_movement.html'">
+                <span class="rail-nav__ico">➕</span>Update Stock
+            </button>
+            <button class="rail-nav__item rail-nav__item--accent"
+                onclick="window.location.href='raw_material_inventory.html'">
+                <span class="rail-nav__ico">📦</span>Inventory
+            </button>
+            <button class="rail-nav__item" onclick="fetchDashboardData()">
+                <span class="rail-nav__ico">🔄</span>Sync Data
+            </button>
+            <button class="rail-nav__item" onclick="toggleTheme()">
+                <span class="rail-nav__ico">◐</span>Change Theme
+            </button>
+        </nav>
+
+        <div class="rail__spacer"></div>
+
+        <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Dashboard
+        </button>
+    </aside>
+
+    <div class="column">
+    <main class="content">
+    <div class="container">
+        <!-- .header is kept as the wrapper: body.cyber-theme styles both it and
+             its h1, and updateLabels() rewrites #main-title on every switch. -->
+        <div class="header">
+            <div class="header-info">
+                <h1 id="main-title">Raw Material Analytics</h1>
+                <p class="header-sub" id="main-sub">What is on hand, what moved recently, and what needs attention.</p>
+            </div>
+        </div>
+
+        <!-- KPI Row — each tile carries the comparator that makes it readable -->
         <div class="kpi-grid">
             <div class="glass-card stat-card">
                 <label id="lbl-weight">Inventory Weight</label>
                 <div class="value" id="kpi-total-weight">0 KG</div>
-                <div class="subtext">Across all categories</div>
+                <div class="subtext" id="sub-weight">Across all categories</div>
             </div>
             <div class="glass-card stat-card">
-                <label id="lbl-items">Total Items</label>
+                <label id="lbl-items">Total Pieces</label>
                 <div class="value" id="kpi-total-pcs">0</div>
-                <div class="subtext">Stock units available</div>
+                <div class="subtext" id="sub-items">Stock units available</div>
             </div>
             <div class="glass-card stat-card">
-                <label id="lbl-low">Low Stock Alerts</label>
+                <label id="lbl-low">Needs Attention</label>
                 <div class="value" style="color:var(--danger)" id="kpi-low-stock">0</div>
-                <div class="subtext">Items below 5 PCS</div>
+                <div class="subtext" id="sub-low">Items at or below 5 PCS</div>
             </div>
             <div class="glass-card stat-card">
-                <label id="lbl-cats">Active Categories</label>
-                <div class="value" style="color:var(--success)" id="kpi-cats">0</div>
-                <div class="subtext">Material groupings</div>
+                <label id="lbl-net">Net Movement · 30 Days</label>
+                <div class="value" id="kpi-net">0</div>
+                <div class="breakdown">
+                    <span><i class="dot dot--in"></i><span id="kpi-in">0 in</span></span>
+                    <span><i class="dot dot--out"></i><span id="kpi-out">0 out</span></span>
+                </div>
             </div>
         </div>
 
         <!-- Charts Row -->
-        <div class="glass-card card" style="margin-bottom: 25px;">
-            <h3 id="chart-title">Inventory Volume by Category (KG)</h3>
-            <div style="position: relative; overflow-y: auto; max-height: 500px;">
-                <canvas id="categoryChart"></canvas>
+        <div class="chart-grid">
+            <div class="glass-card card">
+                <h3 id="flow-title">Stock Movement · Last 14 Days</h3>
+                <p class="card-note" id="flow-note">Pieces received above the line, issued below it.</p>
+                <div class="chart-box"><canvas id="flowChart"></canvas></div>
+            </div>
+            <div class="glass-card card">
+                <h3 id="chart-title">Inventory Volume by Category (KG)</h3>
+                <p class="card-note" id="chart-note">Total weight held in each category.</p>
+                <!-- Inner wrapper is what renderCategoryChart() grows (it sets a
+                     height on canvas.parentElement); the outer box scrolls. -->
+                <div class="chart-box chart-box--scroll">
+                    <div><canvas id="categoryChart"></canvas></div>
+                </div>
             </div>
         </div>
 
@@ -377,7 +684,8 @@
                 </table>
             </div>
             <div class="glass-card card">
-                <h3 id="critical-title">⚠️ Critical Low Stock</h3>
+                <h3 id="critical-title">⚠️ Needs Attention</h3>
+                <p class="card-note" id="critical-note">Out of stock first, then the lowest balances.</p>
                 <table id="low-stock-table">
                     <thead>
                         <tr>
@@ -391,6 +699,10 @@
             </div>
         </div>
     </div>
+    </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    </div>
 
     <script>
         // --- DATA LOGIC: AS PROVIDED ---
@@ -398,9 +710,20 @@
         const SB_KEY = window.APP_CONFIG.key;
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
+        const LOW_STOCK_THRESHOLD = 5;   // "at risk" cut-off, used by the KPI and the table
+        const FLOW_DAYS = 14;            // movement chart window
+        const NET_DAYS = 30;             // net-movement KPI window
+
         let categoryChart;
+        let flowChart;
         let lastStockData = [];
         let lastCategoriesData = [];
+        let lastFlowWindow = [];
+
+        // Local-time day key. toISOString() would bucket by UTC, which shifts
+        // late-evening movements into the next day for anyone east of GMT.
+        const dayKey = (d) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
         $(document).ready(function () {
             // Check permanent theme preference
@@ -411,7 +734,26 @@
             }
 
             fetchDashboardData();
+            fillRailIdentity();
         });
+
+        /* Rail identity — display only. Writes into the three rail elements and
+           nothing else; reuses the client above and swallows its own failure. */
+        async function fillRailIdentity() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) return;
+            $('#userName').text(userId);
+            $('#railSession').css('display', 'flex');
+            try {
+                const { data } = await _supabase
+                    .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                if (data && data.length) {
+                    $('#accessLevel')
+                        .text(data[0].Access === 'ALL' ? 'Superuser' : data[0].Access)
+                        .css('display', 'inline-block');
+                }
+            } catch (e) { console.error('Access lookup failed', e); }
+        }
 
         // --- THEME TOGGLE ---
         function toggleTheme() {
@@ -420,46 +762,211 @@
             localStorage.setItem('rm_analytics_theme', isCyber ? 'cyber' : 'light');
 
             updateLabels(isCyber);
-            // Re-render chart to update colors
-            if (lastStockData.length > 0) renderCategoryChart(lastStockData, lastCategoriesData);
+            // Re-render everything colour-bearing: both charts read their series
+            // hexes off the body, and the tables carry theme-specific wording.
+            if (lastStockData.length > 0) {
+                updateKPIs(lastStockData, lastCategoriesData, lastFlowWindow);
+                renderCategoryChart(lastStockData, lastCategoriesData);
+                renderFlowChart(lastFlowWindow);
+                renderLowStock(lastStockData);
+            }
         }
 
         function updateLabels(isCyber) {
             $('#main-title').text(isCyber ? 'Raw_Material_Analytics' : 'Raw Material Analytics');
+            $('#main-sub').text(isCyber
+                ? 'NODE INVENTORY · FLOW TELEMETRY · FAILURE QUEUE'
+                : 'What is on hand, what moved recently, and what needs attention.');
             $('#lbl-weight').text(isCyber ? 'Inventory_Net_Weight' : 'Inventory Weight');
-            $('#lbl-items').text(isCyber ? 'Database_Entities' : 'Total Items');
-            $('#lbl-low').text(isCyber ? '☢️ DEPLETED_NODES' : 'Low Stock Alerts');
-            $('#lbl-cats').text(isCyber ? 'Sectors' : 'Active Categories');
+            $('#lbl-items').text(isCyber ? 'Database_Entities' : 'Total Pieces');
+            $('#lbl-low').text(isCyber ? '☢️ DEPLETED_NODES' : 'Needs Attention');
+            $('#lbl-net').text(isCyber ? 'NET_FLOW · 30_CYCLES' : 'Net Movement · 30 Days');
+            $('#flow-title').text(isCyber ? 'FLOW_TELEMETRY · 14_CYCLES' : 'Stock Movement · Last 14 Days');
             $('#chart-title').text(isCyber ? 'VOLUME_DISTRIBUTION_BY_SECTOR' : 'Inventory Volume by Category (KG)');
+            $('#chart-note').text(isCyber ? 'Mass held per sector.' : 'Total weight held in each category.');
             $('#audit-title').text(isCyber ? 'LOG_STREAM_TRAIL' : 'Movement Audit Trail');
-            $('#critical-title').text(isCyber ? '⚠️ CRITICAL_NODE_FAILURE' : '⚠️ Critical Low Stock');
+            $('#critical-title').text(isCyber ? '⚠️ CRITICAL_NODE_FAILURE' : '⚠️ Needs Attention');
+            $('#critical-note').text(isCyber ? 'Depleted nodes first, then lowest reserves.' : 'Out of stock first, then the lowest balances.');
         }
 
         async function fetchDashboardData() {
+            const since = new Date(Date.now() - NET_DAYS * 86400000).toISOString();
+
             const { data: stock } = await _supabase.from('RawMaterialStock').select('*');
+            // Audit trail: unchanged — the latest ten movements, however old.
             const { data: movements } = await _supabase.from('RawMaterialMovement').select('*, RawMaterialStock(grade)').order('created_at', { ascending: false }).limit(10);
+            // Separate query for the trend and the net KPI so an empty 30-day
+            // window can never blank the audit trail above.
+            const { data: windowMoves } = await _supabase.from('RawMaterialMovement')
+                .select('created_at, move_type, qty_change')
+                .gte('created_at', since)
+                .order('created_at', { ascending: true })
+                .limit(2000);
             const { data: categories } = await _supabase.from('RawMaterialCategory').select('*');
 
             if (!stock) return;
 
             lastStockData = stock;
             lastCategoriesData = categories;
+            lastFlowWindow = windowMoves || [];
 
-            updateKPIs(stock, categories);
+            updateKPIs(stock, categories, lastFlowWindow);
             renderCategoryChart(stock, categories);
+            renderFlowChart(lastFlowWindow);
             renderMovements(movements);
             renderLowStock(stock);
         }
 
-        function updateKPIs(stock, categories) {
-            let totalWeight = stock.reduce((sum, item) => sum + (item.total_weight_kg || 0), 0);
-            let totalPcs = stock.reduce((sum, item) => sum + (item.qty_pcs || 0), 0);
-            let lowStockCount = stock.filter(item => item.qty_pcs <= 5).length;
+        /* qty_change is stored as an absolute value with the direction in
+           move_type (see raw_material_movement.html), so a net figure has to be
+           signed here rather than summed straight. */
+        function summariseFlow(moves) {
+            const inQty = moves.filter(m => m.move_type === 'IN')
+                .reduce((s, m) => s + (m.qty_change || 0), 0);
+            const outQty = moves.filter(m => m.move_type === 'OUT')
+                .reduce((s, m) => s + (m.qty_change || 0), 0);
+            return { inQty, outQty, net: inQty - outQty };
+        }
+
+        function updateKPIs(stock, categories, moves) {
+            const isCyber = $('body').hasClass('cyber-theme');
+            const totalWeight = stock.reduce((sum, item) => sum + (item.total_weight_kg || 0), 0);
+            const totalPcs = stock.reduce((sum, item) => sum + (item.qty_pcs || 0), 0);
+
+            // Split the alert: nothing left is a different problem from running low.
+            const outCount = stock.filter(i => (i.qty_pcs || 0) <= 0).length;
+            const lowCount = stock.filter(i => (i.qty_pcs || 0) > 0 && i.qty_pcs <= LOW_STOCK_THRESHOLD).length;
+            const catCount = (categories || []).length;
+
+            const { inQty, outQty, net } = summariseFlow(moves || []);
 
             $('#kpi-total-weight').text(totalWeight.toLocaleString() + " KG");
             $('#kpi-total-pcs').text(totalPcs.toLocaleString());
-            $('#kpi-low-stock').text(lowStockCount);
-            $('#kpi-cats').text(categories.length);
+            $('#kpi-low-stock').text(outCount + lowCount);
+            $('#kpi-net').text(`${net > 0 ? '+' : ''}${net.toLocaleString()}`);
+
+            $('#sub-weight').text(isCyber
+                ? `${catCount} sectors · ${stock.length} nodes`
+                : `Across ${catCount} categor${catCount === 1 ? 'y' : 'ies'} · ${stock.length} stock lines`);
+            $('#sub-items').text(isCyber
+                ? `${stock.length} nodes tracked`
+                : `Across ${stock.length} stock line${stock.length === 1 ? '' : 's'}`);
+            $('#sub-low').text(isCyber
+                ? `${outCount} depleted · ${lowCount} critical`
+                : `${outCount} out of stock · ${lowCount} at or below ${LOW_STOCK_THRESHOLD} PCS`);
+            $('#kpi-in').text(`${inQty.toLocaleString()} in`);
+            $('#kpi-out').text(`${outQty.toLocaleString()} out`);
+        }
+
+        /* Received above the zero line, issued below it, on one shared axis —
+           so the balance of the last fortnight reads without any arithmetic.
+           Two measures of the same unit (pieces); never a second y-scale. */
+        function renderFlowChart(moves) {
+            const isCyber = $('body').hasClass('cyber-theme');
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const buckets = [];
+            const index = {};
+            for (let i = FLOW_DAYS - 1; i >= 0; i--) {
+                const d = new Date(today);
+                d.setDate(d.getDate() - i);
+                index[dayKey(d)] = buckets.length;
+                buckets.push({
+                    label: d.toLocaleDateString([], { day: '2-digit', month: 'short' }),
+                    in: 0,
+                    out: 0
+                });
+            }
+
+            (moves || []).forEach(m => {
+                const i = index[dayKey(new Date(m.created_at))];
+                if (i === undefined) return;   // inside the 30-day fetch, outside the 14-day chart
+                if (m.move_type === 'IN') buckets[i].in += (m.qty_change || 0);
+                else buckets[i].out += (m.qty_change || 0);
+            });
+
+            const moved = buckets.reduce((s, b) => s + b.in + b.out, 0);
+            $('#flow-note').text(moved
+                ? (isCyber ? 'LOAD above the line, DISPATCH below.' : 'Pieces received above the line, issued below it.')
+                : (isCyber ? 'NO SIGNAL IN THE LAST 14 CYCLES.' : 'No movement recorded in the last 14 days.'));
+
+            const styles = getComputedStyle(document.body);
+            const inColor = styles.getPropertyValue('--series-in').trim();
+            const outColor = styles.getPropertyValue('--series-out').trim();
+            const gridColor = isCyber ? 'rgba(0, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = styles.getPropertyValue('--text-muted').trim();
+            const fontFamily = isCyber ? 'Rajdhani' : 'Inter';
+
+            if (flowChart) flowChart.destroy();
+
+            flowChart = new Chart(document.getElementById('flowChart'), {
+                type: 'bar',
+                data: {
+                    labels: buckets.map(b => b.label),
+                    datasets: [
+                        {
+                            label: 'Received',
+                            data: buckets.map(b => b.in),
+                            backgroundColor: inColor,
+                            borderRadius: isCyber ? 0 : 4,
+                            maxBarThickness: 14
+                        },
+                        {
+                            // Negative so the two directions read against a shared
+                            // zero line instead of side by side.
+                            label: 'Issued',
+                            data: buckets.map(b => -b.out),
+                            backgroundColor: outColor,
+                            borderRadius: isCyber ? 0 : 4,
+                            maxBarThickness: 14
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: {
+                                color: textColor,
+                                boxWidth: 8,
+                                boxHeight: 8,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: { size: 11, weight: '700', family: fontFamily }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                // Stored magnitudes are positive; the sign here is
+                                // only the drawing trick, so undo it in the label.
+                                label: (ctx) => `${ctx.dataset.label}: ${Math.abs(ctx.parsed.y).toLocaleString()} PCS`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            ticks: { color: textColor, font: { size: 10, weight: '600', family: fontFamily } }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 10, family: fontFamily },
+                                callback: (v) => Math.abs(v).toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function renderCategoryChart(stock, categories) {
@@ -535,32 +1042,52 @@
         function renderMovements(movements) {
             const isCyber = $('body').hasClass('cyber-theme');
             let html = '';
-            movements.forEach(m => {
+            (movements || []).forEach(m => {
                 const date = new Date(m.created_at).toLocaleDateString();
-                const badgeClass = m.move_type === 'IN' ? 'badge-in' : 'badge-out';
-                const label = isCyber ? (m.move_type === 'IN' ? 'LOAD' : 'DISPATCH') : m.move_type;
+                const isIn = m.move_type === 'IN';
+                const badgeClass = isIn ? 'badge-in' : 'badge-out';
+                const label = isCyber ? (isIn ? 'LOAD' : 'DISPATCH') : m.move_type;
+                // Signed, and coloured to match the chart's two series, so the
+                // direction reads from the number as well as from the badge.
+                const qty = `<span class="${isIn ? 'qty-in' : 'qty-out'}">${isIn ? '+' : '−'}${(m.qty_change || 0).toLocaleString()}</span>`;
                 html += `<tr>
                     <td>${date}</td>
                     <td><strong style="${isCyber ? 'color:var(--warning)' : ''}">${m.RawMaterialStock?.grade || 'N/A'}</strong></td>
                     <td><span class="badge ${badgeClass}">${label}</span></td>
-                    <td>${m.qty_change}</td>
+                    <td>${qty}</td>
                     <td style="color:var(--text-muted); opacity: 0.8">${m.reason || '-'}</td>
                 </tr>`;
             });
-            $('#movement-table tbody').html(html);
+            $('#movement-table tbody').html(html
+                || `<tr><td colspan="5" style="text-align:center; color:var(--text-muted)">No movements recorded yet</td></tr>`);
         }
 
         function renderLowStock(stock) {
+            const isCyber = $('body').hasClass('cyber-theme');
             let html = '';
-            const low = stock.filter(i => i.qty_pcs <= 5).sort((a, b) => a.qty_pcs - b.qty_pcs).slice(0, 10);
-            low.forEach(i => {
+            // Zero balances lead: "nothing left" outranks "running low".
+            const atRisk = stock
+                .filter(i => (i.qty_pcs || 0) <= LOW_STOCK_THRESHOLD)
+                .sort((a, b) => (a.qty_pcs || 0) - (b.qty_pcs || 0))
+                .slice(0, 10);
+
+            atRisk.forEach(i => {
+                const qty = i.qty_pcs || 0;
+                const out = qty <= 0;
+                const chip = out
+                    ? `<span class="chip chip--out">⛔ ${isCyber ? 'DEPLETED' : 'OUT'}</span>`
+                    : `<span class="chip chip--low">⚠️ ${isCyber ? 'CRITICAL' : 'LOW'}</span>`;
                 html += `<tr>
-                    <td>${i.grade}</td>
-                    <td class="low-stock">${i.qty_pcs} PCS</td>
+                    <td>
+                        <strong>${i.grade}</strong>
+                        <div style="font-size:var(--fs-xs); color:var(--text-muted); opacity:.8">${i.material_type || '-'}</div>
+                    </td>
+                    <td><div class="low-stock" style="margin-bottom:4px">${qty} PCS</div>${chip}</td>
                     <td>${i.area || '-'}</td>
                 </tr>`;
             });
-            $('#low-stock-table tbody').html(html || '<tr><td colspan="3">All stock healthy</td></tr>');
+            $('#low-stock-table tbody').html(html
+                || `<tr><td colspan="3" style="text-align:center; color:var(--text-muted)">${isCyber ? 'ALL NODES NOMINAL' : 'All stock healthy'}</td></tr>`);
         }
     </script>
 

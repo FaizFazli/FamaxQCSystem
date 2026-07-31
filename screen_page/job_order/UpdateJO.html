@@ -28,71 +28,243 @@
     <style>
         /* Page-specific overrides; tokens, reset, spinner, #loading-overlay come from theme.css */
 
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               The segmented Update/Create/History control moved into the rail as
+               side navigation. Those buttons keep their .tab-btn class, their
+               .active class and their visible labels — switchView() selects on
+               all three (`.tab-btn:contains('Update')`), so none of it is
+               cosmetic. ---- */
         body {
+            display: flex;
+            align-items: flex-start;
+            padding: 0;
+            background: var(--bg-body);
+        }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             padding: var(--space-8) var(--space-5);
         }
 
-        /* --- Navigation --- */
-        .nav-top {
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: var(--space-5);
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: var(--space-4);
-            flex-wrap: wrap;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
         }
 
-        .back-link {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: var(--fs-base);
-            font-weight: 600;
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: #fff;
             display: flex;
             align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            transition: color var(--transition);
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
         }
 
-        .back-link:hover {
-            color: var(--primary);
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            line-height: 1;
+            color: #fff;
         }
 
-        /* --- Tab Switcher (segmented control) --- */
-        .tab-container {
-            background: var(--surface-muted);
-            padding: var(--space-1);
+        .rail__sub {
+            display: block;
+            margin-top: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: var(--radius);
-            display: flex;
-            gap: var(--space-1);
+            background: rgba(255, 255, 255, 0.06);
         }
+
+        .identity__label,
+        .rail-nav__label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+
+        .identity__avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        /* #userName keeps its id — checkLogin() writes the signed-in user here,
+           which is why the card header no longer needs its own badge. */
+        .user-name {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.1px;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block;
+            margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--on-primary);
+            background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+
+        .session {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-top: 16px;
+            padding-left: 2px;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .session::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success);
+            flex-shrink: 0;
+        }
+
+        /* --- Side navigation (was the segmented .tab-container) --- */
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label { margin-bottom: 8px; padding-left: 2px; }
 
         .tab-btn {
-            padding: 8px var(--space-4);
-            border: none;
-            border-radius: var(--radius-sm);
-            font-family: inherit;
-            font-size: var(--fs-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px;
             font-weight: 600;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none;
+            border: 0;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            background: transparent;
-            color: var(--text-muted);
-            transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+            transition: background var(--transition), color var(--transition);
         }
 
-        .tab-btn:hover {
-            color: var(--text-main);
+        .tab-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+        /* .active is written by switchView() — name is load-bearing. */
+        .tab-btn.active { background: var(--primary); color: var(--on-primary); }
+
+        /* Marker doubles as the active indicator, so the state reads without
+           relying on the fill colour alone. */
+        .rail-nav__dot {
+            width: 6px;
+            height: 6px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.28);
+            flex-shrink: 0;
         }
 
-        .tab-btn.active {
-            background: var(--bg-card);
-            color: var(--primary);
-            box-shadow: var(--shadow-sm);
+        .tab-btn.active .rail-nav__dot,
+        .tab-btn:hover .rail-nav__dot { background: currentColor; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            width: 100%;
+            padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base);
+            font-weight: 600;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+        @media (max-width: 900px) {
+            body { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static;
+                width: 100%;
+                height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .tab-btn { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
         }
 
         /* --- Main Card --- */
@@ -124,14 +296,15 @@
             }
         }
 
-        /* Header */
+        /* Header — a quiet title bar. The solid primary slab was repeated on all
+           three views and competed with the rail's active-view highlight. */
         .card-header {
-            background: var(--primary);
             padding: var(--space-6) var(--space-8);
-            color: var(--on-primary);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             gap: var(--space-4);
         }
 
@@ -140,21 +313,84 @@
             font-size: var(--fs-lg);
             font-weight: 700;
             letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
+            color: var(--text-main);
         }
 
-        .user-badge {
-            font-size: var(--fs-xs);
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.2);
-            padding: var(--space-1) var(--space-3);
-            border-radius: var(--radius-full);
+        .card-header__sub {
+            margin: 4px 0 0;
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
         }
 
         .card-body {
             padding: var(--space-8);
+        }
+
+        /* --- Sections: group a card body into labelled bands (same shape as
+               AdminLogin's .group-head) --- */
+        .section + .section,
+        #jo-results {
+            margin-top: var(--space-8);
+        }
+
+        .section__head {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .section__title {
+            margin: 0;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .section__rule {
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* --- Action bar closing a card body --- */
+        .card-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--space-3);
+            margin-top: var(--space-6);
+            padding-top: var(--space-5);
+            border-top: 1px solid var(--border);
+        }
+
+        .card-actions__note {
+            margin-right: auto;
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
+
+        /* --- Toolbar (history search) --- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+            margin-bottom: var(--space-5);
+        }
+
+        .toolbar__search {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .hint {
+            margin: var(--space-2) 0 0;
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
         }
 
         /* --- Form Elements --- */
@@ -162,11 +398,16 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: var(--space-5);
-            margin-bottom: var(--space-5);
         }
 
         .form-group {
             margin-bottom: var(--space-5);
+        }
+
+        /* The grid already spaces its cells; the per-group margin doubled it. */
+        .form-grid .form-group,
+        .section .form-group:last-child {
+            margin-bottom: 0;
         }
 
         label {
@@ -193,8 +434,7 @@
         }
 
         /* --- Process Selector UI --- */
-        .process-selection-container {
-            grid-column: span 2;
+        .process-panel {
             background: var(--surface-muted);
             padding: var(--space-4);
             border-radius: var(--radius-sm);
@@ -221,7 +461,16 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: var(--space-3);
-            margin-top: var(--space-3);
+        }
+
+        /* loadProcessesUI() drops a lone message in here for the "select a part",
+           "fetching" and "no processes" states. Let it span the grid instead of
+           being squeezed into one 150px cell. */
+        .process-grid > div:only-child {
+            grid-column: 1 / -1;
+            font-size: var(--fs-sm);
+            font-style: italic;
+            color: var(--text-muted);
         }
 
         .process-item {
@@ -288,12 +537,20 @@
             background-color: #0ea271;
         }
 
+        /* Full-width slabs read as the only thing on the page; in an action bar
+           the button should size to its label. */
+        .btn-action--inline {
+            width: auto;
+            min-height: 44px;
+            padding: 0 var(--space-6);
+            font-size: var(--fs-base);
+        }
+
         /* --- Table --- */
         .table-wrapper {
             overflow-x: auto;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border);
-            margin-top: var(--space-5);
         }
 
         table {
@@ -332,6 +589,47 @@
 
         tbody tr:last-child td {
             border-bottom: 0;
+        }
+
+        /* --- Pagination --- */
+        .pager {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .pager__info {
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .pager__btns {
+            margin-left: auto;
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .pager .btn-refresh:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: var(--surface-muted);
+            color: var(--text-faint);
+        }
+
+        /* Empty row written by loadHistory() when a page comes back with
+           nothing — the table used to render as a bare header. */
+        .table-empty {
+            padding: var(--space-8) var(--space-4) !important;
+            text-align: center;
+            font-size: var(--fs-sm);
+            color: var(--text-faint);
+        }
+
+        tbody tr:has(.table-empty):hover {
+            background: transparent;
         }
 
         /* --- Status badges (injected by JS) --- */
@@ -435,7 +733,13 @@
 
         @media (max-width: 640px) {
             .form-grid { grid-template-columns: 1fr; }
-            .process-selection-container { grid-column: span 1; }
+            /* The part-name group still asks for two columns in the markup. */
+            .form-grid .form-group[style] { grid-column: span 1 !important; }
+            .card-body { padding: var(--space-5); }
+            .card-header { padding: var(--space-5); }
+            .card-actions { flex-wrap: wrap; }
+            .card-actions__note { margin-right: 0; width: 100%; }
+            .btn-action--inline { width: 100%; }
         }
     </style>
 </head>
@@ -448,42 +752,96 @@
         </div>
     </div>
 
-    <!-- Navigation -->
-    <div class="nav-top">
-        <a onclick="goBack()" class="back-link">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <aside class="rail">
+        <div class="rail__brand">
+            <!-- Falcon mark only — the FAMAX wordmark sits beside it as real
+                 text. Relative path so it resolves whether the app is served at
+                 / or at /FamaxQCSystem. alt="" — the name is adjacent as text. -->
+            <div class="rail__mark">
+                <img src="../../assets/Famax%20Falcon.png" alt="" />
+            </div>
+            <div>
+                <span class="rail__name">FAMAX</span>
+                <span class="rail__sub">Job Order</span>
+            </div>
+        </div>
+
+        <div class="identity">
+            <div class="identity__label">Signed in as</div>
+            <div class="identity__row">
+                <span class="identity__avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                </span>
+                <!-- Same id the card header's badge carried, so checkLogin()'s
+                     $("#userName").text(userId) fills it exactly as before. -->
+                <span class="user-name" id="userName">Admin</span>
+            </div>
+            <span class="access-level" id="accessLevel" style="display:none"></span>
+        </div>
+
+        <div class="session" id="railSession" style="display:none">Session active</div>
+
+        <!-- Same three buttons as the segmented control: identical onclick,
+             identical .tab-btn/.active classes, identical visible labels —
+             switchView() matches on the label text. -->
+        <nav class="rail-nav">
+            <div class="rail-nav__label">Views</div>
+
+            <button class="tab-btn active" onclick="switchView('update')">
+                <span class="rail-nav__dot"></span>Update JO
+            </button>
+            <button class="tab-btn" onclick="switchView('create')">
+                <span class="rail-nav__dot"></span>Create New
+            </button>
+            <button class="tab-btn" onclick="switchView('history')">
+                <span class="rail-nav__dot"></span>History
+            </button>
+        </nav>
+
+        <div class="rail__spacer"></div>
+
+        <button class="rail__back" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <line x1="19" y1="12" x2="5" y2="12"></line>
                 <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
             Back to Dashboard
-        </a>
+        </button>
+    </aside>
 
-        <div class="tab-container">
-            <button class="tab-btn active" onclick="switchView('update')">
-                Update JO
-            </button>
-            <button class="tab-btn" onclick="switchView('create')">
-                Create New
-            </button>
-            <button class="tab-btn" onclick="switchView('history')">History</button>
-        </div>
-    </div>
+    <div class="column">
+        <main class="content">
 
     <!-- CARD 1: Update JO -->
     <div id="card-update" class="main-card active">
         <div class="card-header">
-            <h1>Update Job Order</h1>
-            <div class="user-badge" id="userName">Admin</div>
+            <div>
+                <h1>Update Job Order</h1>
+                <p class="card-header__sub">Find a part, then close out the job orders that are finished.</p>
+            </div>
         </div>
         <div class="card-body">
-            <div class="form-group">
-                <label>Search Part Name (Active Only)</label>
-                <select id="part-name" class="select2">
-                    <option value=""></option>
-                </select>
+            <div class="section">
+                <div class="section__head">
+                    <h2 class="section__title">Find part</h2>
+                    <span class="section__rule"></span>
+                </div>
+                <div class="form-group">
+                    <label for="part-name">Search part name (active only)</label>
+                    <select id="part-name" class="select2">
+                        <option value=""></option>
+                    </select>
+                    <p class="hint">Pick a part to list the job orders still marked active.</p>
+                </div>
             </div>
 
             <div id="jo-results" style="display: none">
+                <div class="section__head">
+                    <h2 class="section__title">Active job orders</h2>
+                    <span class="section__rule"></span>
+                </div>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -502,9 +860,9 @@
                         <tbody id="jo-table-body"></tbody>
                     </table>
                 </div>
-                <div style="margin-top: 20px; display: flex; justify-content: flex-end">
-                    <button class="btn-action btn-success" style="width: auto; padding: 0 25px"
-                        onclick="confirmUpdateStatus()">
+                <div class="card-actions">
+                    <span class="card-actions__note">Tick the orders that are done, then confirm.</span>
+                    <button class="btn-action btn-success btn-action--inline" onclick="confirmUpdateStatus()">
                         Mark Completed
                     </button>
                 </div>
@@ -515,66 +873,75 @@
     <!-- CARD 2: Create JO -->
     <div id="card-create" class="main-card">
         <div class="card-header">
-            <h1>Create Job Order</h1>
+            <div>
+                <h1>Create Job Order</h1>
+                <p class="card-header__sub">One job order row is created for each process you select.</p>
+            </div>
         </div>
         <div class="card-body">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>JO Number</label>
-                    <input type="text" id="new-jo-number" placeholder="e.g. JO-2023-001" />
+            <div class="section">
+                <div class="section__head">
+                    <h2 class="section__title">Order details</h2>
+                    <span class="section__rule"></span>
                 </div>
-                <div class="form-group">
-                    <label>Quantity</label>
-                    <input type="number" id="new-quantity" placeholder="0" />
-                </div>
-                <div class="form-group" style="grid-column: span 2">
-                    <label>Part Name</label>
-                    <select id="new-part-name" class="select2">
-                        <option></option>
-                    </select>
-                </div>
-
-                <!-- PROCESS SELECTOR -->
-                <div class="process-selection-container">
-                    <div style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              ">
-                        <label style="margin: 0">Select Processes to Create</label>
-                        <button type="button" class="btn-refresh" onclick="selectAllProcesses(true)"
-                            style="font-size: 11px">
-                            Select All
-                        </button>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="new-jo-number">JO number</label>
+                        <input type="text" id="new-jo-number" placeholder="e.g. JO-2023-001" />
                     </div>
-                    <div id="process-grid" class="process-grid">
-                        <div style="
-                  color: var(--text-muted);
-                  font-size: 13px;
-                  font-style: italic;
-                ">
-                            Select a Part Name First...
-                        </div>
+                    <div class="form-group">
+                        <label for="new-quantity">Quantity</label>
+                        <input type="number" id="new-quantity" placeholder="0" />
+                    </div>
+                    <div class="form-group" style="grid-column: span 2">
+                        <label for="new-part-name">Part name</label>
+                        <select id="new-part-name" class="select2">
+                            <option></option>
+                        </select>
                     </div>
                 </div>
             </div>
 
-            <button class="btn-action" onclick="confirmAddJobOrder()">
-                Create Job Orders
-            </button>
+            <!-- PROCESS SELECTOR -->
+            <div class="section">
+                <div class="section__head">
+                    <h2 class="section__title">Processes</h2>
+                    <span class="section__rule"></span>
+                    <button type="button" class="btn-refresh" onclick="selectAllProcesses(true)">
+                        Select all
+                    </button>
+                </div>
+                <div class="process-panel">
+                    <div id="process-grid" class="process-grid">
+                        <div>Select a part name first…</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <span class="card-actions__note">A row is created for every ticked process.</span>
+                <button class="btn-action btn-action--inline" onclick="confirmAddJobOrder()">
+                    Create Job Orders
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- CARD 3: History -->
     <div id="card-history" class="main-card">
         <div class="card-header">
-            <h1>Job Order History</h1>
+            <div>
+                <h1>Job Order History</h1>
+                <p class="card-header__sub">Completed job orders, most recently completed first.</p>
+            </div>
         </div>
         <div class="card-body">
-            <div style="display: flex; gap: 10px; margin-bottom: 20px">
-                <input type="text" id="history-search" placeholder="Search..." style="flex: 1"
-                    onkeyup="if(event.key === 'Enter') loadHistory()" />
-                <button class="btn-action" style="width: auto; padding: 0 25px" onclick="loadHistory()">
+            <div class="toolbar">
+                <div class="toolbar__search">
+                    <input type="text" id="history-search" placeholder="Search JO number or part name…"
+                        onkeyup="if(event.key === 'Enter') loadHistory()" />
+                </div>
+                <button class="btn-action btn-action--inline" onclick="loadHistory()">
                     Search
                 </button>
             </div>
@@ -592,7 +959,22 @@
                     <tbody id="history-table-body"></tbody>
                 </table>
             </div>
+
+            <div class="pager">
+                <span class="pager__info" id="history-range">—</span>
+                <div class="pager__btns">
+                    <button type="button" class="btn-refresh" id="history-prev"
+                        onclick="loadHistory(historyPage - 1)">Previous</button>
+                    <button type="button" class="btn-refresh" id="history-next"
+                        onclick="loadHistory(historyPage + 1)">Next</button>
+                </div>
+            </div>
         </div>
+    </div>
+
+        </main>
+
+        <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
     </div>
 
     <!-- Modal -->
@@ -608,8 +990,6 @@
             </div>
         </div>
     </div>
-
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 
     <script>
         const SUPABASE_URL = window.APP_CONFIG.url;
@@ -873,14 +1253,26 @@
             );
         }
 
-        async function loadHistory() {
+        const HISTORY_PAGE_SIZE = 10;
+        let historyPage = 0;
+
+        // Called with no argument by the Search button, the Enter key and
+        // switchView('history') — all of which should land on the first page,
+        // which is what the default gives them.
+        async function loadHistory(page = 0) {
+            historyPage = Math.max(0, page);
             const search = $("#history-search").val();
             try {
                 const params = {
                     select: "*",
                     Status: "eq.Completed",
-                    order: "completed_at.desc",
-                    limit: 50,
+                    // nullslast: Postgres sorts NULLs first on DESC, so a legacy
+                    // row with no completed_at would otherwise head the list.
+                    order: "completed_at.desc.nullslast",
+                    // One row past the page is the cheapest way to know whether
+                    // a next page exists without asking for an exact count.
+                    limit: HISTORY_PAGE_SIZE + 1,
+                    offset: historyPage * HISTORY_PAGE_SIZE,
                 };
                 if (search)
                     params.or = `(JO_Number.ilike.*${search}*,Part_Name.ilike.*${search}*)`;
@@ -888,8 +1280,12 @@
                 const { data } = await supabaseClient.get("/rest/v1/JobOrder", {
                     params,
                 });
+
+                const hasNext = data.length > HISTORY_PAGE_SIZE;
+                const rows = hasNext ? data.slice(0, HISTORY_PAGE_SIZE) : data;
+
                 const tbody = $("#history-table-body").empty();
-                data.forEach((item) => {
+                rows.forEach((item) => {
                     tbody.append(`
                         <tr>
                             <td>${item.JO_Number}</td>
@@ -905,9 +1301,30 @@
                         </tr>
                     `);
                 });
+
+                if (rows.length === 0) {
+                    tbody.append(`
+                        <tr>
+                            <td colspan="5" class="table-empty">${search
+                            ? "No completed job orders match that search."
+                            : "No completed job orders yet."
+                        }</td>
+                        </tr>
+                    `);
+                }
+
+                updateHistoryPager(rows.length, hasNext);
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        function updateHistoryPager(count, hasNext) {
+            const from = historyPage * HISTORY_PAGE_SIZE + 1;
+            const to = historyPage * HISTORY_PAGE_SIZE + count;
+            $("#history-range").text(count ? `Showing ${from}–${to}` : "No results");
+            $("#history-prev").prop("disabled", historyPage === 0);
+            $("#history-next").prop("disabled", !hasNext);
         }
 
         function switchView(view) {
@@ -944,6 +1361,28 @@
         function goBack() {
             window.location.href = "../../AdminLogin.html";
         }
+
+        /* Rail access badge — display only, and deliberately standalone: the
+           signed-in name is already written by checkLogin() into #userName, so
+           this only adds the role pill and the status line. Writes nowhere else
+           and swallows its own failure. */
+        (async function fillRailAccess() {
+            const userId = sessionStorage.getItem("userId");
+            if (!userId) return;
+            $("#railSession").css("display", "flex");
+            try {
+                const { data } = await supabaseClient.get("/rest/v1/AdminCredential", {
+                    params: { select: "Access", UserId: `eq.${userId}` },
+                });
+                if (data && data.length) {
+                    $("#accessLevel")
+                        .text(data[0].Access === "ALL" ? "Superuser" : data[0].Access)
+                        .css("display", "inline-block");
+                }
+            } catch (e) {
+                console.error("Access lookup failed", e);
+            }
+        })();
     </script>
 </body>
 
