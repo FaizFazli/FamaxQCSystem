@@ -570,8 +570,11 @@
                                 </button>
                             </div>
                             <div v-if="form.showCategoryDropdown" class="dropdown-list">
-                                <!-- The Actual List -->
-                                <div v-for="cat in filterList(inspectionCategories, form.category)" :key="cat"
+                                <!-- The Actual List. Narrowed to IQC/OQC once a subcon
+                                     return DO is selected — goods coming back from a
+                                     subcontractor are an incoming or outgoing check,
+                                     never an in-process one. -->
+                                <div v-for="cat in categoryOptions(form)" :key="cat"
                                     @mousedown="selectCategory(cat, index)" class="dropdown-item">{{ cat }}</div>
 
                                 <!-- Debugging message: shows only if inspectionCategories is empty -->
@@ -679,13 +682,35 @@
                         </div>
                     </div>
                     <!-- UNIFORM ROW 1: DO NUMBER (Full Width) -->
+                    <!-- Subcon return DOs come from subcon_delivery_in and are filtered by
+                         the part chosen above. Still a plain text field underneath: a DO
+                         that is not in the list can be typed exactly as before. -->
                     <div class="mb-10">
                         <div class="relative">
                             <label class="section-label">DO Number</label>
                             <div class="input-wrapper">
                                 <input type="text" v-model="form.do_number" :disabled="form.isLocked"
-                                    placeholder="ENTER DO NUMBER (OPTIONAL)" class="form-input uppercase">
+                                    @focus="form.showDoDropdown = true" @blur="closeDropdown(index, 'do')"
+                                    :placeholder="doOptions(form).length ? 'SELECT OR TYPE DO NUMBER' : 'ENTER DO NUMBER (OPTIONAL)'"
+                                    class="form-input uppercase">
+                                <button v-if="form.do_number && !form.isLocked" @click="clearDo(index)"
+                                    class="clear-btn">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
                             </div>
+                            <div v-if="form.showDoDropdown && doOptions(form).length" class="dropdown-list">
+                                <div v-for="d in doOptions(form)" :key="d.id"
+                                    @mousedown="selectDo(d, index)" class="dropdown-item">
+                                    <span class="font-bold">{{ d.return_do_number }}</span>
+                                    <span class="block text-[10px] text-gray-400 uppercase">
+                                        {{ (d.subcon_delivery_out && d.subcon_delivery_out.subcon_name) || 'SUBCON' }}
+                                        · {{ d.receive_date }} · QTY {{ d.quantity }}
+                                    </span>
+                                </div>
+                            </div>
+                            <p v-if="form.subcon_do" class="mt-2 text-[10px] font-bold uppercase text-blue-600">
+                                Subcon return DO — category limited to IQC / OQC
+                            </p>
                         </div>
                     </div>
 
@@ -888,6 +913,10 @@
                         showCategoryDropdown: false,
                         showInspectDropdown: false,
                         showFinalizeDropdown: false,
+                        showDoDropdown: false,
+                        // True once a subcon return DO is picked from the dropdown;
+                        // narrows the category list to IQC/OQC. Not submitted.
+                        subcon_do: false,
                         process: '',
                         showProcessDropdown: false,
                         availableProcesses: [],
@@ -948,6 +977,12 @@
                             api.get('/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc'),
                             api.get('/InspectionCategory?select=id,Category&order=id.asc')
                         ]);
+                        // Subcon return DOs for the DO Number dropdown. Kept OUT of the
+                        // Promise.all above on purpose: if sql/2026-08-03_subcon_delivery.sql
+                        // has not been run yet, this 404s, and one rejected promise there
+                        // would take the parts, guides and staff down with it. The form must
+                        // keep working exactly as it did before the feature existed.
+                        loadSubconDOs();
                         distinctParts.value = [...new Set(pRes.data.map(i => i.Part_Name || i.part_name))].filter(Boolean).sort();
 
                         // 2. Store full records for ID lookup
@@ -1078,10 +1113,95 @@
 
                 const filterList = (list, search) => !search ? list : list.filter(i => String(i).toLowerCase().includes(search.toLowerCase()));
 
+                /* ---- Subcon return DOs ------------------------------------------
+                   Parts sent to a subcontractor come back under the subcon's own DO,
+                   recorded on screen_page/subcon/subcon_delivery.html. Those return DOs
+                   are what QC inspects against, so they are offered here instead of
+                   being retyped from the paperwork.
+
+                   The embedded subcon_delivery_out(...) is PostgREST resource embedding
+                   over the real foreign key, so the parent part comes back in the same
+                   request rather than a second round trip per DO. */
+                const subconDOs = ref([]);
+                const SUBCON_CATEGORIES = ['IQC', 'OQC'];
+
+                const loadSubconDOs = async () => {
+                    try {
+                        const res = await api.get(
+                            '/subcon_delivery_in?select=id,return_do_number,receive_date,quantity,out_do_number,' +
+                            'subcon_delivery_out(part_name,part_no,subcon_name)&order=receive_date.desc');
+                        subconDOs.value = res.data || [];
+                    } catch (err) {
+                        // Migration not run, or the table is not readable. The DO field
+                        // stays the plain optional text box it has always been.
+                        console.warn('Subcon return DOs unavailable — DO Number stays free text.', err);
+                        subconDOs.value = [];
+                    }
+                };
+
+                const extractPartNo = (name) => {
+                    const m = String(name || '').match(/\(([^)]+)\)/);
+                    return (m ? m[1] : String(name || '')).trim().toUpperCase();
+                };
+
+                // Filtered by the part the inspector picked — the whole point is that
+                // choosing a part surfaces only that part's outstanding DOs. With no
+                // part chosen yet, everything is offered.
+                const doOptions = (f) => {
+                    const typed = String(f.do_number || '').toUpperCase();
+                    const part = String(f.part_name || '').toUpperCase();
+                    const partNo = part ? extractPartNo(f.part_name) : '';
+                    return subconDOs.value.filter(d => {
+                        const p = d.subcon_delivery_out || {};
+                        const matchesPart = !part
+                            || String(p.part_name || '').toUpperCase() === part
+                            || (partNo && String(p.part_no || '').toUpperCase() === partNo);
+                        if (!matchesPart) return false;
+                        return !typed || String(d.return_do_number || '').toUpperCase().includes(typed);
+                    });
+                };
+
+                /* A subcon DO pins the category to IQC/OQC; everything else keeps the
+                   full InspectionCategory list, still filtered by what was typed.
+
+                   The two subcon options are deliberately NOT run through filterList.
+                   Selecting a DO auto-fills the category with 'IQC', and filterList
+                   treats the field's value as a search term — so the list would narrow
+                   to the one value already chosen and OQC could never be picked. */
+                const categoryOptions = (f) => f.subcon_do
+                    ? SUBCON_CATEGORIES
+                    : filterList(inspectionCategories.value, f.category);
+
+                const selectDo = (d, index) => {
+                    const f = forms.value[index];
+                    f.do_number = d.return_do_number;
+                    f.subcon_do = true;
+                    f.showDoDropdown = false;
+                    // Default to IQC — parts arriving back from a subcontractor are an
+                    // incoming check. The inspector can still switch to OQC.
+                    if (!SUBCON_CATEGORIES.includes(String(f.category || '').toUpperCase())) {
+                        f.category = 'IQC';
+                    }
+                };
+
+                const clearDo = (index) => {
+                    const f = forms.value[index];
+                    f.do_number = '';
+                    f.subcon_do = false;      // restores the full category list
+                    f.showDoDropdown = false;
+                };
+
                 const selectPart = async (name, index) => {
                     const f = forms.value[index];
                     f.part_name = name;
                     f.showPartDropdown = false;
+
+                    // A DO picked for the previous part does not belong to this one.
+                    // Leaving it attached would file the inspection against the wrong
+                    // delivery and keep the category pinned to IQC/OQC.
+                    if (f.subcon_do && !doOptions(f).some(d => d.return_do_number === f.do_number)) {
+                        clearDo(index);
+                    }
 
                     const match = name.match(/\(([^)]+)\)/);
                     const extractedPartNo = match ? match[1].trim() : name.trim();
@@ -1211,6 +1331,7 @@
                         else if (type === 'process') forms.value[idx].showProcessDropdown = false; // Add this
                         else if (type === 'param') forms.value[idx].showParamDropdown = false;
                         else if (type === 'category') forms.value[idx].showCategoryDropdown = false;
+                        else if (type === 'do') forms.value[idx].showDoDropdown = false;
                         else if (type === 'inspect') forms.value[idx].showInspectDropdown = false;
                         else if (type === 'finalize') forms.value[idx].showFinalizeDropdown = false;
                     }, 250);
@@ -1533,7 +1654,9 @@
                                     showParamDropdown: false,
                                     showCategoryDropdown: false,
                                     showInspectDropdown: false,
-                                    showFinalizeDropdown: false
+                                    showFinalizeDropdown: false,
+                                    showDoDropdown: false,
+                                    subcon_do: false
                                 };
 
                                 // 7. Push to array
@@ -1565,6 +1688,7 @@
                 });
                 return {
                     forms, distinctParts, guideParams, operators, supervisors, filterList, selectPart, selectJO, inspectionCategories,
+                    subconDOs, doOptions, selectDo, clearDo, categoryOptions,
                     selectParam, selectChecker, closeDropdown, updateQty, toggleLock, addNewForm, selectCategory,
                     // selectProcess, selectMachine,
                     removeForm, allLocked, submitAll, clearIfZero, calculateDefectTotal, addDefectRow,

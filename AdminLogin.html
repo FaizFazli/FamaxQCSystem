@@ -1187,7 +1187,7 @@
             <div class="group-head">
               <span class="group-dot" style="background: #15803d"></span>
               <h2 class="group-title">Materials &amp; Store</h2>
-              <span class="group-count">4</span>
+              <span class="group-count">5</span>
             </div>
             <div class="module-list">
               <div
@@ -1284,6 +1284,30 @@
                   <span class="card-desc"
                     >Confirm product condition before shipment leaves the
                     floor</span
+                  >
+                </div>
+                <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+
+              <div
+                id="btn-subcon-delivery"
+                class="dashboard-card"
+                onclick="navigateTo('screen_page/subcon/subcon_delivery.html')"
+              >
+                <div class="icon-box tint-store">
+                  <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2a3 3 0 0 0 6 0h6a3 3 0 0 0 6 0h2v-5l-3-4zM6 18.5A1.5 1.5 0 1 1 7.5 17 1.5 1.5 0 0 1 6 18.5zM19.5 9.5l1.96 2.5H17V9.5h2.5zM18 18.5A1.5 1.5 0 1 1 19.5 17 1.5 1.5 0 0 1 18 18.5z"
+                    />
+                  </svg>
+                </div>
+                <div class="card-text">
+                  <span class="card-title">Subcon Delivery</span>
+                  <span class="card-desc"
+                    >Send parts out to a subcontractor, record what comes back,
+                    and see each DO's inspections</span
                   >
                 </div>
                 <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
@@ -1630,6 +1654,7 @@
           "btn-gv",
           "btn-gauge-masterlist",
           "btn-sales-order-form",
+          "btn-subcon-delivery",
         ];
 
         // First, disable everything safely
@@ -1662,7 +1687,12 @@
             break;
 
           case "PRODUCTION":
-            enable(["updateJOBtn", "btn-traveler-card", "btn-fg-store"]);
+            enable([
+              "updateJOBtn",
+              "btn-traveler-card",
+              "btn-fg-store",
+              "btn-subcon-delivery",
+            ]);
             break;
 
           case "REGISTER":
@@ -1683,6 +1713,7 @@
               "btn-shipment-checklist",
               "btn-packing-list-form",
               "btn-sales-order-form",
+              "btn-subcon-delivery",
             ]);
             break;
 
@@ -1697,6 +1728,7 @@
               "btn-gauge-masterlist",
               "btn-traveler-card",
               "btn-dms",
+              "btn-subcon-delivery",
             ]);
             break;
           case "MANAGEMENT":

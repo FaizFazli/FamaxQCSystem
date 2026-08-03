@@ -1,0 +1,1876 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subcon Delivery</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page, deliberately. Captures anything that fails
+           afterwards — including a CDN <script> that 404s — so a failure can
+           never present as a blank page with no explanation. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);   // capture phase: resource load errors do not bubble
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        /* Same palette remap as the gauge masterlist — the Play CDN injects its
+           sheet at runtime, after theme.css, so utilities win. Remapping here
+           keeps this page on the design tokens without touching markup. */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617'
+                        },
+                        blue: {
+                            50: '#e6f2fb', 100: '#cce4f6', 200: '#b3d7f2', 300: '#8cc2ec',
+                            400: '#59a7e3', 500: '#268cda', 600: '#0078d4', 700: '#0067b8',
+                            800: '#00589c', 900: '#004881', 950: '#003965'
+                        },
+                        green: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b'
+                        },
+                        orange: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#f59e0b', 500: '#d97706', 600: '#b45309', 700: '#92400e',
+                            800: '#78350f', 900: '#451a03'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Relative, not /assets/... — an absolute path only resolves when the
+         page is served from the app root, so opening the file from disk (or
+         serving it under a different base) silently 404s both of these and the
+         page cannot start. ../../ resolves correctly under /, under
+         /FamaxQCSystem, and from file://. -->
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html) ---- */
+        #app.shell { display: flex; align-items: flex-start; }
+
+        /* Must out-specify #app.shell, or its display:flex beats the plain
+           [v-cloak] rule and the uncompiled template flashes before Vue mounts. */
+        #app[v-cloak] { display: none; }
+
+        .column {
+            flex: 1; min-width: 0;
+            display: flex; flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .rail {
+            position: sticky; top: 0;
+            flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+        .access-level--read {
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Side navigation (the three sections of this page) ---- */
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none; border: 0;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .rail-nav__dot {
+            width: 7px; height: 7px; flex-shrink: 0;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.28);
+        }
+        .rail-nav__item.is-active .rail-nav__dot { background: #fff; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* Below 900 the rail lies down into a header strip, same as AdminLogin. */
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Visible from the first byte and removed only once Vue has mounted, so
+         a CDN failure explains itself instead of showing a blank white page. -->
+    <div id="boot" style="max-width:760px;margin:64px auto;padding:24px;border:1px solid #e2e8f0;
+                          background:#fff;border-radius:16px;font-family:system-ui,sans-serif">
+        <h1 style="margin:0 0 8px;font-size:16px;font-weight:700;color:#1e293b">Starting…</h1>
+        <p id="boot-msg" style="margin:0;font-size:14px;color:#475569;line-height:1.6">
+            Loading Vue, the Supabase client and the app config. If this message stays,
+            one of them did not load — the detail will appear below.
+        </p>
+        <pre id="boot-detail" style="display:none;margin:12px 0 0;padding:12px;background:#f1f5f9;
+             border-radius:8px;font-size:12px;color:#64748b;white-space:pre-wrap"></pre>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">
+            This page must be served over http:// — opening the .html from disk cannot reach the database.
+            Try <strong>http://127.0.0.1/screen_page/subcon/subcon_delivery.html</strong>
+        </p>
+    </div>
+
+    <div id="app" v-cloak class="shell">
+
+        <!-- ---------- Identity rail / side nav ---------- -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">Subcon Delivery</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span v-if="canWrite" class="access-level">{{ accessLabel }}</span>
+                <span v-else class="access-level access-level--read">Read only</span>
+            </div>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <nav class="rail-nav">
+                <div class="rail-nav__label">Sections</div>
+                <button @click="setView('out')" :class="['rail-nav__item', view === 'out' ? 'is-active' : '']">
+                    <span class="rail-nav__dot"></span><span class="rail-nav__name">Send Out</span>
+                </button>
+                <button @click="setView('receive')" :class="['rail-nav__item', view === 'receive' ? 'is-active' : '']">
+                    <span class="rail-nav__dot"></span><span class="rail-nav__name">Receive Back</span>
+                </button>
+                <button @click="setView('history')" :class="['rail-nav__item', view === 'history' ? 'is-active' : '']">
+                    <span class="rail-nav__dot"></span><span class="rail-nav__name">History</span>
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+        <main class="max-w-[1500px] w-full mx-auto px-6 py-6">
+
+            <div class="mb-5">
+                <h1 class="text-xl font-bold tracking-tight text-gray-900">{{ viewTitle }}</h1>
+                <p class="text-sm text-gray-500 mt-0.5">{{ viewSubtitle }}</p>
+            </div>
+
+            <!-- ---------- Migration not applied ---------- -->
+            <div v-if="tablesMissing"
+                 class="rounded-2xl border p-6 mb-5" style="border-color:#fde68a;background:#fffbeb">
+                <h2 class="text-base font-bold text-gray-900 mb-2">The subcon delivery tables are not set up yet</h2>
+                <p class="text-sm text-gray-600 leading-relaxed max-w-3xl">
+                    The database rejected the request for
+                    <code class="font-mono">subcon_delivery_out</code>, which means the migration has not been run —
+                    or that row-level security is still blocking the app's anon key.
+                </p>
+                <p class="text-sm text-gray-600 leading-relaxed mt-3">
+                    Run <code class="font-mono font-bold">sql/2026-08-03_subcon_delivery.sql</code>
+                    against the Supabase database, then reload.
+                </p>
+                <p v-if="loadError" class="text-sm mt-3 font-medium" style="color:var(--danger)">{{ loadError }}</p>
+            </div>
+
+            <!-- ==================================================================
+                 SEND OUT
+                 ================================================================== -->
+            <div v-if="view === 'out'">
+
+                <div v-if="!canWrite" class="flex items-center gap-3 mb-4 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" class="text-gray-400 flex-shrink-0" fill="currentColor">
+                        <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                    </svg>
+                    <p class="text-sm text-gray-600 flex-1">
+                        Read-only. Your access level cannot record deliveries — use Receive Back and History to look things up.
+                    </p>
+                </div>
+
+                <!-- Header: one DO, one subcon, one date -->
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="field">
+                            <label class="label">DO Number <span style="color:var(--danger)">*</span></label>
+                            <input v-model="outForm.do_number" type="text" placeholder="DO-2026-0142"
+                                   :disabled="!canWrite"
+                                   @input="outForm.do_number = outForm.do_number.toUpperCase(); checkDoNumber()" />
+                            <p v-if="doExists" class="hint" style="color:var(--warning)">
+                                {{ doExists }} line(s) already recorded under this DO number. Adding more is fine for a
+                                multi-part DO — check it is not a duplicate entry.
+                            </p>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Subcontractor <span style="color:var(--danger)">*</span></label>
+                            <div class="pair">
+                                <select v-model="outForm.subcon_name" :disabled="!canWrite">
+                                    <option value="">Select a subcontractor…</option>
+                                    <option v-for="s in subcons" :key="s.id" :value="s.name">{{ s.name }}</option>
+                                </select>
+                                <button class="btn btn--secondary" @click="openSubcon()" :disabled="!canWrite"
+                                        title="Register a new subcontractor">+ Add</button>
+                            </div>
+                            <p v-if="selectedSubcon" class="hint">
+                                {{ selectedSubcon.address || 'No address on file' }}<span v-if="selectedSubcon.tel"> · {{ selectedSubcon.tel }}</span>
+                            </p>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Delivery Date <span style="color:var(--danger)">*</span></label>
+                            <input v-model="outForm.delivery_date" type="date" :disabled="!canWrite" />
+                        </div>
+                    </div>
+
+                    <!-- DO images. Attached to the DO NUMBER, not to a part line — a DO
+                         carrying three parts is still one piece of paper. Queued here and
+                         uploaded when the DO is saved, so abandoning the form leaves no
+                         orphaned files in the bucket. More can be added later from the
+                         camera button on the DO in Receive Back / History. -->
+                    <div class="field mt-4">
+                        <label class="label">DO Images</label>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button class="btn btn--secondary" :disabled="!canWrite"
+                                    @click="$refs.doImageInput.click()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M9 3L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.17L15 3H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                                </svg>
+                                + Add DO image
+                            </button>
+                            <input ref="doImageInput" type="file" accept="image/*" multiple class="hidden"
+                                   @change="queueDoImages($event)" />
+                            <span class="text-xs text-gray-400">
+                                Photograph or scan of the delivery order. More than one is fine.
+                            </span>
+                        </div>
+
+                        <div v-if="pendingImages.length" class="flex flex-wrap gap-3 mt-3">
+                            <div v-for="(img, i) in pendingImages" :key="i" class="thumb">
+                                <img :src="img.preview" :alt="img.file.name" />
+                                <button class="thumb__x" @click="removePendingImage(i)" title="Remove">&times;</button>
+                                <span class="thumb__name">{{ img.file.name }}</span>
+                            </div>
+                        </div>
+                        <p v-if="imageError" class="hint" style="color:var(--danger)">{{ imageError }}</p>
+                    </div>
+
+                    <div class="field mt-4">
+                        <label class="label">Remark</label>
+                        <input v-model="outForm.remark" type="text" :disabled="!canWrite"
+                               placeholder="Applies to every part line on this DO" />
+                    </div>
+                </div>
+
+                <!-- Part lines.
+                     No overflow-hidden on this panel: the part combobox is
+                     position:absolute inside it and would be clipped at the card
+                     edge. The header rounds its own top corners instead. -->
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm mb-4">
+                    <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
+                        <h2 class="text-sm font-bold text-gray-700">Parts on this DO</h2>
+                        <span class="flex-1"></span>
+                        <button v-if="canWrite" @click="addLine()" class="btn btn--secondary">+ Add part</button>
+                    </div>
+
+                    <div v-for="(l, i) in outLines" :key="i" class="p-5 border-b border-gray-100 last:border-b-0">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Line {{ i + 1 }}</span>
+                            <label class="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer">
+                                <input type="checkbox" v-model="l.free_text" @change="onFreeTextToggle(l)"
+                                       :disabled="!canWrite" style="width:auto;height:auto" />
+                                Part not in masterlist
+                            </label>
+                            <span class="flex-1"></span>
+                            <button v-if="canWrite && outLines.length > 1" @click="outLines.splice(i, 1)"
+                                    class="text-xs font-bold text-gray-400 hover:text-red-600">Remove</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <!-- Part name: combobox over Parts, or free text -->
+                            <div class="field md:col-span-6 relative">
+                                <label class="label">Part Name <span style="color:var(--danger)">*</span></label>
+                                <input v-model="l.part_name" type="text" :disabled="!canWrite"
+                                       :placeholder="l.free_text ? 'TYPE THE PART NAME' : 'SEARCH THE PARTS MASTERLIST'"
+                                       @focus="l.showParts = !l.free_text"
+                                       @blur="closePartList(l)"
+                                       @input="onPartInput(l)" />
+                                <div v-if="l.showParts && partMatches(l).length" class="combo">
+                                    <div v-for="p in partMatches(l)" :key="p"
+                                         class="combo__item" @mousedown.prevent="selectPart(l, p)">{{ p }}</div>
+                                </div>
+                            </div>
+
+                            <div class="field md:col-span-2">
+                                <label class="label">Part No.</label>
+                                <input v-model="l.part_no" type="text" :readonly="!l.free_text" :disabled="!canWrite"
+                                       :class="l.free_text ? '' : 'bg-gray-50'" placeholder="—" />
+                            </div>
+
+                            <div class="field md:col-span-2">
+                                <label class="label">Quantity <span style="color:var(--danger)">*</span></label>
+                                <input v-model.number="l.quantity" type="number" min="1" step="1" :disabled="!canWrite" />
+                            </div>
+
+                            <div class="field md:col-span-2">
+                                <label class="label">Line Remark</label>
+                                <input v-model="l.remark" type="text" :disabled="!canWrite" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p v-if="formError" class="mb-3 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                <p v-if="okMessage" class="mb-3 text-sm font-medium" style="color:var(--success)">{{ okMessage }}</p>
+
+                <div class="flex items-center gap-3">
+                    <button v-if="canWrite" @click="saveOut()" class="btn" :disabled="saving">
+                        {{ saving ? 'Saving…' : 'Record delivery out' }}
+                    </button>
+                    <button @click="resetOutForm()" class="btn btn--secondary" :disabled="saving">Clear</button>
+                </div>
+            </div>
+
+            <!-- ==================================================================
+                 RECEIVE BACK  /  HISTORY  — same list, different filter
+                 ================================================================== -->
+            <div v-else>
+
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <input v-model="search" @input="debouncedReload" type="search"
+                           placeholder="Search DO, return DO, subcon, part…" class="sd-field" />
+                    <template v-if="view === 'history'">
+                        <input v-model="fromDate" @change="go(0)" type="date" class="sd-field" title="Delivered from" />
+                        <input v-model="toDate" @change="go(0)" type="date" class="sd-field" title="Delivered to" />
+                    </template>
+                    <!-- Receive Back lists what is still out, so a fully received line
+                         disappears from it. That is right for the daily job and wrong
+                         the moment you need to correct a receipt or log an
+                         over-delivery, hence the toggle. -->
+                    <label v-if="view === 'receive'"
+                           class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer whitespace-nowrap">
+                        <input type="checkbox" v-model="showClosed" @change="go(0)" style="width:auto;height:auto" />
+                        Show fully received
+                    </label>
+                    <span class="flex-1"></span>
+                    <span class="text-xs text-gray-400 font-medium">
+                        {{ total }} part line{{ total === 1 ? '' : 's' }}
+                    </span>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+                    <div v-if="loading" class="px-5 py-10 text-center text-sm text-gray-400">Loading…</div>
+
+                    <div v-else-if="rows.length === 0" class="px-5 py-10 text-center text-sm text-gray-400">
+                        <template v-if="view === 'receive'">
+                            <template v-if="showClosed">
+                                Nothing recorded{{ search ? ' for that search' : '' }} yet.
+                            </template>
+                            <template v-else>
+                                Nothing is outstanding at a subcontractor{{ search ? ' for that search' : '' }}.
+                                Everything sent has come back — tick <strong>Show fully received</strong> to see
+                                the closed lines, or use History.
+                            </template>
+                        </template>
+                        <template v-else>
+                            No deliveries recorded{{ search ? ' for that search' : '' }} yet.
+                        </template>
+                    </div>
+
+                    <!-- One block per DO number, its part lines nested under it -->
+                    <div v-else v-for="grp in grouped" :key="grp.do_number" class="border-b border-gray-200 last:border-b-0">
+
+                        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3 bg-gray-50">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Out</span>
+                            <span class="text-sm font-bold text-gray-900">{{ grp.do_number }}</span>
+                            <span class="text-sm text-gray-600">{{ grp.subcon_name }}</span>
+                            <span class="text-xs text-gray-400">{{ fmtDate(grp.delivery_date) }}</span>
+                            <span class="flex-1"></span>
+                            <button class="do-img-btn" @click="openImages(grp.do_number)"
+                                    :title="'DO images for ' + grp.do_number">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                    <path d="M9 3L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.17L15 3H9zm3 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+                                </svg>
+                                {{ imageCounts[grp.do_number] || 0 }}
+                            </button>
+                            <span v-if="grp.open" class="badge badge--warning">{{ grp.open }} line(s) outstanding</span>
+                            <span v-else class="badge badge--success">Fully received</span>
+                        </div>
+
+                        <div v-for="line in grp.lines" :key="line.id" class="px-5 py-4 border-t border-gray-100">
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold text-gray-900 truncate">{{ line.part_name }}</div>
+                                    <div class="text-xs text-gray-400 mt-0.5">
+                                        {{ line.part_no || 'No part number' }}
+                                        <span v-if="!line.from_masterlist" class="badge ml-2">Free text</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sent</div>
+                                    <div class="text-sm font-semibold tabular-nums text-gray-900">{{ fmtQty(line.quantity) }}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Received</div>
+                                    <div class="text-sm font-semibold tabular-nums text-gray-900">{{ fmtQty(line.received_qty) }}</div>
+                                </div>
+                                <div class="text-right" style="min-width:96px">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Balance</div>
+                                    <div class="text-sm font-bold tabular-nums"
+                                         :style="{ color: balance(line) > 0 ? 'var(--warning)' : 'var(--success)' }">
+                                        {{ fmtQty(balance(line)) }}
+                                    </div>
+                                </div>
+                                <button v-if="canWrite" @click="openReceive(line)" class="btn btn--secondary whitespace-nowrap">
+                                    + Receive
+                                </button>
+                            </div>
+
+                            <!-- Receipts against this line -->
+                            <div v-if="(receipts[line.id] || []).length" class="mt-3 pl-4 border-l-2 border-gray-200">
+                                <div v-for="r in receipts[line.id]" :key="r.id" class="py-2">
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">Rcv</span>
+                                        <button class="text-sm font-semibold text-blue-600 hover:underline"
+                                                @click="toggleInspection(r.return_do_number)">
+                                            {{ r.return_do_number }}
+                                        </button>
+                                        <span class="text-xs text-gray-400">{{ fmtDate(r.receive_date) }}</span>
+                                        <span class="text-sm tabular-nums text-gray-700">{{ fmtQty(r.quantity) }}</span>
+                                        <span v-if="r.remark" class="text-xs text-gray-400 italic">{{ r.remark }}</span>
+                                        <span class="flex-1"></span>
+                                        <button v-if="canWrite" @click="openEditReceipt(r, line)"
+                                                class="text-xs font-bold text-gray-400 hover:text-blue-600 px-1">Edit</button>
+                                        <span :class="['badge', inspBadgeClass(r.return_do_number)]">
+                                            {{ inspBadgeText(r.return_do_number) }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Inspection history for this return DO -->
+                                    <div v-if="insp[r.return_do_number] && insp[r.return_do_number].open"
+                                         class="mt-2 rounded-xl border border-gray-200 overflow-hidden">
+                                        <div v-if="insp[r.return_do_number].loading"
+                                             class="px-4 py-4 text-xs text-gray-400">Loading inspection history…</div>
+                                        <div v-else-if="!insp[r.return_do_number].records.length"
+                                             class="px-4 py-4 text-xs text-gray-400">
+                                            No inspection has been filed against {{ r.return_do_number }} yet.
+                                            Enter one in the Quality Hub — the DO number will appear in its dropdown.
+                                        </div>
+                                        <table v-else class="w-full text-xs">
+                                            <thead>
+                                                <tr class="bg-gray-100 border-b border-gray-200">
+                                                    <th class="text-left px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Date</th>
+                                                    <th class="text-left px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Type</th>
+                                                    <th class="text-left px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Parameter</th>
+                                                    <th class="text-right px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Check</th>
+                                                    <th class="text-right px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Accept</th>
+                                                    <th class="text-right px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Reject</th>
+                                                    <th class="text-right px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Scrap</th>
+                                                    <th class="text-left px-3 py-2 font-bold uppercase tracking-wider text-gray-500">Inspector</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="rec in insp[r.return_do_number].records" :key="rec.id"
+                                                    class="border-b border-gray-100 last:border-b-0 align-top">
+                                                    <td class="px-3 py-2 whitespace-nowrap text-gray-600">{{ fmtDateTime(rec.created_at) }}</td>
+                                                    <td class="px-3 py-2">
+                                                        <span class="badge">{{ rec.Category || '—' }}</span>
+                                                        <div v-if="rec.Inspection_Type === 'RE-INSPECTION'"
+                                                             class="text-[10px] text-gray-400 mt-1">Re-inspection</div>
+                                                    </td>
+                                                    <td class="px-3 py-2 text-gray-600">
+                                                        {{ rec.Parameter || '—' }}
+                                                        <div v-for="(d, di) in getDefects(rec.Remark)" :key="di"
+                                                             class="text-[10px] text-gray-400">• {{ d.description }} ({{ d.quantity }})</div>
+                                                    </td>
+                                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700">{{ rec.TotalCheck ?? '—' }}</td>
+                                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700">{{ rec.AcceptQty ?? '—' }}</td>
+                                                    <td class="px-3 py-2 text-right tabular-nums font-semibold"
+                                                        :style="{ color: Number(rec.RejectQty) > 0 ? 'var(--danger)' : 'inherit' }">
+                                                        {{ rec.RejectQty ?? '—' }}
+                                                    </td>
+                                                    <td class="px-3 py-2 text-right tabular-nums text-gray-700">{{ rec.ScrapQty ?? '—' }}</td>
+                                                    <td class="px-3 py-2 text-gray-600">
+                                                        {{ rec.InspectBy || '—' }}
+                                                        <div v-if="rec.FinalizeBy" class="text-[10px] text-gray-400">{{ rec.FinalizeBy }}</div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p v-else-if="view === 'history'" class="mt-2 pl-4 text-xs text-gray-400 italic">
+                                Nothing received back yet.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div v-if="!loading && total > pageSize" class="flex items-center gap-3 px-4 py-3 border-t border-gray-200">
+                        <button @click="go(page - 1)" :disabled="page === 0" class="btn btn--secondary">Previous</button>
+                        <span class="text-xs text-gray-500 font-medium">
+                            {{ page * pageSize + 1 }}–{{ Math.min((page + 1) * pageSize, total) }} of {{ total }}
+                        </span>
+                        <button @click="go(page + 1)" :disabled="(page + 1) * pageSize >= total" class="btn btn--secondary">Next</button>
+                    </div>
+                </div>
+
+                <p v-if="loadError && !tablesMissing" class="mt-3 text-sm font-medium" style="color:var(--danger)">{{ loadError }}</p>
+            </div>
+
+        </main>
+
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </div>
+
+        <!-- ================= Add subcontractor ================= -->
+        <div v-if="subconModal" class="modal-overlay" style="display:flex" @click.self="subconModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">New subcontractor
+                        <span class="dlg__sub">Appears in the dropdown immediately</span>
+                    </h3>
+                    <button class="dlg__close" @click="subconModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="field">
+                        <label class="label">Name <span style="color:var(--danger)">*</span></label>
+                        <input v-model="subconForm.name" type="text" placeholder="ABC PLATING SDN BHD"
+                               @input="subconForm.name = subconForm.name.toUpperCase()" />
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Address</label>
+                        <textarea v-model="subconForm.address" rows="3"></textarea>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Tel</label>
+                        <input v-model="subconForm.tel" type="text" placeholder="03-1234 5678" />
+                    </div>
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <span class="flex-1"></span>
+                    <button @click="subconModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveSubcon()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Add subcontractor' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Receive back ================= -->
+        <div v-if="recvModal" class="modal-overlay" style="display:flex" @click.self="recvModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">Receive back from {{ recvModal.subcon_name }}
+                        <span class="dlg__sub">
+                            {{ recvModal.part_name }} · out on {{ recvModal.do_number }} ·
+                            balance {{ fmtQty(balance(recvModal)) }} of {{ fmtQty(recvModal.quantity) }}
+                        </span>
+                    </h3>
+                    <button class="dlg__close" @click="recvModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Customer / Return DO No. <span style="color:var(--danger)">*</span></label>
+                            <input v-model="recvForm.return_do_number" type="text" placeholder="SC-DO-991"
+                                   @input="recvForm.return_do_number = recvForm.return_do_number.toUpperCase()" />
+                            <p class="hint">This is the number QC will inspect against.</p>
+                        </div>
+                        <div class="field">
+                            <label class="label">Date Received <span style="color:var(--danger)">*</span></label>
+                            <input v-model="recvForm.receive_date" type="date" />
+                        </div>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Quantity <span style="color:var(--danger)">*</span></label>
+                        <input v-model.number="recvForm.quantity" type="number" min="1" step="1" />
+                        <p v-if="overBalance" class="hint" style="color:var(--warning)">
+                            That is {{ fmtQty(overBalance) }} more than the outstanding balance. Saving is allowed —
+                            over-delivery happens — but check the quantity first.
+                        </p>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Remark</label>
+                        <input v-model="recvForm.remark" type="text" />
+                    </div>
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <span class="flex-1"></span>
+                    <button @click="recvModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveReceive()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Record receipt' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Edit a receipt ================= -->
+        <div v-if="editModal" class="modal-overlay" style="display:flex" @click.self="editModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">Edit receipt
+                        <span class="dlg__sub">
+                            {{ editModal.line.part_name }} · out on {{ editModal.line.do_number }}
+                        </span>
+                    </h3>
+                    <button class="dlg__close" @click="editModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Customer / Return DO No. <span style="color:var(--danger)">*</span></label>
+                            <input v-model="editForm.return_do_number" type="text"
+                                   @input="editForm.return_do_number = editForm.return_do_number.toUpperCase()" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Date Received <span style="color:var(--danger)">*</span></label>
+                            <input v-model="editForm.receive_date" type="date" />
+                        </div>
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Quantity <span style="color:var(--danger)">*</span></label>
+                        <input v-model.number="editForm.quantity" type="number" min="1" step="1" />
+                    </div>
+                    <div class="field mt-4">
+                        <label class="label">Remark</label>
+                        <input v-model="editForm.remark" type="text" />
+                    </div>
+
+                    <!-- The whole point of the edit: a temporary number becomes the real one
+                         and the inspections filed against it have to follow. -->
+                    <div v-if="doRenamed" class="mt-4 rounded-xl p-4"
+                         style="border:1px solid #bfdbfe;background:#eff6ff">
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            <strong>{{ editModal.receipt.return_do_number }}</strong> will be renamed to
+                            <strong>{{ editForm.return_do_number }}</strong>.
+                        </p>
+                        <p class="text-sm text-gray-600 leading-relaxed mt-2">
+                            <template v-if="editInspCount === null">Checking inspection records…</template>
+                            <template v-else-if="editInspCount === 0">
+                                No inspection has been filed under the old number, so nothing else changes.
+                            </template>
+                            <template v-else>
+                                <strong>{{ editInspCount }}</strong> inspection record(s) filed under the old
+                                number will be moved to the new one, so the DO keeps its QC history.
+                            </template>
+                        </p>
+                    </div>
+
+                    <p v-if="formError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <button @click="deleteReceipt()" class="btn btn--danger" :disabled="saving">Delete receipt</button>
+                    <span class="flex-1"></span>
+                    <button @click="editModal = null" class="btn btn--secondary">Cancel</button>
+                    <button @click="saveEditReceipt()" class="btn" :disabled="saving">{{ saving ? 'Saving…' : 'Save changes' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= DO images ================= -->
+        <div v-if="imagesModal" class="modal-overlay" style="display:flex" @click.self="imagesModal = null">
+            <div class="modal modal--form">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">DO images — {{ imagesModal }}
+                        <span class="dlg__sub">Photographs or scans of the outgoing delivery order</span>
+                    </h3>
+                    <button class="dlg__close" @click="imagesModal = null" aria-label="Close">&times;</button>
+                </div>
+                <div class="dlg__body">
+                    <div v-if="imagesLoading" class="py-8 text-center text-sm text-gray-400">Loading…</div>
+
+                    <div v-else-if="!modalImages.length" class="py-8 text-center text-sm text-gray-400">
+                        No images kept for this DO yet.
+                    </div>
+
+                    <div v-else class="flex flex-wrap gap-3">
+                        <div v-for="img in modalImages" :key="img.id" class="thumb thumb--lg">
+                            <a :href="img.image_url" target="_blank" rel="noopener">
+                                <img :src="img.image_url" :alt="img.caption || imagesModal" />
+                            </a>
+                            <button v-if="canWrite" class="thumb__x" @click="deleteImage(img)"
+                                    title="Delete this image">&times;</button>
+                            <span class="thumb__name">{{ fmtDate(img.uploaded_at.slice(0, 10)) }}</span>
+                        </div>
+                    </div>
+
+                    <p v-if="imageError" class="mt-4 text-sm font-medium" style="color:var(--danger)">{{ imageError }}</p>
+                </div>
+                <div class="dlg__foot">
+                    <button v-if="canWrite" class="btn btn--secondary" :disabled="saving"
+                            @click="$refs.modalImageInput.click()">
+                        {{ saving ? 'Uploading…' : '+ Add image' }}
+                    </button>
+                    <input ref="modalImageInput" type="file" accept="image/*" multiple class="hidden"
+                           @change="uploadToOpenDo($event)" />
+                    <span class="flex-1"></span>
+                    <button @click="imagesModal = null" class="btn">Done</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <style>
+        /* Dialog chrome — same vocabulary as the gauge masterlist. */
+        .modal-overlay > .modal--form {
+            display: flex; flex-direction: column;
+            max-width: 620px; max-height: min(86vh, 820px);
+            padding: 0; text-align: left;
+        }
+        .dlg__head {
+            display: flex; align-items: flex-start; gap: var(--space-4);
+            padding: var(--space-5) var(--space-6);
+            border-bottom: 1px solid var(--border);
+        }
+        .dlg__title { flex: 1; margin: 0; font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .dlg__sub { display: block; margin-top: 3px; font-size: var(--fs-sm); font-weight: 400; color: var(--text-muted); }
+        .dlg__close {
+            flex-shrink: 0; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; line-height: 1; color: var(--text-muted);
+            background: none; border: 1px solid transparent;
+            border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .dlg__close:hover { background: var(--surface-muted); color: var(--text-main); }
+        .dlg__body { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6) var(--space-6); }
+        .dlg__foot {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-4) var(--space-6);
+            border-top: 1px solid var(--border); background: var(--surface-muted);
+        }
+        .hint { margin: 6px 0 0; font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+
+        /* One control size everywhere — a <select> lands a few pixels shorter
+           than an <input> in Chrome, and date/number inputs drift again on top
+           of that, which shows badly when they sit side by side in a grid. */
+        :root { --control-h: 42px; }
+
+        .field input, .field select,
+        .dlg__body input, .dlg__body select,
+        .sd-field {
+            height: var(--control-h);
+            line-height: normal;
+            box-sizing: border-box;
+        }
+        .field textarea, .dlg__body textarea {
+            min-height: var(--control-h);
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+        .field select, .dlg__body select, select.sd-field { padding-right: var(--space-8); }
+
+        /* Qualified with the element, deliberately. theme.css sizes controls via
+           `input[type="search"], input[type="date"], … { width: 100% }`, whose
+           attribute selector out-specifies a bare class — a plain `.sd-field`
+           rule loses and the toolbar stacks full-width instead of sitting inline. */
+        input.sd-field, select.sd-field { width: 240px; flex: none; }
+        @media (max-width: 720px) {
+            input.sd-field, select.sd-field { width: 100%; }
+        }
+
+        /* Dropdown + its button read as one row. */
+        .pair { display: flex; gap: var(--space-2); align-items: stretch; }
+        .pair select { flex: 1; min-width: 0; }
+        .pair .btn { height: var(--control-h); white-space: nowrap; flex: none; }
+
+        /* Part combobox — the same shape the inspection form's dropdowns use. */
+        .combo {
+            position: absolute; z-index: 40; top: 100%; left: 0; right: 0;
+            max-height: 240px; overflow-y: auto;
+            margin-top: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-lg);
+        }
+        .combo__item {
+            padding: 9px 12px;
+            font-size: var(--fs-sm); color: var(--text-main);
+            cursor: pointer;
+        }
+        .combo__item:hover { background: var(--primary-soft); }
+
+        /* A checkbox must not inherit the 42px control height. */
+        .field input[type="checkbox"] { height: auto; }
+
+        /* ---- DO images ---- */
+        .hidden { display: none; }
+
+        .thumb {
+            position: relative;
+            width: 104px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--surface-muted);
+        }
+        .thumb--lg { width: 148px; }
+        .thumb img {
+            display: block;
+            width: 100%; height: 88px;
+            object-fit: cover;
+        }
+        .thumb--lg img { height: 124px; }
+        .thumb__name {
+            display: block;
+            padding: 4px 6px;
+            font-size: 10px; color: var(--text-muted);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        /* Sits on the image, so it needs its own contrast rather than the page's. */
+        .thumb__x {
+            position: absolute; top: 4px; right: 4px;
+            width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; line-height: 1; color: #fff;
+            background: rgba(15, 23, 42, 0.62);
+            border: 0; border-radius: var(--radius-full);
+            cursor: pointer;
+        }
+        .thumb__x:hover { background: var(--danger); }
+
+        /* Camera chip on a DO group header. Reads as a count, not a button, until hovered. */
+        .do-img-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 9px;
+            font-family: var(--font-sans);
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: color var(--transition), border-color var(--transition);
+        }
+        .do-img-btn:hover { color: var(--primary); border-color: var(--primary); }
+    </style>
+
+    <script>
+        /* Writes into the #boot panel that is already on screen, rather than
+           trying to un-hide #app. #boot is removed only on a successful mount,
+           so there is no path that ends in a blank page. */
+        function bootFailed(what, detail) {
+            const box = document.getElementById('boot');
+            if (!box) return;
+            box.style.borderColor = '#fde68a';
+            box.style.background = '#fffbeb';
+            const h = box.querySelector('h1');
+            if (h) h.textContent = 'This page could not start';
+            const msg = document.getElementById('boot-msg');
+            if (msg) msg.textContent = what;
+            const errs = (window.__bootErrors || []).join('\n');
+            const body = [detail, errs].filter(Boolean).join('\n\n');
+            const pre = document.getElementById('boot-detail');
+            if (pre && body) { pre.style.display = 'block'; pre.textContent = body; }
+            console.error('Subcon delivery could not start:', what, body);
+        }
+
+        window.__bootReport = function () {
+            if (!document.getElementById('boot')) return;   // already mounted fine
+            bootFailed('Something failed to load before the page could start.');
+        };
+
+        if (typeof Vue === 'undefined') {
+            bootFailed('Vue did not load. It comes from unpkg.com — check the network tab, ' +
+                'or whether this machine can reach that CDN.');
+            throw new Error('Vue missing');
+        }
+        if (typeof supabase === 'undefined') {
+            bootFailed('The Supabase client did not load. It comes from unpkg.com — check the ' +
+                'network tab, or whether this machine can reach that CDN.');
+            throw new Error('supabase missing');
+        }
+        if (!window.APP_CONFIG) {
+            bootFailed('../../assets/app-config.js did not load, so there is no database address.');
+            throw new Error('APP_CONFIG missing');
+        }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Mirrors AdminLogin's grant for btn-subcon-delivery exactly. Keep the two
+        // in step — a role that cannot see the card should not be able to write.
+        const WRITE_ROLES = ['ALL', 'QUALITY', 'PRODUCTION', 'BUSINESSDEV'];
+
+        const app = createApp({
+            setup() {
+                const pageSize = 50;
+
+                // ---- identity -------------------------------------------------
+                const railUser = ref('—');
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+                const accessLabel = computed(() =>
+                    accessLevel.value === 'ALL' ? 'Superuser' : accessLevel.value);
+
+                // ---- view -----------------------------------------------------
+                const view = ref('out');
+                const viewTitle = computed(() => ({
+                    out: 'Send Out to Subcontractor',
+                    receive: 'Receive Back',
+                    history: 'Delivery History'
+                }[view.value]));
+                const viewSubtitle = computed(() => ({
+                    out: 'Record what leaves the building on a delivery order',
+                    receive: showClosed.value
+                        ? 'Every part line, outstanding and fully received'
+                        : 'Part lines still outstanding at a subcontractor',
+                    history: 'Every delivery, what came back, and what QC found'
+                }[view.value]));
+
+                // ---- reference data -------------------------------------------
+                const subcons = ref([]);
+                const parts = ref([]);
+
+                // ---- send-out form --------------------------------------------
+                // Local date, not toISOString(): this site runs at UTC+8, so the
+                // UTC date is still yesterday for the whole morning shift.
+                function today() {
+                    const d = new Date();
+                    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                        .toISOString().slice(0, 10);
+                }
+                function blankLine() {
+                    return {
+                        part_name: '', part_no: '', quantity: null, remark: '',
+                        free_text: false, showParts: false
+                    };
+                }
+                const outForm = reactive({
+                    do_number: '', subcon_name: '', delivery_date: today(), remark: ''
+                });
+                const outLines = ref([blankLine()]);
+                const doExists = ref(0);
+
+                const selectedSubcon = computed(() =>
+                    subcons.value.find(s => s.name === outForm.subcon_name) || null);
+
+                // ---- list -----------------------------------------------------
+                const rows = ref([]);
+                const receipts = ref({});      // out_line_id -> [receipt, ...]
+                const insp = ref({});          // return_do_number -> {open, loading, records}
+                const total = ref(0);
+                const page = ref(0);
+                const loading = ref(true);
+                const loadError = ref('');
+                const tablesMissing = ref(false);
+                const search = ref('');
+                const fromDate = ref('');
+                const toDate = ref('');
+                // Receive Back shows only outstanding lines by default; this lifts that.
+                const showClosed = ref(false);
+
+                // ---- modals ---------------------------------------------------
+                const subconModal = ref(null);
+                const recvModal = ref(null);
+                const editModal = ref(null);
+                const imagesModal = ref(null);      // holds the DO number being viewed
+                const subconForm = reactive({});
+                const recvForm = reactive({});
+                const editForm = reactive({});
+                const saving = ref(false);
+                const formError = ref('');
+                const okMessage = ref('');
+
+                // ---- DO images ------------------------------------------------
+                const IMAGE_BUCKET = 'subcon';
+                const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+                const pendingImages = ref([]);      // queued on the Send Out form
+                const modalImages = ref([]);
+                const imageCounts = ref({});        // do_number -> count, for the header chip
+                const imagesLoading = ref(false);
+                const imageError = ref('');
+
+                // ---- helpers --------------------------------------------------
+                const PART_NO_RE = /\(([^)]+)\)/;
+                // Parts.Part_Name is the composite "DESCRIPTION (PART-NO)"; the
+                // part number is re-parsed out of it here exactly as the
+                // inspection form does at submit time.
+                function extractPartNo(name) {
+                    const m = String(name || '').match(PART_NO_RE);
+                    return m ? m[1].trim() : String(name || '').trim();
+                }
+                const fmtQty = v => (v === null || v === undefined || v === '') ? '—' : Number(v).toLocaleString();
+                const balance = l => Number(l.quantity || 0) - Number(l.received_qty || 0);
+
+                function fmtDate(d) {
+                    if (!d) return '—';
+                    return new Date(d + (d.length === 10 ? 'T00:00:00' : ''))
+                        .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                }
+                function fmtDateTime(iso) {
+                    if (!iso) return '—';
+                    const d = new Date(iso);
+                    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                // InspectionRecord.Remark is a JSON array of {description, quantity}.
+                // Same parser the DO report uses — it may arrive as a string or already parsed.
+                function getDefects(remark) {
+                    if (!remark) return [];
+                    try {
+                        const parsed = typeof remark === 'string' ? JSON.parse(remark) : remark;
+                        return Array.isArray(parsed) ? parsed.filter(d => d.quantity > 0 || d.description) : [];
+                    } catch (e) { return []; }
+                }
+
+                // ---- access ----------------------------------------------------
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (!userId) return;
+                    railUser.value = userId;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                }
+
+                // ---- reference data --------------------------------------------
+                async function loadSubcons() {
+                    const { data, error } = await _supabase
+                        .from('subcontractor').select('*').order('name');
+                    if (error) { console.error(error); return; }
+                    subcons.value = data || [];
+                }
+                async function loadParts() {
+                    const { data, error } = await _supabase
+                        .from('Parts').select('Part_Name').order('Part_Name');
+                    if (error) { console.error(error); return; }
+                    parts.value = [...new Set((data || []).map(p => p.Part_Name).filter(Boolean))];
+                }
+
+                // ---- send out ---------------------------------------------------
+                function partMatches(l) {
+                    const q = (l.part_name || '').toLowerCase();
+                    const list = q ? parts.value.filter(p => p.toLowerCase().includes(q)) : parts.value;
+                    return list.slice(0, 50);   // a blank box must not render 900 rows
+                }
+                function onPartInput(l) {
+                    if (l.free_text) return;
+                    l.showParts = true;
+                    l.part_no = '';   // stale until a masterlist row is picked again
+                }
+                function selectPart(l, name) {
+                    l.part_name = name;
+                    l.part_no = extractPartNo(name);
+                    l.showParts = false;
+                }
+                function closePartList(l) {
+                    // Deferred so a mousedown on an option still registers.
+                    setTimeout(() => { l.showParts = false; }, 120);
+                }
+                function onFreeTextToggle(l) {
+                    l.showParts = false;
+                    if (l.free_text) return;          // typed values stay, user can re-pick
+                    l.part_no = extractPartNo(l.part_name);
+                }
+                function addLine() { outLines.value.push(blankLine()); }
+
+                function resetOutForm() {
+                    outForm.do_number = '';
+                    outForm.subcon_name = '';
+                    outForm.delivery_date = today();
+                    outForm.remark = '';
+                    outLines.value = [blankLine()];
+                    doExists.value = 0;
+                    formError.value = '';
+                    okMessage.value = '';
+                    imageError.value = '';
+                    pendingImages.value.forEach(p => URL.revokeObjectURL(p.preview));
+                    pendingImages.value = [];
+                }
+
+                // Warn, don't block: a DO carrying three parts legitimately
+                // reuses the number, so this only flags a possible double entry.
+                let doCheckTimer = null;
+                function checkDoNumber() {
+                    clearTimeout(doCheckTimer);
+                    doCheckTimer = setTimeout(async () => {
+                        const n = (outForm.do_number || '').trim();
+                        if (!n) { doExists.value = 0; return; }
+                        const { count } = await _supabase.from('subcon_delivery_out')
+                            .select('id', { count: 'exact', head: true }).eq('do_number', n);
+                        doExists.value = count || 0;
+                    }, 400);
+                }
+
+                async function saveOut() {
+                    formError.value = '';
+                    okMessage.value = '';
+                    const missing = [];
+                    if (!outForm.do_number.trim()) missing.push('DO Number');
+                    if (!outForm.subcon_name) missing.push('Subcontractor');
+                    if (!outForm.delivery_date) missing.push('Delivery Date');
+                    outLines.value.forEach((l, i) => {
+                        if (!String(l.part_name || '').trim()) missing.push(`Part Name on line ${i + 1}`);
+                        if (!(Number(l.quantity) > 0)) missing.push(`Quantity on line ${i + 1}`);
+                    });
+                    // The unique (do_number, part_name) constraint would reject this
+                    // anyway; catching it here names the line instead of the index.
+                    const names = outLines.value.map(l => String(l.part_name || '').trim().toUpperCase());
+                    if (new Set(names).size !== names.length) {
+                        missing.push('a unique part on each line — the same part is listed twice');
+                    }
+                    if (missing.length) {
+                        formError.value = 'Please fill in: ' + missing.join(', ') + '.';
+                        return;
+                    }
+
+                    saving.value = true;
+                    try {
+                        const user = sessionStorage.getItem('userId') || null;
+                        const payload = outLines.value.map(l => ({
+                            do_number: outForm.do_number.trim().toUpperCase(),
+                            subcon_name: outForm.subcon_name,
+                            part_name: String(l.part_name).trim().toUpperCase(),
+                            part_no: String(l.part_no || extractPartNo(l.part_name)).trim().toUpperCase() || null,
+                            from_masterlist: !l.free_text,
+                            quantity: Number(l.quantity),
+                            delivery_date: outForm.delivery_date,
+                            remark: [outForm.remark, l.remark].filter(Boolean).join(' — ') || null,
+                            created_by: user
+                        }));
+                        const { error } = await _supabase.from('subcon_delivery_out').insert(payload);
+                        if (error) throw error;
+                        const doNo = payload[0].do_number;
+                        const n = payload.length;
+
+                        // Images only now that the DO exists. A failure here must not read
+                        // as "nothing saved" — the part lines are already committed.
+                        let imgN = 0;
+                        if (pendingImages.value.length) {
+                            try {
+                                imgN = await uploadImages(doNo, pendingImages.value.map(p => p.file));
+                            } catch (imgErr) {
+                                console.error(imgErr);
+                                formError.value = `${n} part line(s) were saved under ${doNo}, but the images `
+                                    + `did not upload (${imgErr.message}). Add them from the camera button `
+                                    + `on the DO in Receive Back.`;
+                            }
+                        }
+
+                        resetOutForm();
+                        // The DO number stays — a multi-part DO is often keyed in
+                        // over more than one save, and re-typing it invites a typo.
+                        outForm.do_number = doNo;
+                        okMessage.value = `${n} part line(s) recorded under ${doNo}`
+                            + (imgN ? ` with ${imgN} image(s).` : '.');
+                        checkDoNumber();
+                    } catch (e) {
+                        formError.value = e.message && e.message.includes('duplicate key')
+                            ? 'One of these parts is already recorded on that DO number.'
+                            : (e.message || 'Save failed.');
+                    } finally { saving.value = false; }
+                }
+
+                /* ---- DO images ---------------------------------------------------
+                   Files go to a public Supabase Storage bucket and the row keeps the
+                   public URL, exactly as the gauge module does. storage_path is kept
+                   too, so deleting a row can also drop the object instead of leaking
+                   files nobody can reach.
+
+                   The object key is the DO number plus a timestamp, so two photos of
+                   the same DO never collide and the bucket listing stays readable. */
+                function imageKey(doNumber, file) {
+                    const safe = String(doNumber).toUpperCase().replace(/[^A-Z0-9_-]/g, '_');
+                    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().slice(0, 5);
+                    return `${safe}/${Date.now()}-${Math.round(performance.now())}.${ext}`;
+                }
+
+                function acceptFiles(fileList) {
+                    imageError.value = '';
+                    const ok = [];
+                    for (const f of fileList) {
+                        if (!f.type.startsWith('image/')) {
+                            imageError.value = `${f.name} is not an image and was skipped.`;
+                            continue;
+                        }
+                        if (f.size > MAX_IMAGE_BYTES) {
+                            imageError.value = `${f.name} is over 10 MB and was skipped.`;
+                            continue;
+                        }
+                        ok.push(f);
+                    }
+                    return ok;
+                }
+
+                // Queued, not uploaded: abandoning the Send Out form must not leave
+                // files in the bucket with no DO to belong to.
+                function queueDoImages(ev) {
+                    acceptFiles(ev.target.files).forEach(file => {
+                        pendingImages.value.push({ file, preview: URL.createObjectURL(file) });
+                    });
+                    ev.target.value = '';   // re-selecting the same file must still fire change
+                }
+                function removePendingImage(i) {
+                    URL.revokeObjectURL(pendingImages.value[i].preview);
+                    pendingImages.value.splice(i, 1);
+                }
+
+                async function uploadImages(doNumber, files) {
+                    const user = sessionStorage.getItem('userId') || null;
+                    const rows = [];
+                    for (const file of files) {
+                        const path = imageKey(doNumber, file);
+                        const { error: upErr } = await _supabase.storage
+                            .from(IMAGE_BUCKET)
+                            .upload(path, file, { upsert: false, contentType: file.type });
+                        if (upErr) throw new Error('Image upload failed: ' + upErr.message);
+                        const { data: pub } = _supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path);
+                        rows.push({
+                            do_number: String(doNumber).toUpperCase(),
+                            image_url: pub.publicUrl,
+                            storage_path: path,
+                            uploaded_by: user
+                        });
+                    }
+                    if (!rows.length) return 0;
+                    const { error } = await _supabase.from('subcon_do_image').insert(rows);
+                    if (error) throw error;
+                    return rows.length;
+                }
+
+                // One count query for every DO on screen, rather than one per header chip.
+                async function loadImageCounts(doNumbers) {
+                    imageCounts.value = {};
+                    if (!doNumbers.length) return;
+                    const { data, error } = await _supabase.from('subcon_do_image')
+                        .select('do_number').in('do_number', doNumbers);
+                    if (error) { console.error(error); return; }
+                    const acc = {};
+                    (data || []).forEach(r => { acc[r.do_number] = (acc[r.do_number] || 0) + 1; });
+                    imageCounts.value = acc;
+                }
+
+                async function openImages(doNumber) {
+                    imageError.value = '';
+                    imagesModal.value = doNumber;
+                    imagesLoading.value = true;
+                    modalImages.value = [];
+                    try {
+                        const { data, error } = await _supabase.from('subcon_do_image')
+                            .select('*').eq('do_number', doNumber).order('uploaded_at');
+                        if (error) throw error;
+                        modalImages.value = data || [];
+                    } catch (e) {
+                        imageError.value = e.message || String(e);
+                    } finally {
+                        imagesLoading.value = false;
+                    }
+                }
+
+                async function uploadToOpenDo(ev) {
+                    const files = acceptFiles(ev.target.files);
+                    ev.target.value = '';
+                    if (!files.length) return;
+                    saving.value = true;
+                    try {
+                        await uploadImages(imagesModal.value, files);
+                        const doNo = imagesModal.value;
+                        await openImages(doNo);
+                        imageCounts.value[doNo] = modalImages.value.length;
+                    } catch (e) {
+                        imageError.value = e.message || String(e);
+                    } finally { saving.value = false; }
+                }
+
+                async function deleteImage(img) {
+                    if (!confirm('Delete this DO image? This cannot be undone.')) return;
+                    imageError.value = '';
+                    try {
+                        const { error } = await _supabase.from('subcon_do_image').delete().eq('id', img.id);
+                        if (error) throw error;
+                        // Row first, object second: a failed object delete leaves a file
+                        // nobody links to, which is harmless. The reverse leaves a broken
+                        // thumbnail in the UI.
+                        if (img.storage_path) {
+                            const { error: sErr } = await _supabase.storage
+                                .from(IMAGE_BUCKET).remove([img.storage_path]);
+                            if (sErr) console.warn('Stored file not removed:', sErr.message);
+                        }
+                        modalImages.value = modalImages.value.filter(m => m.id !== img.id);
+                        imageCounts.value[imagesModal.value] = modalImages.value.length;
+                    } catch (e) {
+                        imageError.value = e.message || String(e);
+                    }
+                }
+
+                // ---- subcontractor modal ---------------------------------------
+                function openSubcon() {
+                    formError.value = '';
+                    Object.assign(subconForm, { name: '', address: '', tel: '' });
+                    subconModal.value = true;
+                }
+                async function saveSubcon() {
+                    formError.value = '';
+                    if (!String(subconForm.name || '').trim()) {
+                        formError.value = 'A name is required.';
+                        return;
+                    }
+                    saving.value = true;
+                    try {
+                        const { data, error } = await _supabase.from('subcontractor').insert({
+                            name: subconForm.name.trim().toUpperCase(),
+                            address: subconForm.address || null,
+                            tel: subconForm.tel || null,
+                            created_by: sessionStorage.getItem('userId') || null
+                        }).select();
+                        if (error) throw error;
+                        await loadSubcons();
+                        if (data && data.length) outForm.subcon_name = data[0].name;
+                        subconModal.value = null;
+                    } catch (e) {
+                        formError.value = e.message && e.message.includes('duplicate key')
+                            ? 'That subcontractor already exists.'
+                            : (e.message || 'Save failed.');
+                    } finally { saving.value = false; }
+                }
+
+                // ---- list ------------------------------------------------------
+                /* Separator-blind search. The term is split on anything that is
+                   not a letter or a digit, and every token has to appear in at
+                   least one searchable column — so "do 2026 0142", "DO-2026-0142"
+                   and a bare "0142" all find the same DO.
+
+                   Tokenising on non-alphanumerics also sanitises the input:
+                   commas, parens and dots are PostgREST filter syntax and would
+                   otherwise 400 the request. */
+                const SEARCH_COLS = ['do_number', 'subcon_name', 'part_name', 'part_no'];
+
+                function searchTokens() {
+                    return search.value.split(/[^a-zA-Z0-9]+/).filter(Boolean).slice(0, 6);
+                }
+
+                // A return DO lives on the child table, so a search for one is
+                // resolved to its parent line ids first and folded into the same
+                // disjunction. Capped, so a one-character search cannot build a
+                // URL with ten thousand ids in it.
+                const RETURN_DO_ID_CAP = 300;
+                async function returnDoLineIds() {
+                    const toks = searchTokens();
+                    if (!toks.length) return [];
+                    let q = _supabase.from('subcon_delivery_in').select('out_line_id');
+                    toks.forEach(t => { q = q.ilike('return_do_number', `%${t}%`); });
+                    const { data, error } = await q.limit(RETURN_DO_ID_CAP);
+                    if (error) { console.error(error); return []; }
+                    return [...new Set((data || []).map(r => r.out_line_id))];
+                }
+
+                /* Switching view, toggling "show fully received" and typing in the
+                   search box can all fire a reload before the previous one has come
+                   back, and the two requests do not necessarily resolve in order.
+                   Without this token a slower earlier query overwrites a newer one
+                   and the list shows the wrong rows — most visibly as an empty list
+                   when rows exist. Each run claims a sequence number and drops its
+                   own result if a newer run has started since. */
+                let reloadSeq = 0;
+
+                async function reload() {
+                    const seq = ++reloadSeq;
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const extraIds = await returnDoLineIds();
+                        let q = _supabase.from('subcon_delivery_out').select('*', { count: 'exact' });
+
+                        // One .or() per token. PostgREST ANDs repeated top-level
+                        // filters, so this reads as (tok1 somewhere) AND (tok2 somewhere).
+                        searchTokens().forEach(tok => {
+                            const clauses = SEARCH_COLS.map(c => `${c}.ilike.*${tok}*`);
+                            if (extraIds.length) clauses.push(`id.in.(${extraIds.join(',')})`);
+                            q = q.or(clauses.join(','));
+                        });
+
+                        if (view.value === 'receive' && !showClosed.value) q = q.eq('is_open', true);
+                        if (view.value === 'history') {
+                            if (fromDate.value) q = q.gte('delivery_date', fromDate.value);
+                            if (toDate.value) q = q.lte('delivery_date', toDate.value);
+                        }
+
+                        // `id` is only a tiebreaker — without it, rows that compare
+                        // equal can swap between pages and a line shows twice or not at all.
+                        const { data, count, error } = await q
+                            .order('delivery_date', { ascending: false }).order('do_number').order('id')
+                            .range(page.value * pageSize, page.value * pageSize + pageSize - 1);
+                        if (error) throw error;
+                        if (seq !== reloadSeq) return;   // superseded — discard
+
+                        rows.value = data || [];
+                        total.value = count || 0;
+                        tablesMissing.value = false;
+                        await loadImageCounts([...new Set(rows.value.map(r => r.do_number))]);
+                        await loadReceipts(seq);
+                    } catch (e) {
+                        if (seq !== reloadSeq) return;
+                        loadError.value = e.message || String(e);
+                        rows.value = [];
+                        total.value = 0;
+                        // PostgREST answers an unknown table with 404 / PGRST205.
+                        tablesMissing.value = /does not exist|PGRST205|not find the table/i.test(loadError.value);
+                    } finally {
+                        if (seq === reloadSeq) loading.value = false;
+                    }
+                }
+
+                // Receipts only for the lines on screen — the same reason the
+                // masterlist counts only what it renders.
+                async function loadReceipts(seq) {
+                    receipts.value = {};
+                    insp.value = {};
+                    if (!rows.value.length) return;
+                    const { data, error } = await _supabase.from('subcon_delivery_in')
+                        .select('*')
+                        .in('out_line_id', rows.value.map(r => r.id))
+                        .order('receive_date').order('id');
+                    if (error) { console.error(error); return; }
+                    if (seq !== reloadSeq) return;   // the rows these belong to are gone
+                    const acc = {};
+                    (data || []).forEach(r => { (acc[r.out_line_id] || (acc[r.out_line_id] = [])).push(r); });
+                    receipts.value = acc;
+                    await loadInspectionCounts(data || [], seq);
+                }
+
+                /* The badge on every return DO needs to know whether QC has filed
+                   anything, which is one query for the whole page rather than one
+                   per DO. Only the counting columns are selected; the full rows
+                   are fetched on expand. */
+                async function loadInspectionCounts(recs, seq) {
+                    const dos = [...new Set(recs.map(r => r.return_do_number).filter(Boolean))];
+                    if (!dos.length) return;
+                    const { data, error } = await _supabase.from('InspectionRecord')
+                        .select('DO_Number,RejectQty')
+                        .in('DO_Number', dos);
+                    if (error) { console.error(error); return; }
+                    if (seq !== reloadSeq) return;   // superseded
+                    const acc = {};
+                    dos.forEach(d => { acc[d] = { open: false, loading: false, records: null, count: 0, rejects: 0 }; });
+                    (data || []).forEach(r => {
+                        const e = acc[r.DO_Number];
+                        if (!e) return;
+                        e.count++;
+                        if (Number(r.RejectQty) > 0) e.rejects++;
+                    });
+                    insp.value = acc;
+                }
+
+                function inspBadgeText(doNo) {
+                    const e = insp.value[doNo];
+                    if (!e || !e.count) return 'Not inspected';
+                    return e.rejects ? 'Reject found' : 'Inspected';
+                }
+                function inspBadgeClass(doNo) {
+                    const e = insp.value[doNo];
+                    if (!e || !e.count) return '';
+                    return e.rejects ? 'badge--danger' : 'badge--success';
+                }
+
+                // DO_Number is stored uppercased by the inspection form, so the
+                // match is on the uppercased return DO.
+                async function toggleInspection(doNo) {
+                    const key = doNo;
+                    const e = insp.value[key] || (insp.value[key] =
+                        { open: false, loading: false, records: null, count: 0, rejects: 0 });
+                    e.open = !e.open;
+                    if (!e.open || e.records) return;
+                    e.loading = true;
+                    try {
+                        const { data, error } = await _supabase.from('InspectionRecord')
+                            .select('id,created_at,Category,Inspection_Type,Parameter,TotalCheck,' +
+                                    'AcceptQty,RejectQty,ScrapQty,InspectBy,FinalizeBy,Remark')
+                            .eq('DO_Number', String(key).toUpperCase())
+                            .order('created_at', { ascending: false });
+                        if (error) throw error;
+                        e.records = data || [];
+                        e.count = e.records.length;
+                        e.rejects = e.records.filter(r => Number(r.RejectQty) > 0).length;
+                    } catch (err) {
+                        console.error(err);
+                        e.records = [];
+                    } finally {
+                        e.loading = false;
+                    }
+                }
+
+                // Part lines regrouped under their DO for display. The query is
+                // already ordered by delivery_date then do_number, so lines of one
+                // DO always arrive adjacent.
+                const grouped = computed(() => {
+                    const out = [];
+                    let cur = null;
+                    rows.value.forEach(r => {
+                        if (!cur || cur.do_number !== r.do_number) {
+                            cur = {
+                                do_number: r.do_number, subcon_name: r.subcon_name,
+                                delivery_date: r.delivery_date, lines: [], open: 0
+                            };
+                            out.push(cur);
+                        }
+                        cur.lines.push(r);
+                        if (r.is_open) cur.open++;
+                    });
+                    return out;
+                });
+
+                let debounceTimer = null;
+                function debouncedReload() {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => { page.value = 0; reload(); }, 300);
+                }
+                function go(p) { page.value = p; reload(); }
+                function setView(v) {
+                    view.value = v;
+                    if (v !== 'out') { page.value = 0; reload(); }
+                }
+
+                // ---- receive modal ----------------------------------------------
+                function openReceive(line) {
+                    formError.value = '';
+                    Object.assign(recvForm, {
+                        return_do_number: '', receive_date: today(), quantity: balance(line) || null, remark: ''
+                    });
+                    recvModal.value = line;
+                }
+                const overBalance = computed(() => {
+                    if (!recvModal.value) return 0;
+                    const over = Number(recvForm.quantity || 0) - balance(recvModal.value);
+                    return over > 0 ? over : 0;
+                });
+                async function saveReceive() {
+                    formError.value = '';
+                    const missing = [];
+                    if (!String(recvForm.return_do_number || '').trim()) missing.push('Return DO No.');
+                    if (!recvForm.receive_date) missing.push('Date Received');
+                    if (!(Number(recvForm.quantity) > 0)) missing.push('Quantity');
+                    if (missing.length) {
+                        formError.value = 'Please fill in: ' + missing.join(', ') + '.';
+                        return;
+                    }
+                    saving.value = true;
+                    try {
+                        const line = recvModal.value;
+                        const { error } = await _supabase.from('subcon_delivery_in').insert({
+                            out_line_id: line.id,
+                            out_do_number: line.do_number,
+                            return_do_number: recvForm.return_do_number.trim().toUpperCase(),
+                            receive_date: recvForm.receive_date,
+                            quantity: Number(recvForm.quantity),
+                            remark: recvForm.remark || null,
+                            created_by: sessionStorage.getItem('userId') || null
+                        });
+                        if (error) throw error;
+                        recvModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = e.message || 'Save failed.';
+                    } finally { saving.value = false; }
+                }
+
+                /* ---- Editing a receipt ------------------------------------------
+                   Goods often land before the subcontractor's paperwork, so store books
+                   them in under a placeholder and QC inspects against it the same day.
+                   Renaming the receipt alone would strand those inspections —
+                   InspectionRecord.DO_Number is plain text with no key back here — so the
+                   save goes through subcon_update_receipt(), which moves both in one
+                   transaction. See sql/2026-08-03_subcon_do_images_and_receipt_edit.sql. */
+                const editInspCount = ref(null);
+
+                const doRenamed = computed(() => {
+                    if (!editModal.value) return false;
+                    const next = String(editForm.return_do_number || '').trim().toUpperCase();
+                    return !!next && next !== editModal.value.receipt.return_do_number;
+                });
+
+                async function openEditReceipt(receipt, line) {
+                    formError.value = '';
+                    editInspCount.value = null;
+                    Object.assign(editForm, {
+                        return_do_number: receipt.return_do_number,
+                        receive_date: receipt.receive_date,
+                        quantity: Number(receipt.quantity),
+                        remark: receipt.remark || ''
+                    });
+                    editModal.value = { receipt, line };
+                    // How many inspections ride on the old number, shown before saving so a
+                    // rename is never a surprise.
+                    try {
+                        const { count } = await _supabase.from('InspectionRecord')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('DO_Number', receipt.return_do_number);
+                        editInspCount.value = count || 0;
+                    } catch (e) {
+                        console.error(e);
+                        editInspCount.value = 0;
+                    }
+                }
+
+                async function saveEditReceipt() {
+                    formError.value = '';
+                    const missing = [];
+                    if (!String(editForm.return_do_number || '').trim()) missing.push('Return DO No.');
+                    if (!editForm.receive_date) missing.push('Date Received');
+                    if (!(Number(editForm.quantity) > 0)) missing.push('Quantity');
+                    if (missing.length) {
+                        formError.value = 'Please fill in: ' + missing.join(', ') + '.';
+                        return;
+                    }
+                    saving.value = true;
+                    try {
+                        const { data, error } = await _supabase.rpc('subcon_update_receipt', {
+                            p_id: editModal.value.receipt.id,
+                            p_return_do: String(editForm.return_do_number).trim().toUpperCase(),
+                            p_receive_date: editForm.receive_date,
+                            p_quantity: Number(editForm.quantity),
+                            p_remark: editForm.remark || null
+                        });
+                        if (error) throw error;
+                        const moved = Number(data) || 0;
+                        editModal.value = null;
+                        await reload();
+                        okMessage.value = moved
+                            ? `Receipt updated. ${moved} inspection record(s) moved to the new DO number.`
+                            : 'Receipt updated.';
+                    } catch (e) {
+                        formError.value = /function .*subcon_update_receipt/i.test(e.message || '')
+                            ? 'Run sql/2026-08-03_subcon_do_images_and_receipt_edit.sql — the update '
+                              + 'function is not installed, so the DO cannot be renamed safely.'
+                            : (e.message || 'Save failed.');
+                    } finally { saving.value = false; }
+                }
+
+                async function deleteReceipt() {
+                    const r = editModal.value.receipt;
+                    const warn = editInspCount.value
+                        ? `\n\n${editInspCount.value} inspection record(s) are filed under `
+                          + `${r.return_do_number}. They will be left in place, no longer attached `
+                          + `to any receipt.`
+                        : '';
+                    if (!confirm(`Delete the receipt of ${r.quantity} under ${r.return_do_number}?`
+                        + `\nThe balance on the outgoing line goes back up.${warn}`)) return;
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('subcon_delivery_in').delete().eq('id', r.id);
+                        if (error) throw error;
+                        editModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = e.message || 'Delete failed.';
+                    } finally { saving.value = false; }
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    await Promise.all([loadSubcons(), loadParts()]);
+                    loading.value = false;   // Send Out is the landing view; no list yet
+                });
+
+                return {
+                    pageSize,
+                    railUser, accessLevel, accessLabel, canWrite,
+                    view, viewTitle, viewSubtitle, setView,
+                    subcons, parts, selectedSubcon,
+                    outForm, outLines, doExists, addLine, resetOutForm, saveOut,
+                    partMatches, onPartInput, selectPart, closePartList, onFreeTextToggle,
+                    checkDoNumber,
+                    rows, grouped, receipts, insp, total, page, loading, loadError, tablesMissing,
+                    search, fromDate, toDate, showClosed, debouncedReload, go, reload,
+                    subconModal, subconForm, openSubcon, saveSubcon,
+                    recvModal, recvForm, openReceive, saveReceive, overBalance,
+                    editModal, editForm, editInspCount, doRenamed,
+                    openEditReceipt, saveEditReceipt, deleteReceipt,
+                    imagesModal, modalImages, imageCounts, imagesLoading, imageError,
+                    pendingImages, queueDoImages, removePendingImage,
+                    openImages, uploadToOpenDo, deleteImage,
+                    saving, formError, okMessage,
+                    balance, fmtQty, fmtDate, fmtDateTime, getDefects,
+                    toggleInspection, inspBadgeText, inspBadgeClass
+                };
+            }
+        });
+
+        try {
+            app.config.errorHandler = (err) => {
+                console.error('Subcon delivery:', err);
+                bootFailed('The page hit an error while rendering.', String(err && err.stack || err));
+            };
+            app.mount('#app');
+            // Mounted. Only now is it safe to take the panel away.
+            const boot = document.getElementById('boot');
+            if (boot) boot.remove();
+        } catch (err) {
+            console.error('Subcon delivery: mount failed', err);
+            bootFailed('Vue could not mount the page.', String(err && err.stack || err));
+        }
+    </script>
+</body>
+
+</html>
