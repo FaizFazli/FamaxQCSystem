@@ -546,18 +546,30 @@
                             <input type="date" v-model="form.due_date" readonly class="input">
                         </div>
                     </div>
-                    <!-- GAUGE PHOTO: reference only, so it stays behind a button instead of
-                         competing with the drawing for space on the form. -->
+                    <!-- GAUGE PHOTOS: reference only, so they stay behind a button instead of
+                         competing with the drawing for space on the form. The count is on the
+                         button because how many angles exist is the useful thing to know before
+                         opening it. -->
                     <div v-if="form.gauge_no" class="mb-10 flex items-center gap-4">
-                        <button v-if="form.image_path" @click="showImageModal = true" class="btn">
+                        <button v-if="formImages.length" @click="openImageModal(0)" class="btn">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            VIEW GAUGE PHOTO
+                            VIEW GAUGE PHOTO<span v-if="formImages.length > 1">S ({{ formImages.length }})</span>
                         </button>
-                        <p v-else class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+
+                        <!-- Thumbnail strip, so a second angle is one click away rather than
+                             hidden behind a modal you have to page through. -->
+                        <div v-if="formImages.length > 1" class="flex items-center gap-2">
+                            <img v-for="(img, i) in formImages" :key="img.id" :src="img.image_url"
+                                :alt="img.caption || ('Gauge photo ' + (i + 1))" :title="img.caption || ''"
+                                @click="openImageModal(i)"
+                                class="h-10 w-10 rounded-lg object-cover border border-slate-200 cursor-pointer hover:ring-2 hover:ring-indigo-400">
+                        </div>
+
+                        <p v-if="!formImages.length" class="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                             No photo on file for this gauge — add one when registering it.
                         </p>
                     </div>
@@ -974,24 +986,36 @@
                             <p v-if="gaugeFileName" class="text-[10px] text-slate-500 font-bold mt-1 cap">{{ gaugeFileName }}</p>
                         </div>
 
-                        <!-- Photograph of the gauge itself — identification aid, not a controlled
-                             document. The drawing PDF above stays the thing we verify against. -->
+                        <!-- Photographs of the gauge itself — identification aid, not a controlled
+                             document. The drawing PDF above stays the thing we verify against.
+                             Several are allowed: one picture often cannot answer "is this the gauge
+                             in my hand?" for a set whose GO and NOGO ends look alike. -->
                         <div class="field">
-                            <label class="label">Gauge Photo (PNG / JPEG)</label>
+                            <label class="label">Gauge Photos (PNG / JPEG)</label>
                             <input id="gauge-image-input" type="file" accept="image/png,image/jpeg"
-                                @change="onGaugeImage" class="input">
-                            <p v-if="gaugeImageName" class="text-[10px] text-slate-500 font-bold mt-1 cap">
-                                {{ gaugeImageName }}</p>
+                                multiple @change="onGaugeImages" class="input">
+                            <p v-if="gaugeImages.length" class="text-[10px] text-slate-500 font-bold mt-1 cap">
+                                {{ gaugeImages.length }} photo{{ gaugeImages.length === 1 ? '' : 's' }} selected</p>
                             <p v-else class="text-[10px] text-slate-400 font-bold mt-1">
-                                Optional. PNG or JPEG only.
+                                Optional. PNG or JPEG. Pick more than one to add several angles.
                             </p>
                         </div>
                     </div>
 
-                    <!-- Preview so the operator can see they picked the right photo before saving -->
-                    <div v-if="gaugeImagePreview" class="mb-8 flex justify-center">
-                        <img :src="gaugeImagePreview" alt="Gauge photo preview"
-                            class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 max-h-64 object-contain">
+                    <!-- Previews so the operator can see they picked the right photos before saving.
+                         Each can be dropped or captioned individually — a wrong pick should not mean
+                         starting the whole selection again. -->
+                    <div v-if="gaugeImages.length" class="mb-8 flex flex-wrap justify-center gap-4">
+                        <div v-for="(s, i) in gaugeImages" :key="s.preview" class="relative w-40">
+                            <img :src="s.preview" :alt="'Gauge photo preview ' + (i + 1)"
+                                class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 h-32 w-full object-cover">
+                            <button @click="removeStaged(gaugeImages, i)" type="button"
+                                class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-sm font-black leading-none shadow"
+                                :aria-label="'Remove photo ' + (i + 1)">&times;</button>
+                            <input v-model="s.caption" type="text" placeholder="CAPTION (OPTIONAL)"
+                                class="input mt-2 text-[10px] cap" style="height:34px">
+                            <p class="text-[9px] text-slate-400 font-bold mt-1 truncate" :title="s.name">{{ s.name }}</p>
+                        </div>
                     </div>
 
                     <p v-if="addGaugeMsg" class="text-red-500 font-bold text-sm mb-4 text-center">{{ addGaugeMsg }}</p>
@@ -1061,63 +1085,84 @@
 
                         <p v-if="revMsg" class="text-red-500 font-bold text-sm mb-6 text-center">{{ revMsg }}</p>
 
-                        <!-- GAUGE PHOTO — reference only, so it is NOT a revision: swapping the
-                             photo changes nothing that was verified, and gets no history row. -->
+                        <!-- GAUGE PHOTOS — reference only, so this is NOT a revision: adding or
+                             removing a photo changes nothing that was verified, and gets no
+                             gauge_revision_history row. Many photos per gauge, held in gauge_image.
+                             Adding no longer replaces: the previous behaviour overwrote the single
+                             photo on file, which is exactly what a second angle must not do. -->
                         <div class="rounded-3xl border-2 border-slate-100 bg-white p-6 mb-8">
                             <h3 class="font-black text-lg tracking-tight uppercase flex items-center mb-1">
                                 <span class="w-1.5 h-6 bg-emerald-500 rounded-full mr-3"></span>
-                                Gauge Photo
+                                Gauge Photos
+                                <span v-if="revImages.length"
+                                    class="ml-3 text-[10px] font-black text-slate-400 tracking-widest">
+                                    {{ revImages.length }} ON FILE</span>
                             </h3>
                             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-5">
-                                Reference image · PNG or JPEG · replaces the current photo
+                                Reference images · PNG or JPEG · added alongside the existing photos
                             </p>
 
+                            <!-- what is on file now -->
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                                On file</p>
+                            <div v-if="revImages.length" class="flex flex-wrap gap-4 mb-8">
+                                <div v-for="img in revImages" :key="img.id" class="relative w-40">
+                                    <img :src="img.image_url" :alt="img.caption || 'Gauge photo'"
+                                        class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 h-32 w-full object-cover">
+                                    <button @click="deleteGaugeImage(img)" :disabled="isUploadingImage" type="button"
+                                        class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-sm font-black leading-none shadow"
+                                        aria-label="Delete this photo">&times;</button>
+                                    <!-- Caption saves on blur, like the other in-place fields on
+                                         this page, so there is no second button to hunt for. -->
+                                    <input v-model="img.caption" @blur="saveImageCaption(img)" type="text"
+                                        placeholder="CAPTION (OPTIONAL)"
+                                        class="input mt-2 text-[10px] cap" style="height:34px">
+                                </div>
+                            </div>
+                            <div v-else
+                                class="rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 font-black uppercase text-[10px] tracking-widest flex items-center justify-center mb-8"
+                                style="height: 8rem; width: 16rem;">
+                                No photos on file
+                            </div>
+
                             <div class="flex flex-wrap items-start gap-8">
-                                <!-- what is on file now -->
-                                <div class="shrink-0">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
-                                        Current</p>
-                                    <img v-if="revGauge.image_path" :src="revGauge.image_path" alt="Current gauge photo"
-                                        class="rounded-2xl border-4 border-white shadow-xl shadow-slate-200 object-contain"
-                                        style="max-height: 10rem; max-width: 16rem;">
-                                    <div v-else
-                                        class="rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 font-black uppercase text-[10px] tracking-widest flex items-center justify-center"
-                                        style="height: 10rem; width: 16rem;">
-                                        No photo on file
-                                    </div>
-                                </div>
-
-                                <!-- the replacement -->
-                                <div class="shrink-0">
-                                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
-                                        New</p>
-                                    <img v-if="revImagePreview" :src="revImagePreview" alt="New gauge photo preview"
-                                        class="rounded-2xl border-4 border-white shadow-xl shadow-emerald-100 object-contain"
-                                        style="max-height: 10rem; max-width: 16rem;">
-                                    <div v-else
-                                        class="rounded-2xl border-2 border-dashed border-slate-200 text-slate-300 font-black uppercase text-[10px] tracking-widest flex items-center justify-center"
-                                        style="height: 10rem; width: 16rem;">
-                                        Nothing selected
-                                    </div>
-                                </div>
-
+                                <!-- staged additions -->
                                 <div class="flex-1 min-w-[16rem] space-y-4">
                                     <div class="field">
-                                        <label class="label">Select Photo (PNG / JPEG)</label>
+                                        <label class="label">Add Photos (PNG / JPEG)</label>
                                         <input id="rev-image-input" type="file" accept="image/png,image/jpeg"
-                                            @change="onRevImageFile" class="input">
-                                        <p v-if="revImageName" class="text-[10px] text-slate-500 font-bold mt-1 cap">
-                                            {{ revImageName }}</p>
+                                            multiple @change="onRevImageFiles" class="input">
+                                        <p v-if="revImageFiles.length"
+                                            class="text-[10px] text-slate-500 font-bold mt-1 cap">
+                                            {{ revImageFiles.length }} to add</p>
+                                        <p v-else class="text-[10px] text-slate-400 font-bold mt-1">
+                                            Pick more than one to add several angles at once.
+                                        </p>
                                     </div>
 
                                     <p v-if="revImageMsg"
                                         :class="revImageOk ? 'text-emerald-600' : 'text-red-500'"
                                         class="font-bold text-sm">{{ revImageMsg }}</p>
 
-                                    <button @click="updateGaugeImage" :disabled="isUploadingImage || !revImageName"
+                                    <button @click="addGaugeImages"
+                                        :disabled="isUploadingImage || !revImageFiles.length"
                                         class="btn" style="background: var(--success, #10b981);">
-                                        {{ isUploadingImage ? 'Uploading…' : (revGauge.image_path ? 'Replace Photo' : 'Upload Photo') }}
+                                        {{ isUploadingImage ? 'Uploading…' : 'Add Photos' }}
                                     </button>
+                                </div>
+
+                                <div v-if="revImageFiles.length" class="flex flex-wrap gap-4">
+                                    <div v-for="(s, i) in revImageFiles" :key="s.preview" class="relative w-40">
+                                        <img :src="s.preview" :alt="'New photo ' + (i + 1)"
+                                            class="rounded-2xl border-4 border-white shadow-xl shadow-emerald-100 h-32 w-full object-cover">
+                                        <button @click="removeStaged(revImageFiles, i)" type="button"
+                                            class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-sm font-black leading-none shadow"
+                                            :aria-label="'Remove photo ' + (i + 1)">&times;</button>
+                                        <input v-model="s.caption" type="text" placeholder="CAPTION (OPTIONAL)"
+                                            class="input mt-2 text-[10px] cap" style="height:34px">
+                                        <p class="text-[9px] text-slate-400 font-bold mt-1 truncate" :title="s.name">
+                                            {{ s.name }}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1273,23 +1318,49 @@
 
                     <div class="p-6 bg-slate-900 text-white flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-black uppercase tracking-tighter">Gauge Photo</h2>
+                            <h2 class="text-xl font-black uppercase tracking-tighter">
+                                Gauge Photo<span v-if="formImages.length > 1">s</span>
+                            </h2>
                             <p class="text-slate-400 text-[10px] font-bold tracking-widest uppercase mt-1">
                                 {{ form.gauge_no }} — REV {{ form.drawing_rev }}{{ form.gauge_rev }} — REFERENCE ONLY
+                                <span v-if="formImages.length > 1">
+                                    — {{ imageIndex + 1 }} OF {{ formImages.length }}</span>
+                                <span v-if="activeImage && activeImage.caption">
+                                    — {{ activeImage.caption }}</span>
                             </p>
                         </div>
                         <button @click="showImageModal = false"
                             class="text-slate-400 hover:text-white text-2xl font-black leading-none">&times;</button>
                     </div>
 
-                    <div class="p-6 bg-slate-100 flex-1 overflow-auto flex items-center justify-center">
-                        <img v-if="form.image_path" :src="form.image_path" alt="Gauge photo"
+                    <div class="p-6 bg-slate-100 flex-1 overflow-auto flex items-center justify-center gap-3">
+                        <!-- Arrows only when there is somewhere to go. Wrap around, so paging
+                             never dead-ends on a two-photo gauge. -->
+                        <button v-if="formImages.length > 1" @click="stepImage(-1)"
+                            class="text-slate-500 hover:text-slate-900 text-3xl font-black leading-none px-2"
+                            aria-label="Previous photo">&lsaquo;</button>
+
+                        <img v-if="activeImage" :src="activeImage.image_url"
+                            :alt="activeImage.caption || 'Gauge photo'"
                             class="max-w-full rounded-2xl shadow-2xl object-contain"
                             style="max-height: 65vh;">
+
+                        <button v-if="formImages.length > 1" @click="stepImage(1)"
+                            class="text-slate-500 hover:text-slate-900 text-3xl font-black leading-none px-2"
+                            aria-label="Next photo">&rsaquo;</button>
+                    </div>
+
+                    <div v-if="formImages.length > 1"
+                        class="px-6 py-3 bg-slate-50 border-t border-slate-100 flex items-center gap-2 overflow-x-auto">
+                        <img v-for="(img, i) in formImages" :key="img.id" :src="img.image_url"
+                            :alt="img.caption || ('Gauge photo ' + (i + 1))" :title="img.caption || ''"
+                            @click="imageIndex = i"
+                            :class="i === imageIndex ? 'ring-2 ring-indigo-500' : 'opacity-60 hover:opacity-100'"
+                            class="h-12 w-12 flex-shrink-0 rounded-lg object-cover border border-slate-200 cursor-pointer">
                     </div>
 
                     <div class="p-5 bg-white border-t border-slate-100 flex justify-between items-center">
-                        <a :href="form.image_path" target="_blank"
+                        <a v-if="activeImage" :href="activeImage.image_url" target="_blank"
                             class="text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:underline">
                             Open full size ↗
                         </a>
@@ -1747,10 +1818,14 @@
                 const newGauge = reactive({ gauge_no: '', gauge_name: '', drawing_no: '', for_process: '', part_no: '' });
                 const gaugeFile = ref(null);
                 const gaugeFileName = ref('');
-                const gaugeImage = ref(null);
-                const gaugeImageName = ref('');
-                const gaugeImagePreview = ref('');
+                // Photos are a list now, not one file. Each staged entry is
+                // { file, name, preview, caption } — preview is an object URL that
+                // has to be revoked, which is why entries are dropped through
+                // clearStaged()/removeStaged() rather than by reassigning the array.
+                const gaugeImages = ref([]);
                 const showImageModal = ref(false);
+                const formImages = ref([]);   // gauge_image rows for the loaded gauge
+                const imageIndex = ref(0);    // which photo the viewer is showing
                 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg'];
                 const isAddingGauge = ref(false);
                 const addGaugeMsg = ref('');
@@ -1765,9 +1840,8 @@
                 const revMsg = ref('');
                 const drawingRevFile = ref(null);
                 const drawingRevFileName = ref('');
-                const revImageFile = ref(null);
-                const revImageName = ref('');
-                const revImagePreview = ref('');
+                const revImageFiles = ref([]);   // photos staged for adding to this gauge
+                const revImages = ref([]);       // gauge_image rows already on file
                 const revImageMsg = ref('');
                 const revImageOk = ref(false);
                 const isUploadingImage = ref(false);
@@ -1779,7 +1853,6 @@
                     gauge_name: '',
                     drawing_no: '',
                     drawing_path: '',
-                    image_path: '',
                     drawing_rev: 1,     // stamped onto the record, never typed by the operator
                     gauge_rev: 'A',
                     for_process: '',
@@ -1830,7 +1903,11 @@
                     form.drawing_no = match.drawing_no;
                     form.for_process = match.for_process;
                     form.drawing_path = match.drawing_path;
-                    form.image_path = match.image_path || '';
+                    // Photos come from gauge_image, not from the superseded
+                    // gauges.image_path. Reset the viewer's position too, or it can
+                    // open past the end of a gauge that has fewer photos.
+                    formImages.value = await loadGaugeImages(match.id);
+                    imageIndex.value = 0;
                     form.drawing_rev = match.drawing_rev ?? 1;
                     form.gauge_rev = match.gauge_rev ?? 'A';
 
@@ -2073,7 +2150,8 @@
                     form.gauge_name = '';
                     form.drawing_no = '';
                     form.drawing_path = '';
-                    form.image_path = '';
+                    formImages.value = [];
+                    imageIndex.value = 0;
                     form.drawing_rev = 1;
                     form.gauge_rev = 'A';
                     form.part_no = '';
@@ -2229,25 +2307,106 @@
                     gaugeFileName.value = f ? f.name : '';
                 };
 
+                /* ----------------------------------------------------------------
+                   Gauge photos — many per gauge, stored in the gauge_image table.
+
+                   Shared by the Add-Gauge tab and the revision panel, because the
+                   two used to hold near-identical single-file copies of this logic
+                   and they drifted: only one of them cache-busted the URL.
+                   ---------------------------------------------------------------- */
+
+                // Object URLs are only freed when the browser is told to, so every
+                // path that discards a staged photo goes through these two.
+                const removeStaged = (list, i) => {
+                    const entry = list.value[i];
+                    if (entry && entry.preview) URL.revokeObjectURL(entry.preview);
+                    list.value.splice(i, 1);
+                };
+                const clearStaged = (list) => {
+                    list.value.forEach(s => { if (s.preview) URL.revokeObjectURL(s.preview); });
+                    list.value = [];
+                };
+
                 // PNG/JPEG only, checked on the MIME type rather than the filename — the accept
                 // attribute is a file-picker hint, not a guarantee, and a renamed .png sails past it.
-                const onGaugeImage = (e) => {
-                    const f = e.target.files && e.target.files[0];
-                    addGaugeMsg.value = '';
+                //
+                // Appends rather than replaces, so picking two photos and then a third keeps all
+                // three: with a multiple input the second pick otherwise silently drops the first.
+                // Rejects only the offending files and keeps the rest.
+                const stageImages = (e, list, msgRef) => {
+                    const picked = Array.from((e.target && e.target.files) || []);
+                    const bad = picked.filter(f => !ALLOWED_IMAGE_TYPES.includes(f.type));
+                    const good = picked.filter(f => ALLOWED_IMAGE_TYPES.includes(f.type));
 
-                    if (f && !ALLOWED_IMAGE_TYPES.includes(f.type)) {
-                        addGaugeMsg.value = 'Gauge photo must be a PNG or JPEG image.';
-                        e.target.value = '';
-                        gaugeImage.value = null;
-                        gaugeImageName.value = '';
-                        gaugeImagePreview.value = '';
-                        return;
+                    good.forEach(f => list.value.push({
+                        file: f, name: f.name, preview: URL.createObjectURL(f), caption: ''
+                    }));
+
+                    msgRef.value = bad.length
+                        ? `Skipped ${bad.length} file${bad.length === 1 ? '' : 's'} — photos must be PNG or JPEG.`
+                        : '';
+
+                    // Cleared so re-picking the same file still fires @change.
+                    e.target.value = '';
+                };
+
+                const onGaugeImages = (e) => stageImages(e, gaugeImages, addGaugeMsg);
+                const onRevImageFiles = (e) => stageImages(e, revImageFiles, revImageMsg);
+
+                // --- viewer ---
+                const activeImage = computed(() => formImages.value[imageIndex.value] || null);
+                const openImageModal = (i) => { imageIndex.value = i || 0; showImageModal.value = true; };
+                // Wraps, so paging never dead-ends on a two-photo gauge.
+                const stepImage = (d) => {
+                    const n = formImages.value.length;
+                    if (n) imageIndex.value = (imageIndex.value + d + n) % n;
+                };
+
+                const loadGaugeImages = async (gaugeId) => {
+                    if (!gaugeId) return [];
+                    const { data, error } = await _supabase.from('gauge_image')
+                        .select('*').eq('gauge_id', gaugeId)
+                        .order('sort_order').order('id');
+                    if (error) { console.error('Could not load gauge photos:', error); return []; }
+                    return data || [];
+                };
+
+                // Uploads each staged photo under its own key and inserts a row per photo.
+                //
+                // The key carries an index and a timestamp because these are additions, not the
+                // replacement the single-photo version did: reusing one stable name per gauge —
+                // which is what photoBaseName() alone gives — would have every photo overwrite
+                // the last, leaving one file and N rows pointing at it.
+                const uploadGaugeImages = async (gauge, staged, startOrder) => {
+                    const base = photoBaseName(gauge);
+                    const stamp = Date.now();
+                    const rows = [];
+
+                    for (let i = 0; i < staged.length; i++) {
+                        const s = staged[i];
+                        const ext = s.file.type === 'image/png' ? 'png' : 'jpg';
+                        const key = `${base}-${stamp}-${i + 1}.${ext}`;
+
+                        const { error: upErr } = await _supabase.storage
+                            .from(GAUGE_BUCKET)
+                            .upload(key, s.file, { upsert: true, contentType: s.file.type });
+                        if (upErr) throw new Error(`Upload failed for ${s.name}: ${upErr.message}`);
+
+                        const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(key);
+                        rows.push({
+                            gauge_id: gauge.id,
+                            image_url: pub.publicUrl,
+                            storage_path: key,
+                            caption: (s.caption || '').trim().toUpperCase() || null,
+                            sort_order: startOrder + i
+                        });
                     }
 
-                    gaugeImage.value = f || null;
-                    gaugeImageName.value = f ? f.name : '';
-                    if (gaugeImagePreview.value) URL.revokeObjectURL(gaugeImagePreview.value);
-                    gaugeImagePreview.value = f ? URL.createObjectURL(f) : '';
+                    if (rows.length) {
+                        const { error } = await _supabase.from('gauge_image').insert(rows);
+                        if (error) throw new Error('Could not save photo records: ' + error.message);
+                    }
+                    return rows.length;
                 };
 
                 const addNewGauge = async () => {
@@ -2258,8 +2417,8 @@
                     }
                     if (!gaugeFile.value) { addGaugeMsg.value = 'Please upload the drawing PDF.'; return; }
                     if (gaugeFile.value.type !== 'application/pdf') { addGaugeMsg.value = 'Drawing must be a PDF file.'; return; }
-                    if (gaugeImage.value && !ALLOWED_IMAGE_TYPES.includes(gaugeImage.value.type)) {
-                        addGaugeMsg.value = 'Gauge photo must be a PNG or JPEG image.'; return;
+                    if (gaugeImages.value.some(s => !ALLOWED_IMAGE_TYPES.includes(s.file.type))) {
+                        addGaugeMsg.value = 'Every gauge photo must be a PNG or JPEG image.'; return;
                     }
 
                     isAddingGauge.value = true;
@@ -2280,24 +2439,8 @@
                         const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(path);
                         const drawingUrl = pub.publicUrl;
 
-                        // 2. Optional gauge photograph, same bucket, same base name.
-                        let imageUrl = null;
-                        if (gaugeImage.value) {
-                            const ext = gaugeImage.value.type === 'image/png' ? 'png' : 'jpg';
-                            const imgPath = `${base}.${ext}`;
-                            const { error: imgErr } = await _supabase.storage
-                                .from(GAUGE_BUCKET)
-                                .upload(imgPath, gaugeImage.value, {
-                                    upsert: true, contentType: gaugeImage.value.type
-                                });
-                            if (imgErr) throw new Error('Photo upload failed: ' + imgErr.message);
-
-                            const { data: imgPub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(imgPath);
-                            imageUrl = imgPub.publicUrl;
-                        }
-
-                        // 3. Create/refresh the gauge master. image_path is only sent when a photo
-                        //    was actually chosen — omitting it leaves any existing photo alone.
+                        // 2. Create/refresh the gauge master. image_path is deliberately not sent:
+                        //    photos live in gauge_image now, and that column is superseded.
                         const payload = {
                             gauge_no: up(g.gauge_no),
                             gauge_name: up(g.gauge_name),
@@ -2305,11 +2448,21 @@
                             for_process: up(g.for_process),
                             drawing_path: drawingUrl
                         };
-                        if (imageUrl) payload.image_path = imageUrl;
 
                         const { data: gRec, error: gErr } = await _supabase.from('gauges')
                             .upsert(payload, { onConflict: 'gauge_no' }).select();
                         if (gErr || !gRec || !gRec.length) throw new Error('Save failed: ' + (gErr?.message || 'no row'));
+
+                        // 3. Photos, now that there is a gauge id to hang them off. This runs after
+                        //    the upsert for that reason — the old single-photo flow could upload
+                        //    first because the URL went into a column on this same row.
+                        //
+                        //    An upsert on an existing gauge_no ADDS to whatever photos it already
+                        //    has, so the new ones are ordered after them rather than from zero.
+                        if (gaugeImages.value.length) {
+                            const existing = await loadGaugeImages(gRec[0].id);
+                            await uploadGaugeImages(gRec[0], gaugeImages.value, existing.length);
+                        }
 
                         // 4. Part link — required, so this always runs.
                         await _supabase.from('gauge_parts').insert({ gauge_id: gRec[0].id, part_no: up(g.part_no) });
@@ -2320,9 +2473,7 @@
                         newGauge.gauge_no = ''; newGauge.gauge_name = ''; newGauge.drawing_no = '';
                         newGauge.for_process = ''; newGauge.part_no = '';
                         gaugeFile.value = null; gaugeFileName.value = '';
-                        gaugeImage.value = null; gaugeImageName.value = '';
-                        if (gaugeImagePreview.value) URL.revokeObjectURL(gaugeImagePreview.value);
-                        gaugeImagePreview.value = '';
+                        clearStaged(gaugeImages);
                         const fi = document.getElementById('gauge-file-input'); if (fi) fi.value = '';
                         const ii = document.getElementById('gauge-image-input'); if (ii) ii.value = '';
 
@@ -2376,15 +2527,13 @@
                     gaugeRev.changed_by = '';
                     gaugeRev.effective_date = getToday();
 
-                    // Never let a photo picked for one gauge follow you to the next.
-                    revImageFile.value = null;
-                    revImageName.value = '';
-                    if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
-                    revImagePreview.value = '';
+                    // Never let photos picked for one gauge follow you to the next.
+                    clearStaged(revImageFiles);
                     revImageMsg.value = '';
                     revImageOk.value = false;
                     const ri = document.getElementById('rev-image-input'); if (ri) ri.value = '';
 
+                    revImages.value = await loadGaugeImages(gauge.id);
                     await fetchRevHistory(gauge.id);
                 };
 
@@ -2417,85 +2566,96 @@
                     return dir ? `${dir}/${safe}` : safe;
                 };
 
-                const onRevImageFile = (e) => {
-                    const f = e.target.files && e.target.files[0];
-                    revImageMsg.value = '';
-                    revImageOk.value = false;
-
-                    // MIME check, not extension — accept="" is only a picker hint.
-                    if (f && !ALLOWED_IMAGE_TYPES.includes(f.type)) {
-                        revImageMsg.value = 'Photo must be a PNG or JPEG image.';
-                        e.target.value = '';
-                        revImageFile.value = null;
-                        revImageName.value = '';
-                        if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
-                        revImagePreview.value = '';
-                        return;
-                    }
-
-                    revImageFile.value = f || null;
-                    revImageName.value = f ? f.name : '';
-                    if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
-                    revImagePreview.value = f ? URL.createObjectURL(f) : '';
-                };
-
-                const updateGaugeImage = async () => {
+                // Adds the staged photos to this gauge, keeping the ones already on file.
+                //
+                // This used to be "Replace Photo" — one file, overwriting whatever was there. It is
+                // not a revision either way: a photograph is an identification aid, so changing it
+                // alters nothing that was verified and earns no gauge_revision_history row.
+                const addGaugeImages = async () => {
                     const g = revGauge.value;
-                    if (!g || !revImageFile.value) return;
+                    if (!g || !revImageFiles.value.length) return;
 
                     revImageMsg.value = '';
                     revImageOk.value = false;
 
-                    if (!ALLOWED_IMAGE_TYPES.includes(revImageFile.value.type)) {
-                        revImageMsg.value = 'Photo must be a PNG or JPEG image.';
+                    if (revImageFiles.value.some(s => !ALLOWED_IMAGE_TYPES.includes(s.file.type))) {
+                        revImageMsg.value = 'Every photo must be a PNG or JPEG image.';
                         return;
                     }
-                    if (g.image_path && !confirm(`Replace the photo on file for ${g.gauge_no}?`)) return;
 
                     isUploadingImage.value = true;
                     try {
-                        const ext = revImageFile.value.type === 'image/png' ? 'png' : 'jpg';
-                        const imgPath = `${photoBaseName(g)}.${ext}`;
+                        // Ordered after the existing photos rather than from zero, so adding one
+                        // does not push it in front of the picture already on file.
+                        const n = await uploadGaugeImages(g, revImageFiles.value, revImages.value.length);
 
-                        const { error: upErr } = await _supabase.storage
-                            .from(GAUGE_BUCKET)
-                            .upload(imgPath, revImageFile.value, {
-                                upsert: true, contentType: revImageFile.value.type
-                            });
-                        if (upErr) throw new Error('Upload failed: ' + upErr.message);
-
-                        const { data: pub } = _supabase.storage.from(GAUGE_BUCKET).getPublicUrl(imgPath);
-                        // Cache-buster: replacing a photo reuses the same storage path, and the
-                        // browser would otherwise keep showing the old picture.
-                        const imageUrl = `${pub.publicUrl}?v=${Date.now()}`;
-
-                        const { data, error } = await _supabase.from('gauges')
-                            .update({ image_path: imageUrl })
-                            .eq('id', g.id)
-                            .select();
-                        if (error) throw new Error(error.message);
-                        if (!data || !data.length) throw new Error('Gauge record not found.');
-
+                        revImages.value = await loadGaugeImages(g.id);
                         // Keep the verification form in step if it has this gauge loaded.
-                        if (form.gauge_no === g.gauge_no) form.image_path = imageUrl;
+                        if (form.gauge_no === g.gauge_no) formImages.value = revImages.value;
 
-                        await fetchMasters();
-                        revGauge.value = gaugeMasters.value.find(x => x.id === g.id) || data[0];
-
-                        revImageFile.value = null;
-                        revImageName.value = '';
-                        if (revImagePreview.value) URL.revokeObjectURL(revImagePreview.value);
-                        revImagePreview.value = '';
+                        clearStaged(revImageFiles);
                         const ii = document.getElementById('rev-image-input'); if (ii) ii.value = '';
 
                         revImageOk.value = true;
-                        revImageMsg.value = `Photo saved for ${g.gauge_no}.`;
+                        revImageMsg.value = `${n} photo${n === 1 ? '' : 's'} added to ${g.gauge_no}.`;
                     } catch (e) {
-                        console.error('Gauge photo update failed:', e);
-                        revImageMsg.value = e.message || 'Could not save the photo.';
+                        console.error('Gauge photo upload failed:', e);
+                        revImageMsg.value = e.message || 'Could not save the photos.';
                     } finally {
                         isUploadingImage.value = false;
                     }
+                };
+
+                const deleteGaugeImage = async (img) => {
+                    const g = revGauge.value;
+                    if (!g || !img) return;
+                    if (!confirm(`Delete this photo of ${g.gauge_no}? It cannot be undone.`)) return;
+
+                    revImageMsg.value = '';
+                    revImageOk.value = false;
+                    isUploadingImage.value = true;
+                    try {
+                        const { error } = await _supabase.from('gauge_image').delete().eq('id', img.id);
+                        if (error) throw new Error(error.message);
+
+                        // The row is the record; the stored file is a cache of it. Remove the object
+                        // too when we know its key, but never fail the delete over it — a storage
+                        // error here would otherwise leave the photo listed after it had gone.
+                        if (img.storage_path) {
+                            const { error: sErr } = await _supabase.storage
+                                .from(GAUGE_BUCKET).remove([img.storage_path]);
+                            if (sErr) console.warn('Photo row deleted, file left in storage:', sErr.message);
+                        }
+
+                        revImages.value = await loadGaugeImages(g.id);
+                        if (form.gauge_no === g.gauge_no) {
+                            formImages.value = revImages.value;
+                            if (imageIndex.value >= formImages.value.length) imageIndex.value = 0;
+                        }
+
+                        revImageOk.value = true;
+                        revImageMsg.value = 'Photo deleted.';
+                    } catch (e) {
+                        console.error('Gauge photo delete failed:', e);
+                        revImageMsg.value = e.message || 'Could not delete the photo.';
+                    } finally {
+                        isUploadingImage.value = false;
+                    }
+                };
+
+                // Captions are edited in place on photos already saved.
+                const saveImageCaption = async (img) => {
+                    const value = (img.caption || '').trim().toUpperCase() || null;
+                    const { error } = await _supabase.from('gauge_image')
+                        .update({ caption: value }).eq('id', img.id);
+                    if (error) {
+                        revImageMsg.value = 'Could not save the caption: ' + error.message;
+                        revImageOk.value = false;
+                        return;
+                    }
+                    img.caption = value || '';
+                    revImageOk.value = true;
+                    revImageMsg.value = 'Caption saved.';
                 };
 
                 const onRevDrawingFile = (e) => {
@@ -2752,14 +2912,15 @@
                     approvalReadings, openApprovalDetail, isLocalPathApproval, approveRecord, filterApprovalReadings,
                     printData, printReadings, getRow, generatePDF,
                     newGauge, gaugeFile, gaugeFileName, isAddingGauge, addGaugeMsg, onGaugeFile, addNewGauge,
-                    gaugeImage, gaugeImageName, gaugeImagePreview, onGaugeImage, showImageModal,
+                    gaugeImages, onGaugeImages, removeStaged,
+                    showImageModal, formImages, imageIndex, activeImage, openImageModal, stepImage,
                     // revision control
                     revLabel, recordRev, revFilter, showRevDropdown, filteredGaugesRevision, revGauge,
                     revHistory, revMsg, isRevising, drawingRev, gaugeRev, drawingRevFileName,
                     nextDrawingLabel, nextGaugeLabel, openRevisionPage, selectRevisionGauge,
                     onRevDrawingFile, raiseDrawingRevision, replaceGauge,
-                    revImageName, revImagePreview, revImageMsg, revImageOk, isUploadingImage,
-                    onRevImageFile, updateGaugeImage,
+                    revImageFiles, revImages, revImageMsg, revImageOk, isUploadingImage,
+                    onRevImageFiles, addGaugeImages, deleteGaugeImage, saveImageCaption,
                 };
             }
         }).mount('#app');
