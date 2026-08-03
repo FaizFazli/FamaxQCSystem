@@ -304,6 +304,23 @@
 
         .part-header:hover { background: #0f172a; }
 
+        /* "Needs attention" pill — sits beside the part number, and again on any
+           session inside it that still has a reading out of spec.
+           Amber on a light plate so the one pill reads on both headers: the part
+           header is near-black (#1e293b) and the session header is pale grey. */
+        .attn-tag {
+            flex-shrink: 0;
+            padding: 3px 9px;
+            border-radius: var(--radius-full);
+            background: #fbbf24;
+            color: #78350f;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
         .part-content {
             display: none;
             padding: var(--space-5);
@@ -543,7 +560,70 @@
         }
 
         // Validation logic for coloring
+        /* ------------------------------------------------------------------
+           "*NEED ATTENTION" tags
+
+           Derived from the .out-of-spec marks that validateSpec already puts on
+           the reading inputs, rather than from a second copy of the spec rule.
+           That matters twice over: the pill can never disagree with the red
+           cells the user is looking at, and validateSpec already treats a
+           special-accepted row as fine — so ticking SA makes the tag disappear
+           by itself, which is the whole point of it.
+
+           "Out of spec" here is whatever validateSpec flags: a reading outside
+           LSL/USL, and also a plain NG or STOP, since those are the attribute
+           and machine-stop cases of the same problem.
+
+           Parts and sessions are both collapsed by default, so without these
+           pills the only way to find a point needing special accept is to open
+           every card on the day.
+           ------------------------------------------------------------------ */
+        let attnRefreshTimer = null;
+
+        // Debounced because validateSpec is called once per reading input — a
+        // few hundred times during a render. One refresh at the end is enough,
+        // and deferring it also guarantees every class is settled before we count.
+        function scheduleAttentionRefresh() {
+            clearTimeout(attnRefreshTimer);
+            attnRefreshTimer = setTimeout(refreshAttentionTags, 60);
+        }
+
+        function refreshAttentionTags() {
+            $('.part-card').each(function () {
+                let partPoints = 0;
+
+                $(this).find('.session-group').each(function () {
+                    // Rows, not inputs: three readings on one point that are all
+                    // out of spec are still one point to special-accept.
+                    const rows = $(this).find('tbody tr').filter(function () {
+                        return $(this).find('.reading-input.out-of-spec').length > 0;
+                    }).length;
+                    partPoints += rows;
+                    // .children() so a session's own header is targeted and never
+                    // a nested one, and so the part card's pill is left alone.
+                    // Explicit display rather than .toggle(): both pills start with
+                    // an inline display:none, and this leaves no room for jQuery to
+                    // guess a default for the span.
+                    $(this).children('.session-header').find('.attn-tag')
+                        .css('display', rows > 0 ? 'inline-block' : 'none');
+                });
+
+                const $partTag = $(this).children('.part-header').find('.attn-tag');
+                $partTag.css('display', partPoints > 0 ? 'inline-block' : 'none');
+                // The count is on the part pill only: a part can span many
+                // sessions, and "3" tells you whether this is one stray reading
+                // or the whole run.
+                if (partPoints > 0) {
+                    $partTag.text(`*NEED ATTENTION (${partPoints})`);
+                }
+            });
+        }
+
         function validateSpec(input, lsl, usl) {
+            // Queued first, not last: the early returns below would otherwise
+            // skip it for empty, NG/STOP and special-accepted readings.
+            scheduleAttentionRefresh();
+
             const $row = $(input).closest('tr');
             const isSpecialAccept = $row.find('.special-accept-checkbox').is(':checked');
             const val = $(input).val().trim().toUpperCase();
@@ -659,6 +739,7 @@
                     <div class="part-card glass-card">
                         <div class="part-header chevron" onclick="toggleCollapse(this)">
                             <span>${partName}</span>
+                            <span class="attn-tag" style="display:none">*NEED ATTENTION</span>
                             <span style="font-weight:400; font-size:11px; opacity:0.8; margin-left:auto;">${Object.keys(sessions).length} Sessions</span>
                         </div>
                         <div class="part-content">`;
@@ -671,6 +752,7 @@
                                 <span>TIME: ${timeOnly}</span>
                                 <span style="color:var(--text-muted)">|</span>
                                 <span>PROCESS: ${s.process}</span>
+                                <span class="attn-tag" style="display:none; margin-left:auto">*NEED ATTENTION</span>
                             </div>
                             <div class="session-content">
                                 <div class="session-meta-grid">
