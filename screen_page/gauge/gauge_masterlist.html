@@ -545,8 +545,20 @@
                 <div class="dlg__body">
                     <div class="field mb-4">
                         <label class="label">Description <span style="color:var(--danger)">*</span></label>
-                        <input v-model="specForm.designation" type="text" placeholder="M6 X 1.0 6H RH (SINGLE START)" />
+                        <div class="dsc-row">
+                            <input v-model="specForm.designation" type="text" placeholder="M6 X 1.0 6H RH (SINGLE START)" />
+                            <button v-if="kind !== 'other'" type="button" class="btn btn--secondary"
+                                    @click="applyAutoSpec(true)" :disabled="!specForm.designation">
+                                Fill from description
+                            </button>
+                        </div>
                         <p class="hint">Exactly as it is written on the gauge or the masterlist sheet.</p>
+                        <p v-if="kind !== 'other'" class="hint">
+                            Anything below that you leave blank is read out of this line as you type.
+                        </p>
+                        <p v-if="autoFilled.length" class="hint" style="color:var(--primary)">
+                            Filled from the description: {{ autoFilled.join(', ') }}. Type over anything that is wrong.
+                        </p>
                     </div>
 
                     <!-- thread fields -->
@@ -875,6 +887,12 @@
         .dlg__body select,
         select.gm-field { padding-right: var(--space-8); }
 
+        /* Description sits next to its re-parse button; the button keeps the
+           control height so the pair reads as one row. */
+        .dsc-row { display: flex; gap: var(--space-2); align-items: stretch; }
+        .dsc-row input { flex: 1; min-width: 0; }
+        .dsc-row .btn { height: var(--control-h); white-space: nowrap; flex: none; }
+
         /* Textareas are the one control that must grow — match the others at
            rest, then let rows= take over. */
         .dlg__body textarea {
@@ -937,7 +955,7 @@
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
-        const { createApp, ref, reactive, computed, onMounted } = Vue;
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
         // Mirrors AdminLogin's grant for the two gauge cards exactly: btn-gv and
         // btn-gauge-masterlist are enabled for ALL and QUALITY only. Keep the two
@@ -1052,8 +1070,14 @@
                    otherwise 400 the request. Nothing can survive the split. */
                 const SPEC_SEARCH_COLS = [
                     'designation', 'nominal_size_label', 'thread_standard',
-                    'tolerance_class', 'hand', 'pin_class', 'remarks'
+                    'tolerance_class', 'pin_class', 'remarks'
                 ];
+                /* `hand` is a Postgres enum (thread_hand), not text. ilike on an
+                   enum has no operator, so including it above 400'd every spec
+                   search. Enums only take eq, and PostgREST rejects a ::text cast
+                   inside an or() tree, so a token that IS an enum value is turned
+                   into an eq clause in the same disjunction instead. */
+                const SPEC_ENUM_COLS = { hand: ['RH', 'LH'] };
                 const SPECIAL_SEARCH_COLS = [
                     'gauge_name', 'gauge_no', 'for_process',
                     'location', 'drawing_no', 'status'
@@ -1068,9 +1092,14 @@
 
                 // One .or() per token. PostgREST ANDs repeated top-level filters,
                 // so this reads as (tok1 in any column) AND (tok2 in any column).
-                function applySearch(q, columns) {
+                function applySearch(q, columns, enumCols) {
                     searchTokens().forEach(tok => {
-                        q = q.or(columns.map(c => `${c}.ilike.*${tok}*`).join(','));
+                        const clauses = columns.map(c => `${c}.ilike.*${tok}*`);
+                        Object.entries(enumCols || {}).forEach(([col, values]) => {
+                            const hit = values.find(v => v.toLowerCase() === tok.toLowerCase());
+                            if (hit) clauses.push(`${col}.eq.${hit}`);
+                        });
+                        q = q.or(clauses.join(','));
                     });
                     return q;
                 }
@@ -1083,7 +1112,7 @@
                         let q = _supabase.from('out_gauge_spec')
                             .select('*', { count: 'exact' })
                             .eq('gauge_type', activeCode.value);
-                        q = applySearch(q, SPEC_SEARCH_COLS);
+                        q = applySearch(q, SPEC_SEARCH_COLS, SPEC_ENUM_COLS);
                         // Sorted by name for every category. `id` is only a
                         // tiebreaker — without it, rows that compare equal can
                         // swap between pages and a spec shows twice or not at all.
@@ -1152,17 +1181,196 @@
                 function selectCategory(code) { activeCode.value = code; page.value = 0; reload(); }
                 function go(p) { page.value = p; reload(); }
 
+                /* ---- Description → spec --------------------------------------
+                   The masterlist sheet carries the whole spec inside the one
+                   description string — "M10 X 1.5 6H RH (SINGLE START)",
+                   "1/4 - 20 UNC 2B RH", "PIN GAUGE Ø 8.01MM" — so a field left
+                   blank is read back out of the description instead of being
+                   typed a second time. A value already in the form always wins:
+                   this only ever fills gaps. */
+
+                // Unified number sizes (#0–#12) in mm. "6-32 UNC" is a #6, not 6".
+                const NUMBER_SIZE_MM = {
+                    0: 1.524, 1: 1.854, 2: 2.184, 3: 2.515, 4: 2.845,
+                    5: 3.175, 6: 3.505, 8: 4.166, 10: 4.826, 12: 5.486
+                };
+                /* Longest first — UNEF has to be tested before UNF. The guard is
+                   letters, not \b: the sheet writes "1/2 - 24UNS" and "3/4 - 14NPT"
+                   with the standard glued to the TPI, and \b sees no boundary
+                   between a digit and a letter. */
+                const STD_PATTERNS = [
+                    ['UNEF', /(?<![A-Z])UNEF(?![A-Z])/], ['UNF', /(?<![A-Z])UNF(?![A-Z])/],
+                    ['UNC', /(?<![A-Z])UNC(?![A-Z])/], ['UNS', /(?<![A-Z])UNS(?![A-Z])/],
+                    ['NPT', /(?<![A-Z])NPTF?(?![A-Z])/],
+                    ['BSPT', /(?<![A-Z])BSPT(?![A-Z])|^RC(?![A-Z])/],
+                    ['BSPP', /(?<![A-Z])BSPP(?![A-Z])/],
+                    ['BSW', /(?<![A-Z])BSW(?![A-Z])|WHIT\s*WORTH/],
+                    ['BSF', /(?<![A-Z])BSF(?![A-Z])/]
+                ];
+                const round3 = n => Math.round(n * 1000) / 1000;
+
+                // "1 1/2" → 38.1, "5/8" → 15.875, "1" → 25.4
+                function inchToMm(txt) {
+                    const mixed = txt.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+                    if (mixed) return round3((Number(mixed[1]) + Number(mixed[2]) / Number(mixed[3])) * 25.4);
+                    const frac = txt.match(/^(\d+)\/(\d+)$/);
+                    if (frac) return round3(Number(frac[1]) / Number(frac[2]) * 25.4);
+                    return round3(Number(txt) * 25.4);
+                }
+
+                function parseDiameter(s) {
+                    const out = {};
+                    const d = s.match(/(?:Ø|DIA\.?|DIAMETER)\s*(\d+(?:\.\d+)?)/)
+                        || s.match(/(\d+(?:\.\d+)?)\s*MM\b/)
+                        || s.match(/(\d+(?:\.\d+)?)/);
+                    if (d) out.pin_dia_mm = Number(d[1]);
+                    const c = s.match(/\bCLASS\s*(ZZ|Z|X)\b/);
+                    if (c) out.pin_class = c[1];
+                    return out;
+                }
+
+                function parseThread(s, raw) {
+                    const out = {};
+                    if (/\bLH\b|LEFT\s*HAND/.test(s)) out.hand = 'LH';
+                    else if (/\bRH\b|RIGHT\s*HAND/.test(s)) out.hand = 'RH';
+
+                    // Deliberately loose: the sheet spells it SINGEL and SINGLLE too.
+                    const said = /QUAD/.test(s) ? 4 : /TRIP/.test(s) ? 3
+                        : /DOUB/.test(s) ? 2 : /SING/.test(s) ? 1 : null;
+
+                    // Read the class off the raw string — 6H and 6g are different
+                    // things and upper-casing would throw that away.
+                    const tol = raw.match(/\b\d\s?[HGhg]\b/) || raw.match(/\b[123][ABab]\b/);
+                    if (tol) out.tolerance_class = tol[0].replace(/\s/g, '');
+
+                    const met = s.match(/^M\s*(\d+(?:\.\d+)?)/);
+                    if (met) {
+                        out.thread_standard = 'M';
+                        out.nominal_size_mm = Number(met[1]);
+                        const x = s.match(/^M\s*\d+(?:\.\d+)?\s*[X*]\s*(\d+(?:\.\d+)?)/);
+                        const xVal = x ? Number(x[1]) : null;
+                        // "(PITCH 1.0)" / "(P=0.7)" name the true pitch, which makes
+                        // the X figure the lead. "(L=2)" names the lead outright.
+                        const pM = s.match(/\bPITCH\s*[=:]?\s*(\d+(?:\.\d+)?)/)
+                            || s.match(/\(\s*P\s*[=:]\s*(\d+(?:\.\d+)?)\s*\)/);
+                        const lM = s.match(/\(\s*L(?:EAD)?\s*[=:]\s*(\d+(?:\.\d+)?)\s*\)/);
+                        let pitch = xVal, lead = null;
+                        if (xVal !== null && pM && Number(pM[1]) <= xVal) {
+                            pitch = Number(pM[1]); lead = xVal;
+                        } else if (xVal !== null && lM) {
+                            lead = Number(lM[1]);
+                        } else if (xVal !== null) {
+                            // A pitch larger than the X figure is a slip on the sheet
+                            // ("(P=10)" against an M10 X 2.0) — dropped, not trusted.
+                            lead = round3(xVal * (said || 1));
+                        }
+                        if (pitch !== null) out.pitch_mm = pitch;
+                        if (lead !== null) out.lead_mm = lead;
+                        // The stated starts can contradict the numbers; a lead that is
+                        // a clean multiple of the pitch is the better witness.
+                        const derived = (pitch && lead) ? Math.round(lead / pitch) : null;
+                        out.thread_starts = (derived && derived >= 1) ? derived : (said || 1);
+                    } else {
+                        for (const [std, re] of STD_PATTERNS) {
+                            if (re.test(s)) { out.thread_standard = std; break; }
+                        }
+                        // Pipe standards are written ahead of the size, not after it
+                        // ("NPT 1/2 - 14", "RC 1/8 - 28", "G 1/2 BSPP").
+                        const body = s.replace(/^(NPTF?|BSPT|BSPP|BSW|BSF|RC|PT|PF|[GR])\s+/, '');
+                        const num = body.match(/^(?:NO\.?|#)\s*(\d+)/);
+                        const size = num ? null : body.match(/^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)/);
+                        const after = num ? body.slice(num[0].length)
+                            : (size ? body.slice(size[0].length) : '');
+                        // No \b on the digits — "2-56UNC" runs the TPI into the standard.
+                        const tpi = after.match(/^\s*(?:[-X]|\s)\s*(\d+)/);
+                        if (tpi) out.threads_per_inch = Number(tpi[1]);
+
+                        if (num) {
+                            out.nominal_size_label = num[1];
+                            const mm = NUMBER_SIZE_MM[Number(num[1])];
+                            if (mm !== undefined) out.nominal_size_mm = mm;
+                        } else if (size) {
+                            const txt = size[1];
+                            const bare = /^\d+$/.test(txt);
+                            const asNum = Number(txt);
+                            if (bare && asNum <= 12 && out.threads_per_inch >= 24
+                                && NUMBER_SIZE_MM[asNum] !== undefined) {
+                                // A bare small integer against a fine TPI is a number
+                                // size ("6-32 UNC" is a #6); "1-8 UNC" really is 1".
+                                out.nominal_size_label = txt;
+                                out.nominal_size_mm = NUMBER_SIZE_MM[asNum];
+                            } else if (bare || /\//.test(txt)) {
+                                out.nominal_size_label = txt;
+                                out.nominal_size_mm = inchToMm(txt);
+                            } else {
+                                // A plain decimal is already millimetres ("19.76 X 16").
+                                out.nominal_size_label = txt;
+                                out.nominal_size_mm = Number(txt);
+                            }
+                        }
+                        // Only default the starts once the line has been recognised
+                        // as a thread at all — otherwise typing a note into the
+                        // description would silently claim to have filled a field.
+                        if (said || out.thread_standard || out.nominal_size_mm !== undefined
+                            || out.threads_per_inch !== undefined) {
+                            out.thread_starts = said || 1;
+                        }
+                    }
+                    return out;
+                }
+
+                function parseDesignation(text, forKind) {
+                    const raw = (text || '').trim();
+                    if (!raw) return {};
+                    const s = raw.toUpperCase().replace(/["'`´″]/g, ' ').replace(/\s+/g, ' ').trim();
+                    if (forKind === 'diameter') return parseDiameter(s);
+                    if (forKind === 'thread') return parseThread(s, raw);
+                    return {};   // free-form categories have no fixed fields to guess
+                }
+
+                const AUTO_LABELS = {
+                    thread_standard: 'standard', nominal_size_mm: 'nominal size',
+                    nominal_size_label: 'size label', pitch_mm: 'pitch',
+                    threads_per_inch: 'threads per inch', tolerance_class: 'tolerance class',
+                    hand: 'hand', thread_starts: 'starts', lead_mm: 'lead',
+                    pin_dia_mm: 'diameter', pin_class: 'class'
+                };
+                const autoFilled = ref([]);
+                const isBlank = v => v === null || v === undefined || v === '';
+
+                // `force` re-derives every field, for the "Fill from description"
+                // button. Without it only untouched fields are written.
+                function applyAutoSpec(force) {
+                    const derived = parseDesignation(specForm.designation, kind.value);
+                    const filled = [];
+                    Object.entries(derived).forEach(([k, v]) => {
+                        if (v === null || v === undefined) return;
+                        if (force || isBlank(specForm[k])) {
+                            specForm[k] = v;
+                            filled.push(AUTO_LABELS[k] || k);
+                        }
+                    });
+                    autoFilled.value = filled;
+                }
+
+                watch(() => specForm.designation, () => {
+                    if (specModal.value) applyAutoSpec(false);
+                });
+
                 // ---- spec CRUD -------------------------------------------------
                 function openSpec(s) {
                     formError.value = '';
                     attrError.value = '';
+                    autoFilled.value = [];
                     Object.keys(specForm).forEach(k => delete specForm[k]);
                     if (s) {
                         Object.assign(specForm, s);
                         attrText.value = JSON.stringify(s.attributes || {}, null, 2);
                     } else {
+                        // thread_starts is left blank on purpose — a preset 1 would
+                        // count as "specified" and block DOUBLE START from filling in.
                         Object.assign(specForm, {
-                            gauge_type: activeCode.value, designation: '', thread_starts: 1
+                            gauge_type: activeCode.value, designation: ''
                         });
                         attrText.value = '{}';
                     }
@@ -1366,6 +1574,7 @@
                     specModal, itemsModal, itemModal, catModal, items, itemsLoading,
                     specForm, itemForm, catForm, attrText, attrError,
                     fmt, statusClass, selectCategory, go, reload, debouncedReload,
+                    autoFilled, applyAutoSpec,
                     openSpec, saveSpec, removeSpec,
                     openItems, openItem, saveItem, removeItem,
                     openCategory, saveCategory
