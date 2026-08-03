@@ -1305,6 +1305,23 @@
                 ws.getCell(9, 3).value = group.process;
                 ws.getCell(10, 19).value = group.machine;
                 ws.getCell(45, 17).value = group.inspector || "";
+
+                // VERIFIED BY block. The template labels it at S42, merges the
+                // signature area across S43:T45 and puts its date label at S46,
+                // so the name belongs in S43 (the merge anchor — a value written
+                // to any other cell of a merge is not displayed) and the date in
+                // T46. Left blank when the batch has not been signed off in IPQC
+                // Verification; a name on an unsigned form would be worse than a
+                // blank one.
+                const verifiers = [...new Set(group.records.map(r => r.verified_by).filter(Boolean))];
+                ws.getCell(43, 19).value = verifiers.join(", ");
+
+                const verifiedAt = group.records.map(r => r.verified_at).filter(Boolean).sort()[0];
+                if (verifiedAt) {
+                    const vCell = ws.getCell(46, 20);
+                    vCell.value = new Date(verifiedAt);
+                    vCell.numFmt = "dd/mm/yyyy";
+                }
                 const pts = {};
                 group.records.forEach(r => { const p = r.Point_DWG_Zone || "Unknown"; if (!pts[p]) pts[p] = []; pts[p].push(r); });
                 Object.keys(pts).forEach((pt, idx) => {

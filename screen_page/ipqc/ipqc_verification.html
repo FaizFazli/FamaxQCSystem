@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Famax | IPQC Verification</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+
+    <!-- Shared design system (tokens + UI primitives) — loaded before page styles -->
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="/assets/app-config.js"></script>
+
+    <style>
+        /* ---- Shell: identity rail + content column (mirrors AdminLogin.html).
+               Same rail vocabulary as the two gauge pages; the rail's nav is the
+               status filter here rather than a category list. ---- */
+        .shell { display: flex; align-items: flex-start; }
+
+        .column {
+            flex: 1; min-width: 0;
+            display: flex; flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .rail {
+            position: sticky; top: 0;
+            flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+        /* Read-only carries the same weight as the write badge but reads as a
+           state, not a grant — same pill the gauge pages use. */
+        .access-level--read {
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Side navigation: the status filter ---- */
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none; border: 0;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .rail-nav__code {
+            flex-shrink: 0;
+            padding: 2px 6px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.65);
+            font-variant-numeric: tabular-nums;
+        }
+        .rail-nav__item.is-active .rail-nav__code {
+            background: rgba(255, 255, 255, 0.22); color: #fff;
+        }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        .rail__note {
+            margin: 0 0 18px;
+            font-size: 12px; line-height: 1.6;
+            color: rgba(255, 255, 255, 0.5);
+            text-wrap: pretty;
+        }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn, but
+           this page only navigates back, so it warms to --primary not --danger. */
+        .rail__back {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* ---- Content ---- */
+        .content { padding: 44px 48px 28px; max-width: 1400px; }
+
+        .page-head { margin-bottom: 20px; }
+        .page-head h1 {
+            margin: 0;
+            font-size: 30px; font-weight: 700; letter-spacing: -0.7px;
+            color: var(--text-main);
+        }
+        .page-head p { margin: 8px 0 0; font-size: var(--fs-base); color: var(--text-muted); }
+
+        /* Shown only when the migration has not been run — the page is useless
+           until then, so it says exactly which file to run rather than leaving
+           a Postgres "column does not exist" in the console. */
+        .banner {
+            display: none;
+            margin-bottom: var(--space-5);
+            padding: var(--space-4) var(--space-5);
+            border: 1px solid #fcd34d; border-left: 4px solid var(--warning);
+            border-radius: var(--radius);
+            background: #fffbeb;
+            font-size: var(--fs-sm); line-height: 1.6; color: #92400e;
+        }
+        .banner.show { display: block; }
+        .banner strong { display: block; margin-bottom: 4px; font-size: var(--fs-base); }
+        .banner code {
+            font-family: ui-monospace, Menlo, monospace;
+            background: rgba(146, 64, 14, 0.10);
+            padding: 1px 5px; border-radius: 4px;
+        }
+
+        .bar {
+            display: flex; align-items: flex-end; gap: var(--space-4);
+            flex-wrap: wrap;
+            margin-bottom: var(--space-4);
+        }
+        .bar .field { display: flex; flex-direction: column; gap: 6px; }
+        .bar label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .bar .input { min-width: 190px; }
+        .bar__spacer { flex: 1; }
+
+        .pager {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: var(--space-4); flex-wrap: wrap;
+            margin-top: var(--space-4);
+        }
+        .pager__text { font-size: var(--fs-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .pager__btns { display: flex; gap: var(--space-2); }
+
+        .table-wrap { overflow-x: auto; }
+        .table th, .table td { white-space: nowrap; }
+        .table td.wrap-cell { white-space: normal; min-width: 160px; }
+        .num { font-variant-numeric: tabular-nums; }
+        .muted { color: var(--text-faint); }
+
+        tr.batch-row { cursor: pointer; }
+
+        .empty { padding: var(--space-10); text-align: center; color: var(--text-faint); }
+
+        /* ---- Modal ----
+           Out-specifies theme.css's `.modal-overlay > .modal` (420px, centred)
+           the same way AdminLogin's detail modal does. */
+        .modal-overlay { display: none; z-index: var(--z-modal); }
+        .modal-overlay.show { display: flex; }
+        .modal-overlay > .modal--review {
+            display: flex; flex-direction: column;
+            max-width: 940px; width: 100%;
+            max-height: min(88vh, 860px);
+            padding: 0; text-align: left;
+        }
+
+        .rv__head {
+            display: flex; align-items: flex-start; gap: var(--space-4);
+            padding: var(--space-5) var(--space-6);
+            border-bottom: 1px solid var(--border);
+        }
+        .rv__title { flex: 1; margin: 0; font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .rv__sub {
+            display: block; margin-top: 4px;
+            font-size: var(--fs-sm); font-weight: 400; line-height: 1.6;
+            color: var(--text-muted);
+        }
+        .rv__close {
+            flex-shrink: 0; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; line-height: 1;
+            color: var(--text-muted);
+            background: none; border: 1px solid transparent;
+            border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .rv__close:hover { background: var(--surface-muted); color: var(--text-main); }
+
+        .rv__body { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6); }
+
+        .rv__foot {
+            padding: var(--space-5) var(--space-6);
+            border-top: 1px solid var(--border);
+            background: var(--surface-muted);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+        .rv__grid {
+            display: grid; gap: var(--space-3);
+            grid-template-columns: 1.4fr 0.7fr 2fr;
+            align-items: end;
+        }
+        @media (max-width: 720px) { .rv__grid { grid-template-columns: 1fr; } }
+        .rv__grid label {
+            display: block; margin-bottom: 6px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--text-muted);
+        }
+        .rv__actions {
+            display: flex; align-items: center; gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+        .rv__msg {
+            flex: 1; min-height: 1.1rem;
+            font-size: var(--fs-sm); font-weight: 600;
+        }
+
+        /* Reading cells */
+        .cell-ng { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+        .cell-stop { background: #fef3c7; color: #b45309; font-weight: 700; }
+
+        /* Verdict already recorded */
+        .verdict {
+            padding: var(--space-4) var(--space-5);
+            border-radius: var(--radius);
+            font-size: var(--fs-sm); line-height: 1.7;
+        }
+        .verdict--ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .verdict--no { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+        .verdict strong { font-weight: 700; }
+
+        @media (max-width: 900px) {
+            .shell { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session, .rail__note { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
+            .content { padding: 28px 20px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+
+        <!-- ---------- Identity rail / status filter ---------- -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <!-- Relative like every other asset here, so it resolves under /,
+                     under /FamaxQCSystem and from file://. -->
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">IPQC Verification</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name" id="railUser">—</span>
+                </div>
+                <span class="access-level access-level--read" id="railAccess">Read only</span>
+            </div>
+
+            <div class="session" id="railSession" style="display:none">Session active</div>
+
+            <nav class="rail-nav">
+                <div class="rail-nav__label">Show</div>
+                <button class="rail-nav__item is-active" data-status="PENDING">
+                    <span class="rail-nav__name">Awaiting sign-off</span>
+                    <span class="rail-nav__code" data-count="PENDING">0</span>
+                </button>
+                <button class="rail-nav__item" data-status="VERIFIED">
+                    <span class="rail-nav__name">Verified</span>
+                    <span class="rail-nav__code" data-count="VERIFIED">0</span>
+                </button>
+                <button class="rail-nav__item" data-status="REJECTED">
+                    <span class="rail-nav__name">Rejected</span>
+                    <span class="rail-nav__code" data-count="REJECTED">0</span>
+                </button>
+                <button class="rail-nav__item" data-status="ALL">
+                    <span class="rail-nav__name">All</span>
+                    <span class="rail-nav__code" data-count="ALL">0</span>
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <p class="rail__note">
+                One row here is one IPQC submission — every measurement point the
+                inspector recorded in a single go.
+            </p>
+
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+            <main class="content">
+                <div class="page-head">
+                    <h1>IPQC Verification</h1>
+                    <p>Review the readings an inspector recorded against their spec, then sign the batch off.</p>
+                </div>
+
+                <div class="banner" id="banner">
+                    <strong>Sign-off is not switched on yet.</strong>
+                    <span id="bannerText"></span>
+                </div>
+
+                <div class="bar">
+                    <div class="field">
+                        <label for="monthPicker">Month <span style="text-transform:none;font-weight:500">(all if blank)</span></label>
+                        <input type="month" id="monthPicker" class="input" />
+                    </div>
+                    <div class="field">
+                        <label for="searchBox">Filter</label>
+                        <input type="search" id="searchBox" class="input" placeholder="JO, part, machine, inspector" />
+                    </div>
+                    <div class="bar__spacer"></div>
+                    <button class="btn btn--secondary" id="refreshBtn">Refresh</button>
+                </div>
+
+                <div class="panel">
+                    <div class="table-wrap">
+                        <table class="table table--striped" id="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Submitted</th>
+                                    <th>Part</th>
+                                    <th>JO / Machine</th>
+                                    <th>Process</th>
+                                    <th>Inspector</th>
+                                    <th class="num">Points</th>
+                                    <th class="num">Out of spec</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="empty" id="empty" style="display:none"></div>
+                </div>
+
+                <div class="pager" id="pager" style="display:none">
+                    <span class="pager__text" id="pagerText"></span>
+                    <div class="pager__btns">
+                        <button class="btn btn--secondary" id="prevBtn">← Previous</button>
+                        <button class="btn btn--secondary" id="nextBtn">Next →</button>
+                    </div>
+                </div>
+            </main>
+
+            <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+        </div>
+    </div>
+
+    <!-- ---------- Review + sign-off modal ---------- -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal modal--review" role="dialog" aria-modal="true" aria-labelledby="rvTitle">
+            <div class="rv__head">
+                <h3 class="rv__title" id="rvTitle">
+                    <span id="rvTitleText">Review submission</span>
+                    <span class="rv__sub" id="rvSub"></span>
+                </h3>
+                <button class="rv__close" id="rvClose" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="rv__body">
+                <div class="table-wrap">
+                    <table class="table" id="rvTable">
+                        <thead>
+                            <tr>
+                                <th>Point / zone</th>
+                                <th>Instrument</th>
+                                <th>SC</th>
+                                <th>Spec</th>
+                                <th class="num">R1</th>
+                                <th class="num">R2</th>
+                                <th class="num">R3</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="rvBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="rv__foot" id="rvFoot"></div>
+        </div>
+    </div>
+
+    <script>
+        // ------------------------------------------------------------------
+        // Boot
+        // ------------------------------------------------------------------
+        if (typeof supabase === 'undefined' || !window.APP_CONFIG) {
+            document.body.innerHTML =
+                '<div style="max-width:720px;margin:64px auto;padding:24px;border:1px solid #e2e8f0;' +
+                'background:#fff;border-radius:16px;font-family:system-ui,sans-serif">' +
+                '<h1 style="margin:0 0 8px;font-size:16px;color:#1e293b">This page could not start</h1>' +
+                '<p style="margin:0;font-size:14px;color:#475569;line-height:1.6">The Supabase client ' +
+                '(unpkg.com) or <code>/assets/app-config.js</code> did not load. That second path is ' +
+                'absolute, so it only resolves when the page is served by the app — opening the .html ' +
+                'straight off disk will always fail here.</p></div>';
+            throw new Error('boot dependencies missing');
+        }
+
+        const _supabase = supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+
+        // Mirrors AdminLogin's grant for btn-ipqc-verify exactly: ALL and QUALITY.
+        // Keep the two in step — a role that cannot see the card should not be
+        // able to sign anything off by typing the URL in.
+        const WRITE_ROLES = ['ALL', 'QUALITY'];
+
+        // Reviews per page. The database does the grouping and the paging, so
+        // this is a display choice, not a cap hiding data.
+        const PAGE_SIZE = 50;
+
+        // Every date on this page is the factory's local day, matching the
+        // timezone v_ipqc_batch groups on.
+        const MYT = 'Asia/Kuala_Lumpur';
+
+        // ------------------------------------------------------------------
+        // State
+        // ------------------------------------------------------------------
+        let canWrite = false;
+        let schemaReady = false;      // migration run?
+        let batches = [];             // the page of submissions on screen
+        let current = null;           // batch under review
+        let currentRows = [];         // its measurement points, fetched on open
+        let verifierMap = {};         // { NAME_UPPER: { pin, position } }
+        let statusFilter = 'PENDING';
+        let page = 0;
+        let total = null;             // matching submissions, for the pager
+
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const dash = v => (v === null || v === undefined || v === '') ? '—' : String(v);
+
+        // ------------------------------------------------------------------
+        // Reading classification
+        //
+        // Same rules as IPQC-page2.html's validateReading(), which is what
+        // decided in-spec / out-of-spec at submission time. Kept identical on
+        // purpose: a batch must not read as OOS here and OK on the report.
+        // 'stop' is the extra case — a machine-stop record writes the stop type
+        // into all three reading slots, so it is not a measurement at all.
+        // ------------------------------------------------------------------
+        const STOP_WORDS = ['STOP', 'DOWNTIME'];
+
+        function readingState(reading, min, max) {
+            if (reading === null || reading === undefined || String(reading).trim() === '') return 'empty';
+
+            const r = String(reading).trim().toLowerCase();
+            if (STOP_WORDS.includes(r.toUpperCase())) return 'stop';
+
+            const minStr = String(min ?? '').toLowerCase();
+            const maxStr = String(max ?? '').toLowerCase();
+
+            if (minStr === 'ok' || minStr === 'go') return (r === 'ok' || r === 'go') ? 'ok' : 'ng';
+            if (maxStr === 'ng' || maxStr === 'nogo') return (r === 'ng' || r === 'nogo') ? 'ng' : 'ok';
+
+            const v = parseFloat(reading), lo = parseFloat(min), hi = parseFloat(max);
+            // Limits that are neither numeric nor the text forms above cannot be
+            // judged; call it OK rather than raise a false alarm.
+            if (isNaN(lo) || isNaN(hi)) return 'ok';
+            return (!isNaN(v) && v >= lo && v <= hi) ? 'ok' : 'ng';
+        }
+
+        // ------------------------------------------------------------------
+        // Access + schema
+        // ------------------------------------------------------------------
+        async function resolveAccess() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) return;
+            $('railUser').textContent = userId;
+            $('railSession').style.display = '';
+            try {
+                const { data } = await _supabase
+                    .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                if (data && data.length) {
+                    canWrite = WRITE_ROLES.includes(data[0].Access);
+                    const badge = $('railAccess');
+                    badge.textContent = canWrite ? data[0].Access : 'Read only';
+                    badge.classList.toggle('access-level--read', !canWrite);
+                }
+            } catch (e) { console.error('Access lookup failed', e); }
+        }
+
+        // The verify columns are added by a migration that is run by hand, so
+        // the page has to cope with them not being there yet. Probing once up
+        // front is cheaper than letting every query fail on 42703.
+        async function probeSchema() {
+            const { error } = await _supabase
+                .from('Data_IPQC').select('id, verify_status').limit(1);
+            schemaReady = !error;
+            // Only an undefined-column error means the migration is outstanding.
+            // A network or auth failure must not be reported as "run the SQL" —
+            // load() will surface that one properly on its own.
+            if (error && error.code !== '42703') {
+                console.error('Schema probe failed for an unrelated reason', error);
+                schemaReady = true;
+                return;
+            }
+            if (!schemaReady) {
+                $('bannerText').innerHTML =
+                    'The verify columns are not on <code>Data_IPQC</code> yet, so nothing can be ' +
+                    'signed off. Run <code>sql/2026-08-03_ipqc_verification.sql</code> against the ' +
+                    'database, then reload this page. Submissions are still listed below so you ' +
+                    'can review them — every one will show as pending.' +
+                    '<br><span class="muted">Database said: ' + esc(error.message) + '</span>';
+                $('banner').classList.add('show');
+            }
+        }
+
+        async function loadVerifiers() {
+            const select = $('rvVerifier');
+            verifierMap = {};
+            // Anyone with a PIN set in EmployeeTable is an eligible verifier —
+            // the same rule BUYOFF-approvals uses.
+            const { data } = await _supabase
+                .from('EmployeeTable').select('name, position, pin')
+                .not('pin', 'is', null).order('name', { ascending: true });
+            (data || []).forEach(e => {
+                const nm = (e.name || '').trim();
+                const pin = String(e.pin ?? '').trim();
+                if (!nm || !pin) return;
+                verifierMap[nm.toUpperCase()] = { pin, position: e.position || '' };
+            });
+            if (select) fillVerifierSelect(select);
+        }
+
+        function fillVerifierSelect(select) {
+            const names = Object.keys(verifierMap).sort();
+            select.innerHTML = '<option value="">Select verifier…</option>' +
+                names.map(k => {
+                    const pos = verifierMap[k].position;
+                    return `<option value="${esc(k)}">${esc(k)}${pos ? ' (' + esc(pos) + ')' : ''}</option>`;
+                }).join('');
+        }
+
+        // ------------------------------------------------------------------
+        // Load
+        //
+        // The list comes from v_ipqc_batch, which does the grouping in the
+        // database. Grouping here instead would mean downloading every
+        // measurement point first, and that does not survive contact with the
+        // data: March 2026 alone holds 14,416 points across 1,787 submissions.
+        // One page of submissions is a few kilobytes.
+        // ------------------------------------------------------------------
+        // batch_day is a plain date, so the month filter is date maths, not
+        // timestamps — no timezone to get wrong on this one.
+        function monthWindow(value) {
+            const [y, m] = value.split('-').map(Number);
+            const pad = n => String(n).padStart(2, '0');
+            const next = m === 12 ? `${y + 1}-01-01` : `${y}-${pad(m + 1)}-01`;
+            return { start: `${y}-${pad(m)}-01`, end: next };
+        }
+
+        // Malaysian day boundaries as UTC instants, for pulling one review's
+        // rows out of Data_IPQC. Fixed +08:00 — Malaysia has had no DST since
+        // 1982 — and the same boundary the view groups on, so the rows fetched
+        // here are exactly the rows the view counted.
+        function dayWindow(day) {
+            const d = new Date(`${day}T00:00:00Z`);
+            d.setUTCDate(d.getUTCDate() + 1);
+            return {
+                start: `${day}T00:00:00+08:00`,
+                end: `${d.toISOString().slice(0, 10)}T00:00:00+08:00`
+            };
+        }
+
+        // Applies the filters shared by the list query and the four counts, so
+        // the rail can never disagree with the table under it.
+        function applyFilters(q) {
+            const month = $('monthPicker').value;
+            if (month) {
+                const { start, end } = monthWindow(month);
+                q = q.gte('batch_day', start).lt('batch_day', end);
+            }
+            // Commas and brackets are PostgREST's own or= syntax; a search term
+            // containing one would build a filter that means something else.
+            const term = $('searchBox').value.trim().replace(/[,()]/g, ' ').trim();
+            if (term) {
+                const like = `*${term}*`;
+                q = q.or(['part_name', 'jo_number', 'machine', 'person', 'process']
+                    .map(c => `${c}.ilike.${like}`).join(','));
+            }
+            return q;
+        }
+
+        async function load() {
+            const tbody = $('tbody');
+            tbody.innerHTML = '<tr><td colspan="9" class="muted">Loading…</td></tr>';
+            $('empty').style.display = 'none';
+
+            let q = applyFilters(_supabase.from('v_ipqc_batch').select('*'));
+            if (statusFilter !== 'ALL') q = q.eq('status', statusFilter);
+
+            const from = page * PAGE_SIZE;
+            const { data, error } = await q
+                .order('batch_day', { ascending: false }).order('part_name')
+                .range(from, from + PAGE_SIZE - 1);
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="9" style="color:var(--danger)">${esc(error.message)}</td></tr>`;
+                $('pager').style.display = 'none';
+                return;
+            }
+
+            batches = data || [];
+            render();
+            refreshCounts();     // not awaited: the table should not wait on the rail
+        }
+
+        // head:true asks PostgREST for the count and no rows at all.
+        async function refreshCounts() {
+            const want = ['PENDING', 'VERIFIED', 'REJECTED', 'ALL'];
+            const results = await Promise.all(want.map(s => {
+                let q = applyFilters(_supabase.from('v_ipqc_batch')
+                    .select('batch_day', { count: 'exact', head: true }));
+                if (s !== 'ALL') q = q.eq('status', s);
+                return q.then(r => r.count).catch(() => null);
+            }));
+            want.forEach((s, i) => {
+                const el = document.querySelector(`[data-count="${s}"]`);
+                if (el) el.textContent = results[i] ?? '—';
+                if (s === statusFilter) total = results[i];
+            });
+            renderPager();
+        }
+
+        // ------------------------------------------------------------------
+        // Render
+        // ------------------------------------------------------------------
+        const fmtDate = iso => iso ? new Date(iso).toLocaleString('en-GB', {
+            timeZone: MYT, day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        }) : '—';
+
+        // batch_day is already a plain calendar date — parsing it as UTC and
+        // formatting it in MYT would be a no-op at best and an off-by-one at
+        // worst, so it is split by hand.
+        const fmtDay = day => {
+            if (!day) return '—';
+            const [y, m, d] = day.split('-');
+            return `${d} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m - 1]} ${y}`;
+        };
+
+        const hhmm = iso => new Date(iso).toLocaleTimeString('en-GB',
+            { timeZone: MYT, hour: '2-digit', minute: '2-digit' });
+
+        // A day's rounds collapse into one review, so the list shows the span
+        // they were taken over rather than pretending there was a single time.
+        const spanOf = b => {
+            if (!b.first_at) return '';
+            const a = hhmm(b.first_at), z = hhmm(b.last_at);
+            return a === z ? ` · ${a}` : ` · ${a}–${z}`;
+        };
+
+        const STATUS_BADGE = {
+            PENDING: ['badge--warning', 'Pending'],
+            VERIFIED: ['badge--success', 'Verified'],
+            REJECTED: ['badge--danger', 'Rejected'],
+            MIXED: ['badge--danger', 'Inconsistent']
+        };
+
+        function renderPager() {
+            const pager = $('pager');
+            const shown = batches.length;
+            if (!shown && page === 0) { pager.style.display = 'none'; return; }
+            pager.style.display = '';
+            const from = page * PAGE_SIZE + 1;
+            $('pagerText').textContent = total === null || total === undefined
+                ? `Showing ${from}–${from + shown - 1}`
+                : `Showing ${from}–${from + shown - 1} of ${total}`;
+            $('prevBtn').disabled = page === 0;
+            // Trust the row count over the count query — a short page is the end.
+            $('nextBtn').disabled = shown < PAGE_SIZE;
+        }
+
+        function render() {
+            const tbody = $('tbody');
+            tbody.innerHTML = '';
+
+            const empty = $('empty');
+            if (!batches.length) {
+                empty.style.display = '';
+                empty.textContent = page > 0
+                    ? 'No more submissions on this page.'
+                    : ($('monthPicker').value || $('searchBox').value.trim()
+                        ? 'No submissions match this filter.'
+                        : 'No IPQC submissions yet.');
+                renderPager();
+                return;
+            }
+            empty.style.display = 'none';
+
+            batches.forEach(b => {
+                const [cls, label] = STATUS_BADGE[b.status] || STATUS_BADGE.PENDING;
+                const tr = document.createElement('tr');
+                tr.className = 'batch-row';
+                tr.innerHTML = `
+                    <td class="muted num">${esc(fmtDay(b.batch_day))}${esc(spanOf(b))}</td>
+                    <td class="wrap-cell"><strong>${esc(dash(b.part_name))}</strong></td>
+                    <td>${esc(dash(b.jo_number))} <span class="muted">/ ${esc(dash(b.machine))}</span></td>
+                    <td>${esc(dash(b.process))}</td>
+                    <td>${esc(dash(b.person))}${b.multi_person
+                        ? ' <span class="muted">+ others</span>' : ''}</td>
+                    <td class="num">${b.points}</td>
+                    <td class="num">${b.is_stop
+                        ? '<span class="badge badge--warning">Machine stop</span>'
+                        : (b.ng_points ? `<span class="badge badge--danger">${b.ng_points}</span>`
+                                       : '<span class="muted">0</span>')}</td>
+                    <td><span class="badge ${cls}">${label}</span>${b.concessions
+                        ? ' <span class="badge badge--primary">Concession</span>' : ''}</td>
+                    <td><button class="btn btn--secondary">Review</button></td>`;
+                tr.onclick = () => openReview(b);
+                tbody.appendChild(tr);
+            });
+
+            renderPager();
+        }
+
+        // ------------------------------------------------------------------
+        // Review modal
+        // ------------------------------------------------------------------
+        function pointNo(r) {
+            const m = String(r.Point_DWG_Zone ?? '').match(/\d+/);
+            return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
+        }
+
+        // Pulls one review's measurement points: everything recorded for that
+        // job, machine and process across the whole Malaysian day.
+        async function fetchBatchRows(b) {
+            const { start, end } = dayWindow(b.batch_day);
+            const { data, error } = await _supabase
+                .from('Data_IPQC').select('*')
+                .gte('created_at', start).lt('created_at', end);
+            if (error) throw error;
+            // The four remaining key fields are matched here rather than in the
+            // query because .eq() cannot match a NULL, and Part_Name, JO_Number
+            // and Machine are all nullable — filtering on them server-side
+            // would silently drop a review that has one of them blank, and the
+            // count check in decide() would then refuse the sign-off.
+            const same = (x, y) => (x ?? null) === (y ?? null);
+            return (data || []).filter(r =>
+                same(r.Part_Name, b.part_name) &&
+                same(r.Process, b.process) &&
+                same(r.JO_Number, b.jo_number) &&
+                same(r.Machine, b.machine));
+        }
+
+        // The exact inspectors, from the rows themselves. The list only carries
+        // one name plus a "there were others" flag, because collecting them all
+        // in the view costs 5x the query time for something only needed here.
+        const inspectorsOf = rows =>
+            [...new Set(rows.map(r => (r.Person || '').trim()).filter(Boolean))].sort();
+
+        async function openReview(b) {
+            current = b;
+            currentRows = [];
+
+            $('rvTitleText').textContent = `${dash(b.part_name)} · ${dash(b.process)}`;
+            const sub = $('rvSub');
+            sub.textContent =
+                `JO ${dash(b.jo_number)} · MC ${dash(b.machine)} · ` +
+                `${fmtDay(b.batch_day)}${spanOf(b)} · ${b.points} point${b.points === 1 ? '' : 's'}` +
+                (b.remarks ? ` · remark: ${b.remarks}` : '');
+
+            const body = $('rvBody');
+            body.innerHTML = '<tr><td colspan="8" class="muted">Loading readings…</td></tr>';
+            $('rvFoot').innerHTML = '';
+            $('modal').classList.add('show');
+
+            try {
+                currentRows = await fetchBatchRows(b);
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">${esc(e.message)}</td></tr>`;
+                return;
+            }
+
+            // Now that the rows are here the real inspector list is known, which
+            // the header only had one name of.
+            const who = inspectorsOf(currentRows);
+            if (who.length) sub.textContent += ` · recorded by ${who.join(', ')}`;
+
+            body.innerHTML = '';
+            [...currentRows].sort((x, y) => pointNo(x) - pointNo(y)).forEach(r => {
+                const cells = [r.Reading_1, r.Reading_2, r.Reading_3].map(v => {
+                    const st = readingState(v, r.LSL_OK, r.USL_NG);
+                    const cls = st === 'ng' ? 'cell-ng' : st === 'stop' ? 'cell-stop' : '';
+                    return `<td class="num ${cls}">${esc(dash(v))}</td>`;
+                }).join('');
+                const anyNg = [r.Reading_1, r.Reading_2, r.Reading_3]
+                    .some(v => readingState(v, r.LSL_OK, r.USL_NG) === 'ng');
+                const flag = anyNg
+                    ? `<span class="badge badge--danger">NG</span>${r.special_accept
+                        ? ' <span class="badge badge--primary">Accepted</span>' : ''}`
+                    : '';
+                body.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td>${esc(dash(r.Point_DWG_Zone))}</td>
+                        <td>${esc(dash(r.Measuring_Instrument))}</td>
+                        <td>${esc(dash(r.SC))}</td>
+                        <td class="muted num">${esc(dash(r.LSL_OK))} ~ ${esc(dash(r.USL_NG))}</td>
+                        ${cells}
+                        <td>${flag}</td>
+                    </tr>`);
+            });
+
+            renderFoot(b);
+        }
+
+        function renderFoot(b) {
+            const foot = $('rvFoot');
+
+            if (b.status === 'VERIFIED' || b.status === 'REJECTED') {
+                const ok = b.status === 'VERIFIED';
+                foot.innerHTML = `
+                    <div class="verdict verdict--${ok ? 'ok' : 'no'}">
+                        <strong>${ok ? 'Verified' : 'Rejected'} by ${esc(dash(b.verified_by))}</strong>
+                        ${b.verifier_position ? ' · ' + esc(b.verifier_position) : ''}
+                        · ${esc(fmtDate(b.verified_at))}
+                        ${b.verify_remark ? '<br>Remark: ' + esc(b.verify_remark) : ''}
+                        <br><span style="opacity:.75">A recorded sign-off is not editable here — if it
+                        was wrong, the inspector re-submits and the new batch is signed off instead.</span>
+                    </div>`;
+                return;
+            }
+
+            if (b.status === 'MIXED') {
+                foot.innerHTML = `
+                    <div class="verdict verdict--no">
+                        <strong>This submission is in an inconsistent state.</strong>
+                        Its ${b.points} rows do not share one verify status, which only happens if the
+                        table was edited directly. Fix it in the Data Editor before signing off.
+                    </div>`;
+                return;
+            }
+
+            if (!schemaReady) {
+                foot.innerHTML = `
+                    <div class="verdict verdict--no">
+                        <strong>Sign-off is not switched on.</strong>
+                        Run <code>sql/2026-08-03_ipqc_verification.sql</code> first.
+                    </div>`;
+                return;
+            }
+
+            if (!canWrite) {
+                foot.innerHTML = `
+                    <div class="verdict verdict--no">
+                        <strong>Read only.</strong>
+                        Your access level cannot sign IPQC submissions off.
+                    </div>`;
+                return;
+            }
+
+            foot.innerHTML = `
+                <div class="rv__grid">
+                    <div>
+                        <label for="rvVerifier">Verified by</label>
+                        <select id="rvVerifier" class="input"><option value="">Select verifier…</option></select>
+                    </div>
+                    <div>
+                        <label for="rvPin">PIN</label>
+                        <input type="password" id="rvPin" class="input" inputmode="numeric"
+                               autocomplete="off" placeholder="PIN" />
+                    </div>
+                    <div>
+                        <label for="rvRemark">Remark <span style="text-transform:none;font-weight:500">(required to reject)</span></label>
+                        <input type="text" id="rvRemark" class="input" placeholder="Note / reason" />
+                    </div>
+                </div>
+                <div class="rv__actions">
+                    <button class="btn" id="rvVerify">Verify</button>
+                    <button class="btn btn--danger" id="rvReject">Reject</button>
+                    <span class="rv__msg" id="rvMsg"></span>
+                </div>`;
+
+            fillVerifierSelect($('rvVerifier'));
+            $('rvVerify').onclick = () => decide('VERIFIED');
+            $('rvReject').onclick = () => decide('REJECTED');
+        }
+
+        function closeModal() {
+            $('modal').classList.remove('show');
+            current = null;
+            currentRows = [];
+        }
+
+        async function decide(status) {
+            const msg = $('rvMsg');
+            msg.style.color = 'var(--danger)';
+
+            const name = $('rvVerifier').value.trim();
+            const pin = $('rvPin').value.trim();
+            const remark = $('rvRemark').value.trim();
+
+            if (!name) { msg.textContent = 'Select a verifier.'; return; }
+            const rec = verifierMap[name.toUpperCase()];
+            if (!rec || !rec.pin) { msg.textContent = 'No PIN set for this person — contact HR.'; return; }
+
+            // The whole point of the step is a second pair of eyes. Signing off
+            // your own readings is not a verification, so it is blocked outright.
+            // Checked against every inspector who measured during the day, not
+            // just the one name the list column shows — a review can span two.
+            if (inspectorsOf(currentRows).some(p => p.toUpperCase() === name.toUpperCase())) {
+                msg.textContent = 'You recorded readings in this review — someone else has to verify it.';
+                return;
+            }
+            if (pin !== rec.pin) { msg.textContent = 'Incorrect PIN.'; return; }
+            if (status === 'REJECTED' && !remark) { msg.textContent = 'A remark is required to reject.'; return; }
+
+            // The readings are what was reviewed; if they never arrived there is
+            // nothing to sign, and the ids to write to are not known either.
+            if (currentRows.length !== current.points) {
+                msg.textContent = `Expected ${current.points} points but loaded ${currentRows.length}. ` +
+                    'Reopen the submission before signing it off.';
+                return;
+            }
+
+            const btns = [$('rvVerify'), $('rvReject')];
+            btns.forEach(b => b.disabled = true);
+            msg.style.color = 'var(--text-muted)';
+            msg.textContent = 'Saving…';
+
+            // By id, not by the composite key: Machine or Person can be null and
+            // `.eq(col, null)` does not match nulls in PostgREST, which would
+            // silently sign off part of a batch.
+            const { error } = await _supabase.from('Data_IPQC').update({
+                verify_status: status,
+                verified_by: name,
+                verifier_position: rec.position || null,
+                verified_at: new Date().toISOString(),
+                verify_remark: remark || null
+            }).in('id', currentRows.map(r => r.id));
+
+            btns.forEach(b => b.disabled = false);
+            if (error) {
+                msg.style.color = 'var(--danger)';
+                msg.textContent = 'Save failed: ' + error.message;
+                return;
+            }
+
+            closeModal();
+            load();
+        }
+
+        // ------------------------------------------------------------------
+        // Wiring
+        // ------------------------------------------------------------------
+        // Every filter change is a new query, so it has to start from page one —
+        // otherwise switching to a filter with fewer results lands on a page
+        // that no longer exists and the table reads as empty.
+        function reload() { page = 0; load(); }
+
+        document.querySelectorAll('.rail-nav__item').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.rail-nav__item').forEach(b => b.classList.remove('is-active'));
+                btn.classList.add('is-active');
+                statusFilter = btn.dataset.status;
+                reload();
+            };
+        });
+
+        // Debounced: the search now goes to the database on every keystroke.
+        let searchTimer = null;
+        $('searchBox').addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(reload, 300);
+        });
+
+        $('monthPicker').addEventListener('change', reload);
+        $('refreshBtn').onclick = () => load();
+        $('prevBtn').onclick = () => { if (page > 0) { page--; load(); } };
+        $('nextBtn').onclick = () => { page++; load(); };
+        $('rvClose').onclick = closeModal;
+        $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && $('modal').classList.contains('show')) closeModal();
+        });
+
+        (async function init() {
+            // The month starts blank on purpose: "newest pending first, whenever
+            // it was submitted" is the queue people actually work. Defaulting to
+            // the current month shows an empty page on any day before the first
+            // submission of it.
+            await Promise.all([resolveAccess(), probeSchema(), loadVerifiers()]);
+            await load();
+        })();
+    </script>
+</body>
+
+</html>

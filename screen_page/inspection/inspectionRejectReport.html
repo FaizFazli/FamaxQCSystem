@@ -77,6 +77,74 @@
             }
         }
 
+        /* ISO record footer — the controlled-document line under the table.
+           Plain CSS rather than Tailwind utilities because it has to survive
+           printing, and the print stylesheet is where this page's other footer
+           gets hidden. */
+        .record-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 3.5rem;
+            font-size: 9px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        /* The footer row is the only cell in the table without a box: the rule
+           that gives every th/td a 1px border would otherwise draw a frame
+           around the record reference on every page. */
+        .report-table tfoot td {
+            border: 0 !important;
+            padding: 6px 0 0 !important;
+            text-align: right;
+        }
+
+        @media print {
+
+            /* The table's horizontal-scroll wrapper has to stop being a scroll
+               container when printing. An overflow ancestor is a fragmentation
+               boundary: the browser renders it as one block and clips it to the
+               first page, so the table never paginates, and a footer that only
+               repeats per page fragment would have nothing to repeat onto.
+               Nothing is lost — print is landscape at full paper width, which is
+               what the wrapper exists to cope with on screen. */
+            .table-scroll {
+                overflow: visible !important;
+            }
+
+            /* The reason the footer is a <tfoot> at all. table-footer-group is
+               already the default, but stating it here documents the intent and
+               guards against a utility class flipping the display value: lose
+               it and the footer prints once, at the very end, instead of on
+               each page. thead is pinned for the same reason — a second page of
+               rejects with no column headings is unreadable. */
+            .report-table tfoot {
+                display: table-footer-group;
+            }
+
+            .report-table thead {
+                display: table-header-group;
+            }
+
+            /* Colour-managed printers otherwise wash grey text out to nothing,
+               and this line is the one part of the form an auditor looks for. */
+            .record-footer {
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* Narrow screens: let the three fields wrap instead of squeezing the
+           record number off the edge. Print is always landscape, so this only
+           ever affects the on-screen preview. */
+        @media screen and (max-width: 700px) {
+            .record-footer {
+                flex-wrap: wrap;
+                gap: 0.25rem 1.5rem;
+            }
+        }
+
         /* 3. SEARCH INDICATOR STYLE */
         .search-indicator {
             background: #dbeafe !important;
@@ -349,6 +417,29 @@
                             <td v-for="n in 17" class="h-10">&nbsp;</td>
                         </tr>
                     </tbody>
+
+                    <!-- ISO record footer — the controlled-document reference.
+                         It lives in a <tfoot> rather than in a div after the
+                         table because a table footer is the one thing browsers
+                         repeat on EVERY printed page, and they reserve room for
+                         it on each page fragment, so it can never land on top of
+                         a data row. A fixed-position footer also repeats but
+                         overlaps the last row of a full page.
+                         Not class="footer" and not .no-print: the @media print
+                         block hides both, and this must appear on the paper.
+                         Capitals are literal in the source rather than applied
+                         with `uppercase`, so what prints is what is written. -->
+                    <tfoot class="record-foot">
+                        <tr>
+                            <td colspan="17">
+                                <div class="record-footer">
+                                    <span>RETENTION PERIOD : 3 YEARS</span>
+                                    <span>EFFECTIVE DATE : 01 MARCH 2024</span>
+                                    <span>REC-QAS020-04</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div> <!-- PRINTABLE END -->

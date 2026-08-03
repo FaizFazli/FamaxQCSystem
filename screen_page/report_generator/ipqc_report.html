@@ -683,6 +683,25 @@
             dateInspect = new Date(group.records[0].created_at).toISOString().split('T')[0];
           }
 
+          // VERIFIED BY block. The template labels it at S42 with the signature
+          // area merged across S43:T45, and its date label at S46 — so the name
+          // goes in S43 (the merge anchor; any other cell of a merge is not
+          // displayed) and the date in T46, mirroring the INSPECTED BY block at
+          // Q42/Q45/R46 just above.
+          //
+          // Both stay empty when nobody has signed the batch off in IPQC
+          // Verification. An unsigned form printing a name would be worse than
+          // an unsigned form printing nothing.
+          const verifiers = [...new Set(group.records.map(r => r.verified_by).filter(Boolean))];
+          ws.getCell(43 + rowOffset, 19).value = verifiers.join(", ");
+
+          const verifiedAt = group.records.map(r => r.verified_at).filter(Boolean).sort()[0];
+          if (verifiedAt) {
+            const vCell = ws.getCell(46 + rowOffset, 20);
+            vCell.value = new Date(verifiedAt);
+            vCell.numFmt = "dd/mm/yyyy";
+          }
+
           const pointsInThisTable = sortedPts.slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable);
 
           pointsInThisTable.forEach((pt, pIdxInTable) => {
