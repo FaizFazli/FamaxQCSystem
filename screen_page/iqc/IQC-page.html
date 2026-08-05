@@ -1,456 +1,922 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IQC Checking</title>
-    <!-- Add /FamaxQCSystem to the beginning of the path -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IQC Checking System</title>
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
-    <!-- Add necessary libraries -->
+    <!-- Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <!-- Shared design system (tokens + UI primitives) -->
+    <link rel="stylesheet" href="/assets/theme.css">
+
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Shared design system (tokens + UI primitives) -->
-    <link rel="stylesheet" href="/assets/theme.css">
-    <style>
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        body { display: flex; flex-direction: column; min-height: 100vh; }
 
-        /* Sticky top app bar */
+    <style>
+        /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
+        :root {
+            --secondary: var(--text-muted);
+            --danger-hover: #dc2626;
+            --text-sub: var(--text-muted);
+            --focus-ring: var(--primary-ring);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
         header {
+            background-color: var(--bg-card);
+            height: 64px;
+            padding: 0 var(--space-8);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: var(--z-header);
+        }
+
+        .header-brand {
             display: flex;
             align-items: center;
             gap: var(--space-3);
-            height: 64px;
-            padding: 0 var(--space-8);
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
         }
 
-        .header-title {
+        .header-brand h1 {
             font-size: var(--fs-md);
             font-weight: 700;
+            color: var(--text-main);
             letter-spacing: -0.2px;
-            color: var(--text-main);
         }
 
-        .container {
+        .header-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+
+        .header-actions .btn-outline {
+            padding: 8px 16px;
+            font-size: var(--fs-sm);
+            font-weight: 600;
+            color: var(--primary);
+            background: transparent;
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition), border-color var(--transition);
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .header-actions .btn-outline:hover {
+            color: var(--on-primary);
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* --- Main Container (two-column: form + live context) --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: var(--space-10) var(--space-4);
+        }
+
+        .selection-layout {
             width: 100%;
-            max-width: 720px;
-            margin: var(--space-10) auto;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: var(--space-6);
+            align-items: start;
+        }
+
+        .card {
+            width: 100%;
             padding: var(--space-8);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
         }
 
-        .section-title {
-            margin: 0 0 var(--space-6);
-            padding-bottom: var(--space-3);
-            font-size: var(--fs-lg);
+        .section-header {
+            margin-bottom: var(--space-8);
+        }
+
+        /* --- Active Job Orders side panel (open by default) --- */
+        /* Fixed height so the panel doesn't resize as selection fields appear; list scrolls inside */
+        .jobs-panel {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+            height: 650px;
+        }
+
+        .jobs-panel__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+
+        .panel-title {
+            font-size: var(--fs-xs);
             font-weight: 700;
-            letter-spacing: -0.3px;
-            color: var(--text-main);
-            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
         }
 
+        .jobs-count {
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            color: var(--primary);
+            background: var(--primary-soft);
+            padding: 2px 9px;
+            border-radius: 999px;
+        }
+
+        #noResult {
+            display: none;
+            padding: var(--space-6);
+            text-align: center;
+            color: var(--text-faint);
+            font-size: var(--fs-sm);
+        }
+
+        /* Collapsed: hide the panel and let the form span full width */
+        .selection-layout.jobs-collapsed {
+            grid-template-columns: 1fr;
+        }
+
+        .selection-layout.jobs-collapsed .jobs-panel {
+            display: none;
+        }
+
+        .section-header h2 {
+            font-size: var(--fs-xl);
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            color: var(--text-main);
+            margin-bottom: var(--space-2);
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: var(--fs-base);
+        }
+
+        /* --- Form Elements --- */
         .form-group {
             margin-bottom: var(--space-5);
-            transition: all var(--transition);
+            opacity: 1;
+            transition: opacity var(--transition-emphasis), transform var(--transition-emphasis);
         }
 
         .form-group.hidden {
             display: none;
             opacity: 0;
-            height: 0;
-            margin: 0;
-            overflow: hidden;
+            transform: translateY(10px);
         }
 
         label {
             display: block;
-            margin-bottom: var(--space-2);
             font-size: var(--fs-sm);
             font-weight: 600;
             color: var(--text-muted);
+            margin-bottom: var(--space-2);
         }
 
-        /* Select2 skinned to match design tokens */
-        .select2-container { width: 100% !important; }
-
-        .select2-container--default .select2-selection--single {
-            height: 44px;
+        input[type="text"].modern-input {
+            width: 100%;
+            height: 50px;
+            padding: 0 var(--space-4);
             border: 1px solid var(--border-strong);
             border-radius: var(--radius-sm);
-            padding: 7px 12px;
             font-size: var(--fs-base);
+            outline: none;
             transition: border-color var(--transition), box-shadow var(--transition);
         }
-        .select2-container--default.select2-container--focus .select2-selection--single,
+
+        input[type="text"].modern-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: var(--fs-sm);
+            margin-top: 0.4rem;
+            display: none;
+            font-weight: 600;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* --- Select2 Customization --- */
+        .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 50px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            position: relative;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: var(--text-main);
+            padding-left: var(--space-4);
+            padding-right: 60px !important;
+            font-size: var(--fs-base);
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 48px;
+            width: 30px;
+            right: 5px;
+        }
+
         .select2-container--default.select2-container--open .select2-selection--single {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-ring);
         }
 
-        .select2-container--default .select2-selection--single .select2-selection__rendered {
-            line-height: 28px;
-            color: var(--text-main);
-        }
-
-        .select2-container--default .select2-selection--single .select2-selection__arrow {
-            height: 42px;
-        }
-
         .select2-dropdown {
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow-lg);
+            padding: 5px;
+            z-index: var(--z-overlay);
         }
 
         .select2-results__option {
             padding: 10px 12px;
+            border-radius: 6px;
             font-size: var(--fs-base);
         }
 
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: var(--primary);
-        }
-
-        .footer {
-            margin-top: auto;
-            padding: var(--space-6) var(--space-8);
-            text-align: center;
-            font-size: var(--fs-sm);
-            font-weight: 500;
+        .select2-container--default .select2-selection--single .select2-selection__clear {
+            position: absolute;
+            right: 35px;
+            top: 50%;
+            transform: translateY(-50%);
             color: var(--text-faint);
-            border-top: 1px solid var(--border);
+            font-size: 18px;
+            z-index: 10;
         }
 
-        .error-message {
-            color: var(--danger);
-            margin-top: var(--space-2);
-            font-size: var(--fs-sm);
-            font-weight: 600;
-            display: none;
-        }
-
+        /* --- Action Buttons (form footer) --- */
         .button-container {
+            margin-top: var(--space-8);
+            padding-top: var(--space-6);
+            border-top: 1px solid var(--border);
             display: flex;
             justify-content: flex-end;
-            margin-top: var(--space-8);
+            gap: var(--space-3);
         }
 
-        /* Map legacy .btn-primary onto the shared .btn primitive */
-        .btn-primary { color: var(--on-primary); background: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); }
+        /* --- Responsive: stack job panel under the form --- */
+        @media (max-width: 860px) {
+            .selection-layout {
+                grid-template-columns: 1fr;
+                max-width: 640px;
+            }
+        }
 
-        .fade-in { animation: fadeIn 0.5s ease-in-out forwards; }
+        /* page-local .btn variants (theme .btn covers base) */
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--on-primary);
+            box-shadow: 0 4px 6px -1px var(--primary-ring);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: var(--on-primary);
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Radio Group */
+        .radio-group {
+            display: flex;
+            gap: var(--space-5);
+            margin-top: 10px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            cursor: pointer;
+            font-size: var(--fs-base);
+        }
+
+        .radio-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            text-align: center;
+            margin-top: auto;
+            padding: var(--space-5);
+            color: var(--text-faint);
+            font-size: var(--fs-xs);
+        }
+
+        /* --- Modal (theme .modal-overlay positions; page keeps hidden default + animation) --- */
+        .modal-overlay {
+            display: none;
+            background: rgba(15, 23, 42, 0.55);
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-5);
+        }
+
+        .modal-header h2 {
+            font-size: var(--fs-lg);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color var(--transition);
+        }
+
+        .close-btn:hover {
+            color: var(--danger);
+        }
+
+        #jobList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            /* flex-basis 0 so the list doesn't push the panel taller than the form;
+               it grows to fill the stretched height and scrolls when overflowing */
+            flex: 1 1 0;
+            min-height: 0;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .job-item {
+            padding: 12px var(--space-4);
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+
+        .job-item:last-child {
+            border-bottom: none;
+        }
+
+        .job-item:hover {
+            background-color: var(--surface-muted);
+        }
+
+        .job-item strong {
+            display: block;
+            font-size: var(--fs-sm);
+            color: var(--text-main);
+        }
+
+        .job-item small {
+            color: var(--text-muted);
+        }
+
+        .job-item.is-active {
+            background-color: var(--primary-soft);
+            box-shadow: inset 3px 0 0 var(--primary);
+        }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
     <header>
-        <div class="header-title">
-            <span>IQC Checking System</span>
+        <div class="header-brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary)">
+                <path
+                    d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+                </path>
+            </svg>
+            <h1>IQC System</h1>
+        </div>
+        <div class="header-actions">
+            <button class="btn-outline" onclick="toggleJobsPanel()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+                Job Orders
+            </button>
         </div>
     </header>
 
-    <div class="container">
-        <h2 class="section-title">Part and Process Selection</h2>
+    <!-- Main Content -->
+    <div class="main-wrapper">
+        <div class="selection-layout">
 
-        <div class="form-group">
-            <label for="part-name">Select Part Name:</label>
-            <select id="part-name" class="searchable-dropdown">
-                <option value="">Loading parts...</option>
-            </select>
-            <div id="part-error" class="error-message">
-                Please select a part to continue
+            <!-- Left: Selection form -->
+            <div class="card">
+                <div class="section-header">
+                    <h2>Process Selection</h2>
+                    <p>
+                        Select the process the parts were sent out for, then the delivery they
+                        came back on. They are checked against that process's IPQC points.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="part-name">Part Name</label>
+                    <select id="part-name" class="searchable-dropdown">
+                        <option value="">Loading parts...</option>
+                    </select>
+                    <div id="part-error" class="error-message">
+                        Please select a part to continue
+                    </div>
+                </div>
+
+                <div class="form-group hidden" id="process-group">
+                    <label for="process-name">Manufacturing Process</label>
+                    <select id="process-name" class="searchable-dropdown">
+                        <option value="">Select a process</option>
+                    </select>
+                    <div id="process-error" class="error-message">
+                        Please select a process to continue
+                    </div>
+                </div>
+
+                <div class="form-group hidden" id="jo-group">
+                    <label for="jo-number">Job Order Number</label>
+                    <select id="jo-number" class="searchable-dropdown">
+                        <option value="">Select a job order</option>
+                    </select>
+                    <div id="jo-error" class="error-message">
+                        Please select a job order to continue
+                    </div>
+                </div>
+
+                <!-- Where IPQC asks for a machine, IQC asks who the parts came
+                     back from: this work was not done on a machine here. Both
+                     lists come from the subcon delivery module, narrowed to the
+                     selected part, so only deliveries that actually returned can
+                     be picked. -->
+                <div class="form-group hidden" id="subcon-group">
+                    <label for="subcon-name">Subcontractor</label>
+                    <select id="subcon-name" class="searchable-dropdown">
+                        <option value="">Select a subcontractor</option>
+                    </select>
+                    <div id="subcon-error" class="error-message">
+                        Please select the subcontractor to continue
+                    </div>
+                </div>
+
+                <div class="form-group hidden" id="rdo-group">
+                    <label for="return-do">Return DO</label>
+                    <select id="return-do" class="searchable-dropdown">
+                        <option value="">Select a return DO</option>
+                    </select>
+                    <div id="rdo-error" class="error-message">
+                        Please select the delivery these parts came back on
+                    </div>
+                </div>
+
+                <div class="button-container">
+                    <button id="continue-btn" class="btn btn-primary">
+                        Continue
+                        <svg width="16" height="16" style="margin-left: 8px" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div class="form-group hidden" id="process-group">
-            <label for="process-name">Select Process:</label>
-            <select id="process-name" class="searchable-dropdown">
-                <option value="">Select a process</option>
-            </select>
-            <div id="process-error" class="error-message">
-                Please select a process to continue
-            </div>
-        </div>
-
-        <div class="form-group hidden" id="jo-group">
-            <label for="jo-number">Select Job Order Number:</label>
-            <select id="jo-number" class="searchable-dropdown">
-                <option value="">Select a job order</option>
-            </select>
-            <div id="jo-error" class="error-message">
-                Please select a job order to continue
-            </div>
-        </div>
-
-        <div class="button-container">
-            <button id="continue-btn" class="btn btn-primary">Continue</button>
+            <!-- Right: Active Job Orders (open by default) -->
+            <aside class="card jobs-panel" id="jobs-panel">
+                <div class="jobs-panel__header">
+                    <span class="panel-title">Active Job Orders</span>
+                    <span class="jobs-count" id="jobs-count">0</span>
+                </div>
+                <input type="text" id="searchInput" onkeyup="filterJobs()"
+                    placeholder="Filter by part or JO..." class="modern-input" />
+                <ul id="jobList"></ul>
+                <div id="noResult">No matching jobs found.</div>
+            </aside>
         </div>
     </div>
 
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+    <div class="footer">
+        © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+    </div>
 
     <script>
-        // Supabase connection parameters
         const SUPABASE_URL = window.APP_CONFIG.url;
         const SUPABASE_KEY = window.APP_CONFIG.key;
-        
-        // Initialize Axios for Supabase
+
         const supabaseClient = axios.create({
             baseURL: SUPABASE_URL,
             headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-            }
+                apikey: SUPABASE_KEY,
+                Authorization: `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+            },
         });
 
-        // Current selected data
-        let selectedData = {
-            part: '',
-            process: '',
-            jobOrder: ''
-        };
+        let selectedData = { part: "", process: "", jobOrder: "", subcon: "", returnDo: "" };
+        let jobsData = [];
+        // Every return recorded for the selected part, so the Return DO list can
+        // be narrowed by subcontractor without going back to the database.
+        let returnsForPart = [];
 
-        // Initialize Select2 dropdown after DOM is fully loaded
-        $(document).ready(function() {
-            // Initialize searchable dropdowns with Select2
+        $(document).ready(function () {
             initializeSelect2();
-            
-            // Fetch parts from Supabase
             fetchPartsFromDatabase();
-            
-            // Part selection change handler
-            $('#part-name').on('change', function() {
-                const selectedPart = $(this).val();
-                selectedData.part = selectedPart;
-                
-                if (selectedPart) {
-                    $('#part-error').hide();
-                    fetchProcessesForPart(selectedPart);
-                    // Hide job order selection when part changes
-                    $('#jo-group').addClass('hidden');
-                    selectedData.jobOrder = '';
+            fetchJobs(); // load the Active Job Orders side panel on start
+
+            $("#part-name").on("change", function () {
+                selectedData.part = $(this).val();
+                if (selectedData.part) {
+                    $("#part-error").hide();
+                    fetchProcessesForPart(selectedData.part);
+                    $("#jo-group, #subcon-group, #rdo-group").addClass("hidden");
                 } else {
-                    // Hide process and job order selection if part is deselected
-                    $('#process-group').addClass('hidden');
-                    $('#jo-group').addClass('hidden');
-                    selectedData.process = '';
-                    selectedData.jobOrder = '';
+                    $("#process-group, #jo-group, #subcon-group, #rdo-group").addClass("hidden");
                 }
             });
-            
-            // Process selection change handler
-            $('#process-name').on('change', function() {
-                const selectedProcess = $(this).val();
-                selectedData.process = selectedProcess;
-                
-                if (selectedProcess) {
-                    $('#process-error').hide();
-                    // Fetch job orders when a process is selected
-                    fetchJobOrdersForPartAndProcess(selectedData.part, selectedProcess);
+
+            $("#process-name").on("change", function () {
+                selectedData.process = $(this).val();
+                if (selectedData.process) {
+                    $("#process-error").hide();
+                    fetchJobOrdersForPartAndProcess(
+                        selectedData.part,
+                        selectedData.process
+                    );
                 } else {
-                    // Hide job order selection if process is deselected
-                    $('#jo-group').addClass('hidden');
-                    selectedData.jobOrder = '';
+                    $("#jo-group, #subcon-group, #rdo-group").addClass("hidden");
                 }
             });
-            
-            // Job Order selection change handler
-            $('#jo-number').on('change', function() {
+
+            $("#jo-number").on("change", function () {
                 selectedData.jobOrder = $(this).val();
                 if (selectedData.jobOrder) {
-                    $('#jo-error').hide();
+                    $("#jo-error").hide();
+                    fetchSubconReturns(selectedData.part);
+                } else {
+                    $("#subcon-group, #rdo-group").addClass("hidden");
                 }
             });
-            
-            // Continue button click handler
-            $('#continue-btn').click(function() {
-                // Validate selections
-                let isValid = true;
-                
-                if (!selectedData.part) {
-                    $('#part-error').show();
-                    isValid = false;
+
+            $("#subcon-name").on("change", function () {
+                selectedData.subcon = $(this).val();
+                if (selectedData.subcon) {
+                    $("#subcon-error").hide();
+                    fillReturnDos(selectedData.subcon);
+                } else {
+                    $("#rdo-group").addClass("hidden");
                 }
-                
-                if (!$('#process-group').hasClass('hidden') && !selectedData.process) {
-                    $('#process-error').show();
-                    isValid = false;
-                }
-                
-                if (!$('#jo-group').hasClass('hidden') && !selectedData.jobOrder) {
-                    $('#jo-error').show();
-                    isValid = false;
-                }
-                
-                if (!isValid) return;
-                
-                // Redirect to IQC-page1.html with the selected values as URL parameters
-                window.location.href = `IQC-page1.html?part=${encodeURIComponent(selectedData.part)}&process=${encodeURIComponent(selectedData.process)}&jo=${encodeURIComponent(selectedData.jobOrder)}`;
+            });
+
+            $("#return-do").on("change", function () {
+                selectedData.returnDo = $(this).val();
+                if (selectedData.returnDo) $("#rdo-error").hide();
+            });
+
+            $("#continue-btn").click(function () {
+                if (!validateInputs()) return;
+                window.location.href = `IQC-page1.html?part=${encodeURIComponent(
+                    selectedData.part
+                )}&process=${encodeURIComponent(
+                    selectedData.process
+                )}&jo=${encodeURIComponent(
+                    selectedData.jobOrder
+                )}&subcon=${encodeURIComponent(
+                    selectedData.subcon
+                )}&rdo=${encodeURIComponent(selectedData.returnDo)}`;
             });
         });
 
-        // Initialize Select2 for dropdowns
+        // Toggle the Active Job Orders side panel (open by default)
+        function toggleJobsPanel() {
+            document.querySelector(".selection-layout").classList.toggle("jobs-collapsed");
+        }
+
+        function validateInputs() {
+            let isValid = true;
+            if (!selectedData.part) {
+                $("#part-error").show();
+                isValid = false;
+            }
+            if (!$("#process-group").hasClass("hidden") && !selectedData.process) {
+                $("#process-error").show();
+                isValid = false;
+            }
+            if (!$("#jo-group").hasClass("hidden") && !selectedData.jobOrder) {
+                $("#jo-error").show();
+                isValid = false;
+            }
+            if (!$("#subcon-group").hasClass("hidden") && !selectedData.subcon) {
+                $("#subcon-error").show();
+                isValid = false;
+            }
+            if (!$("#rdo-group").hasClass("hidden") && !selectedData.returnDo) {
+                $("#rdo-error").show();
+                isValid = false;
+            }
+            return isValid;
+        }
+
         function initializeSelect2() {
-            $('.searchable-dropdown').each(function() {
-                $(this).select2({
-                    placeholder: $(this).attr('placeholder') || 'Search and select',
-                    allowClear: true,
-                    width: '100%'
-                });
+            $(".searchable-dropdown").select2({
+                placeholder: "Search and select",
+                allowClear: true,
+                width: "100%",
             });
         }
 
-        // Function to fetch parts from Supabase database
+        // --- Database Fetch Functions ---
         async function fetchPartsFromDatabase() {
             try {
-                // Query the Parts table to get all part names
-                const response = await supabaseClient.get('/rest/v1/Parts', {
-                    params: {
-                        select: 'Part_Name'
-                    }
-                });
-                
-                if (response.data && response.data.length > 0) {
-                    // Clear loading option
-                    $('#part-name').empty();
-                    
-                    // Add default empty option
-                    $('#part-name').append('<option value="">Select or search for a part</option>');
-                    
-                    // Add each part from the database
-                    response.data.forEach(part => {
-                        $('#part-name').append(`<option value="${part.Part_Name}">${part.Part_Name}</option>`);
-                    });
-                    
-                    // Refresh Select2 to reflect new options
-                    $('#part-name').trigger('change');
-                } else {
-                    // No parts found
-                    $('#part-name').html('<option value="">No parts available</option>');
-                }
-            } catch (error) {
-                console.error('Error fetching parts:', error);
-                $('#part-name').html('<option value="">Error loading parts</option>');
+                const res = await supabaseClient.get(
+                    "/rest/v1/Parts?select=Part_Name"
+                );
+                $("#part-name")
+                    .empty()
+                    .append('<option value="">Select or search for a part</option>');
+                res.data.forEach((p) =>
+                    $("#part-name").append(
+                        `<option value="${p.Part_Name}">${p.Part_Name}</option>`
+                    )
+                );
+                $("#part-name").trigger("change");
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        // Function to fetch processes for a selected part from the IQC table
         async function fetchProcessesForPart(partName) {
             try {
-                // Reset and hide process dropdown while loading
-                $('#process-name').empty().append('<option value="">Loading processes...</option>');
-                
-                // Show the process section with animation
-                $('#process-group').removeClass('hidden').addClass('fade-in');
-                
-                // Query the IQC table to get processes for the selected part
-                const response = await supabaseClient.get('/rest/v1/IQC', {
-                    params: {
-                        select: 'Process',
-                        Part_Name: `eq.${partName}`
-                    }
-                });
-                
-                // Clear dropdown
-                $('#process-name').empty();
-                $('#process-name').append('<option value="">Select or search for a process</option>');
-                
-                if (response.data && response.data.length > 0) {
-                    // Create a Set to store unique processes
-                    const uniqueProcesses = new Set();
-                    
-                    // Add each process from the IQC table results
-                    response.data.forEach(item => {
-                        if (item.Process) {
-                            uniqueProcesses.add(item.Process);
-                        }
-                    });
-                    
-                    // Convert Set to Array and sort
-                    const processArray = Array.from(uniqueProcesses).sort();
-                    
-                    // Add processes to dropdown
-                    processArray.forEach(process => {
-                        $('#process-name').append(`<option value="${process}">${process}</option>`);
-                    });
-                    
-                    if (processArray.length === 0) {
-                        $('#process-name').html('<option value="">No processes available for this part</option>');
-                    }
-                } else {
-                    // No processes found
-                    $('#process-name').html('<option value="">No processes available for this part</option>');
-                }
-                
-                // Refresh Select2
-                $('#process-name').trigger('change');
-                
-            } catch (error) {
-                console.error('Error fetching processes:', error);
-                $('#process-name').html('<option value="">Error loading processes</option>');
+                const res = await supabaseClient.get(
+                    `/rest/v1/IPQC?select=Process&Part_Name=eq.${encodeURIComponent(partName)}`
+                );
+                $("#process-name")
+                    .empty()
+                    .append('<option value="">Select a process</option>');
+                const unique = [...new Set(res.data.map((i) => i.Process))].sort();
+                unique.forEach((p) =>
+                    $("#process-name").append(`<option value="${p}">${p}</option>`)
+                );
+                $("#process-group").removeClass("hidden").addClass("fade-in");
+                $("#process-name").trigger("change");
+            } catch (e) {
+                console.error(e);
             }
         }
 
-        // Function to fetch job orders for selected part and process
         async function fetchJobOrdersForPartAndProcess(partName, processName) {
             try {
-                // Reset and hide job order dropdown while loading
-                $('#jo-number').empty().append('<option value="">Loading job orders...</option>');
-                
-                // Show the job order section with animation
-                $('#jo-group').removeClass('hidden').addClass('fade-in');
-                
-                // Query the JobOrder table to get active job orders for the selected part and process
-                const response = await supabaseClient.get('/rest/v1/JobOrder', {
-                    params: {
-                        select: 'JO_Number',
-                        Part_Name: `eq.${partName}`,
-                        Process: `eq.${processName}`,
-                        Status: 'eq.active'
-                    }
-                });
-                
-                // Clear dropdown
-                $('#jo-number').empty();
-                $('#jo-number').append('<option value="">Select or search for a job order</option>');
-                
-                if (response.data && response.data.length > 0) {
-                    // Add each active job order from the database
-                    response.data.forEach(jo => {
-                        $('#jo-number').append(`<option value="${jo.JO_Number}">${jo.JO_Number}</option>`);
-                    });
-                } else {
-                    // No active job orders found
-                    $('#jo-number').html('<option value="">No active job orders available</option>');
-                }
-                
-                // Refresh Select2
-                $('#jo-number').trigger('change');
-                
-            } catch (error) {
-                console.error('Error fetching job orders:', error);
-                $('#jo-number').html('<option value="">Error loading job orders</option>');
+                const res = await supabaseClient.get(
+                    `/rest/v1/JobOrder?select=JO_Number&Part_Name=eq.${encodeURIComponent(partName)}&Process=eq.${processName}&Status=eq.active`
+                );
+                $("#jo-number")
+                    .empty()
+                    .append('<option value="">Select a job order</option>');
+                res.data.forEach((j) =>
+                    $("#jo-number").append(
+                        `<option value="${j.JO_Number}">${j.JO_Number}</option>`
+                    )
+                );
+                $("#jo-group").removeClass("hidden").addClass("fade-in");
+                $("#jo-number").trigger("change");
+            } catch (e) {
+                console.error(e);
             }
+        }
+
+
+        /* Subcontractor and return DO, both from the subcon delivery module.
+           Only deliveries that actually came BACK are offered: subcon_delivery_in
+           is the return half, and the subcontractor and part live on the out half
+           it points at, which is what the embedded subcon_delivery_out(...) pulls
+           in — the same query inspectionCheckerForm.html uses for its return-DO
+           list.
+
+           The part is matched in JavaScript rather than in the query, because it
+           sits on the EMBEDDED row: PostgREST can only filter on an embedded
+           column by inner-joining it as well, and one part's returns are a handful
+           of rows out of a table that stays small. */
+        async function fetchSubconReturns(partName) {
+            returnsForPart = [];
+            $("#subcon-name").empty().append('<option value="">Loading subcontractors...</option>');
+            $("#subcon-group").removeClass("hidden").addClass("fade-in");
+            $("#rdo-group").addClass("hidden");
+
+            try {
+                const res = await supabaseClient.get(
+                    "/rest/v1/subcon_delivery_in?select=return_do_number,receive_date,quantity," +
+                    "subcon_delivery_out(part_name,subcon_name)&order=receive_date.desc"
+                );
+                returnsForPart = (res.data || []).filter(
+                    (r) => r.subcon_delivery_out &&
+                        norm(r.subcon_delivery_out.part_name) === norm(partName)
+                );
+            } catch (e) {
+                // The subcon module is a separate migration. If it has not been run
+                // the list is simply empty, and the message below says so — better
+                // than a dropdown that spins forever.
+                console.error("Subcon return lookup failed", e);
+            }
+
+            const names = [
+                ...new Set(returnsForPart.map((r) => r.subcon_delivery_out.subcon_name).filter(Boolean))
+            ].sort();
+
+            const $sel = $("#subcon-name").empty();
+            if (!names.length) {
+                // Said plainly rather than left as an empty list: nothing has been
+                // recorded as coming back for this part, so there is nothing to check.
+                $sel.append('<option value="">No returns recorded for this part</option>');
+            } else {
+                $sel.append('<option value="">Select a subcontractor</option>');
+                names.forEach((n) =>
+                    $sel.append(`<option value="${escAttr(n)}">${escHtml(n)}</option>`)
+                );
+            }
+            $sel.trigger("change");
+        }
+
+        function fillReturnDos(subconName) {
+            const rows = returnsForPart.filter(
+                (r) => norm(r.subcon_delivery_out.subcon_name) === norm(subconName)
+            );
+
+            // One DO can cover several return lines of the same part, so the list
+            // is deduplicated and each entry carries the date it arrived.
+            const seen = new Map();
+            rows.forEach((r) => {
+                if (!seen.has(r.return_do_number)) seen.set(r.return_do_number, r.receive_date);
+            });
+
+            const $sel = $("#return-do").empty();
+            if (!seen.size) {
+                $sel.append('<option value="">No return DOs for this subcontractor</option>');
+            } else {
+                $sel.append('<option value="">Select a return DO</option>');
+                [...seen.entries()].forEach(([doNo, date]) =>
+                    $sel.append(
+                        `<option value="${escAttr(doNo)}">${escHtml(doNo)} — received ${escHtml(date)}</option>`
+                    )
+                );
+            }
+            $("#rdo-group").removeClass("hidden").addClass("fade-in");
+            $sel.trigger("change");
+        }
+
+        // Subcontractor names and DO numbers are typed by hand elsewhere in the
+        // app, so they reach this page as arbitrary text and cannot be dropped
+        // into markup raw.
+        const norm = (v) => String(v || "").trim().toUpperCase();
+        const escHtml = (v) => String(v ?? "").replace(/[&<>"']/g,
+            (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        const escAttr = escHtml;
+
+        // --- Active Job Orders panel logic ---
+        async function fetchJobs() {
+            try {
+                // Newest first, so the first row seen for each part is its latest job order
+                const res = await supabaseClient.get(
+                    "/rest/v1/JobOrder?select=JO_Number,Part_Name&Status=eq.active&order=created_at.desc"
+                );
+
+                // Keep only the latest job order per part
+                const seenParts = new Set();
+                jobsData = res.data.filter((job) => {
+                    if (seenParts.has(job.Part_Name)) return false;
+                    seenParts.add(job.Part_Name);
+                    return true;
+                });
+
+                renderList(jobsData);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        function renderList(data) {
+            const list = document.getElementById("jobList");
+            list.innerHTML = "";
+            data.forEach((job) => {
+                const li = document.createElement("li");
+                li.className = "job-item";
+                li.innerHTML = `<strong>${job.Part_Name}</strong><small>${job.JO_Number}</small>`;
+                li.onclick = () => {
+                    list.querySelectorAll(".job-item.is-active").forEach((el) => el.classList.remove("is-active"));
+                    li.classList.add("is-active");
+                    $("#part-name").val(job.Part_Name).trigger("change");
+                };
+                list.appendChild(li);
+            });
+
+            // Empty-state + count
+            document.getElementById("noResult").style.display = data.length ? "none" : "block";
+            document.getElementById("jobs-count").textContent = data.length;
+        }
+        function filterJobs() {
+            const query = document
+                .getElementById("searchInput")
+                .value.toLowerCase();
+            renderList(
+                jobsData.filter(
+                    (j) =>
+                        j.Part_Name.toLowerCase().includes(query) ||
+                        j.JO_Number.toLowerCase().includes(query)
+                )
+            );
         }
     </script>
 </body>
+
 </html>

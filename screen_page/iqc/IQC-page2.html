@@ -1,245 +1,534 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IQC Checking - Summary</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IQC Checking - Summary Report</title>
     <!-- Add /FamaxQCSystem to the beginning of the path -->
     <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
     <!-- Shared design system (tokens + UI primitives) -->
     <link rel="stylesheet" href="/assets/theme.css">
-    <style>
-        /* ---- Page-specific layout (built on shared tokens in theme.css) ---- */
-        body { display: flex; flex-direction: column; min-height: 100vh; }
 
-        /* Sticky top app bar */
+    <style>
+        /* ---- Page-specific overrides (built on shared tokens in theme.css) ---- */
+        :root {
+            --primary-color: var(--primary);
+            --primary-dark: var(--primary-hover);
+            --primary-light: var(--primary-soft);
+            --accent-color: var(--warning);
+            --text-secondary: var(--text-muted);
+            --border-color: var(--border);
+            --error: var(--danger);
+            --error-bg: #fee2e2;
+            --disabled: var(--border-strong);
+            --shadow-md: var(--shadow);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
         header {
+            background-color: var(--bg-card);
+            height: 64px;
+            padding: 0 var(--space-8);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
             position: sticky;
             top: 0;
             z-index: var(--z-header);
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            height: 64px;
-            padding: 0 var(--space-8);
-            background: var(--bg-card);
             border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
         }
 
         .header-title {
-            font-size: var(--fs-md);
             font-weight: 700;
-            letter-spacing: -0.2px;
+            font-size: var(--fs-md);
             color: var(--text-main);
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
         }
 
+        .header-title::before {
+            content: "";
+            display: block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* Layout */
         .container {
+            flex: 1;
+            padding: var(--space-6) var(--space-8);
+            max-width: 1200px;
+            /* Wider for report view */
             width: 100%;
-            max-width: 1100px;
             margin: 0 auto;
-            padding: var(--space-8);
         }
 
         .section-title {
-            margin: 0 0 var(--space-6);
-            padding-bottom: var(--space-3);
-            font-size: var(--fs-lg);
+            font-size: var(--fs-xl);
             font-weight: 700;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.4px;
             color: var(--text-main);
-            border-bottom: 1px solid var(--border);
+            margin-bottom: var(--space-6);
+            padding-bottom: var(--space-2);
+            border-bottom: 2px solid var(--border);
         }
 
+        /* Info Bar (Grid) */
         .info-card {
-            padding: var(--space-6);
+            background: var(--bg-card);
             border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-sm);
             margin-bottom: var(--space-8);
-            background: var(--primary);
-            color: var(--on-primary);
-            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
 
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: var(--space-5);
+            gap: 1.5rem;
         }
 
-        .info-item { display: flex; flex-direction: column; }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
 
         .info-label {
-            font-size: var(--fs-xs);
-            font-weight: 600;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-bottom: var(--space-2);
-            opacity: 0.85;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
         }
 
-        .info-value { font-size: var(--fs-lg); font-weight: 700; }
-
-        .exceeded {
-            background-color: var(--danger);
-            color: #ffffff;
+        .info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
         }
 
-        .exceeded-value {
-            background-color: #fee2e2;
-            color: #b91c1c;
+        /* Summary Cards (Generated Zones) */
+        #summary-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Styles applied to dynamically generated content */
+        .zone-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            break-inside: avoid;
+            /* For printing */
+        }
+
+        .zone-card h3 {
+            font-size: 1.1rem;
             font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .detail-table {
-            font-size: var(--fs-sm);
-            margin-bottom: var(--space-5);
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.9rem;
         }
 
-        .detail-table th, .detail-table td {
-            padding: var(--space-2) var(--space-3);
+        .detail-table th,
+        .detail-table td {
+            padding: 12px;
             text-align: center;
-            border: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .detail-table th {
-            background: var(--primary);
-            color: var(--on-primary);
-        }
-
-        .detail-table th.exceeded {
-            background-color: var(--danger);
-            color: #ffffff;
-        }
-
-        .detail-table .range-row td {
-            background-color: var(--primary-soft);
+            background-color: var(--bg-body);
+            color: var(--text-secondary);
             font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
         }
 
-        .button-container {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: var(--space-8);
+        .detail-table th:first-child,
+        .detail-table td:first-child {
+            text-align: left;
+            padding-left: 1rem;
         }
 
-        /* Map legacy .btn-primary onto shared .btn primitive */
-        .btn-primary { color: var(--on-primary); background: var(--primary); }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-primary:disabled { background: var(--border-strong); color: var(--text-faint); cursor: not-allowed; }
-
-        .footer {
-            margin-top: auto;
-            padding: var(--space-6) var(--space-8);
-            text-align: center;
-            font-size: var(--fs-sm);
-            font-weight: 500;
-            color: var(--text-faint);
-            border-top: 1px solid var(--border);
+        /* Status Styles */
+        .exceeded {
+            background-color: var(--error) !important;
+            color: white !important;
         }
 
-        /* Visual inspection section styles */
-        .visual-section {
-            margin-top: var(--space-8);
-            padding: var(--space-6);
+        .exceeded-value {
+            background-color: var(--error-bg);
+            color: var(--error);
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        /* Remarks Section */
+        /* Visual check panel — same surface as .remark-container so the two read
+           as one "finish the report" block. */
+        .visual-container {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
+            border-radius: var(--radius);
+            padding: var(--space-5);
+            margin-bottom: var(--space-5);
         }
 
-        .visual-title {
-            font-size: var(--fs-md);
-            font-weight: 700;
-            color: var(--text-main);
+        .visual-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: var(--space-4);
+            flex-wrap: wrap;
             margin-bottom: var(--space-4);
-            padding-bottom: var(--space-2);
-            border-bottom: 1px solid var(--border);
+        }
+
+        .visual-hint {
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
         }
 
         .visual-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: var(--space-4);
-            margin-bottom: var(--space-5);
+        }
+
+        .visual-decision {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+            gap: var(--space-4);
+            margin-top: var(--space-5);
+            padding-top: var(--space-5);
+            border-top: 1px solid var(--border);
         }
 
         .visual-item {
-            background: var(--surface-muted);
-            padding: var(--space-4);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-        }
-
-        .rating-label {
-            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: var(--fs-xs);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
             color: var(--text-muted);
-            margin-bottom: var(--space-2);
         }
 
-        .rating-value {
-            font-size: var(--fs-lg);
+        .visual-item small {
+            font-weight: 600;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text-faint);
+        }
+
+        /* A rating of 1 or 2 is the thing somebody skimming this page needs to
+           see, so it colours itself rather than waiting to be read. */
+        .visual-select.is-low {
+            border-color: var(--danger);
+            background: #fef2f2;
+            color: #b91c1c;
             font-weight: 700;
         }
 
-        .rating-low {
-            color: var(--danger);
+        @media (max-width: 720px) {
+            .visual-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .visual-decision { grid-template-columns: 1fr; }
         }
 
-        .decision-section {
-            margin-top: var(--space-5);
-            padding: var(--space-4);
-            background-color: var(--primary-soft);
-            border-radius: var(--radius-sm);
+        .remark-container {
+            margin-top: 2rem;
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
         }
 
-        .remark-section {
-            margin-top: var(--space-5);
-            padding: var(--space-4);
-            background-color: var(--surface-muted);
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
+        .remark-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
         }
 
-        @media (max-width: 768px) {
-            header { padding: 0 12px; height: auto; min-height: 52px; }
-            .container { padding: 12px 10px; }
-            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-            .detail-table { min-width: 480px; }
-            .table-scroll,
-            #summary-container > div {
-                width: 100%;
-                max-width: 100%;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            input, select, textarea, .remark-input { font-size: 16px !important; }
-            .button-container {
-                flex-direction: column;
-                position: sticky;
-                bottom: 0;
-                background: var(--bg-body);
-                padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-            }
-            .button-container .btn { width: 100%; min-height: 48px; }
+        /* Detail box (optional point/value/time) + PDF static remark */
+        .remark-detail-input,
+        .remark-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: #fafafa;
         }
 
+        .remark-detail-input {
+            margin-top: 0.75rem;
+        }
+
+        /* .remark-input is reused as the static remark div injected for PDF export */
+        .remark-input {
+            min-height: 100px;
+            resize: vertical;
+            white-space: pre-wrap;
+        }
+
+        .remark-detail-input:focus,
+        .remark-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 4px 10px rgba(25, 118, 210, 0.1);
+        }
+
+        /* Select2 dropdown themed to match the rest of the app */
+        .remark-container .select2-container {
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--single {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            background: #fafafa;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: var(--text-main);
+            padding-left: var(--space-3);
+            font-size: 1rem;
+            line-height: 42px;
+        }
+
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 44px;
+        }
+
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: var(--primary-color);
+            background: #fff;
+            box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary);
+        }
+
+        /* Buttons */
+        .button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(25, 118, 210, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 8px rgba(25, 118, 210, 0.4);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            background: var(--bg-body);
+            margin-top: auto;
+        }
+
+        /* Print Styles */
         @media print {
             body {
-                width: 210mm;
-                height: 297mm;
-                margin: 0;
-                padding: 0;
+                background-color: white;
+                color: black;
             }
 
-            header, .footer, .button-container {
-                display: none;
+            header,
+            .button-container {
+                display: none !important;
+            }
+
+            .footer {
+                text-align: center;
+                margin-top: auto;
+                padding: 20px;
+                color: var(--text-muted);
+                font-size: 12px;
+            }
+
+            .container {
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .info-card,
+            .zone-card,
+            .remark-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* --- MOBILE RESPONSIVE ADAPTATIONS --- */
+        @media (max-width: 768px) {
+
+            /* 1. Global Spacing */
+            header {
+                padding: 0 1rem;
+                height: 60px;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            /* 2. Info Grid: 2 columns for better fit */
+            .info-card {
+                padding: 1rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            /* Force Inspector Name to take full width if needed */
+            .info-item:last-child {
+                grid-column: 1 / -1;
+            }
+
+            .info-value {
+                font-size: 0.9rem;
+            }
+
+            /* 3. Zone Cards & Tables */
+            .zone-card {
+                padding: 1rem;
+                /* Allow the card to scroll horizontally if the table is too wide */
+                overflow-x: auto;
+            }
+
+            .zone-card h3 {
+                font-size: 1rem;
+            }
+
+            .detail-table {
+                /* Prevent the table from squashing the text too much */
+                min-width: 500px;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                padding: 8px;
+                font-size: 0.85rem;
+            }
+
+            /* 4. Remarks & Inputs */
+            .remark-container {
+                padding: 1rem;
+            }
+
+            .remark-input {
+                font-size: 16px !important;
+                /* Prevents auto-zoom on mobile browsers */
+            }
+
+            /* 5. Buttons */
+            .button-container {
+                justify-content: center;
+                /* Center the button on mobile */
+            }
+
+            .btn {
+                width: 100%;
+                /* Full width button for easier tapping */
+                padding: 16px;
+            }
+        }
+
+        /* Extra Small Devices */
+        @media (max-width: 480px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+                /* Stack everything in 1 column */
             }
         }
     </style>
 </head>
+
 <body>
     <header>
         <div class="header-title">
@@ -247,206 +536,629 @@
         </div>
     </header>
 
-    <div class="container">
-        <h2 class="section-title">Inspection Summary</h2>
-        
-        <div class="info-card">
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Part:</span>
-                    <span class="info-value" id="selected-part"></span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Process:</span>
-                    <span class="info-value" id="selected-process"></span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Job Order:</span>
-                    <span class="info-value" id="selected-jo"></span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Person Name:</span>
-                    <span class="info-value" id="person-name"></span>
-                </div>
-            </div>
-        </div>
-    
-        <div id="summary-container">
-            <!-- Inspection summary will be added dynamically -->
-        </div>
+    <!-- Main Content ID for HTML2PDF to target -->
+    <div id="print-area">
+        <div class="container">
+            <h2 class="section-title">Inspection Summary</h2>
 
-        <div id="visual-container" class="visual-section">
-            <h3 class="visual-title">Visual Inspection Results</h3>
-            <div class="visual-grid" id="visual-grid">
-                <!-- Visual inspection results will be added dynamically -->
+            <div class="info-card">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Part Name</span>
+                        <span class="info-value" id="selected-part"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Process</span>
+                        <span class="info-value" id="selected-process"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Job Order</span>
+                        <span class="info-value" id="selected-jo"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Subcontractor</span>
+                        <span class="info-value" id="selected-subcon"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Return DO</span>
+                        <span class="info-value" id="selected-rdo"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Inspector Name</span>
+                        <span class="info-value" id="person-name"></span>
+                    </div>
+                </div>
             </div>
-            <div class="decision-section" id="decision-section">
-                <!-- QC Decision will be added dynamically -->
+
+            <div id="summary-container">
+                <!-- Dynamic Content -->
             </div>
-            <div class="remark-section" id="remark-section">
-                <!-- QC Remark will be added dynamically -->
+
+            <div class="visual-container">
+                <div class="visual-head">
+                    <span class="remark-label">Visual check</span>
+                    <span class="visual-hint">1 = poor, 5 = excellent. All six are required.</span>
+                </div>
+                <div class="visual-grid">
+                    <label class="visual-item">
+                        <span>No burr</span>
+                        <select id="v-no-burr" class="remark-select visual-select"></select>
+                    </label>
+                    <label class="visual-item">
+                        <span>No dent</span>
+                        <select id="v-no-dented" class="remark-select visual-select"></select>
+                    </label>
+                    <label class="visual-item">
+                        <span>No scratches</span>
+                        <select id="v-no-scratches" class="remark-select visual-select"></select>
+                    </label>
+                    <label class="visual-item">
+                        <span>Plating</span>
+                        <select id="v-plating" class="remark-select visual-select"></select>
+                    </label>
+                    <label class="visual-item">
+                        <span>Flatness</span>
+                        <select id="v-flatness" class="remark-select visual-select"></select>
+                    </label>
+                    <label class="visual-item">
+                        <span>Roundness</span>
+                        <select id="v-roundness" class="remark-select visual-select"></select>
+                    </label>
+                </div>
+
+                <div class="visual-decision">
+                    <label class="visual-item">
+                        <span>QC decision</span>
+                        <select id="qc-decision" class="remark-select">
+                            <option value="">Select decision</option>
+                            <option value="Condition Accepted">Condition Accepted</option>
+                            <option value="Sorting">Sorting</option>
+                            <option value="Rework">Rework</option>
+                            <option value="Return to Vendor">Return to Vendor</option>
+                        </select>
+                    </label>
+                    <label class="visual-item">
+                        <span>QC remark <small id="qc-remark-count">0/50 words</small></span>
+                        <input type="text" id="qc-remark" class="remark-detail-input"
+                            placeholder="Optional note on the visual condition" />
+                    </label>
+                </div>
             </div>
-        </div>
-    
-        <div class="button-container">
-            <button id="finish-btn" class="btn btn-primary">Finish</button>
+
+            <div class="remark-container">
+                <label for="remark-category" class="remark-label">Remark</label>
+                <select id="remark-category" class="remark-select">
+                    <option value="">— No remark / select category —</option>
+                    <option value="Following tooling / jig">Following tooling / jig</option>
+                    <option value="Following customer drawing">Following customer drawing</option>
+                    <option value="Following max / min limit">Following max / min limit</option>
+                    <option value="Out of spec – accepted (next process / customer accept)">Out of spec – accepted (next process / customer accept)</option>
+                    <option value="Dimension out of spec (reject / rework)">Dimension out of spec (reject / rework)</option>
+                    <option value="Surface defect (dent / burr / line / vibration / off-center)">Surface defect (dent / burr / line / vibration / off-center)</option>
+                    <option value="Drawing needs improvement">Drawing needs improvement</option>
+                    <option value="Machine problem / stop">Machine problem / stop</option>
+                    <option value="Tooling problem / broken">Tooling problem / broken</option>
+                    <option value="Setting / new setting / offset">Setting / new setting / offset</option>
+                    <option value="Waiting (material / operator / next process)">Waiting (material / operator / next process)</option>
+                    <option value="Production start / stop">Production start / stop</option>
+                    <option value="Quantity complete">Quantity complete</option>
+                    <option value="Other">Other (free text)</option>
+                </select>
+                <input type="text" id="remark-detail" class="remark-detail-input"
+                    placeholder="Optional detail: point no, value, time (e.g. POINT 8 66.553)" />
+            </div>
         </div>
     </div>
-    
-    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const partName = urlParams.get('part');
-            const processName = urlParams.get('process');
-            const joNumber = urlParams.get('jo');
-            const personName = urlParams.get('name');
-    
-            // Display the values in elements
-            document.getElementById('selected-part').textContent = partName || 'Not provided';
-            document.getElementById('selected-process').textContent = processName || 'Not provided';
-            document.getElementById('selected-jo').textContent = joNumber || 'Not provided';
-            document.getElementById('person-name').textContent = personName || 'Not provided';
-    
-            // Get submitted readings from URL parameters
-            //const readings = JSON.parse(decodeURIComponent(urlParams.get('readings') || '[]'));
-            
-            // Get visual inspection data from URL parameters
-            //const visualData = urlParams.get('visualData') ? JSON.parse(decodeURIComponent(urlParams.get('visualData'))) : null;
 
-            const readings = JSON.parse(localStorage.getItem('iqcReadings') || '[]');
-            const visualData = JSON.parse(localStorage.getItem('iqcVisualData') || 'null');
-    
-            // Display inspection summary
-            const summaryContainer = document.getElementById('summary-container');
+    <!-- Buttons outside print area -->
+    <div class="container">
+        <div class="button-container">
+            <button id="finish-btn" class="btn btn-primary">Finish Report</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = window.APP_CONFIG.url;
+        const SUPABASE_KEY = window.APP_CONFIG.key;
+
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // --- 1. LOAD DATA ---
+            const partName = localStorage.getItem("iqc.partName");
+            const processName = localStorage.getItem("iqc.processName");
+            const joNumber = localStorage.getItem("iqc.joNumber");
+            const subconName = localStorage.getItem("iqc.subconName");
+            const returnDo = localStorage.getItem("iqc.returnDo");
+            const personName = localStorage.getItem("iqc.personName");
+            const readings = JSON.parse(
+                localStorage.getItem("iqc.summaryData") || "[]"
+            );
+
+            // --- 2. DISPLAY HEADER INFO ---
+            document.getElementById("selected-part").textContent = partName || "Not provided";
+            document.getElementById("selected-process").textContent = processName || "Not provided";
+            document.getElementById("selected-jo").textContent = joNumber || "Not provided";
+            document.getElementById("selected-subcon").textContent = subconName || "Not provided";
+            document.getElementById("selected-rdo").textContent = returnDo || "Not provided";
+            document.getElementById("person-name").textContent = personName || "Not provided";
+
+            // --- 3. GENERATE ZONES (Fix for 0 values included) ---
+            const summaryContainer = document.getElementById("summary-container");
             readings.forEach((zone, index) => {
-                const zoneElement = document.createElement('div');
+                const zoneElement = document.createElement("div");
+                zoneElement.className = "zone-card";
+
+                // Validation Helpers
+                const checkExceeded = (val, min, max) => {
+                    if (val === "" || val === null || val === undefined) return false;
+                    const v = parseFloat(val);
+                    const l = parseFloat(min);
+                    const h = parseFloat(max);
+                    if (!isNaN(v) && !isNaN(l) && v < l) return true;
+                    if (!isNaN(v) && !isNaN(h) && v > h) return true;
+                    return false;
+                };
+
+                const checkTextExceeded = (val, okCriteria, ngCriteria) => {
+                    if (typeof val !== "string") return false;
+                    if (okCriteria && okCriteria.toLowerCase() === "ok" && val.toLowerCase() !== "ok") return true;
+                    if (ngCriteria && ngCriteria.toLowerCase() === "ng" && val.toLowerCase() === "ng") return true;
+                    return false;
+                };
+
+                const generateCells = (tagType) => {
+                    return ["Reading_1", "Reading_2", "Reading_3"]
+                        .map((key) => {
+                            const isHeader = tagType === "th";
+                            const val = zone[key];
+                            const isErr =
+                                checkExceeded(val, zone.LSL_OK, zone.USL_NG) ||
+                                checkTextExceeded(val, zone.LSL_OK, zone.USL_NG);
+
+                            let className = "";
+                            if (isErr) className = isHeader ? "exceeded" : "exceeded-value";
+
+                            let displayValue = "N/A";
+                            if (isHeader) {
+                                displayValue = key.replace("_", " ");
+                            } else {
+                                // Allow 0 to appear
+                                if (val !== null && val !== undefined && val !== "") {
+                                    displayValue = val;
+                                }
+                            }
+                            return `<${tagType} class="${className}">${displayValue}</${tagType}>`;
+                        })
+                        .join("");
+                };
+
                 zoneElement.innerHTML = `
-                    <h3>Zone ${index + 1}: ${zone.Point_DWG_Zone || (index + 1)}</h3>
-                    <table class="detail-table">
-                        <thead>
-                            <tr>
-                                <th>Measurement</th>
-                                ${['Reading_1', 'Reading_2', 'Reading_3', 'Reading_4', 'Reading_5'].map(key => {
-                                    // Convert values to numbers for comparison
-                                    const reading = parseFloat(zone[key]);
-                                    const min = parseFloat(zone.Min);
-                                    const max = parseFloat(zone.Max);
-                                    
-                                    // Check if the reading is out of range
-                                    const isExceeded = !isNaN(reading) && 
-                                        ((!isNaN(min) && reading < min) || (!isNaN(max) && reading > max));
-                                    
-                                    // Special case for text comparisons like 'OK' and 'NG'
-                                    const isTextExceeded = typeof zone[key] === 'string' && typeof zone.Min === 'string' && 
-                                        (zone.Min.toLowerCase() === 'ok' && zone[key].toLowerCase() !== 'ok') ||
-                                        (typeof zone.Max === 'string' && zone.Max.toLowerCase() === 'ng' && zone[key].toLowerCase() === 'ng');
-                                    
-                                    return `
-                                        <th${(isExceeded || isTextExceeded) ? ' class="exceeded"' : ''}>
-                                            ${key.replace('_', ' ')}
-                                        </th>
-                                    `;
-                                }).join('')}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Range: ${zone.Min || 'N/A'} - ${zone.Max || 'N/A'}</td>
-                                ${['Reading_1', 'Reading_2', 'Reading_3', 'Reading_4', 'Reading_5'].map(key => {
-                                    // Convert values to numbers for comparison
-                                    const reading = parseFloat(zone[key]);
-                                    const min = parseFloat(zone.Min);
-                                    const max = parseFloat(zone.Max);
-                                    
-                                    // Check if the reading is out of range
-                                    const isExceeded = !isNaN(reading) && 
-                                        ((!isNaN(min) && reading < min) || (!isNaN(max) && reading > max));
-                                    
-                                    // Special case for text comparisons like 'OK' and 'NG'
-                                    const isTextExceeded = typeof zone[key] === 'string' && typeof zone.Min === 'string' && 
-                                        (zone.Min.toLowerCase() === 'ok' && zone[key].toLowerCase() !== 'ok') ||
-                                        (typeof zone.Max === 'string' && zone.Max.toLowerCase() === 'ng' && zone[key].toLowerCase() === 'ng');
-                                    
-                                    return `
-                                        <td${(isExceeded || isTextExceeded) ? ' class="exceeded-value"' : ''}>
-                                            ${zone[key] || 'N/A'}
-                                        </td>
-                                    `;
-                                }).join('')}
-                            </tr>
-                        </tbody>
-                    </table>
-                `;
+            <h3>Zone ${index + 1}: ${zone.Point_DWG_Zone || index + 1}</h3>
+            <table class="detail-table">
+                <thead>
+                    <tr><th>Measurement</th>${generateCells("th")}</tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Range: ${zone.LSL_OK || "N/A"} - ${zone.USL_NG || "N/A"}</td>
+                        ${generateCells("td")}
+                    </tr>
+                </tbody>
+            </table>
+          `;
                 summaryContainer.appendChild(zoneElement);
             });
 
-            // Display visual inspection results if available
-            if (visualData) {
-                const visualGrid = document.getElementById('visual-grid');
-                const decisionSection = document.getElementById('decision-section');
-                const remarkSection = document.getElementById('remark-section');
-
-                // Create visual inspection criteria items
-                const criteria = [
-                    { id: 'noBurr', label: 'No Burr' },
-                    { id: 'noDented', label: 'No Dented' },
-                    { id: 'noScratches', label: 'No Scratches' },
-                    { id: 'plating', label: 'Plating' },
-                    { id: 'flatness', label: 'Flatness' },
-                    { id: 'roundness', label: 'Roundness' }
-                ];
-
-                criteria.forEach(item => {
-                    const rating = parseInt(visualData[item.id]);
-                    const visualItem = document.createElement('div');
-                    visualItem.className = 'visual-item';
-                    visualItem.innerHTML = `
-                        <div class="rating-label">${item.label}:</div>
-                        <div class="rating-value ${rating < 3 ? 'rating-low' : ''}">
-                            ${rating}/5
-                        </div>
-                    `;
-                    visualGrid.appendChild(visualItem);
+            // --- 4. REMARK DROPDOWN + DETAIL FIELD ---
+            // Order the remark options by how often each category was used in
+            // previous inspections (most-used first), then init Select2.
+            async function initRemarkSelect() {
+                try {
+                    // ponytail: full scan of one column; add a server-side count or date cap if Data_IQC grows large.
+                    const { data, error } = await supabaseClient.from("Data_IQC").select("Remarks");
+                    if (error) {
+                        console.error("Remark frequency fetch error:", error);
+                    } else if (data) {
+                        const freq = {};
+                        data.forEach(r => {
+                            const cat = String(r.Remarks || r.remarks || "").split("|")[0].trim();
+                            if (cat) freq[cat] = (freq[cat] || 0) + 1;
+                        });
+                        const select = document.getElementById("remark-category");
+                        const opts = Array.from(select.options);
+                        // Keep the placeholder ("") first and "Other" last; sort the rest by frequency desc.
+                        const middle = opts
+                            .filter(o => o.value !== "" && o.value !== "Other")
+                            .sort((a, b) => (freq[b.value] || 0) - (freq[a.value] || 0));
+                        const other = opts.find(o => o.value === "Other");
+                        middle.forEach(o => select.appendChild(o));
+                        if (other) select.appendChild(other);
+                    }
+                } catch (e) {
+                    console.error("Remark frequency sort failed:", e);
+                }
+                $("#remark-category").select2({
+                    minimumResultsForSearch: 0,
+                    placeholder: "— No remark / select category —"
                 });
+            }
+            /* ------------------------------------------------------------------
+               Visual check
 
-                // Add QC Decision
-                decisionSection.innerHTML = `
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">QC Decision:</div>
-                    <div style="font-size: 1.2rem; ${visualData.qcDecision !== 'Condition Accepted' ? 'color: #D32F2F; font-weight: 600;' : ''}">
-                        ${visualData.qcDecision}
-                    </div>
-                `;
+               Dimensions are only half of an incoming inspection. Parts go out
+               to a subcontractor for plating, heat treatment or outside
+               machining, and the thing that comes back wrong is as often the
+               finish as the size — a measurement in spec says nothing about a
+               burr or a patchy plate. These are the six criteria and the four
+               dispositions the IQC form has always used; they are asked once for
+               the delivery and stamped onto every point of it, because they
+               describe the lot, not a zone.
+               ------------------------------------------------------------------ */
+            const VISUAL_FIELDS = [
+                ['v-no-burr', 'No burr'],
+                ['v-no-dented', 'No dent'],
+                ['v-no-scratches', 'No scratches'],
+                ['v-plating', 'Plating'],
+                ['v-flatness', 'Flatness'],
+                ['v-roundness', 'Roundness']
+            ];
 
-                // Add QC Remark
-                remarkSection.innerHTML = `
-                    <div style="font-weight: 600; margin-bottom: 0.5rem;">QC Remark:</div>
-                    <div style="font-style: italic;">
-                        "${visualData.qcRemark}"
-                    </div>
-                `;
-            } else {
-                // Hide visual section if no data available
-                document.getElementById('visual-container').style.display = 'none';
+            VISUAL_FIELDS.forEach(([id]) => {
+                const sel = document.getElementById(id);
+                if (!sel) return;
+                sel.innerHTML = '<option value="">Rate 1-5</option>' +
+                    [1, 2, 3, 4, 5].map(n => `<option value="${n}">${n} / 5</option>`).join('');
+                // 1 and 2 are the ratings somebody skimming the finished report
+                // needs to spot, so the box colours itself rather than waiting
+                // to be read.
+                sel.addEventListener('change', function () {
+                    const n = parseInt(this.value, 10);
+                    this.classList.toggle('is-low', n === 1 || n === 2);
+                });
+            });
+
+            // Same 50-word ceiling the old IQC modal enforced.
+            const qcRemarkInput = document.getElementById('qc-remark');
+            const qcRemarkCount = document.getElementById('qc-remark-count');
+            const wordsIn = (t) => t.trim() === '' ? 0 : t.trim().split(/\s+/).length;
+            if (qcRemarkInput) {
+                qcRemarkInput.addEventListener('input', function () {
+                    const n = wordsIn(this.value);
+                    qcRemarkCount.textContent = `${n}/50 words`;
+                    qcRemarkCount.style.color = n > 50 ? 'var(--danger)' : '';
+                });
             }
 
-            // Add event listener to finish button
-            document.getElementById('finish-btn').addEventListener('click', function() {
-                window.print();
+            // Returns the gathered check, or null having said what is missing.
+            // Nulling out is deliberate: an incoming inspection with no visual
+            // verdict is not a shorter inspection, it is an unfinished one.
+            function readVisualCheck() {
+                const missing = [];
+                const values = {};
+                VISUAL_FIELDS.forEach(([id, label]) => {
+                    const v = (document.getElementById(id) || {}).value || '';
+                    if (!v) missing.push(label);
+                    values[id] = v;
+                });
 
-                // Wait for a short delay to allow the print dialog to appear
-                setTimeout(function() {
-                    // Clear localStorage
-                    localStorage.removeItem('iqcReadings');
-                    localStorage.removeItem('iqcVisualData');
+                const decision = (document.getElementById('qc-decision') || {}).value || '';
+                if (!decision) missing.push('QC decision');
 
-                    // Redirect to mainpage1.html
-                    window.location.href = '../../index.html';
-                }, 500);
+                const remark = ((document.getElementById('qc-remark') || {}).value || '').trim();
+                if (wordsIn(remark) > 50) {
+                    alert('The QC remark is over 50 words. Please shorten it.');
+                    return null;
+                }
+
+                if (missing.length) {
+                    alert('Please complete the visual check:\n\n- ' + missing.join('\n- '));
+                    document.querySelector('.visual-container').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return null;
+                }
+
+                return {
+                    noBurr: values['v-no-burr'],
+                    noDented: values['v-no-dented'],
+                    noScratches: values['v-no-scratches'],
+                    plating: values['v-plating'],
+                    flatness: values['v-flatness'],
+                    roundness: values['v-roundness'],
+                    decision,
+                    remark
+                };
+            }
+
+            // The panel is inside #print-area, so its dropdowns would otherwise
+            // reach the PDF as empty-looking form controls. Swapped for the text
+            // of what was chosen, the same way the remark select is.
+            function freezeVisualForPrint(visual) {
+                const panel = document.querySelector('.visual-container');
+                if (!panel || document.getElementById('visual-frozen')) return;
+
+                const rows = VISUAL_FIELDS
+                    .map(([id, label]) => `<div><strong>${label}:</strong> ${visual[({
+                        'v-no-burr': 'noBurr', 'v-no-dented': 'noDented',
+                        'v-no-scratches': 'noScratches', 'v-plating': 'plating',
+                        'v-flatness': 'flatness', 'v-roundness': 'roundness'
+                    })[id]]} / 5</div>`)
+                    .join('');
+
+                const frozen = document.createElement('div');
+                frozen.id = 'visual-frozen';
+                frozen.innerHTML =
+                    `<div class="remark-label" style="margin-bottom:8px">Visual check</div>
+                     <div class="visual-grid">${rows}</div>
+                     <div style="margin-top:12px"><strong>QC decision:</strong> ${visual.decision}</div>` +
+                    (visual.remark ? `<div><strong>QC remark:</strong> ${visual.remark}</div>` : '');
+
+                panel.innerHTML = '';
+                panel.appendChild(frozen);
+            }
+
+            initRemarkSelect();
+
+            // Enter in the detail box submits (matches previous textarea behaviour)
+            document.getElementById("remark-detail").addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    document.getElementById("finish-btn").click();
+                }
+            });
+
+            // --- 5. FINISH BUTTON HANDLER ---
+            document.getElementById("finish-btn").addEventListener("click", async function () {
+                const btn = this;
+
+                // 1. Identify the area to print (Fixes the ReferenceError)
+                const element = document.getElementById("print-area");
+                if (!element) {
+                    alert("Error: Print area not found!");
+                    return;
+                }
+
+                // 2. Collect all data from localStorage and Input
+                // Remark = standardized category + optional free detail, stored in the single Remarks column
+                const remarkCategory = document.getElementById("remark-category").value;
+                const remarkDetail = document.getElementById("remark-detail").value.trim();
+                const remarkValue = remarkCategory === "Other"
+                    ? remarkDetail
+                    : (remarkDetail ? `${remarkCategory} | ${remarkDetail}` : remarkCategory);
+                const partName = localStorage.getItem("iqc.partName") || "UnknownPart";
+                const processName = localStorage.getItem("iqc.processName") || "UnknownProcess";
+                const joNumber = localStorage.getItem("iqc.joNumber") || "UnknownJO";
+                const subconName = localStorage.getItem("iqc.subconName") || "";
+                const returnDo = localStorage.getItem("iqc.returnDo") || "";
+                const personName = localStorage.getItem("iqc.personName") || "UnknownInspector";
+                const readings = JSON.parse(localStorage.getItem("iqc.summaryData") || "[]");
+
+                // The visual check is a judgement about the whole delivery, not a
+                // single point, so it is gathered here and stamped onto every row.
+                const visual = readVisualCheck();
+                if (!visual) { return; }
+
+                btn.innerText = "Processing...";
+                btn.disabled = true;
+
+                try {
+                    const outOfSpecList = [];
+
+                    // 3. Prepare Data for DB and Check for Out-of-Spec
+                    const rowsToInsert = readings.map(zone => {
+                        [1, 2, 3].forEach(num => {
+                            const val = zone[`Reading_${num}`];
+
+                            // ONLY check and add to outOfSpecList if there is actually a value
+                            if (val !== "" && val !== null && val !== undefined) {
+                                if (!validateReading(val, zone.LSL_OK, zone.USL_NG)) {
+                                    outOfSpecList.push({
+                                        zone: zone.Point_DWG_Zone,
+                                        readingNum: num,
+                                        value: val,
+                                        min: zone.LSL_OK,
+                                        max: zone.USL_NG
+                                    });
+                                }
+                            }
+                        });
+
+                        return {
+                            Part_Name: partName,
+                            Process: processName,
+                            JO_Number: joNumber,
+                            Subcon_Name: subconName || null,
+                            Return_DO: returnDo || null,
+                            No_Burr: visual.noBurr,
+                            No_Dented: visual.noDented,
+                            No_Scratches: visual.noScratches,
+                            Plating: visual.plating,
+                            Flatness: visual.flatness,
+                            Roundness: visual.roundness,
+                            Decision: visual.decision,
+                            QC_Remark: visual.remark || null,
+                            Person: personName,
+                            Point_DWG_Zone: zone.Point_DWG_Zone,
+                            Measuring_Instrument: zone.Measuring_Instrument,
+                            LSL_OK: zone.LSL_OK,
+                            USL_NG: zone.USL_NG,
+                            SC: zone.SC,
+                            Reading_1: zone.Reading_1,
+                            Reading_2: zone.Reading_2,
+                            Reading_3: zone.Reading_3,
+                            Remarks: remarkValue
+                        };
+                    });
+
+                    // 4. Insert into Supabase
+                    const { error } = await supabaseClient.from("Data_IQC").insert(rowsToInsert);
+                    if (error) throw error;
+
+                    // 5. Send Telegram Alert (Only if OOS found)
+                    if (outOfSpecList.length > 0) {
+                        btn.innerText = "Sending Alert...";
+                        await sendTelegramAlert(outOfSpecList, remarkValue);
+                    }
+
+                    // 6. Prepare UI for PDF (Hide dropdown + detail, show static text)
+                    btn.innerText = "Saving to Server...";
+                    const remarkContainer = document.querySelector(".remark-container");
+                    remarkContainer.querySelector(".select2-container").style.display = "none";
+                    document.getElementById("remark-detail").style.display = "none";
+                    freezeVisualForPrint(visual);
+
+                    // Check if temp remark already exists to prevent duplicates
+                    let staticRemark = document.getElementById("temp-remark-text");
+                    if (!staticRemark) {
+                        staticRemark = document.createElement("div");
+                        staticRemark.className = "remark-input";
+                        staticRemark.id = "temp-remark-text";
+                        remarkContainer.appendChild(staticRemark);
+                    }
+                    staticRemark.textContent = remarkValue || "No remarks.";
+
+                    // 7. PDF Configuration
+                    const options = {
+                        margin: 10,
+                        filename: `${partName}_IQC_${joNumber}_${new Date().getTime()}.pdf`,
+                        image: { type: "jpeg", quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                    };
+
+                    // 8. Generate PDF as blob and upload to Server
+                    const pdfBlob = await html2pdf().set(options).from(element).outputPdf('blob');
+
+                    const formData = new FormData();
+                    formData.append("pdf", pdfBlob, options.filename);
+                    formData.append("partDescription", partName);
+                    formData.append("personName", personName);
+                    formData.append("processName", processName);
+                    formData.append("joNumber", joNumber);
+                    formData.append("inspectionType", "IQC");
+
+                    try {
+                        const serverResponse = await fetch('/FamaxQCSystem/saveInspectionPdf', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const serverResult = await serverResponse.json();
+                        console.log("Server response:", serverResult);
+                    } catch (serverErr) {
+                        console.error("Error uploading PDF to server:", serverErr);
+                    }
+
+                    // 9. Download PDF for User
+                    btn.innerText = "Downloading...";
+                    // await html2pdf().set(options).from(element).save();
+
+                    // 10. Success and Cleanup
+                    alert("Report Finished! Data saved to DB and Server.");
+                    localStorage.clear();
+                    window.location.href = "../../index.html";
+
+                } catch (err) {
+                    console.error("Critical Error:", err);
+                    alert("Failed to finish report: " + err.message);
+
+                    // Restore UI on failure
+                    const remarkContainer = document.querySelector(".remark-container");
+                    const select2 = remarkContainer.querySelector(".select2-container");
+                    if (select2) select2.style.display = "";
+                    document.getElementById("remark-detail").style.display = "";
+                    const tempDiv = document.getElementById("temp-remark-text");
+                    if (tempDiv) tempDiv.remove();
+
+                    btn.disabled = false;
+                    btn.innerText = "Finish Report";
+                }
+            });
+
+
+            document.addEventListener("keydown", function (e) {
+                if ((e.key === "Enter" || e.code === "NumpadEnter") && !e.shiftKey) {
+                    // Don't hijack Enter while typing detail or searching the Select2 dropdown
+                    const active = document.activeElement;
+                    const inRemarkField = active.id === "remark-detail"
+                        || active.classList.contains("select2-search__field");
+                    if (!inRemarkField) {
+                        e.preventDefault();
+                        document.getElementById("finish-btn").click();
+                    }
+                }
             });
         });
+
+        // Helper to check if a reading is within spec
+        function validateReading(reading, min, max) {
+            // 1. If there is no reading, don't treat it as Out of Spec (skip empty cells)
+            if (reading === null || reading === undefined || reading === "") return true;
+
+            const rStr = String(reading).toLowerCase();
+            const minStr = String(min || "").toLowerCase();
+            const maxStr = String(max || "").toLowerCase();
+
+            // 2. Handle Text-based specs (OK/NG or GO/NOGO)
+            // We check if the spec is actually "ok" or "go"
+            if (minStr === 'ok' || minStr === 'go') {
+                return rStr === 'ok' || rStr === 'go';
+            }
+            if (maxStr === 'ng' || maxStr === 'nogo') {
+                return rStr !== 'ng' && rStr !== 'nogo';
+            }
+
+            // 3. Handle Numeric-based specs
+            const readingValue = parseFloat(reading);
+            const minValue = parseFloat(min);
+            const maxValue = parseFloat(max);
+
+            // If limits are not numbers (and not the text "ok/ng" handled above), 
+            // we can't validate, so we assume it's OK to avoid false alarms.
+            if (isNaN(minValue) || isNaN(maxValue)) return true;
+
+            // Return true if value is within range
+            return !isNaN(readingValue) && readingValue >= minValue && readingValue <= maxValue;
+        }
+
+        // Telegram Alert Function
+        async function sendTelegramAlert(outOfSpecReadings, remarks) {
+            try {
+                const partName = localStorage.getItem("iqc.partName");
+                const processName = localStorage.getItem("iqc.processName");
+                const joNumber = localStorage.getItem("iqc.joNumber");
+                const subconName = localStorage.getItem("iqc.subconName");
+                const returnDo = localStorage.getItem("iqc.returnDo");
+                const personName = localStorage.getItem("iqc.personName");
+
+                let message = `⚠️ *IQC ALERT - OUT OF SPEC*\n\n`;
+                message += `*Part:* ${partName}\n`;
+                message += `*Process:* ${processName}\n`;
+                message += `*Job Order:* ${joNumber}\n`;
+                message += `*Subcon:* ${subconName || "-"}\n`;
+                message += `*Return DO:* ${returnDo || "-"}\n`;
+                message += `*Inspector:* ${personName}\n`;
+                message += `*Remarks:* ${remarks || "No remarks provided"}\n\n`;
+                message += `*Failed Measurements:*\n`;
+
+                outOfSpecReadings.forEach(item => {
+                    message += `\n📍 *Zone ${item.zone}*\n`;
+                    message += `Spec: ${item.min} - ${item.max}\n`;
+                    message += `Reading ${item.readingNum}: ❌ *${item.value}*\n`;
+                });
+
+                const botToken = '8107605903:AAG6yB5C-8l8NXZCvtief1Wm4GCv8Mv6UR4';
+                const chatId = '-1003227469075';
+
+                await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                    chat_id: chatId,
+                    text: message,
+                    parse_mode: 'Markdown'
+                });
+            } catch (error) {
+                console.error('Telegram Alert Failed:', error);
+            }
+        }
     </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
 </body>
+
 </html>
