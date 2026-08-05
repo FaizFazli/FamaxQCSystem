@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tooling Masterlist</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page, deliberately. Captures anything that fails
+           afterwards — including a CDN <script> that 404s — so a failure can
+           never present as a blank page with no explanation. Same construction
+           as gauge_masterlist.html. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);   // capture phase: resource load errors do not bubble
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <!-- No Tailwind on this page, deliberately, and it is worth saying why since
+         gauge_masterlist.html next door does load it. That page uses Tailwind
+         utility classes in its markup; this one does not use a single one — it is
+         built from theme.css components and a handful of inline styles — so the
+         Play CDN would be a network dependency and a runtime JIT bought for
+         nothing. If a utility class is ever wanted here, add the stylesheet back
+         together with the palette remap gauge_masterlist uses, or the utilities
+         will land on Tailwind's default colours instead of the design tokens. -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Relative, not /assets/... — an absolute path only resolves when the
+         page is served from the app root, so opening the file from disk (or
+         serving it under a different base) silently 404s both of these and the
+         page cannot start. ../../ resolves correctly under /, under
+         /FamaxQCSystem, and from file://. -->
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <!-- The PRODUCTION build, as ipqcRejectReport.html uses. The dev build ships
+         the warning handler and the reactivity debug hooks, and says so in the
+         console on every load. This list is 309 rows and re-renders on every
+         filter keystroke, so the difference is felt rather than theoretical. -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+
+        /* One tint per category, so a scan down the list groups by eye before
+           the label is read. Eight categories, eight tints — a ninth added to
+           tools_category falls through to the neutral default rather than
+           colliding with an existing one. */
+        .tint-INSERT  { background: #e0f2fe; color: #0369a1; }
+        .tint-TAP     { background: #ede9fe; color: #6d28d9; }
+        .tint-ENDMILL { background: #ccfbf1; color: #0f766e; }
+        .tint-DRILL   { background: #fef3c7; color: #92400e; }
+        .tint-REAMER  { background: #fce7f3; color: #9d174d; }
+        .tint-HOLDER  { background: #e2e8f0; color: #334155; }
+        .tint-SCREW   { background: #dcfce7; color: #166534; }
+        .tint-OTHER   { background: #f1f5f9; color: #475569; }
+
+        /* The expander row. A tool type and its items are one thing on the
+           page, so the child table sits inside the parent's row rather than in
+           a modal — closing a modal to compare two brands is the interaction
+           this list exists to avoid. */
+        .tool-row { cursor: pointer; }
+        .tool-row:hover { background: var(--surface-muted, #f8fafc); }
+        .tool-row td { vertical-align: middle; }
+
+        .items-cell { padding: 0 !important; background: #f8fafc; }
+        .items-inner { padding: 10px 14px 14px 38px; }
+
+        .chev { transition: transform .15s ease; display: inline-block; width: 12px; }
+        .chev--open { transform: rotate(90deg); }
+
+        /* Stock numbers are the point of the page, so they are tabular and
+           right-aligned — a column of quantities that does not line up cannot
+           be scanned for the small one. */
+        .num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .stock-0     { color: var(--text-faint, #94a3b8); }
+        .stock-low   { color: #b45309; font-weight: 700; }
+        .stock-ok    { font-weight: 600; }
+
+        /* on_floor and scrapped are muted next to the shelf figure. They matter,
+           but a storeman looking for "what can I issue" must not read them by
+           accident — only on_hand answers that. */
+        .num-sub { color: var(--text-faint, #94a3b8); font-size: 12px; }
+
+        .pill {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 18px;
+            white-space: nowrap;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filters .field { flex: 1 1 200px; min-width: 0; }
+        .filters .field--narrow { flex: 0 1 150px; }
+
+        .cat-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cat-tab {
+            padding: 5px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border, #e2e8f0);
+            background: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .cat-tab--on { background: var(--primary, #0078d4); border-color: var(--primary, #0078d4); color: #fff; }
+        .cat-tab__n { opacity: .65; margin-left: 4px; font-weight: 500; }
+
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 26px;
+            font-size: 12px;
+            color: var(--text-muted, #64748b);
+        }
+        .summary b { color: var(--text, #0f172a); font-variant-numeric: tabular-nums; }
+
+        .boot-error {
+            margin: 40px auto;
+            max-width: 700px;
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 18px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .boot-error h2 { font-weight: 700; margin-bottom: 8px; }
+        .boot-error ul { margin: 8px 0 0 18px; list-style: disc; }
+        .boot-error code { font-size: 12px; word-break: break-all; }
+
+        .readonly-note {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #92400e;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 820px) {
+            .items-inner { padding-left: 12px; }
+            .hide-sm { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="bootError" class="boot-error" style="display:none">
+        <h2>This page could not start.</h2>
+        <div id="bootErrorWhy"></div>
+        <ul id="bootErrorList"></ul>
+    </div>
+
+    <div id="app" v-cloak class="container" style="padding-bottom:48px">
+
+        <div class="page-head">
+            <div>
+                <h1 class="page-head__title">Tooling Masterlist</h1>
+                <p class="page-head__subtitle">
+                    Every cutting tool the factory buys, and what is on the shelf right now.
+                </p>
+            </div>
+            <div class="toolbar__spacer"></div>
+            <button class="btn btn--secondary" @click="loadAll" :disabled="loading">
+                {{ loading ? 'Loading…' : 'Refresh' }}
+            </button>
+            <button v-if="canWrite" class="btn" @click="openTool(null)">+ Tool type</button>
+        </div>
+
+        <div v-if="loadError" class="panel" style="border-color:#fecaca">
+            <div class="panel__body" style="color:#991b1b">
+                <strong>Could not load.</strong> {{ loadError }}
+                <div style="margin-top:6px;font-size:12px">
+                    If this says the relation or the view does not exist, the
+                    <code>2026-08-05_tooling_access.sql</code> migration has not been run on this
+                    database yet.
+                </div>
+            </div>
+        </div>
+
+        <div v-if="!canWrite && !loading" class="readonly-note" style="margin-bottom:14px">
+            Read-only — your access level ({{ accessLevel || 'unknown' }}) can view the masterlist
+            but not change it.
+        </div>
+
+        <!-- FILTERS -->
+        <div class="panel" style="margin-bottom:14px">
+            <div class="panel__body">
+                <div class="filters">
+                    <div class="field">
+                        <label class="label">Search</label>
+                        <input class="input" v-model.trim="search" ref="searchBox"
+                            placeholder="Tool code, name, part number, brand…">
+                    </div>
+                    <div class="field field--narrow">
+                        <label class="label">Show</label>
+                        <select class="input" v-model="stockFilter">
+                            <option value="">All tools</option>
+                            <option value="in">In stock</option>
+                            <option value="out">Out of stock</option>
+                            <option value="low">At / below reorder</option>
+                            <option value="floor">Out on the floor</option>
+                            <option value="review">Needs review</option>
+                        </select>
+                    </div>
+                    <div class="field field--narrow">
+                        <label class="label">Sort</label>
+                        <select class="input" v-model="sortBy">
+                            <option value="code">Tool code</option>
+                            <option value="name">Name</option>
+                            <option value="stock_desc">Most stock</option>
+                            <option value="stock_asc">Least stock</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cat-tabs" style="margin-top:12px">
+                    <button class="cat-tab" :class="{ 'cat-tab--on': activeCat === null }"
+                        @click="activeCat = null">
+                        All<span class="cat-tab__n">{{ tools.length }}</span>
+                    </button>
+                    <button v-for="c in categories" :key="c.id" class="cat-tab"
+                        :class="{ 'cat-tab--on': activeCat === c.id }"
+                        @click="activeCat = (activeCat === c.id ? null : c.id)">
+                        {{ c.name }}<span class="cat-tab__n">{{ catCount[c.id] || 0 }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY: totals for what is on screen, not for the table. A filtered
+             list whose totals describe the unfiltered set is a trap. -->
+        <div class="panel" style="margin-bottom:14px">
+            <div class="panel__body">
+                <div class="summary">
+                    <span><b>{{ shown.length }}</b> tool {{ shown.length === 1 ? 'type' : 'types' }}</span>
+                    <span><b>{{ shownItemCount }}</b> stock {{ shownItemCount === 1 ? 'item' : 'items' }}</span>
+                    <span>On the shelf <b>{{ totals.on_hand }}</b></span>
+                    <span v-if="totals.on_floor">On the floor <b>{{ totals.on_floor }}</b></span>
+                    <span v-if="totals.scrapped">Scrapped <b>{{ totals.scrapped }}</b></span>
+                    <span v-if="totals.low">At / below reorder <b>{{ totals.low }}</b></span>
+                    <span v-if="reviewCount">
+                        Needs review
+                        <b>
+                            <a href="javascript:void(0)" @click="stockFilter = 'review'"
+                                style="color:#b45309">{{ reviewCount }}</a>
+                        </b>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIST -->
+        <div class="panel">
+            <div class="panel__body" style="padding:0">
+                <div v-if="loading" style="padding:28px;text-align:center;color:var(--text-muted)">
+                    <div class="spinner"></div> Loading tooling…
+                </div>
+
+                <div v-else-if="!shown.length" class="empty-state" style="padding:34px">
+                    <p v-if="tools.length">Nothing matches those filters.</p>
+                    <p v-else>No tool types yet.</p>
+                    <button v-if="tools.length" class="btn btn--secondary" style="margin-top:10px"
+                        @click="clearFilters">Clear filters</button>
+                </div>
+
+                <table v-else class="table table--striped" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th style="width:26px"></th>
+                            <th>Tool code</th>
+                            <th>Name</th>
+                            <th class="hide-sm">Category</th>
+                            <th class="hide-sm num">Size</th>
+                            <th class="num">Items</th>
+                            <th class="num">On shelf</th>
+                            <th class="num hide-sm">Floor</th>
+                            <th class="num hide-sm">Scrapped</th>
+                            <th style="width:1%"></th>
+                        </tr>
+                    </thead>
+                    <tbody v-for="t in shown" :key="t.id">
+                        <tr class="tool-row" @click="toggle(t.id)">
+                            <td><span class="chev" :class="{ 'chev--open': open[t.id] }">›</span></td>
+                            <td style="font-weight:700;white-space:nowrap">{{ t.tool_code }}</td>
+                            <td>
+                                {{ t.tool_name }}
+                                <span v-if="t.needs_review" class="pill"
+                                    style="background:#fef3c7;color:#92400e;margin-left:6px">NEEDS REVIEW</span>
+                            </td>
+                            <td class="hide-sm">
+                                <span class="pill" :class="'tint-' + t.category_code">{{ t.category_name }}</span>
+                            </td>
+                            <td class="hide-sm num">{{ t.nominal_size ?? '—' }}</td>
+                            <td class="num">{{ t.items.length }}</td>
+                            <td class="num" :class="stockClass(t)">{{ t.on_hand }}</td>
+                            <td class="num hide-sm num-sub">{{ t.on_floor || '—' }}</td>
+                            <td class="num hide-sm num-sub">{{ t.scrapped || '—' }}</td>
+                            <td style="white-space:nowrap" @click.stop>
+                                <button v-if="canWrite" class="btn btn--secondary"
+                                    @click="openTool(t)">Edit</button>
+                            </td>
+                        </tr>
+
+                        <!-- The items. Rendered only when open, so a 309-row list is
+                             309 rows and not 654. -->
+                        <tr v-if="open[t.id]">
+                            <td class="items-cell" colspan="10">
+                                <div class="items-inner">
+                                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                                        <strong style="font-size:12px">
+                                            {{ t.items.length }} stock
+                                            {{ t.items.length === 1 ? 'item' : 'items' }}
+                                        </strong>
+                                        <span style="font-size:11px;color:var(--text-muted)">
+                                            equivalent brands / part numbers for this tool
+                                        </span>
+                                        <span class="toolbar__spacer"></span>
+                                        <button v-if="canWrite" class="btn btn--secondary"
+                                            @click="openItem(t, null)">+ Item</button>
+                                    </div>
+
+                                    <table class="table" style="width:100%;background:#fff">
+                                        <thead>
+                                            <tr>
+                                                <th>Item code</th>
+                                                <th>Manufacturer code</th>
+                                                <th>Brand</th>
+                                                <th class="hide-sm">Supplier</th>
+                                                <th>Location</th>
+                                                <th class="num">Reorder</th>
+                                                <th class="num">On shelf</th>
+                                                <th class="num hide-sm">Floor</th>
+                                                <th class="num hide-sm">Scrapped</th>
+                                                <th style="width:1%"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="it in t.items" :key="it.id">
+                                                <td style="white-space:nowrap">
+                                                    {{ it.item_code }}
+                                                    <span v-if="it.is_preferred" class="pill"
+                                                        style="background:#e6f2fb;color:#0067b8;margin-left:4px"
+                                                        title="The brand normally bought for this tool">PREF</span>
+                                                    <span v-if="!it.is_active" class="pill"
+                                                        style="background:#f1f5f9;color:#64748b;margin-left:4px">INACTIVE</span>
+                                                </td>
+                                                <td>{{ it.mfr_code || '—' }}</td>
+                                                <td>{{ it.brand || '—' }}</td>
+                                                <td class="hide-sm">{{ it.supplier || '—' }}</td>
+                                                <td>{{ it.location || '—' }}</td>
+                                                <td class="num">{{ it.reorder_point ?? '—' }}</td>
+                                                <td class="num" :class="itemStockClass(it)">
+                                                    {{ it.on_hand }}
+                                                    <span v-if="it.below_reorder" title="At or below reorder point">▼</span>
+                                                </td>
+                                                <td class="num hide-sm num-sub">{{ it.on_floor || '—' }}</td>
+                                                <td class="num hide-sm num-sub">{{ it.scrapped || '—' }}</td>
+                                                <td style="white-space:nowrap">
+                                                    <button v-if="canWrite" class="btn btn--secondary"
+                                                        @click="openItem(t, it)">Edit</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <p v-if="floorNote(t)" style="font-size:11px;color:var(--text-muted);margin-top:6px">
+                                        {{ floorNote(t) }}
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ---------- Tool type editor ---------- -->
+        <div class="modal-overlay" v-if="toolModal" @click.self="toolModal = null">
+            <div class="modal" role="dialog" aria-modal="true">
+                <div class="panel__head">
+                    <h2 class="panel__title">{{ toolForm.id ? 'Edit tool type' : 'New tool type' }}</h2>
+                </div>
+                <div class="modal-content">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Tool code *</label>
+                            <input class="input" v-model.trim="toolForm.tool_code" placeholder="FTL-0310">
+                        </div>
+                        <div class="field">
+                            <label class="label">Category *</label>
+                            <select class="input" v-model.number="toolForm.category_id">
+                                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                        </div>
+                        <div class="field" style="grid-column:1/-1">
+                            <label class="label">Tool name *</label>
+                            <input class="input" v-model.trim="toolForm.tool_name" placeholder="TNMG 0.8">
+                        </div>
+                        <div class="field">
+                            <label class="label">Nominal size</label>
+                            <input class="input" type="number" step="any" v-model="toolForm.nominal_size"
+                                placeholder="optional">
+                        </div>
+                        <div class="field">
+                            <label class="label">Needs review</label>
+                            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+                                <input type="checkbox" v-model="toolForm.needs_review">
+                                Flag for someone to check this entry
+                            </label>
+                        </div>
+                        <div class="field" style="grid-column:1/-1">
+                            <label class="label">Remarks</label>
+                            <input class="input" v-model.trim="toolForm.remarks">
+                        </div>
+                    </div>
+                    <p v-if="formError" style="color:#b91c1c;font-size:12px;margin-top:8px">{{ formError }}</p>
+                    <p v-if="toolForm.id" style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                        Deleting a tool type deletes its {{ (toolModal.items || []).length }} stock
+                        item(s) with it, and the ledger rows against them. There is no delete here
+                        for that reason.
+                    </p>
+                </div>
+                <div class="toolbar" style="padding:12px 16px">
+                    <button class="btn btn--secondary" @click="toolModal = null">Cancel</button>
+                    <span class="toolbar__spacer"></span>
+                    <button class="btn" @click="saveTool" :disabled="saving">
+                        {{ saving ? 'Saving…' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---------- Stock item editor ---------- -->
+        <div class="modal-overlay" v-if="itemModal" @click.self="itemModal = null">
+            <div class="modal" role="dialog" aria-modal="true">
+                <div class="panel__head">
+                    <h2 class="panel__title">
+                        {{ itemForm.id ? 'Edit stock item' : 'New stock item' }}
+                        <span style="font-weight:400;font-size:12px;color:var(--text-muted)">
+                            — {{ itemModal.tool.tool_code }} {{ itemModal.tool.tool_name }}
+                        </span>
+                    </h2>
+                </div>
+                <div class="modal-content">
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">Item code *</label>
+                            <input class="input" v-model.trim="itemForm.item_code" placeholder="FTI-00346">
+                        </div>
+                        <div class="field">
+                            <label class="label">Manufacturer code</label>
+                            <input class="input" v-model.trim="itemForm.mfr_code" placeholder="TNMG160402-MA">
+                        </div>
+                        <div class="field">
+                            <label class="label">Brand</label>
+                            <input class="input" v-model.trim="itemForm.brand" list="brandList">
+                            <datalist id="brandList">
+                                <option v-for="b in brands" :key="b" :value="b"></option>
+                            </datalist>
+                        </div>
+                        <div class="field">
+                            <label class="label">Supplier</label>
+                            <input class="input" v-model.trim="itemForm.supplier" list="supplierList">
+                            <datalist id="supplierList">
+                                <option v-for="s in suppliers" :key="s" :value="s"></option>
+                            </datalist>
+                        </div>
+                        <div class="field">
+                            <label class="label">Location</label>
+                            <input class="input" v-model.trim="itemForm.location" list="locationList">
+                            <datalist id="locationList">
+                                <option v-for="l in locations" :key="l" :value="l"></option>
+                            </datalist>
+                        </div>
+                        <div class="field">
+                            <label class="label">Reorder point</label>
+                            <input class="input" type="number" min="0" step="1"
+                                v-model="itemForm.reorder_point" placeholder="blank = no alert">
+                        </div>
+                        <div class="field">
+                            <label class="label">Preferred</label>
+                            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+                                <input type="checkbox" v-model="itemForm.is_preferred">
+                                The brand normally bought for this tool
+                            </label>
+                        </div>
+                        <div class="field">
+                            <label class="label">Active</label>
+                            <label style="display:flex;align-items:center;gap:8px;font-size:13px">
+                                <input type="checkbox" v-model="itemForm.is_active">
+                                Still bought / still in use
+                            </label>
+                        </div>
+                        <div class="field" style="grid-column:1/-1">
+                            <label class="label">Remarks</label>
+                            <input class="input" v-model.trim="itemForm.remarks">
+                        </div>
+                    </div>
+
+                    <!-- Stock is deliberately not editable here. It is the sum of a
+                         ledger, and a masterlist that could overwrite it would be a
+                         second source of truth for the number Phase 0 spent a
+                         migration making single. -->
+                    <p style="font-size:11px;color:var(--text-muted);margin-top:10px">
+                        Stock is not edited here. It is the sum of the tooling ledger — use a
+                        transaction (receipt, issue, return or a stock-count adjustment) to change
+                        it, so every movement has a date, a reason and a name against it.
+                    </p>
+                    <p v-if="formError" style="color:#b91c1c;font-size:12px;margin-top:8px">{{ formError }}</p>
+                </div>
+                <div class="toolbar" style="padding:12px 16px">
+                    <button class="btn btn--secondary" @click="itemModal = null">Cancel</button>
+                    <span class="toolbar__spacer"></span>
+                    <button class="btn" @click="saveItem" :disabled="saving">
+                        {{ saving ? 'Saving…' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function bootFailed(why) {
+            var box = document.getElementById('bootError');
+            var app = document.getElementById('app');
+            if (app) app.style.display = 'none';
+            if (!box) return;
+            box.style.display = 'block';
+            document.getElementById('bootErrorWhy').textContent = why;
+            window.__bootReport();
+        }
+        window.__bootReport = function () {
+            var ul = document.getElementById('bootErrorList');
+            if (!ul) return;
+            ul.innerHTML = '';
+            (window.__bootErrors || []).forEach(function (m) {
+                var li = document.createElement('li');
+                li.innerHTML = '<code>' + String(m).replace(/[<>&]/g, '') + '</code>';
+                ul.appendChild(li);
+            });
+        };
+
+        if (typeof Vue === 'undefined') {
+            bootFailed('Vue did not load. It comes from unpkg.com — check the network tab, ' +
+                'or whether this machine can reach that CDN.');
+            throw new Error('Vue missing');
+        }
+        if (typeof supabase === 'undefined') {
+            bootFailed('The Supabase client did not load. It comes from unpkg.com — check the ' +
+                'network tab, or whether this machine can reach that CDN.');
+            throw new Error('supabase missing');
+        }
+        if (!window.APP_CONFIG) {
+            bootFailed('assets/app-config.js did not load, so there is no database address.');
+            throw new Error('APP_CONFIG missing');
+        }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Mirrors the AdminLogin grant for the tooling card. Keep the two in
+        // step — a role that cannot see the card should not be able to write.
+        // Read stays open to anyone who can reach the page: knowing what is on
+        // the shelf is not a privileged question, changing the catalogue is.
+        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT'];
+
+        createApp({
+            setup() {
+                const categories = ref([]);
+                const tools = ref([]);
+                const loading = ref(true);
+                const loadError = ref('');
+                const saving = ref(false);
+                const formError = ref('');
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+
+                const search = ref('');
+                const activeCat = ref(null);
+                const stockFilter = ref('');
+                const sortBy = ref('code');
+                const open = reactive({});
+
+                const toolModal = ref(null);
+                const itemModal = ref(null);
+                const toolForm = reactive({});
+                const itemForm = reactive({});
+
+                // ---- access ----------------------------------------------------
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (sessionStorage.getItem('isLoggedIn') !== 'true' || !userId) return;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                }
+
+                // ---- load ------------------------------------------------------
+                //
+                // Three reads, not one per tool. v_tools_item_stock already carries
+                // the master and category columns, but it is one row per ITEM — the
+                // page needs one row per TOOL with its items nested, and rolling
+                // that up here costs nothing next to 345 rows while keeping the
+                // view a plain projection anyone else can reuse.
+                async function loadAll() {
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const [cats, masters, stock] = await Promise.all([
+                            _supabase.from('tools_category').select('*').order('id'),
+                            _supabase.from('tools_master')
+                                .select('id,tool_code,category_id,tool_name,nominal_size,needs_review,remarks')
+                                .order('tool_code'),
+                            _supabase.from('v_tools_item_stock').select('*')
+                        ]);
+
+                        for (const r of [cats, masters, stock]) {
+                            if (r.error) throw r.error;
+                        }
+
+                        categories.value = cats.data || [];
+                        const catById = new Map(categories.value.map(c => [c.id, c]));
+
+                        const itemsByTool = new Map();
+                        for (const s of (stock.data || [])) {
+                            if (!itemsByTool.has(s.tool_id)) itemsByTool.set(s.tool_id, []);
+                            itemsByTool.get(s.tool_id).push(s);
+                        }
+                        // Preferred first, then by code — the brand normally bought
+                        // is the one somebody looking for "what do we stock" wants
+                        // to read first.
+                        for (const list of itemsByTool.values()) {
+                            list.sort((a, b) =>
+                                (b.is_preferred - a.is_preferred) ||
+                                String(a.item_code).localeCompare(String(b.item_code)));
+                        }
+
+                        tools.value = (masters.data || []).map(m => {
+                            const items = itemsByTool.get(m.id) || [];
+                            const cat = catById.get(m.category_id);
+                            const sum = (k) => items.reduce((n, i) => n + (Number(i[k]) || 0), 0);
+                            return {
+                                ...m,
+                                category_code: cat ? cat.code : 'OTHER',
+                                category_name: cat ? cat.name : '—',
+                                items,
+                                on_hand: sum('on_hand'),
+                                on_floor: sum('on_floor'),
+                                scrapped: sum('scrapped'),
+                                low: items.some(i => i.below_reorder),
+                                // Everything the search box looks at, lowered once
+                                // rather than per keystroke per row.
+                                hay: [m.tool_code, m.tool_name, cat && cat.name,
+                                      ...items.map(i => i.item_code),
+                                      ...items.map(i => i.mfr_code),
+                                      ...items.map(i => i.brand),
+                                      ...items.map(i => i.supplier),
+                                      ...items.map(i => i.location)]
+                                    .filter(Boolean).join(' ').toLowerCase()
+                            };
+                        });
+                    } catch (e) {
+                        console.error('Tooling load failed', e);
+                        loadError.value = e.message || String(e);
+                        tools.value = [];
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                // ---- derived ---------------------------------------------------
+                const catCount = computed(() => {
+                    const n = {};
+                    tools.value.forEach(t => { n[t.category_id] = (n[t.category_id] || 0) + 1; });
+                    return n;
+                });
+
+                const shown = computed(() => {
+                    const q = search.value.toLowerCase();
+                    let out = tools.value.filter(t => {
+                        if (activeCat.value !== null && t.category_id !== activeCat.value) return false;
+                        if (q && !t.hay.includes(q)) return false;
+                        switch (stockFilter.value) {
+                            case 'in':     return t.on_hand > 0;
+                            case 'out':    return t.on_hand <= 0;
+                            case 'low':    return t.low;
+                            case 'floor':  return t.on_floor > 0;
+                            case 'review': return t.needs_review;
+                            default:       return true;
+                        }
+                    });
+                    const byCode = (a, b) => String(a.tool_code).localeCompare(String(b.tool_code));
+                    out = [...out];
+                    if (sortBy.value === 'name') {
+                        out.sort((a, b) => String(a.tool_name).localeCompare(String(b.tool_name)) || byCode(a, b));
+                    } else if (sortBy.value === 'stock_desc') {
+                        out.sort((a, b) => b.on_hand - a.on_hand || byCode(a, b));
+                    } else if (sortBy.value === 'stock_asc') {
+                        out.sort((a, b) => a.on_hand - b.on_hand || byCode(a, b));
+                    } else {
+                        out.sort(byCode);
+                    }
+                    return out;
+                });
+
+                const shownItemCount = computed(() =>
+                    shown.value.reduce((n, t) => n + t.items.length, 0));
+
+                // Over `shown`, not over every tool. The summary line beside it
+                // describes the filtered list, and one figure in it that quietly
+                // counted the whole table would be read as belonging to the same
+                // set — which is the trap that summary exists to avoid. Filtering
+                // to a category with nothing to review correctly shows nothing;
+                // Show > Needs review is how you get all of them at once.
+                const reviewCount = computed(() => shown.value.filter(t => t.needs_review).length);
+
+                const totals = computed(() => shown.value.reduce((a, t) => ({
+                    on_hand: a.on_hand + t.on_hand,
+                    on_floor: a.on_floor + t.on_floor,
+                    scrapped: a.scrapped + t.scrapped,
+                    low: a.low + (t.low ? 1 : 0)
+                }), { on_hand: 0, on_floor: 0, scrapped: 0, low: 0 }));
+
+                // Free-text columns offered back as datalists, so the 4th person to
+                // type a brand picks the spelling the first three used instead of
+                // inventing a fourth.
+                const distinct = (key) => computed(() => {
+                    const s = new Set();
+                    tools.value.forEach(t => t.items.forEach(i => { if (i[key]) s.add(i[key]); }));
+                    return [...s].sort();
+                });
+                const brands = distinct('brand');
+                const suppliers = distinct('supplier');
+                const locations = distinct('location');
+
+                const stockClass = (t) => t.on_hand <= 0 ? 'stock-0' : (t.low ? 'stock-low' : 'stock-ok');
+                const itemStockClass = (i) =>
+                    i.on_hand <= 0 ? 'stock-0' : (i.below_reorder ? 'stock-low' : 'stock-ok');
+
+                // Said once under the item table rather than as a badge per row.
+                const floorNote = (t) => {
+                    const floor = t.items.filter(i => i.on_floor > 0).length;
+                    if (!floor) return '';
+                    return floor === 1
+                        ? 'One item has tools out on the floor that have not been returned.'
+                        : `${floor} items have tools out on the floor that have not been returned.`;
+                };
+
+                const toggle = (id) => { open[id] = !open[id]; };
+
+                const clearFilters = () => {
+                    search.value = '';
+                    activeCat.value = null;
+                    stockFilter.value = '';
+                };
+
+                // ---- write -----------------------------------------------------
+                function openTool(t) {
+                    formError.value = '';
+                    Object.keys(toolForm).forEach(k => delete toolForm[k]);
+                    Object.assign(toolForm, t
+                        ? { id: t.id, tool_code: t.tool_code, category_id: t.category_id,
+                            tool_name: t.tool_name, nominal_size: t.nominal_size,
+                            needs_review: t.needs_review, remarks: t.remarks }
+                        : { tool_code: '', category_id: (categories.value[0] || {}).id,
+                            tool_name: '', nominal_size: null, needs_review: false, remarks: '' });
+                    toolModal.value = t || { items: [] };
+                }
+
+                async function saveTool() {
+                    formError.value = '';
+                    if (!toolForm.tool_code) { formError.value = 'Tool code is required.'; return; }
+                    if (!toolForm.tool_name) { formError.value = 'Tool name is required.'; return; }
+                    if (!toolForm.category_id) { formError.value = 'Pick a category.'; return; }
+
+                    const row = {
+                        tool_code: toolForm.tool_code,
+                        category_id: toolForm.category_id,
+                        tool_name: toolForm.tool_name,
+                        // '' from an emptied number box is not 0, it is "not stated".
+                        nominal_size: toolForm.nominal_size === '' || toolForm.nominal_size === null
+                            ? null : Number(toolForm.nominal_size),
+                        needs_review: !!toolForm.needs_review,
+                        remarks: toolForm.remarks || null,
+                        updated_at: new Date().toISOString()
+                    };
+
+                    saving.value = true;
+                    try {
+                        const q = toolForm.id
+                            ? _supabase.from('tools_master').update(row).eq('id', toolForm.id)
+                            : _supabase.from('tools_master').insert(row);
+                        const { error } = await q;
+                        if (error) throw error;
+                        toolModal.value = null;
+                        await loadAll();
+                    } catch (e) {
+                        formError.value = e.code === '23505'
+                            ? `Tool code ${row.tool_code} is already used by another tool type.`
+                            : (e.message || String(e));
+                    } finally {
+                        saving.value = false;
+                    }
+                }
+
+                function openItem(tool, it) {
+                    formError.value = '';
+                    Object.keys(itemForm).forEach(k => delete itemForm[k]);
+                    Object.assign(itemForm, it
+                        ? { id: it.item_id, item_code: it.item_code, mfr_code: it.mfr_code,
+                            brand: it.brand, supplier: it.supplier, location: it.location,
+                            reorder_point: it.reorder_point, is_preferred: it.is_preferred,
+                            is_active: it.is_active, remarks: it.remarks || '' }
+                        : { item_code: '', mfr_code: '', brand: '', supplier: '',
+                            location: '', reorder_point: null,
+                            is_preferred: false, is_active: true, remarks: '' });
+                    itemModal.value = { tool };
+                }
+
+                async function saveItem() {
+                    formError.value = '';
+                    if (!itemForm.item_code) { formError.value = 'Item code is required.'; return; }
+
+                    const rp = itemForm.reorder_point;
+                    const row = {
+                        tool_id: itemModal.value.tool.id,
+                        item_code: itemForm.item_code,
+                        mfr_code: itemForm.mfr_code || null,
+                        brand: itemForm.brand || null,
+                        supplier: itemForm.supplier || null,
+                        location: itemForm.location || null,
+                        // Blank means "no reorder alert for this item", which is not
+                        // a threshold of 0 — the view treats null and 0 differently
+                        // and so must this form.
+                        reorder_point: (rp === '' || rp === null || rp === undefined)
+                            ? null : Math.trunc(Number(rp)),
+                        is_preferred: !!itemForm.is_preferred,
+                        is_active: !!itemForm.is_active,
+                        remarks: itemForm.remarks || null
+                    };
+                    if (row.reorder_point !== null &&
+                        (!Number.isFinite(row.reorder_point) || row.reorder_point < 0)) {
+                        formError.value = 'Reorder point must be a whole number, 0 or more.';
+                        return;
+                    }
+
+                    saving.value = true;
+                    try {
+                        const q = itemForm.id
+                            ? _supabase.from('tools_item').update(row).eq('id', itemForm.id)
+                            : _supabase.from('tools_item').insert(row);
+                        const { error } = await q;
+                        if (error) throw error;
+                        // qty_on_hand is deliberately absent from `row`. It is inert
+                        // as of the 2026-08-05 migration; writing it here would
+                        // restart the drift that migration ended.
+                        const toolId = itemModal.value.tool.id;
+                        itemModal.value = null;
+                        await loadAll();
+                        open[toolId] = true;      // keep the list where the user left it
+                    } catch (e) {
+                        formError.value = e.code === '23505'
+                            ? `Item code ${row.item_code} already exists.`
+                            : (e.message || String(e));
+                    } finally {
+                        saving.value = false;
+                    }
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    await loadAll();
+                });
+
+                return {
+                    categories, tools, loading, loadError, saving, formError,
+                    accessLevel, canWrite,
+                    search, activeCat, stockFilter, sortBy, open,
+                    toolModal, itemModal, toolForm, itemForm,
+                    catCount, reviewCount, shown, shownItemCount, totals,
+                    brands, suppliers, locations,
+                    stockClass, itemStockClass, floorNote, toggle, clearFilters,
+                    loadAll, openTool, saveTool, openItem, saveItem
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
