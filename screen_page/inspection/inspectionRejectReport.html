@@ -167,6 +167,12 @@
             text-align: center;
         }
 
+        /* The ticked category is a CHARACTER, not a background fill.
+           A fill is a background, and browsers drop backgrounds when printing
+           unless "Background graphics" happens to be on — so the box printed
+           empty and the form said nothing about which category it was. A glyph
+           is text: it prints under every setting, and it survives the Tailwind
+           CDN not loading, which a fill class would not. */
         .checkbox-box {
             width: 35px;
             height: 15px;
@@ -174,6 +180,14 @@
             display: inline-block;
             vertical-align: middle;
             margin-right: 5px;
+            /* Segoe UI Symbol first: it is on every Windows machine here and
+               definitely carries U+2713, so the tick can never print as tofu. */
+            font-family: "Segoe UI Symbol", "Arial Unicode MS", var(--font-sans);
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 15px;
+            text-align: center;
+            color: #000;
         }
 
         .report-table td.p-0 {
@@ -331,7 +345,7 @@
                 <div>Category : </div>
                 <div v-for="cat in ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC']"
                     :key="cat" class="flex items-center">
-                    <div class="checkbox-box" :class="{'bg-black': selectedCategory === cat}"></div> {{ cat }}
+                    <div class="checkbox-box">{{ selectedCategory === cat ? '✓' : '' }}</div> {{ cat }}
                 </div>
                 <div>Other ................</div>
             </div>

@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPQC Rejected Product Record | Famax Quality Hub</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/theme.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* Framed inside index.html as well as opened on its own, so the same
+           forcing inspectionRejectReport.html needs applies here. */
+        html,
+        body {
+            height: auto !important;
+            min-height: 100% !important;
+            background-color: var(--bg-body);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 0;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        #app {
+            width: 100%;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .report-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+
+        .report-toolbar .field {
+            flex: 1 1 200px;
+        }
+
+        .report-table th,
+        .report-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        /* The ticked category is a CHARACTER, not a background fill.
+           A fill is a background, and browsers drop backgrounds when printing
+           unless "Background graphics" happens to be on — so the box printed
+           empty and the form said nothing about which category it was. A glyph
+           is text: it prints under every setting, and it survives the Tailwind
+           CDN not loading, which a fill class would not. */
+        .checkbox-box {
+            width: 35px;
+            height: 15px;
+            border: 1px solid black;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 5px;
+            /* Segoe UI Symbol first: it is on every Windows machine here and
+               definitely carries U+2713, so the tick can never print as tofu. */
+            font-family: "Segoe UI Symbol", "Arial Unicode MS", var(--font-sans);
+            font-size: 12px;
+            font-weight: 900;
+            line-height: 15px;
+            text-align: center;
+            color: #000;
+        }
+
+        /* Sub-rows: one out-of-spec zone per line, and the Affected Qty box on
+           the same line as the zone it belongs to. Same construction as the
+           Defect Description / Affected Qty pair on the InspectionRecord
+           version of this form. */
+        .report-table td.p-0 {
+            padding: 0 !important;
+            height: 1px;
+        }
+
+        .sub-row-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        .sub-row-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid #000;
+            padding: 2px;
+            min-height: 25px;
+            line-height: 1.2;
+        }
+
+        .sub-row-item:last-child {
+            border-bottom: none;
+        }
+
+        .text-left-item {
+            justify-content: flex-start;
+            padding-left: 5px;
+            text-align: left;
+        }
+
+        .oos-value {
+            font-weight: 800;
+            color: #b91c1c;
+        }
+
+        /* The round's remark leads the defect description. It is bold so the
+           two halves of the line stay tellable apart — what the inspector
+           called the problem, then which zone measured out. The gap is a
+           margin rather than a separator character: a character would have to
+           be chosen so it never reads as part of either half, and the line
+           already spends two "—" on the readings. */
+        .defect-remark {
+            font-weight: 800;
+            margin-right: 5px;
+        }
+
+        /* The one field on this form anybody types into. Sized to the column
+           and stripped of its spinner, because a spinner inside a 55px cell
+           leaves no room for three digits. */
+        .qty-input {
+            width: 100%;
+            max-width: 60px;
+            padding: 1px 2px;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+            color: #b91c1c;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 3px;
+            -moz-appearance: textfield;
+        }
+
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .qty-input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: -1px;
+        }
+
+        .qty-input.is-saving {
+            opacity: 0.45;
+        }
+
+        .qty-input.is-error {
+            border-color: var(--danger);
+            background: #fee2e2;
+        }
+
+        .search-indicator {
+            background: #dbeafe !important;
+            border-left: 5px solid #2563eb !important;
+            padding: 12px !important;
+            margin-bottom: 20px !important;
+            display: block !important;
+            color: #1e3a8a !important;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+
+        /* ISO record footer — the controlled-document line under the table.
+           Plain CSS rather than Tailwind utilities because it has to survive
+           printing, and the print stylesheet is where this page's other footer
+           gets hidden. */
+        .record-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 3.5rem;
+            font-size: 9px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        /* The footer row is the only cell in the table without a box: the rule
+           that gives every th/td a 1px border would otherwise draw a frame
+           around the record reference on every page. */
+        .report-table tfoot td {
+            border: 0 !important;
+            padding: 6px 0 0 !important;
+            text-align: right;
+        }
+
+        @media screen and (max-width: 700px) {
+            .record-footer {
+                flex-wrap: wrap;
+                gap: 0.25rem 1.5rem;
+            }
+        }
+
+        @media print {
+
+            .no-print,
+            header,
+            .footer,
+            .btn,
+            .panel {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            #printableReport {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+
+            @page {
+                size: landscape;
+                margin: 1cm;
+            }
+
+            /* The horizontal-scroll wrapper has to stop being a scroll container
+               when printing. An overflow ancestor is a fragmentation boundary:
+               the browser renders it as one block and clips it to the first
+               page, so the table never paginates and the repeating footer has
+               nothing to repeat onto. Nothing is lost — print is landscape at
+               full paper width, which is what the wrapper exists to cope with
+               on screen. */
+            .table-scroll {
+                overflow: visible !important;
+            }
+
+            /* The reason the footer is a <tfoot> at all: a table footer is the
+               one thing browsers repeat on every printed page, and they reserve
+               room for it per page fragment, so it can never land on top of a
+               data row. thead is pinned for the same reason — a second page of
+               rejects with no column headings is unreadable. */
+            .report-table tfoot {
+                display: table-footer-group;
+            }
+
+            .report-table thead {
+                display: table-header-group;
+            }
+
+            .record-footer {
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* On paper the quantity is a number in a box, not a form control —
+               and an empty one has to print as an empty box somebody can write
+               in by hand, which is why it keeps its border. */
+            .qty-input {
+                background: transparent !important;
+                border: 0 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .oos-value {
+                color: #000 !important;
+                font-weight: 700 !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 8px !important;
+            }
+
+            .report-table {
+                min-width: 1100px;
+            }
+
+            .report-table th,
+            .report-table td {
+                font-size: 9px;
+                padding: 3px;
+            }
+
+            .grid.grid-cols-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 6px;
+            }
+
+            .btn {
+                min-height: 44px;
+            }
+
+            .report-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .report-toolbar .field {
+                flex: 1 1 auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="p-2 md:p-8">
+    <div id="app" class="max-w-[1400px] mx-auto">
+
+        <!-- TOOLBAR: a div not a header — theme.css hides body>header when framed -->
+        <div class="panel mb-8 no-print">
+            <div class="panel__head">
+                <h1 class="panel__title">IPQC Rejected Product Record</h1>
+            </div>
+            <div class="panel__body">
+                <div class="report-toolbar">
+                    <div class="field">
+                        <label class="label">Report Month/Year</label>
+                        <input type="month" v-model="filterMonth" class="input">
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Search JO / Part / Machine / Process</label>
+                        <div class="relative">
+                            <input type="text" v-model="searchQuery" placeholder="Type to search..."
+                                class="input pl-10">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button @click="fetchData" class="btn"><i class="fa fa-sync mr-2"></i>Refresh</button>
+                        <button @click="printReport" class="btn btn--secondary"><i
+                                class="fa fa-print mr-2"></i>Print</button>
+                    </div>
+                </div>
+
+                <p class="mt-4 text-xs text-gray-500 leading-relaxed">
+                    Every IPQC point measured outside its spec appears here, one line per zone.
+                    Key in how many parts each one affected — it saves as you leave the box.
+                    A point leaves this record when it is special-accepted in the
+                    <strong>Data Editor</strong>, which asks for the granting name and PIN and
+                    records both.
+                    <span v-if="isLoading" class="text-blue-600 font-semibold">Loading…</span>
+                    <span v-if="loadError" class="text-red-600 font-semibold">{{ loadError }}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- PRINTABLE REPORT AREA -->
+        <div id="printableReport" class="bg-white p-4 md:p-8 shadow-2xl rounded-sm">
+
+            <div v-if="searchQuery" class="search-indicator no-print">
+                <i class="fa fa-filter mr-2"></i> SEARCHING FOR: "{{ searchQuery }}"
+                <span class="ml-4 text-xs font-normal opacity-70">({{ reportRows.length }} Records Found)</span>
+            </div>
+
+            <!-- Form Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex items-center gap-4">
+                    <img src="/FamaxQCSystem/assets/Famax Logo R V2 Square.png" alt="logo" class="w-12 h-12">
+                    <div>
+                        <h2 class="text-lg font-bold">FAMAX TECHNOLOGY (M) SDN. BHD.</h2>
+                        <p class="text-[9px]">200601028954 (748710-K)</p>
+                        <h3 class="text-md font-black underline uppercase">Rejected Product Record</h3>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="border border-black px-2 py-1 text-[8px] font-bold mb-2 uppercase">Internal Use Only
+                    </div>
+                    <div class="text-[10px] font-bold uppercase">For Month/Year:
+                        <span class="border-b-2 border-black px-4">{{ formatMonthDisplay(filterMonth) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category: fixed. This page only ever reports Data_IPQC, so the
+                 box is ticked rather than offered as a choice. -->
+            <div class="grid grid-cols-4 gap-y-2 text-[10px] font-bold mb-6">
+                <div>Category : </div>
+                <div v-for="cat in ['Buy-Off', 'Incoming QC', 'Customer Return', 'Inprocess QC', 'Outgoing QC']"
+                    :key="cat" class="flex items-center">
+                    <div class="checkbox-box">{{ cat === 'Inprocess QC' ? '✓' : '' }}</div> {{ cat }}
+                </div>
+                <div>Other ................</div>
+            </div>
+
+            <!-- Main Data Table -->
+            <div class="table-scroll">
+                <table class="report-table w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th rowspan="2">Date</th>
+                            <th rowspan="2">Job Order No</th>
+                            <th rowspan="2">Item Name / Part no</th>
+                            <th rowspan="2">Machine No</th>
+                            <th rowspan="2">Process</th>
+                            <th rowspan="2">Defect Description</th>
+                            <th rowspan="2">Inspected By</th>
+                            <th rowspan="2">Production Record By</th>
+                            <th rowspan="2">Affected Qty</th>
+                            <th rowspan="2">Sorted OK</th>
+                            <th rowspan="2">Return to Vendor</th>
+                            <th rowspan="2">Scraped Qty</th>
+                            <th rowspan="2">Re-Work Acc Qty</th>
+                            <th rowspan="2">Approved By</th>
+                            <th colspan="3">Re-Inspection</th>
+                        </tr>
+                        <tr class="bg-gray-100">
+                            <th>Date</th>
+                            <th>By</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in reportRows" :key="row.key">
+                            <td>{{ row.date }}</td>
+                            <td>{{ row.jo }}</td>
+                            <td>{{ row.part }}</td>
+                            <td>{{ row.machine }}</td>
+                            <td>{{ row.process }}</td>
+                            <!-- One line per zone measured out of spec. -->
+                            <td class="p-0">
+                                <div class="sub-row-container">
+                                    <div v-for="d in row.defects" :key="d.id" class="sub-row-item text-left-item">
+                                        <!-- One span, so the remark and the zone wrap as a single
+                                             run of text. As two children of the flex item they
+                                             would be two flex items and break between instead. -->
+                                        <span><strong v-if="d.remark"
+                                                class="defect-remark">{{ d.remark }}</strong>{{ d.detail }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ row.inspector }}</td>
+                            <td>&nbsp;</td>
+                            <!-- Affected Qty lines up one-for-one with the zones above. -->
+                            <td class="p-0">
+                                <div class="sub-row-container">
+                                    <div v-for="d in row.defects" :key="d.id" class="sub-row-item">
+                                        <input type="number" min="0" step="1" class="qty-input"
+                                            :class="{ 'is-saving': saving[d.id], 'is-error': failed[d.id] }"
+                                            :value="d.affected_qty"
+                                            @change="saveQty(d, $event.target)"
+                                            :title="failed[d.id] || 'Parts affected by this point'">
+                                    </div>
+                                </div>
+                            </td>
+                            <!-- Disposition and re-inspection have no IPQC source: they print
+                                 blank for whoever completes the record, as on the paper form. -->
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <!-- Empty rows to fill the paper -->
+                        <tr v-for="i in Math.max(0, 12 - reportRows.length)" :key="'empty-'+i">
+                            <td v-for="n in 17" class="h-10">&nbsp;</td>
+                        </tr>
+                    </tbody>
+
+                    <!-- Same controlled document as the InspectionRecord version of this
+                         form, so the same reference. In a <tfoot> because that is the one
+                         thing browsers repeat on every printed page. Capitals are literal
+                         rather than applied with `uppercase`, so what prints is what is
+                         written. -->
+                    <tfoot class="record-foot">
+                        <tr>
+                            <td colspan="17">
+                                <div class="record-footer">
+                                    <span>RETENTION PERIOD : 3 YEARS</span>
+                                    <span>EFFECTIVE DATE : 01 MARCH 2024</span>
+                                    <span>REC-QAS020-04</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer mt-8 no-print text-center text-xs text-gray-400">
+            © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: `${window.APP_CONFIG.url}/rest/v1`,
+                    headers: {
+                        'apikey': window.APP_CONFIG.key,
+                        'Authorization': `Bearer ${window.APP_CONFIG.key}`
+                    }
+                });
+
+                const points = ref([]);
+                const isLoading = ref(false);
+                const loadError = ref('');
+                const filterMonth = ref(monthMYT());
+                const searchQuery = ref('');
+                const saving = reactive({});
+                const failed = reactive({});
+
+                // The factory's month, not the browser's. Everything else that
+                // cuts a day on this data uses +08:00, and a report headed
+                // "AUGUST" must not open on July because it is 07:30.
+                function monthMYT() {
+                    return new Date().toLocaleDateString('sv-SE',
+                        { timeZone: 'Asia/Kuala_Lumpur' }).slice(0, 7);
+                }
+
+                function monthWindow(value) {
+                    const [y, m] = value.split('-').map(Number);
+                    const pad = (n) => String(n).padStart(2, '0');
+                    const next = m === 12 ? `${y + 1}-01` : `${y}-${pad(m + 1)}`;
+                    return {
+                        start: `${y}-${pad(m)}-01T00:00:00+08:00`,
+                        end: `${next}-01T00:00:00+08:00`
+                    };
+                }
+
+                // ------------------------------------------------------------
+                // Which reading was out
+                //
+                // The ROW SET comes from is_ng, the database's own stored
+                // verdict, so this report can never list a point the rest of
+                // the system considers good. This function only decides which
+                // of the three readings to name in the description, and it
+                // mirrors ipqc_reading_ng() exactly so the two agree — down to
+                // treating a non-numeric reading against numeric limits as out,
+                // and a STOP or DOWNTIME as not a measurement at all.
+                // ------------------------------------------------------------
+                const STOP_WORDS = ['STOP', 'DOWNTIME'];
+
+                function readingNg(reading, lsl, usl) {
+                    if (reading === null || reading === undefined) return false;
+                    const r = String(reading).trim();
+                    if (r === '') return false;
+                    if (STOP_WORDS.includes(r.toUpperCase())) return false;
+
+                    const lo = String(lsl ?? '').trim().toLowerCase();
+                    const hi = String(usl ?? '').trim().toLowerCase();
+                    if (lo === 'ok' || lo === 'go') return !['ok', 'go'].includes(r.toLowerCase());
+                    if (hi === 'ng' || hi === 'nogo') return ['ng', 'nogo'].includes(r.toLowerCase());
+
+                    const a = parseFloat(lsl), b = parseFloat(usl);
+                    if (isNaN(a) || isNaN(b)) return false;
+                    const v = parseFloat(r);
+                    return isNaN(v) || v < a || v > b;
+                }
+
+                const fetchData = async () => {
+                    if (!filterMonth.value) return;
+                    isLoading.value = true;
+                    loadError.value = '';
+                    try {
+                        const { start, end } = monthWindow(filterMonth.value);
+                        const res = await api.get('/Data_IPQC', {
+                            params: {
+                                select: 'id,created_at,JO_Number,Part_Name,Machine,Process,Person,' +
+                                    'Point_DWG_Zone,LSL_OK,USL_NG,Reading_1,Reading_2,Reading_3,' +
+                                    'special_accept,affected_qty,Remarks',
+                                // Axios repeats the key: ?created_at=gte...&created_at=lt...
+                                created_at: [`gte.${start}`, `lt.${end}`],
+                                // The database's verdict, not a fourth copy of the spec rule.
+                                is_ng: 'is.true',
+                                // A granted concession takes the point off the record. Null and 0
+                                // both mean "not accepted" — the column defaults to 0 but older
+                                // rows predate the default.
+                                or: '(special_accept.is.null,special_accept.eq.0)',
+                                order: 'created_at.asc'
+                            }
+                        });
+                        points.value = res.data;
+                    } catch (err) {
+                        console.error('IPQC reject fetch failed', err);
+                        loadError.value = err?.response?.data?.message
+                            || 'Could not load the month — is the 2026-08-04 migration run?';
+                        points.value = [];
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                watch(filterMonth, fetchData);
+
+                const zoneNo = (z) => {
+                    const m = String(z ?? '').match(/\d+/);
+                    return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
+                };
+
+                // One form row per inspection round — the same job, on the same
+                // machine, for the same process, recorded in one go. Every zone
+                // that round measured out of spec is a line inside it, which is
+                // how the paper form carries several defects against one entry.
+                const reportRows = computed(() => {
+                    const query = searchQuery.value.toLowerCase().trim();
+                    const groups = new Map();
+
+                    points.value.forEach((p) => {
+                        const hay = [p.JO_Number, p.Part_Name, p.Machine, p.Process]
+                            .map((s) => (s || '').toLowerCase());
+                        if (query && !hay.some((s) => s.includes(query))) return;
+
+                        const key = [p.created_at, p.JO_Number, p.Part_Name, p.Machine, p.Process].join('|');
+                        if (!groups.has(key)) {
+                            groups.set(key, {
+                                key,
+                                created_at: p.created_at,
+                                date: new Date(p.created_at).toLocaleDateString('en-GB'),
+                                jo: p.JO_Number || '-',
+                                part: p.Part_Name || '-',
+                                machine: p.Machine || '-',
+                                process: p.Process || '-',
+                                inspector: p.Person || '-',
+                                defects: []
+                            });
+                        }
+
+                        const out = [p.Reading_1, p.Reading_2, p.Reading_3]
+                            .map((v, i) => ({ v, label: `R${i + 1}` }))
+                            .filter((x) => readingNg(x.v, p.LSL_OK, p.USL_NG));
+
+                        // is_ng said this row is out but no single reading looks
+                        // out to the rule above — only reachable if the two ever
+                        // drift. Name all three rather than print a bare zone.
+                        const shown = out.length
+                            ? out
+                            : [p.Reading_1, p.Reading_2, p.Reading_3]
+                                .map((v, i) => ({ v, label: `R${i + 1}` }))
+                                .filter((x) => x.v !== null && String(x.v).trim() !== '');
+
+                        const spec = `${p.LSL_OK ?? '-'} ~ ${p.USL_NG ?? '-'}`;
+                        const readings = shown.map((x) => `${x.label} ${x.v}`).join(', ') || '—';
+
+                        // The remark the inspector filed with the round — a
+                        // standardised category, optionally " | " and free
+                        // detail. IPQC writes the same value onto every point
+                        // of a round, so it is read per point rather than per
+                        // group: a round hand-edited to differ then still
+                        // prints what each point actually says. Kept apart
+                        // from the rest of the line because it is bold, and
+                        // interpolation is what keeps it text rather than
+                        // markup the database could inject.
+                        groups.get(key).defects.push({
+                            id: p.id,
+                            zone: p.Point_DWG_Zone,
+                            affected_qty: p.affected_qty,
+                            remark: String(p.Remarks ?? '').trim(),
+                            detail: `Zone #${p.Point_DWG_Zone ?? '-'} — ${readings} (spec ${spec})`
+                        });
+                    });
+
+                    const rows = [...groups.values()];
+                    rows.forEach((r) => r.defects.sort((a, b) => zoneNo(a.zone) - zoneNo(b.zone)));
+                    return rows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                });
+
+                // Blanking the box means "not answered yet", which is null, not
+                // 0 — nobody has counted rather than nothing was affected.
+                const saveQty = async (defect, input) => {
+                    const raw = input.value.trim();
+                    const value = raw === '' ? null : Math.trunc(Number(raw));
+
+                    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+                        failed[defect.id] = 'Enter a whole number of parts, 0 or more.';
+                        return;
+                    }
+
+                    delete failed[defect.id];
+                    saving[defect.id] = true;
+                    try {
+                        await api.patch(`/Data_IPQC?id=eq.${defect.id}`, { affected_qty: value });
+                        defect.affected_qty = value;
+                        // Keep the fetched copy in step, so a re-render from a
+                        // search or a month re-read does not resurrect the old
+                        // number without going back to the database.
+                        const src = points.value.find((p) => p.id === defect.id);
+                        if (src) src.affected_qty = value;
+                    } catch (err) {
+                        console.error('affected_qty save failed', err);
+                        failed[defect.id] = err?.response?.data?.message || 'Could not save.';
+                        input.value = defect.affected_qty ?? '';
+                    } finally {
+                        delete saving[defect.id];
+                    }
+                };
+
+                const formatMonthDisplay = (val) => {
+                    if (!val) return '... / ...';
+                    const [y, m] = val.split('-');
+                    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                        'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    return `${months[parseInt(m, 10) - 1]} / ${y}`;
+                };
+
+                onMounted(fetchData);
+
+                return {
+                    filterMonth, searchQuery, isLoading, loadError,
+                    reportRows, saving, failed,
+                    fetchData, saveQty, formatMonthDisplay,
+                    printReport: () => window.print()
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
