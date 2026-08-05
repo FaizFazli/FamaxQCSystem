@@ -719,7 +719,6 @@
 
             ws.getCell(morningRow, 6).value = !isNaN(parseFloat(info.LSL_OK)) && !isNaN(parseFloat(info.USL_NG)) ? "Variable" : "Attribute";
             ws.getCell(morningRow, 7).value = info.SC;
-            ws.getCell(40 + rowOffset, 17).value = "Remark: " + (info.Remarks || "");
 
             const lsl = safeNum(info.LSL_OK);
             const usl = safeNum(info.USL_NG);
@@ -757,6 +756,34 @@
               }
             });
           });
+
+          // Q40 — the form's remark box, merged across Q40:T41 and wrapping.
+          //
+          // It used to be written inside the point loop, so whichever point
+          // came last decided what the form said, and a blank Remarks on that
+          // one wiped the remark every other point carried. Written once per
+          // block now, from the distinct remarks on it.
+          //
+          // The concession line is the other half. special_accept is a decision
+          // to ship a reading that failed its spec: a controlled document that
+          // prints the red reading without naming the point somebody accepted
+          // is not a record of that decision. Only points in THIS block are
+          // listed — each block prints as its own form, so a point on page 2
+          // has no business being named on page 1.
+          const blockRemarks = [...new Set(pointsInThisTable
+            .map((pt) => String(ptGroups[pt][0].Remarks || "").trim())
+            .filter(Boolean))];
+
+          const saPoints = pointsInThisTable.filter((pt) =>
+            ptGroups[pt].some((r) => Number(r.special_accept) === 1));
+
+          // One "Remark:" label, then a line each. With nothing else to say the
+          // concession becomes the remark rather than sitting under an empty
+          // label — the box is only two rows tall, and Q40:T41 wraps.
+          const remarkLines = [];
+          if (blockRemarks.length) remarkLines.push(blockRemarks.join("; "));
+          if (saPoints.length) remarkLines.push(`Special accept for point ${saPoints.join(", ")}`);
+          ws.getCell(40 + rowOffset, 17).value = "Remark: " + remarkLines.join("\n");
         }
       });
 

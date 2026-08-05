@@ -1334,6 +1334,20 @@
                 }
                 const pts = {};
                 group.records.forEach(r => { const p = r.Point_DWG_Zone || "Unknown"; if (!pts[p]) pts[p] = []; pts[p].push(r); });
+
+                // Q40 — the form's remark box. special_accept is a decision to
+                // ship a reading that failed its spec, so the form has to name
+                // the point it was granted on; a red reading with nothing beside
+                // it is not a record of that decision. Only the first 12 points
+                // are printed below, and only those are named here.
+                const saPoints = Object.keys(pts).slice(0, 12)
+                    .filter(pt => pts[pt].some(r => Number(r.special_accept) === 1));
+                if (saPoints.length) {
+                    // Same wording and the same "Remark:" label the report
+                    // generator prints — one form, two ways of asking for it.
+                    ws.getCell(40, 17).value = `Remark: Special accept for point ${saPoints.join(", ")}`;
+                }
+
                 Object.keys(pts).forEach((pt, idx) => {
                     if (idx >= 12) return;
                     const rIdx = 14 + idx;
