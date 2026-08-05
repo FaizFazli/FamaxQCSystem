@@ -87,9 +87,15 @@ comment on column "Data_IPQC".verify_remark is
 drop view if exists v_ipqc_batch;
 alter table "Data_IPQC" drop column if exists is_ng;
 
--- The spec rule, in SQL. This is the twin of validateReading() in IPQC-page2.html and of
--- readingState() in ipqc_verification.html: a reading must not count as out-of-spec in one
--- place and in-spec in another. If the rule ever changes, all three change together.
+-- The spec rule, in SQL. This is the twin of validateReading() in IPQC-page2.html: a reading
+-- must not count as out-of-spec in one place and in-spec in another. If the rule ever changes,
+-- both change together.
+--
+-- It had a third copy, readingState() in ipqc_verification.html, which went with that page when
+-- sign-off moved into the Data Editor. validateSpec() in table_editor.html agrees with this
+-- function on every reading, including the STOP/DOWNTIME exemption, and differs only in that it
+-- leaves a special-accepted row unmarked - it colours cells for someone deciding what still
+-- needs accepting, not deciding whether a part passed.
 --
 -- The leading-number substring mimics JavaScript's parseFloat, which stops at the first
 -- character it cannot use - so "5.28mm" reads as 5.28 here exactly as it does there, rather
@@ -132,7 +138,8 @@ $$;
 
 comment on function ipqc_reading_ng(text, text, text) is
     'True when one reading is outside its spec. Mirrors validateReading() in IPQC-page2.html '
-    'and readingState() in ipqc_verification.html - keep the three in step.';
+    'and validateSpec() in table_editor.html - keep the three in step. validateSpec '
+    'additionally leaves a special-accepted row unmarked.';
 
 -- Answered once per row at write time, not three times per row on every list query.
 --

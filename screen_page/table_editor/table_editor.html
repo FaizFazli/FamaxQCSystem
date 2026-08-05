@@ -321,6 +321,31 @@
             white-space: nowrap;
         }
 
+        /* Sign-off state and the button that opens the panel. Both sit on the
+           near-black part header, so the badge keeps theme.css's light plate
+           and the button takes the rail's inverted style rather than
+           .btn--secondary, which is drawn for a white surface. */
+        .verify-badge { flex-shrink: 0; }
+
+        .verify-btn {
+            flex-shrink: 0;
+            margin-left: var(--space-4);
+            padding: 6px 14px;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        .verify-btn:hover { background: var(--primary); border-color: var(--primary); }
+
         .part-content {
             display: none;
             padding: var(--space-5);
@@ -423,6 +448,15 @@
             color: var(--danger) !important;
         }
 
+        /* A stopped machine, not a bad part — amber, and without the danger
+           border, so it reads as "no measurement here" rather than as a defect
+           somebody has to accept. */
+        .reading-stop {
+            background-color: #fef3c7 !important;
+            border-color: #fcd34d !important;
+            color: #b45309 !important;
+        }
+
         /* Chevrons */
         .chevron::before {
             content: '→';
@@ -448,6 +482,162 @@
             align-items: center;
             z-index: var(--z-overlay);
         }
+
+        /* ---- Sign-off panel ----
+           Out-specifies theme.css's `.modal-overlay > .modal` (420px, centred
+           text), the same way the IPQC Verification page this came from did. */
+        .modal-overlay { display: none; z-index: var(--z-modal); }
+        .modal-overlay.show { display: flex; }
+
+        .modal-overlay > .modal--verify,
+        .modal-overlay > .modal--sa {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 660px;
+            max-height: min(88vh, 780px);
+            padding: 0;
+            text-align: left;
+        }
+
+        .modal-overlay > .modal--sa { max-width: 560px; }
+
+        /* Marker under the SA tick. The cell is 50px wide, so it only says that
+           somebody granted it — the name and date are on the tooltip. */
+        .sa-by {
+            display: block;
+            margin-top: 2px;
+            font-size: 8px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            color: #b45309;
+            cursor: help;
+        }
+
+        .vf__head {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-4);
+            padding: var(--space-5) var(--space-6);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .vf__title {
+            flex: 1;
+            margin: 0;
+            font-size: var(--fs-md);
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .vf__sub {
+            display: block;
+            margin-top: 4px;
+            font-size: var(--fs-sm);
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        .vf__close {
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            line-height: 1;
+            color: var(--text-muted);
+            background: none;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        .vf__close:hover { background: var(--surface-muted); color: var(--text-main); }
+
+        .vf__body { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6); }
+
+        .vf__scope {
+            margin: 0 0 var(--space-4);
+            font-size: var(--fs-sm);
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+
+        .vf__warn,
+        .vf__note {
+            padding: var(--space-4) var(--space-5);
+            border-radius: var(--radius);
+            font-size: var(--fs-sm);
+            line-height: 1.7;
+        }
+
+        .vf__warn {
+            border: 1px solid #fcd34d;
+            border-left: 4px solid var(--warning);
+            background: var(--special-bg);
+            color: #92400e;
+        }
+
+        .vf__note {
+            margin-top: var(--space-3);
+            border: 1px solid var(--border);
+            background: var(--surface-muted);
+            color: var(--text-muted);
+        }
+
+        .vf__foot {
+            padding: var(--space-5) var(--space-6);
+            border-top: 1px solid var(--border);
+            background: var(--surface-muted);
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        }
+
+        .vf__grid {
+            display: grid;
+            gap: var(--space-3);
+            grid-template-columns: 1.4fr 0.7fr 2fr;
+            align-items: end;
+        }
+
+        @media (max-width: 720px) { .vf__grid { grid-template-columns: 1fr; } }
+
+        .vf__grid label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .vf__actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .vf__msg {
+            flex: 1;
+            min-height: 1.1rem;
+            font-size: var(--fs-sm);
+            font-weight: 600;
+        }
+
+        .verdict {
+            padding: var(--space-4) var(--space-5);
+            border-radius: var(--radius);
+            font-size: var(--fs-sm);
+            line-height: 1.7;
+        }
+
+        .verdict--ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .verdict--no { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+        .verdict strong { font-weight: 700; }
     </style>
 </head>
 
@@ -510,6 +700,7 @@
                 <h1 class="page-head__title">IPQC Inspection Editor</h1>
                 <p class="page-head__subtitle">
                     Open a part, then a session, to edit its machine, remarks and readings. Every field saves on blur.
+                    Review &amp; sign off countersigns the whole part for the day.
                 </p>
             </div>
 
@@ -519,13 +710,61 @@
         <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
     </div>
 
+    <!-- ---------- Sign-off panel ---------- -->
+    <div class="modal-overlay" id="verifyModal">
+        <div class="modal modal--verify" role="dialog" aria-modal="true" aria-labelledby="vfTitle">
+            <div class="vf__head">
+                <h3 class="vf__title" id="vfTitle">
+                    <span id="vfTitleText">Review &amp; sign off</span>
+                    <span class="vf__sub" id="vfSub"></span>
+                </h3>
+                <button type="button" class="vf__close" id="vfClose" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="vf__body" id="vfBody"></div>
+            <div class="vf__foot" id="vfFoot"></div>
+        </div>
+    </div>
+
+    <!-- ---------- Special accept: grant / withdraw ---------- -->
+    <div class="modal-overlay" id="saModal">
+        <div class="modal modal--sa" role="dialog" aria-modal="true" aria-labelledby="saTitle">
+            <div class="vf__head">
+                <h3 class="vf__title" id="saTitle">
+                    <span id="saTitleText">Special accept</span>
+                    <span class="vf__sub" id="saSub"></span>
+                </h3>
+                <button type="button" class="vf__close" id="saClose" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="vf__body" id="saBody"></div>
+            <div class="vf__foot" id="saFoot"></div>
+        </div>
+    </div>
+
     <script>
         const SB_URL = window.APP_CONFIG.url;
         const SB_KEY = window.APP_CONFIG.key;
         const _supabase = window.supabase.createClient(SB_URL, SB_KEY);
 
+        /* Signing off is a narrower grant than opening this page: MANAGEMENT
+           can edit records here but cannot countersign them. These are the two
+           roles the retired IPQC Verification page allowed, unchanged. */
+        const VERIFY_ROLES = ['ALL', 'QUALITY'];
+
+        // Every date on this page is the factory's local day.
+        const MYT = 'Asia/Kuala_Lumpur';
+
+        let canVerify = false;
+        let verifierMap = {};   // { NAME_UPPER: { pin, position } }
+        let partGroups = [];    // [{ name, sessions, rows }] — one entry per part card
+        let rowIndex = {};      // Data_IPQC id -> { row, part: index into partGroups }
+        let verifyIdx = null;   // part whose sign-off panel is open
+
         $(document).ready(function () {
-            const today = new Date().toISOString().split('T')[0];
+            // The Malaysian date, not toISOString()'s UTC one: before 08:00
+            // local those differ and the page would open on yesterday.
+            const today = todayMYT();
             $('#date-filter').val(today);
             fetchIPQCByDate(today);
 
@@ -534,7 +773,11 @@
             });
 
             fillRailIdentity();
+            loadVerifiers();
         });
+
+        // sv-SE is ISO-shaped (YYYY-MM-DD), which is what <input type="date"> wants.
+        const todayMYT = () => new Date().toLocaleDateString('sv-SE', { timeZone: MYT });
 
         /* Rail identity — display only, and the same session keys AdminLogin
            writes. This page does not gate on the session, so a missing one just
@@ -553,6 +796,7 @@
                     $('#accessLevel')
                         .text(data[0].Access === 'ALL' ? 'Superuser' : data[0].Access)
                         .css('display', 'inline-block');
+                    canVerify = VERIFY_ROLES.includes(data[0].Access);
                 }
             } catch (e) {
                 console.error('Access lookup failed', e);
@@ -571,8 +815,9 @@
            by itself, which is the whole point of it.
 
            "Out of spec" here is whatever validateSpec flags: a reading outside
-           LSL/USL, and also a plain NG or STOP, since those are the attribute
-           and machine-stop cases of the same problem.
+           LSL/USL, and a plain NG, which is the attribute case of the same
+           thing. A STOP or DOWNTIME is not counted — a stopped machine is not
+           a part anyone can special-accept.
 
            Parts and sessions are both collapsed by default, so without these
            pills the only way to find a point needing special accept is to open
@@ -619,21 +864,38 @@
             });
         }
 
+        // A machine-stop record writes the stop type into all three reading
+        // slots. The same two words ipqc_reading_ng() and validateReading()
+        // exempt.
+        const STOP_WORDS = ['STOP', 'DOWNTIME'];
+
         function validateSpec(input, lsl, usl) {
             // Queued first, not last: the early returns below would otherwise
-            // skip it for empty, NG/STOP and special-accepted readings.
+            // skip it for empty, stopped, NG and special-accepted readings.
             scheduleAttentionRefresh();
 
             const $row = $(input).closest('tr');
             const isSpecialAccept = $row.find('.special-accept-checkbox').is(':checked');
             const val = $(input).val().trim().toUpperCase();
 
-            $(input).removeClass('out-of-spec');
+            $(input).removeClass('out-of-spec reading-stop');
 
-            if (isSpecialAccept) return;
             if (val === "") return;
 
-            if (val === "NG" || val === "STOP") {
+            // Not a measurement, so it cannot be outside a spec — asking
+            // someone to special-accept a stoppage is asking the wrong
+            // question. Marked, because a cell that just went quiet reads as an
+            // ordinary good reading and this one has no number in it at all.
+            // Checked ahead of the special-accept exemption: a stop is a stop
+            // whether or not the row was ticked.
+            if (STOP_WORDS.includes(val)) {
+                $(input).addClass('reading-stop');
+                return;
+            }
+
+            if (isSpecialAccept) return;
+
+            if (val === "NG") {
                 $(input).addClass('out-of-spec');
                 return;
             }
@@ -649,19 +911,10 @@
             }
         }
 
-        async function toggleAllSessionSA(headerCheckbox, idList) {
-            const isChecked = $(headerCheckbox).is(':checked') ? 1 : 0;
-            $('#overlay').css('display', 'flex');
-            const { error } = await _supabase.from('Data_IPQC').update({ special_accept: isChecked }).in('id', idList);
-            if (error) {
-                Toastify({ text: "Error updating batch", background: "var(--danger)" }).showToast();
-                $(headerCheckbox).prop('checked', !isChecked);
-            } else {
-                Toastify({ text: "Batch Special Accept Updated", background: "var(--success)" }).showToast();
-                const $table = $(headerCheckbox).closest('table');
-                $table.find('.special-accept-checkbox').prop('checked', isChecked).each(function () { revalidateRow(this); });
-            }
-            $('#overlay').hide();
+        function toggleAllSessionSA(headerCheckbox, idList) {
+            const label = `${idList.length} point${idList.length === 1 ? '' : 's'} in this session`;
+            openSaModal($(headerCheckbox).is(':checked') ? 'GRANT' : 'WITHDRAW',
+                idList, headerCheckbox, label);
         }
 
         function revalidateRow(checkbox) {
@@ -687,18 +940,33 @@
             $content.slideToggle(250);
         }
 
+        /* Malaysian day boundaries as instants. created_at is timestamptz, and
+           the UTC window this used to build ran from 08:00 local to 07:59 the
+           next morning — harmless while every reading lands between 08:00 and
+           19:00, and an hour of a night shift filed under the wrong date the
+           moment one does not. It matters more now than it did: the day is what
+           a sign-off covers. Fixed +08:00, since Malaysia has had no DST since
+           1982, and the same boundary the retired verification page cut on. */
+        function dayWindow(dateStr) {
+            const next = new Date(`${dateStr}T00:00:00Z`);
+            next.setUTCDate(next.getUTCDate() + 1);
+            return {
+                start: `${dateStr}T00:00:00+08:00`,
+                end: `${next.toISOString().slice(0, 10)}T00:00:00+08:00`
+            };
+        }
+
         async function fetchIPQCByDate(dateStr) {
             if (!dateStr) return;
             $('#overlay').css('display', 'flex');
 
-            const startOfDay = `${dateStr}T00:00:00.000Z`;
-            const endOfDay = `${dateStr}T23:59:59.999Z`;
+            const { start, end } = dayWindow(dateStr);
 
             const { data, error } = await _supabase
                 .from('Data_IPQC')
                 .select('*')
-                .gte('created_at', startOfDay)
-                .lte('created_at', endOfDay)
+                .gte('created_at', start)
+                .lt('created_at', end)
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -728,19 +996,33 @@
                 return acc;
             }, {});
 
-            let html = '';
-            const entries = Object.entries(grouped);
+            /* Held onto for the sign-off: a part's verdict is read off its own
+               rows, and withdrawing one after an edit needs every id under the
+               card, not just the row that was edited. */
+            partGroups = Object.entries(grouped).map(([name, sessions]) => ({
+                name,
+                sessions,
+                rows: Object.values(sessions).flatMap(s => s.points)
+            }));
+            rowIndex = {};
+            partGroups.forEach((pg, i) => pg.rows.forEach(row => { rowIndex[row.id] = { row, part: i }; }));
 
-            if (entries.length === 0) {
+            let html = '';
+
+            if (partGroups.length === 0) {
                 html = '<div class="glass-card" style="padding:50px; text-align:center; font-weight:600; color:var(--text-muted);">No records found for this date.</div>';
             } else {
-                for (const [partName, sessions] of entries) {
+                partGroups.forEach((pg, pIdx) => {
+                    const partName = pg.name;
+                    const sessions = pg.sessions;
                     html += `
-                    <div class="part-card glass-card">
+                    <div class="part-card glass-card" data-part="${pIdx}">
                         <div class="part-header chevron" onclick="toggleCollapse(this)">
                             <span>${partName}</span>
                             <span class="attn-tag" style="display:none">*NEED ATTENTION</span>
+                            <span class="badge verify-badge"></span>
                             <span style="font-weight:400; font-size:11px; opacity:0.8; margin-left:auto;">${Object.keys(sessions).length} Sessions</span>
+                            <button type="button" class="verify-btn">Review &amp; sign off</button>
                         </div>
                         <div class="part-content">`;
 
@@ -794,7 +1076,7 @@
                             html += `
                             <tr class="${saRowClass}">
                                 <td style="text-align:center">
-                                    <input type="checkbox" class="special-accept-checkbox" ${saChecked} 
+                                    <input type="checkbox" class="special-accept-checkbox" data-id="${p.id}" ${saChecked}
                                         onchange="updateSpecialAccept(${p.id}, this)">
                                 </td>
                                 <td style="font-weight:700">#${p.Point_DWG_Zone}</td>
@@ -815,7 +1097,7 @@
                         html += `</tbody></table></div></div></div>`;
                     }
                     html += `</div></div>`;
-                }
+                });
             }
             $('#ipqc-content').html(html);
 
@@ -824,38 +1106,611 @@
                 const usl = $(this).closest('tr').find('td:nth-child(5)').text();
                 validateSpec(this, lsl, usl);
             });
+
+            $('.special-accept-checkbox').each(function () {
+                const entry = rowIndex[$(this).attr('data-id')];
+                applySaMark($(this), entry ? entry.row : null);
+            });
+
+            refreshVerifyBadges();
         }
 
-        async function updateSpecialAccept(rowId, checkbox) {
-            const isChecked = $(checkbox).is(':checked') ? 1 : 0;
-            const { error } = await _supabase.from('Data_IPQC').update({ special_accept: isChecked }).eq('id', rowId);
-            if (error) {
-                Toastify({ text: "Error updating Special Accept", background: "var(--danger)" }).showToast();
-                $(checkbox).prop('checked', !$(checkbox).is(':checked'));
-            } else {
-                Toastify({ text: "Special Accept Updated", background: "var(--primary)" }).showToast();
-                revalidateRow(checkbox);
-            }
+        function updateSpecialAccept(rowId, checkbox) {
+            const entry = rowIndex[rowId];
+            const label = entry
+                ? `Zone #${entry.row.Point_DWG_Zone} · ${entry.row.Part_Name || ''}`
+                : `Reading ${rowId}`;
+            openSaModal($(checkbox).is(':checked') ? 'GRANT' : 'WITHDRAW',
+                [rowId], checkbox, label);
         }
 
+        /* Machine and Batch Remarks on purpose do NOT withdraw a sign-off. What
+           was countersigned is the measuring — correcting the machine number a
+           form prints does not put a name against readings nobody read. */
         async function updateSessionField(part, process, jo, time, field, newVal) {
             const updateObj = {};
             updateObj[field] = newVal;
             const { error } = await _supabase.from('Data_IPQC').update(updateObj)
                 .match({ Part_Name: part, Process: process, JO_Number: jo, created_at: time });
 
-            if (error) Toastify({ text: `Error updating ${field}`, background: "var(--danger)" }).showToast();
-            else Toastify({ text: `${field} Updated`, background: "var(--primary)" }).showToast();
+            if (error) { Toastify({ text: `Error updating ${field}`, background: "var(--danger)" }).showToast(); return; }
+            Toastify({ text: `${field} Updated`, background: "var(--primary)" }).showToast();
+            partGroups.forEach(pg => pg.rows.forEach(r => {
+                if (r.Part_Name === part && r.Process === process && r.JO_Number === jo && r.created_at === time) {
+                    r[field] = newVal;
+                }
+            }));
         }
 
         async function updateReading(rowId, field, newVal) {
+            const entry = rowIndex[rowId];
+            // onblur fires whether or not anything was typed. Writing an
+            // identical value is harmless in itself, but it must not be allowed
+            // to withdraw a sign-off — tabbing across a signed part would then
+            // silently unsign it.
+            if (entry && String(entry.row[field] ?? '') === String(newVal ?? '')) return;
+
             const updateObj = {};
             updateObj[field] = newVal;
             const { error } = await _supabase.from('Data_IPQC').update(updateObj).eq('id', rowId);
 
-            if (error) Toastify({ text: "Error saving reading", background: "var(--danger)" }).showToast();
-            else Toastify({ text: "Reading Saved", background: "var(--success)" }).showToast();
+            if (error) { Toastify({ text: "Error saving reading", background: "var(--danger)" }).showToast(); return; }
+            Toastify({ text: "Reading Saved", background: "var(--success)" }).showToast();
+            if (entry) entry.row[field] = newVal;
+            withdrawSignOff(rowId);
         }
+
+        /* ==================================================================
+           IPQC sign-off
+
+           This was its own page — screen_page/ipqc/ipqc_verification.html —
+           and it is here now because both screens asked the same question of
+           the same rows in different places: you found the reading that needed
+           a special accept here, then went somewhere else to countersign it.
+           Together, ticking SA and signing the part off are one visit.
+
+           The unit is the PART on the selected day: every session, process,
+           job order and machine under the card the button was pressed on. The
+           retired page signed a narrower batch (day + JO + part + process +
+           machine), which meant several sign-offs for one part's day.
+           ================================================================== */
+
+        const esc = s => String(s ?? '').replace(/[&<>"']/g,
+            c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        // The date filter's value is already a plain calendar date — parsing it
+        // as an instant only invites an off-by-one, so it is split by hand.
+        const fmtDay = d => {
+            const [y, m, dd] = String(d || '').split('-');
+            return m ? `${dd} ${MONTHS[+m - 1]} ${y}` : String(d || '—');
+        };
+
+        const fmtStamp = iso => iso ? new Date(iso).toLocaleString('en-GB', {
+            timeZone: MYT, day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        }) : '—';
+
+        const inspectorsOf = rows =>
+            [...new Set(rows.map(r => (r.Person || '').trim()).filter(Boolean))].sort();
+
+        const VERIFY_BADGE = {
+            PENDING: ['badge--warning', 'Pending'],
+            VERIFIED: ['badge--success', 'Verified'],
+            REJECTED: ['badge--danger', 'Rejected'],
+            MIXED: ['badge--danger', 'Inconsistent']
+        };
+
+        function partStatus(rows) {
+            const seen = new Set(rows.map(r => r.verify_status || 'PENDING'));
+            return seen.size > 1 ? 'MIXED' : [...seen][0];
+        }
+
+        function refreshVerifyBadges() {
+            $('.part-card').each(function () {
+                const pg = partGroups[+$(this).attr('data-part')];
+                if (!pg) return;
+                const [cls, label] = VERIFY_BADGE[partStatus(pg.rows)] || VERIFY_BADGE.PENDING;
+                $(this).children('.part-header').find('.verify-badge')
+                    .attr('class', `badge verify-badge ${cls}`).text(label);
+            });
+        }
+
+        // Anyone with a PIN set in EmployeeTable is an eligible verifier — the
+        // same rule BUYOFF-approvals uses.
+        async function loadVerifiers() {
+            verifierMap = {};
+            const { data, error } = await _supabase
+                .from('EmployeeTable').select('name, position, pin')
+                .not('pin', 'is', null).order('name', { ascending: true });
+            if (error) { console.error('Verifier list failed', error); return; }
+            (data || []).forEach(e => {
+                const nm = (e.name || '').trim();
+                const pin = String(e.pin ?? '').trim();
+                if (!nm || !pin) return;
+                verifierMap[nm.toUpperCase()] = { pin, position: e.position || '' };
+            });
+        }
+
+        function verifierOptions() {
+            const names = Object.keys(verifierMap).sort();
+            // The list loads in the background, so it can genuinely be empty for
+            // the first moment of the page — and it stays empty if nobody has a
+            // PIN at all. Saying which of the two it is beats an empty dropdown.
+            if (!names.length) {
+                return '<option value="">No PIN holders found — set a PIN in EmployeeTable</option>';
+            }
+            return '<option value="">Select name…</option>' +
+                names.map(k => {
+                    const pos = verifierMap[k].position;
+                    return `<option value="${esc(k)}">${esc(k)}${pos ? ' (' + esc(pos) + ')' : ''}</option>`;
+                }).join('');
+        }
+
+        /* Read off the same .out-of-spec marks validateSpec puts on the reading
+           inputs, exactly as the *NEED ATTENTION pill is. Two things follow:
+           the panel can never disagree with the red cells behind it, and a
+           special-accepted row is already excluded, because validateSpec leaves
+           those unmarked.
+
+           The count is per ROW, matching the pill — one row is one Special
+           Accept tick, so it is the number of decisions still to make. The
+           zones are deduplicated, because "#4" appearing in three sessions is
+           still one zone to read about. */
+        function attentionOf($card) {
+            const zones = [];
+            let count = 0;
+            $card.find('tbody tr').each(function () {
+                if (!$(this).find('.reading-input.out-of-spec').length) return;
+                count++;
+                zones.push($(this).find('td:nth-child(2)').text().trim());
+            });
+            const num = z => { const n = parseFloat(String(z).replace('#', '')); return isNaN(n) ? Infinity : n; };
+            return { count, zones: [...new Set(zones)].sort((a, b) => num(a) - num(b) || String(a).localeCompare(b)) };
+        }
+
+        function openVerify(idx) {
+            const pg = partGroups[idx];
+            if (!pg) return;
+            verifyIdx = idx;
+
+            const $card = $(`.part-card[data-part="${idx}"]`);
+            const sessions = Object.keys(pg.sessions).length;
+            const who = inspectorsOf(pg.rows);
+
+            $('#vfTitleText').text(pg.name);
+            $('#vfSub').text(
+                `${fmtDay($('#date-filter').val())} · ${sessions} session${sessions === 1 ? '' : 's'} · ` +
+                `${pg.rows.length} reading${pg.rows.length === 1 ? '' : 's'}` +
+                (who.length ? ` · recorded by ${who.join(', ')}` : ''));
+
+            renderVerifyBody(pg, $card);
+            renderVerifyFoot(pg);
+            $('#verifyModal').addClass('show');
+        }
+
+        function closeVerify() {
+            $('#verifyModal').removeClass('show');
+            verifyIdx = null;
+        }
+
+        function renderVerifyBody(pg, $card) {
+            const attn = attentionOf($card);
+            const concessions = pg.rows.filter(r => Number(r.special_accept) === 1).length;
+
+            let html = `<p class="vf__scope">Signing off covers <strong>every reading recorded
+                for this part on ${esc(fmtDay($('#date-filter').val()))}</strong> — every session,
+                process, job order and machine under this card.</p>`;
+
+            if (attn.count) {
+                html += `<div class="vf__warn">
+                    <strong>${attn.count} point${attn.count === 1 ? ' is' : 's are'} out of spec with
+                    no Special Accept</strong> — zone${attn.zones.length === 1 ? '' : 's'}
+                    ${esc(attn.zones.join(', '))}.
+                    You can still sign this off. If the concession is what you mean to record, close
+                    this panel and tick Special Accept on those rows first: only a ticked row prints
+                    on the IPQC form as a special accept.
+                </div>`;
+            }
+
+            if (concessions) {
+                html += `<div class="vf__note">${concessions} reading${concessions === 1 ? '' : 's'}
+                    already carr${concessions === 1 ? 'ies' : 'y'} a Special Accept, and will print
+                    on the IPQC form as “Special accept for point …”.</div>`;
+            }
+
+            // Counted off Reading_1, the way the retired page's is_stop was: a
+            // stop record writes the stop type into all three slots.
+            const stopped = pg.rows.filter(r =>
+                STOP_WORDS.includes(String(r.Reading_1 || '').trim().toUpperCase())).length;
+
+            if (stopped === pg.rows.length) {
+                html += `<div class="vf__note">Every row on this part is a machine-stop record.
+                    There is nothing measured here to be in or out of spec.</div>`;
+            } else {
+                if (stopped) {
+                    html += `<div class="vf__note">${stopped} row${stopped === 1 ? ' is a' : 's are'}
+                        machine-stop record${stopped === 1 ? '' : 's'}, not measurements — they need
+                        no Special Accept.</div>`;
+                }
+                if (!attn.count && !concessions) {
+                    html += `<div class="vf__note">Every measured reading on this part is inside
+                        its spec.</div>`;
+                }
+            }
+
+            $('#vfBody').html(html);
+        }
+
+        function renderVerifyFoot(pg) {
+            const $foot = $('#vfFoot');
+            const status = partStatus(pg.rows);
+
+            if (status === 'VERIFIED' || status === 'REJECTED') {
+                const ok = status === 'VERIFIED';
+                const signed = pg.rows.find(r => r.verified_by) || {};
+                $foot.html(`
+                    <div class="verdict verdict--${ok ? 'ok' : 'no'}">
+                        <strong>${ok ? 'Verified' : 'Rejected'} by ${esc(signed.verified_by || '—')}</strong>
+                        ${signed.verifier_position ? ' · ' + esc(signed.verifier_position) : ''}
+                        · ${esc(fmtStamp(signed.verified_at))}
+                        ${signed.verify_remark ? '<br>Remark: ' + esc(signed.verify_remark) : ''}
+                        <br><span style="opacity:.75">Changing a reading or a Special Accept on this
+                        part withdraws this sign-off and sends it back to pending — a signature
+                        covers the numbers that were signed.</span>
+                    </div>`);
+                return;
+            }
+
+            // Rows under one part-day disagreeing means part of it was signed
+            // under the retired page's narrower batch key (day + JO + part +
+            // process + machine), or the table was edited directly. That page
+            // refused to sign a mixed batch because it could not tell which
+            // verdict was meant; here the form is the repair, since signing the
+            // part puts every row of it on one verdict.
+            const mixedNote = status === 'MIXED'
+                ? `<div class="vf__warn" style="margin-bottom:var(--space-4)">
+                       <strong>This part's readings do not share one verdict.</strong>
+                       Part of the day was signed off separately. Signing it off here replaces
+                       every one of them with a single verdict for the whole part.
+                   </div>`
+                : '';
+
+            if (!canVerify) {
+                $foot.html(mixedNote + `
+                    <div class="verdict verdict--no">
+                        <strong>Read only.</strong>
+                        Your access level can edit records here but cannot countersign them.
+                    </div>`);
+                return;
+            }
+
+            $foot.html(mixedNote + `
+                <div class="vf__grid">
+                    <div>
+                        <label for="vfVerifier">Verified by</label>
+                        <select id="vfVerifier" class="input">${verifierOptions()}</select>
+                    </div>
+                    <div>
+                        <label for="vfPin">PIN</label>
+                        <input type="password" id="vfPin" class="input" inputmode="numeric"
+                               autocomplete="off" placeholder="PIN" />
+                    </div>
+                    <div>
+                        <label for="vfRemark">Remark <span style="text-transform:none;font-weight:500">(required to reject)</span></label>
+                        <input type="text" id="vfRemark" class="input" placeholder="Note / reason" />
+                    </div>
+                </div>
+                <div class="vf__actions">
+                    <button type="button" class="btn" id="vfVerify">Verify</button>
+                    <button type="button" class="btn btn--danger" id="vfReject">Reject</button>
+                    <span class="vf__msg" id="vfMsg"></span>
+                </div>`);
+
+            $('#vfVerify').on('click', () => decide('VERIFIED'));
+            $('#vfReject').on('click', () => decide('REJECTED'));
+        }
+
+        async function decide(status) {
+            const pg = partGroups[verifyIdx];
+            const $msg = $('#vfMsg').css('color', 'var(--danger)');
+            if (!pg) { $msg.text('Reopen this part before signing it off.'); return; }
+
+            const name = ($('#vfVerifier').val() || '').trim();
+            const pin = ($('#vfPin').val() || '').trim();
+            const remark = ($('#vfRemark').val() || '').trim();
+
+            if (!name) { $msg.text('Select a verifier.'); return; }
+            const rec = verifierMap[name.toUpperCase()];
+            if (!rec || !rec.pin) { $msg.text('No PIN set for this person — contact HR.'); return; }
+
+            // The whole point of the step is a second pair of eyes, so signing
+            // off your own readings is refused — checked against every
+            // inspector who measured this part during the day, not just one.
+            if (inspectorsOf(pg.rows).some(p => p.toUpperCase() === name.toUpperCase())) {
+                $msg.text('You recorded readings for this part — someone else has to verify it.');
+                return;
+            }
+            if (pin !== rec.pin) { $msg.text('Incorrect PIN.'); return; }
+            if (status === 'REJECTED' && !remark) { $msg.text('A remark is required to reject.'); return; }
+
+            const $btns = $('#vfVerify, #vfReject').prop('disabled', true);
+            $msg.css('color', 'var(--text-muted)').text('Saving…');
+
+            // What is on screen is what was reviewed. A later round landing
+            // while the panel sat open would otherwise be signed unseen.
+            const { start, end } = dayWindow($('#date-filter').val());
+            const { count, error: countErr } = await _supabase.from('Data_IPQC')
+                .select('id', { count: 'exact', head: true })
+                .eq('Part_Name', pg.name).gte('created_at', start).lt('created_at', end);
+
+            if (!countErr && count !== null && count !== pg.rows.length) {
+                $btns.prop('disabled', false);
+                $msg.css('color', 'var(--danger)').text(
+                    `This part now holds ${count} readings, not the ${pg.rows.length} shown. ` +
+                    'Reload the date before signing it off.');
+                return;
+            }
+
+            // By id, not by the composite key: Machine and JO_Number are
+            // nullable and `.eq(col, null)` does not match nulls in PostgREST,
+            // which would quietly sign off only part of the day.
+            const { error } = await _supabase.from('Data_IPQC').update({
+                verify_status: status,
+                verified_by: name,
+                verifier_position: rec.position || null,
+                verified_at: new Date().toISOString(),
+                verify_remark: remark || null
+            }).in('id', pg.rows.map(r => r.id));
+
+            $btns.prop('disabled', false);
+            if (error) {
+                $msg.css('color', 'var(--danger)').text('Save failed: ' + error.message);
+                return;
+            }
+
+            const stamp = new Date().toISOString();
+            pg.rows.forEach(r => {
+                r.verify_status = status;
+                r.verified_by = name;
+                r.verifier_position = rec.position || null;
+                r.verified_at = stamp;
+                r.verify_remark = remark || null;
+            });
+            refreshVerifyBadges();
+            closeVerify();
+            Toastify({
+                text: `${pg.name} ${status === 'VERIFIED' ? 'verified' : 'rejected'} by ${name}`,
+                background: status === 'VERIFIED' ? 'var(--success)' : 'var(--danger)'
+            }).showToast();
+        }
+
+        /* A signature covers the readings that were signed. Editing one after
+           the fact would leave a name against numbers that person never saw, so
+           the verdict is withdrawn and the part goes back to pending. */
+        async function withdrawSignOff(rowId) {
+            const entry = rowIndex[rowId];
+            if (!entry) return;
+            const pg = partGroups[entry.part];
+            if (!pg || partStatus(pg.rows) === 'PENDING') return;
+
+            const { error } = await _supabase.from('Data_IPQC').update({
+                verify_status: null, verified_by: null, verifier_position: null,
+                verified_at: null, verify_remark: null
+            }).in('id', pg.rows.map(r => r.id));
+
+            if (error) {
+                Toastify({
+                    text: 'Edit saved, but the sign-off could not be withdrawn',
+                    background: 'var(--danger)'
+                }).showToast();
+                return;
+            }
+
+            pg.rows.forEach(r => {
+                r.verify_status = null; r.verified_by = null;
+                r.verifier_position = null; r.verified_at = null; r.verify_remark = null;
+            });
+            refreshVerifyBadges();
+            if (verifyIdx === entry.part) renderVerifyFoot(pg);
+            Toastify({
+                text: `${pg.name}: sign-off withdrawn — verify it again`,
+                background: 'var(--warning)'
+            }).showToast();
+        }
+
+        /* ==================================================================
+           Special accept
+
+           This was a bare checkbox anyone with the page open could set. A
+           concession is a decision to ship a part that failed its spec, and it
+           is what takes the point off the IPQC Rejected Product Record — so
+           granting one now costs a name and that person's EmployeeTable PIN,
+           and stamps sa_by / sa_position / sa_at on the row.
+
+           Withdrawing asks for a confirmation and no PIN. It only puts the
+           point back on the record, which is the direction that cannot lose
+           anything.
+           ================================================================== */
+        let saPending = null;   // { mode, ids, checkbox }
+
+        // Who granted it, shown on the row itself. The cell is 50px wide, so
+        // it only says that somebody did — the name and date are on the title.
+        function applySaMark($box, row) {
+            const $cell = $box.closest('td');
+            $cell.find('.sa-by').remove();
+
+            if (!row || Number(row.special_accept) !== 1) {
+                $box.removeAttr('title');
+                return;
+            }
+            const who = row.sa_by || 'not recorded';
+            const pos = row.sa_position ? ` (${row.sa_position})` : '';
+            const when = row.sa_at ? ` · ${fmtStamp(row.sa_at)}` : '';
+            $box.attr('title', `Special accept granted by ${who}${pos}${when}`);
+            $cell.append(`<span class="sa-by" title="${esc(who + pos + when)}">GRANTED</span>`);
+        }
+
+        function openSaModal(mode, ids, checkbox, label) {
+            saPending = { mode, ids, checkbox };
+            const granting = mode === 'GRANT';
+
+            $('#saTitleText').text(granting ? 'Grant special accept' : 'Withdraw special accept');
+            $('#saSub').text(label);
+
+            if (granting) {
+                $('#saBody').html(`<p class="vf__scope">A special accept ships a reading that failed
+                    its spec, and takes the point off the IPQC Rejected Product Record. It is kept
+                    against the name below.</p>`);
+
+                // Not gated on canVerify. The PIN is what authorises a
+                // concession, not whoever happens to be logged into the page —
+                // the person granting it stands over the shoulder of whoever
+                // opened the Data Editor as often as not.
+                $('#saFoot').html(`
+                    <div class="vf__grid" style="grid-template-columns:1.6fr 0.8fr">
+                        <div>
+                            <label for="saBy">Granted by</label>
+                            <select id="saBy" class="input">${verifierOptions()}</select>
+                        </div>
+                        <div>
+                            <label for="saPin">PIN</label>
+                            <input type="password" id="saPin" class="input" inputmode="numeric"
+                                   autocomplete="off" placeholder="PIN" />
+                        </div>
+                    </div>
+                    <div class="vf__actions">
+                        <button type="button" class="btn" id="saConfirm">Grant</button>
+                        <button type="button" class="btn btn--secondary" id="saCancel">Cancel</button>
+                        <span class="vf__msg" id="saMsg"></span>
+                    </div>`);
+            } else {
+                $('#saBody').html(`<p class="vf__scope">The reading goes back to being out of spec,
+                    and the point returns to the IPQC Rejected Product Record with a box for its
+                    affected quantity. Whoever granted the concession stops being recorded against
+                    it.</p>`);
+                $('#saFoot').html(`
+                    <div class="vf__actions">
+                        <button type="button" class="btn btn--danger" id="saConfirm">Withdraw</button>
+                        <button type="button" class="btn btn--secondary" id="saCancel">Cancel</button>
+                        <span class="vf__msg" id="saMsg"></span>
+                    </div>`);
+            }
+
+            $('#saConfirm').on('click', commitSa);
+            $('#saCancel').on('click', cancelSa);
+            $('#saModal').addClass('show');
+            if (granting) $('#saBy').trigger('focus');
+        }
+
+        // Backing out has to put the tick back where it was, since the browser
+        // has already flipped it by the time the handler runs.
+        function cancelSa() {
+            if (saPending) $(saPending.checkbox).prop('checked', saPending.mode === 'WITHDRAW');
+            closeSa();
+        }
+
+        function closeSa() {
+            $('#saModal').removeClass('show');
+            saPending = null;
+        }
+
+        async function commitSa() {
+            const p = saPending;
+            if (!p) return;
+            const $msg = $('#saMsg').css('color', 'var(--danger)');
+            let payload;
+
+            if (p.mode === 'GRANT') {
+                const name = ($('#saBy').val() || '').trim();
+                const pin = ($('#saPin').val() || '').trim();
+                if (!name) { $msg.text('Select who is granting this.'); return; }
+                const rec = verifierMap[name.toUpperCase()];
+                if (!rec || !rec.pin) { $msg.text('No PIN set for this person — contact HR.'); return; }
+                if (pin !== rec.pin) { $msg.text('Incorrect PIN.'); return; }
+                payload = {
+                    special_accept: 1,
+                    sa_by: name,
+                    sa_position: rec.position || null,
+                    sa_at: new Date().toISOString()
+                };
+            } else {
+                payload = { special_accept: 0, sa_by: null, sa_position: null, sa_at: null };
+            }
+
+            $('#saConfirm, #saCancel').prop('disabled', true);
+            $msg.css('color', 'var(--text-muted)').text('Saving…');
+            $('#overlay').css('display', 'flex');
+
+            const { error } = await _supabase.from('Data_IPQC').update(payload).in('id', p.ids);
+
+            $('#overlay').hide();
+            $('#saConfirm, #saCancel').prop('disabled', false);
+
+            if (error) {
+                $msg.css('color', 'var(--danger)').text('Save failed: ' + error.message);
+                return;
+            }
+
+            const checked = payload.special_accept === 1;
+            p.ids.forEach(id => {
+                const entry = rowIndex[id];
+                if (entry) Object.assign(entry.row, payload);
+                const $box = $(`.special-accept-checkbox[data-id="${id}"]`);
+                if (!$box.length) return;
+                $box.prop('checked', checked);
+                applySaMark($box, entry ? entry.row : null);
+                revalidateRow($box[0]);
+            });
+
+            // The session header tick means "all of them", so one row coming
+            // off has to clear it and the last one going on has to set it.
+            const tables = new Set();
+            p.ids.forEach(id => {
+                const t = $(`.special-accept-checkbox[data-id="${id}"]`).closest('table')[0];
+                if (t) tables.add(t);
+            });
+            tables.forEach(t => {
+                const $t = $(t);
+                const all = $t.find('.special-accept-checkbox').length;
+                const on = $t.find('.special-accept-checkbox:checked').length;
+                $t.find('.header-sa-checkbox').prop('checked', all > 0 && on === all);
+            });
+
+            closeSa();
+            Toastify({
+                text: checked
+                    ? `Special accept granted by ${payload.sa_by}`
+                    : 'Special accept withdrawn',
+                background: checked ? 'var(--primary)' : 'var(--warning)'
+            }).showToast();
+
+            // One call, not one per id: every id in a grant belongs to the same
+            // part, so withdrawing the part's sign-off once covers all of them.
+            if (p.ids.length) await withdrawSignOff(p.ids[0]);
+        }
+
+        // Delegated, so it survives every re-render, and stopPropagation because
+        // the header it sits on is the accordion's own toggle.
+        $('#ipqc-content').on('click', '.verify-btn', function (e) {
+            e.stopPropagation();
+            openVerify(+$(this).closest('.part-card').attr('data-part'));
+        });
+
+        $('#saClose').on('click', cancelSa);
+        $('#saModal').on('click', function (e) { if (e.target.id === 'saModal') cancelSa(); });
+
+        $('#vfClose').on('click', closeVerify);
+        $('#verifyModal').on('click', function (e) { if (e.target.id === 'verifyModal') closeVerify(); });
+        // The special-accept panel is checked first: it opens on top of the
+        // sign-off panel's warning, and Escape should back out of the one in
+        // front rather than both at once.
+        $(document).on('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            if ($('#saModal').hasClass('show')) cancelSa();
+            else if ($('#verifyModal').hasClass('show')) closeVerify();
+        });
     </script>
 </body>
 

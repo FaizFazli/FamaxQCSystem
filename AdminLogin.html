@@ -1007,30 +1007,10 @@
                 </svg>
               </div>
 
-              <div
-                id="btn-ipqc-verify"
-                class="dashboard-card"
-                onclick="navigateTo('screen_page/ipqc/ipqc_verification.html')"
-              >
-                <div class="icon-box tint-quality">
-                  <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM10 17H5v-2h5v2zm0-4H5v-2h5v2zm0-4H5V7h5v2zm4.82 6L12 12.16l1.41-1.41 1.41 1.42L17.99 9l1.42 1.42L14.82 15z"
-                    />
-                  </svg>
-                </div>
-                <div class="card-text">
-                  <span class="card-title">IPQC Verification</span>
-                  <span class="card-desc"
-                    >Review IPQC measurements against spec and sign the batch
-                    off</span
-                  >
-                </div>
-                <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-                </svg>
-              </div>
-
+              <!-- IPQC Verification had its own card here. Sign-off lives in
+                   the Data Editor now: the two screens asked the same question
+                   of the same rows, and a reading that needed a special accept
+                   was found on one and countersigned on the other. -->
               <div
                 id="dataEditor"
                 class="dashboard-card"
@@ -1046,9 +1026,10 @@
                   </svg>
                 </div>
                 <div class="card-text">
-                  <span class="card-title">Data Editor</span>
+                  <span class="card-title">IPQC Data Verification</span>
                   <span class="card-desc"
-                    >Directly modify and clean up database records</span
+                    >Correct IPQC readings, grant a special accept, and sign the
+                    part off</span
                   >
                 </div>
                 <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
@@ -1677,7 +1658,6 @@
           "btn-dms",
           "btn-gv",
           "btn-gauge-masterlist",
-          "btn-ipqc-verify",
           "btn-sales-order-form",
           "btn-subcon-delivery",
         ];
@@ -1751,7 +1731,6 @@
               "btn-do-report",
               "btn-gv",
               "btn-gauge-masterlist",
-              "btn-ipqc-verify",
               "btn-traveler-card",
               "btn-dms",
               "btn-subcon-delivery",
