@@ -546,8 +546,11 @@
                         parts.value = tp.data || [];
                         // The Parts master is a convenience for the picker only. If
                         // it cannot be read the page still works off tools_part —
-                        // recording a movement must not depend on it.
-                        masterParts.value = mp.error ? [] : (mp.data || []).map(p => p.Part_Number).filter(Boolean);
+                        // recording a movement must not depend on it. Deduped
+                        // because Parts holds 235 rows but 220 distinct numbers,
+                        // and the same part offered twice is not a choice.
+                        masterParts.value = mp.error ? []
+                            : [...new Set((mp.data || []).map(p => p.Part_Number).filter(Boolean))];
                         usage.value = us.data || [];
                         people.value = (em.data || [])
                             .map(e => ({
@@ -748,7 +751,7 @@
                     await loadHistory();
                 }
 
-                // tools_part is the tooling module's own part list and only 19 of
+                // tools_part is the tooling module's own part list and only 17 of
                 // its 45 rows match the Parts master. Rather than add a 46th
                 // spelling, a part typed here that is not in tools_part yet is
                 // inserted once and reused — so what tooling records lines up with

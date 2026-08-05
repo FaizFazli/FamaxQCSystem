@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tooling Assignment</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page — see tooling_masterlist.html. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+
+        .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        /* Which way round the question is being asked. The same rows, read from
+           the part or from the tool — a store issuing for a job asks the first,
+           somebody deciding whether a tool can be dropped asks the second. */
+        .modes { display: flex; gap: 6px; margin-bottom: 14px; }
+        .mode-btn {
+            padding: 9px 18px; border-radius: 8px; border: 1px solid var(--border, #e2e8f0);
+            background: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .mode-btn--on { background: var(--primary, #0078d4); border-color: var(--primary, #0078d4); color: #fff; }
+
+        .picker {
+            max-height: 300px; overflow-y: auto;
+            border: 1px solid var(--border, #e2e8f0); border-radius: 8px;
+        }
+        .picker table { width: 100%; }
+        .pick-row { cursor: pointer; }
+        .pick-row:hover { background: #f1f5f9; }
+        .pick-row--on { background: #e6f2fb; }
+
+        /* One block per process, because that is the unit somebody sets a machine
+           up against — "what do I need for T1 on this part" is the question, and
+           a flat list of 12 tools ordered by code does not answer it. */
+        .proc-block { border: 1px solid var(--border, #e2e8f0); border-radius: 8px; margin-bottom: 10px; }
+        .proc-head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 14px; background: #f8fafc;
+            border-bottom: 1px solid var(--border, #e2e8f0);
+            border-radius: 8px 8px 0 0; font-weight: 700; font-size: 13px;
+        }
+        .proc-head__fam { font-weight: 400; font-size: 11px; color: var(--text-muted, #64748b); }
+        .proc-block table { width: 100%; }
+        .proc-block--none .proc-head { background: #fffbeb; }
+
+        .cell-edit {
+            width: 90px; padding: 3px 6px; font-size: 12px; text-align: right;
+            border: 1px solid var(--border, #e2e8f0); border-radius: 4px;
+            font-variant-numeric: tabular-nums; background: #fff;
+        }
+        .cell-edit:focus { outline: 2px solid var(--primary, #0078d4); outline-offset: -1px; }
+        .cell-edit.is-saving { opacity: .45; }
+        .cell-edit.is-error { border-color: #dc2626; background: #fee2e2; }
+
+        .pill {
+            display: inline-block; padding: 1px 7px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; line-height: 18px; white-space: nowrap;
+        }
+        .pill--warn { background: #fef3c7; color: #92400e; }
+        .pill--none { background: #f1f5f9; color: #475569; }
+        .pill--off  { background: #fee2e2; color: #991b1b; }
+
+        .boot-error {
+            margin: 40px auto; max-width: 700px; border: 1px solid #fecaca;
+            background: #fef2f2; color: #991b1b; padding: 18px 22px;
+            border-radius: 8px; font-size: 14px; line-height: 1.6;
+        }
+        .boot-error h2 { font-weight: 700; margin-bottom: 8px; }
+        .boot-error ul { margin: 8px 0 0 18px; list-style: disc; }
+
+        .readonly-note {
+            background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px;
+            font-size: 12px; color: #92400e; border-radius: 4px;
+        }
+        .info-note {
+            background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px;
+            font-size: 12px; color: #1e40af; border-radius: 4px;
+        }
+
+        @media (max-width: 820px) { .hide-sm { display: none; } }
+    </style>
+</head>
+
+<body>
+    <div id="bootError" class="boot-error" style="display:none">
+        <h2>This page could not start.</h2>
+        <div id="bootErrorWhy"></div>
+        <ul id="bootErrorList"></ul>
+    </div>
+
+    <div id="app" v-cloak class="container" style="padding-bottom:48px">
+
+        <div class="page-head">
+            <div>
+                <h1 class="page-head__title">Tooling Assignment</h1>
+                <p class="page-head__subtitle">
+                    Which tools a part needs, at which process — and where each tool is used.
+                </p>
+            </div>
+            <div class="toolbar__spacer"></div>
+            <button class="btn btn--secondary" @click="loadAll" :disabled="loading">
+                {{ loading ? 'Loading…' : 'Refresh' }}
+            </button>
+        </div>
+
+        <div v-if="loadError" class="panel" style="border-color:#fecaca">
+            <div class="panel__body" style="color:#991b1b">
+                <strong>Could not load.</strong> {{ loadError }}
+                <div style="margin-top:6px;font-size:12px">
+                    If this mentions a missing relation or column, the
+                    <code>2026-08-05_tooling_access.sql</code> migration has not been run here.
+                </div>
+            </div>
+        </div>
+
+        <div v-if="!canWrite && !loading" class="readonly-note" style="margin-bottom:14px">
+            Read-only — your access level ({{ accessLevel || 'unknown' }}) can view assignments but
+            not change them.
+        </div>
+
+        <div class="modes">
+            <button class="mode-btn" :class="{ 'mode-btn--on': mode === 'part' }" @click="mode = 'part'">
+                By part
+            </button>
+            <button class="mode-btn" :class="{ 'mode-btn--on': mode === 'tool' }" @click="mode = 'tool'">
+                By tool
+            </button>
+        </div>
+
+        <!-- ================= BY PART ================= -->
+        <template v-if="mode === 'part'">
+            <div class="panel" style="margin-bottom:14px">
+                <div class="panel__head"><h2 class="panel__title">1 · Which part</h2></div>
+                <div class="panel__body">
+                    <div class="field">
+                        <label class="label">Search part number</label>
+                        <input class="input" v-model.trim="partSearch" placeholder="NA600536, 778-001…">
+                    </div>
+                    <div class="picker" style="margin-top:10px">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Part number</th>
+                                    <th class="hide-sm">Description</th>
+                                    <th class="num">Tools</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="p in partList" :key="p.id" class="pick-row"
+                                    :class="{ 'pick-row--on': selPart && selPart.id === p.id }"
+                                    @click="selPart = p">
+                                    <td><strong>{{ p.part_no }}</strong></td>
+                                    <td class="hide-sm">{{ p.description || '—' }}</td>
+                                    <td class="num">{{ usageByPart[p.id] ? usageByPart[p.id].length : 0 }}</td>
+                                    <td>
+                                        <!-- 28 of the 45 tooling parts are spelled in a way the
+                                             Parts master does not carry. Flagged, not corrected:
+                                             which of them is a typo and which is a real part the
+                                             master is missing is a person's call. -->
+                                        <span v-if="!onMaster.has(p.part_no)" class="pill pill--warn"
+                                            title="This part number is not on the Parts master">NOT ON MASTER</span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!partList.length">
+                                    <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">
+                                        {{ loading ? 'Loading…' : 'No part matches that search.' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div v-if="canWrite" class="form-grid" style="margin-top:12px">
+                        <div class="field">
+                            <label class="label">Add a part from the Parts master</label>
+                            <input class="input" v-model.trim="newPartNo" list="masterList"
+                                placeholder="Pick or type a part number">
+                            <datalist id="masterList">
+                                <option v-for="p in masterOptions" :key="p" :value="p"></option>
+                            </datalist>
+                        </div>
+                        <div class="field" style="display:flex;align-items:flex-end">
+                            <button class="btn btn--secondary" @click="addPart" :disabled="saving || !newPartNo">
+                                Add part
+                            </button>
+                        </div>
+                    </div>
+                    <p v-if="partMsg" style="font-size:12px;margin-top:8px"
+                        :style="{ color: partMsgBad ? '#b91c1c' : '#166534' }">{{ partMsg }}</p>
+                </div>
+            </div>
+
+            <div class="panel" v-if="selPart">
+                <div class="panel__head">
+                    <h2 class="panel__title">
+                        2 · {{ selPart.part_no }}
+                        <span style="font-weight:400;font-size:12px;color:var(--text-muted)">
+                            — {{ (usageByPart[selPart.id] || []).length }} tool(s) across
+                            {{ partProcBlocks.length }} process group(s)
+                        </span>
+                    </h2>
+                </div>
+                <div class="panel__body">
+                    <div v-if="!partProcBlocks.length" class="empty-state" style="padding:26px">
+                        No tools assigned to this part yet.
+                    </div>
+
+                    <div v-for="b in partProcBlocks" :key="b.key" class="proc-block"
+                        :class="{ 'proc-block--none': !b.process }">
+                        <div class="proc-head">
+                            <span v-if="b.process">{{ b.process.code }} · {{ b.process.name }}</span>
+                            <span v-else>No process named</span>
+                            <span class="proc-head__fam" v-if="b.process">{{ b.process.family }}</span>
+                            <span class="proc-head__fam" v-else>
+                                applies to this part whatever the operation
+                            </span>
+                            <span class="toolbar__spacer"></span>
+                            <span style="font-weight:400;font-size:11px;color:var(--text-muted)">
+                                {{ b.rows.length }} tool(s)
+                            </span>
+                        </div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tool</th>
+                                    <th class="hide-sm">Category</th>
+                                    <th class="num">Tool life (pcs)</th>
+                                    <th class="num hide-sm">Setup dia (mm)</th>
+                                    <th class="hide-sm">Remarks</th>
+                                    <th style="width:1%"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="u in b.rows" :key="u.id">
+                                    <td>
+                                        <strong>{{ u.tool_code }}</strong> · {{ u.tool_name }}
+                                        <span v-if="!u.is_active" class="pill pill--off">INACTIVE</span>
+                                    </td>
+                                    <td class="hide-sm">{{ u.category_name }}</td>
+                                    <td class="num">
+                                        <input class="cell-edit" type="number" min="1" step="1"
+                                            :class="cellClass(u.id, 'tool_life_pcs')"
+                                            :value="u.tool_life_pcs"
+                                            :disabled="!canWrite"
+                                            @change="saveCell(u, 'tool_life_pcs', $event.target)">
+                                    </td>
+                                    <td class="num hide-sm">
+                                        <input class="cell-edit" type="number" step="any"
+                                            :class="cellClass(u.id, 'setup_std_dia_mm')"
+                                            :value="u.setup_std_dia_mm"
+                                            :disabled="!canWrite"
+                                            @change="saveCell(u, 'setup_std_dia_mm', $event.target)">
+                                    </td>
+                                    <td class="hide-sm">
+                                        <input class="cell-edit" style="width:150px;text-align:left"
+                                            :class="cellClass(u.id, 'remarks')"
+                                            :value="u.remarks"
+                                            :disabled="!canWrite"
+                                            @change="saveCell(u, 'remarks', $event.target)">
+                                    </td>
+                                    <td style="white-space:nowrap">
+                                        <button v-if="canWrite" class="btn btn--secondary"
+                                            @click="toggleActive(u)">
+                                            {{ u.is_active ? 'Deactivate' : 'Reactivate' }}
+                                        </button>
+                                        <button v-if="canWrite" class="btn btn--danger"
+                                            @click="removeUsage(u)">Remove</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add: tool + process, against the part already chosen. -->
+                    <div v-if="canWrite" class="panel" style="margin-top:12px;background:#f8fafc">
+                        <div class="panel__body">
+                            <div class="form-grid">
+                                <div class="field" style="grid-column:1/-1">
+                                    <label class="label">Add a tool to {{ selPart.part_no }}</label>
+                                    <input class="input" v-model.trim="addToolSearch"
+                                        list="toolList" placeholder="Tool code or name…">
+                                    <datalist id="toolList">
+                                        <option v-for="t in toolOptions" :key="t.id" :value="t.label"></option>
+                                    </datalist>
+                                </div>
+                                <div class="field">
+                                    <label class="label">Process</label>
+                                    <select class="input" v-model="addProcId">
+                                        <option :value="null">No process named</option>
+                                        <optgroup v-for="g in processGroups" :key="g.family" :label="g.family">
+                                            <option v-for="p in g.list" :key="p.id" :value="p.id">
+                                                {{ p.code }} · {{ p.name }}
+                                            </option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label class="label">Tool life (pcs)</label>
+                                    <input class="input" type="number" min="1" step="1" v-model="addLife"
+                                        placeholder="optional">
+                                </div>
+                                <div class="field" style="display:flex;align-items:flex-end">
+                                    <button class="btn" @click="addUsage" :disabled="saving">Add</button>
+                                </div>
+                            </div>
+                            <p v-if="addMsg" style="font-size:12px;margin-top:8px"
+                                :style="{ color: addMsgBad ? '#b91c1c' : '#166534' }">{{ addMsg }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- ================= BY TOOL ================= -->
+        <template v-else>
+            <div class="panel" style="margin-bottom:14px">
+                <div class="panel__head"><h2 class="panel__title">1 · Which tool</h2></div>
+                <div class="panel__body">
+                    <div class="field">
+                        <label class="label">Search tool code or name</label>
+                        <input class="input" v-model.trim="toolSearch" placeholder="FTL-0001, TNMG…">
+                    </div>
+                    <div class="picker" style="margin-top:10px">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tool code</th>
+                                    <th>Name</th>
+                                    <th class="hide-sm">Category</th>
+                                    <th class="num">Used on</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="t in toolList" :key="t.id" class="pick-row"
+                                    :class="{ 'pick-row--on': selTool && selTool.id === t.id }"
+                                    @click="selTool = t">
+                                    <td><strong>{{ t.tool_code }}</strong></td>
+                                    <td>{{ t.tool_name }}</td>
+                                    <td class="hide-sm">{{ t.category_name }}</td>
+                                    <td class="num">{{ usageByTool[t.id] ? usageByTool[t.id].length : 0 }}</td>
+                                </tr>
+                                <tr v-if="!toolList.length">
+                                    <td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">
+                                        {{ loading ? 'Loading…' : 'No tool matches that search.' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p v-if="!toolSearch && tools.length > pickLimit" style="font-size:11px;color:var(--text-muted);margin-top:6px">
+                        Showing the first {{ pickLimit }} of {{ tools.length }} tools — search to narrow.
+                    </p>
+                </div>
+            </div>
+
+            <div class="panel" v-if="selTool">
+                <div class="panel__head">
+                    <h2 class="panel__title">
+                        2 · {{ selTool.tool_code }} {{ selTool.tool_name }}
+                        <span style="font-weight:400;font-size:12px;color:var(--text-muted)">
+                            — used on {{ (usageByTool[selTool.id] || []).length }} part/process
+                            combination(s)
+                        </span>
+                    </h2>
+                </div>
+                <div class="panel__body" style="padding:0">
+                    <div v-if="!(usageByTool[selTool.id] || []).length" class="empty-state" style="padding:26px">
+                        This tool is not assigned to any part yet.
+                        <!-- 259 of 309 tools are in this state. Saying so beats an
+                             empty table that reads like a loading failure. -->
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:6px">
+                            {{ unassignedTools }} of {{ tools.length }} tools have no assignment —
+                            the import brought the catalogue, not the routings.
+                        </div>
+                    </div>
+                    <table v-else class="table table--striped">
+                        <thead>
+                            <tr>
+                                <th>Part</th>
+                                <th>Process</th>
+                                <th class="num">Tool life (pcs)</th>
+                                <th class="num hide-sm">Setup dia (mm)</th>
+                                <th class="hide-sm">Remarks</th>
+                                <th style="width:1%"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="u in usageByTool[selTool.id]" :key="u.id">
+                                <td>
+                                    <strong>{{ u.part_no }}</strong>
+                                    <span v-if="!onMaster.has(u.part_no)" class="pill pill--warn">NOT ON MASTER</span>
+                                    <span v-if="!u.is_active" class="pill pill--off">INACTIVE</span>
+                                </td>
+                                <td>
+                                    <span v-if="u.process_code">{{ u.process_code }} · {{ u.process_name }}</span>
+                                    <span v-else class="pill pill--none">no process</span>
+                                </td>
+                                <td class="num">
+                                    <input class="cell-edit" type="number" min="1" step="1"
+                                        :class="cellClass(u.id, 'tool_life_pcs')"
+                                        :value="u.tool_life_pcs" :disabled="!canWrite"
+                                        @change="saveCell(u, 'tool_life_pcs', $event.target)">
+                                </td>
+                                <td class="num hide-sm">
+                                    <input class="cell-edit" type="number" step="any"
+                                        :class="cellClass(u.id, 'setup_std_dia_mm')"
+                                        :value="u.setup_std_dia_mm" :disabled="!canWrite"
+                                        @change="saveCell(u, 'setup_std_dia_mm', $event.target)">
+                                </td>
+                                <td class="hide-sm">
+                                    <input class="cell-edit" style="width:150px;text-align:left"
+                                        :class="cellClass(u.id, 'remarks')"
+                                        :value="u.remarks" :disabled="!canWrite"
+                                        @change="saveCell(u, 'remarks', $event.target)">
+                                </td>
+                                <td style="white-space:nowrap">
+                                    <button v-if="canWrite" class="btn btn--secondary"
+                                        @click="toggleActive(u)">
+                                        {{ u.is_active ? 'Deactivate' : 'Reactivate' }}
+                                    </button>
+                                    <button v-if="canWrite" class="btn btn--danger"
+                                        @click="removeUsage(u)">Remove</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </template>
+
+        <div class="info-note" style="margin-top:14px">
+            Tool life here is a <strong>standard</strong> — the pieces one tool is expected to
+            produce on this part at this process. It is what the return form on Tooling Transaction
+            shows when somebody is deciding whether a returned tool still has life in it. It is not
+            a running total: a stock item is a quantity of identical tools, not serialised
+            individuals, so nothing counts down against it.
+        </div>
+
+    </div>
+
+    <script>
+        function bootFailed(why) {
+            var box = document.getElementById('bootError');
+            var app = document.getElementById('app');
+            if (app) app.style.display = 'none';
+            if (!box) return;
+            box.style.display = 'block';
+            document.getElementById('bootErrorWhy').textContent = why;
+            window.__bootReport();
+        }
+        window.__bootReport = function () {
+            var ul = document.getElementById('bootErrorList');
+            if (!ul) return;
+            ul.innerHTML = '';
+            (window.__bootErrors || []).forEach(function (m) {
+                var li = document.createElement('li');
+                li.textContent = String(m);
+                ul.appendChild(li);
+            });
+        };
+
+        if (typeof Vue === 'undefined') { bootFailed('Vue did not load (unpkg.com).'); throw new Error('Vue missing'); }
+        if (typeof supabase === 'undefined') { bootFailed('The Supabase client did not load (unpkg.com).'); throw new Error('supabase missing'); }
+        if (!window.APP_CONFIG) { bootFailed('assets/app-config.js did not load.'); throw new Error('APP_CONFIG missing'); }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Same grant as the masterlist. Assignments are engineering data, not a
+        // store movement, so PRODUCTION is not here — they get the transaction
+        // screen instead.
+        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT'];
+
+        createApp({
+            setup() {
+                const tools = ref([]);
+                const parts = ref([]);
+                const processes = ref([]);
+                const usage = ref([]);
+                const masterParts = ref([]);
+
+                const loading = ref(true);
+                const loadError = ref('');
+                const saving = ref(false);
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+
+                const mode = ref('part');
+                const pickLimit = 60;
+                const partSearch = ref('');
+                const toolSearch = ref('');
+                const selPart = ref(null);
+                const selTool = ref(null);
+
+                const newPartNo = ref('');
+                const partMsg = ref(''); const partMsgBad = ref(false);
+                const addToolSearch = ref('');
+                const addProcId = ref(null);
+                const addLife = ref(null);
+                const addMsg = ref(''); const addMsgBad = ref(false);
+
+                const cellState = reactive({});   // `${id}:${field}` -> 'saving' | error string
+
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (sessionStorage.getItem('isLoggedIn') !== 'true' || !userId) return;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                }
+
+                async function loadAll() {
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const [tm, tc, tp, pr, us, mp] = await Promise.all([
+                            _supabase.from('tools_master').select('id,tool_code,tool_name,category_id').order('tool_code'),
+                            _supabase.from('tools_category').select('id,name'),
+                            _supabase.from('tools_part').select('id,part_no,description').order('part_no'),
+                            _supabase.from('tools_process').select('*'),
+                            _supabase.from('tools_usage').select('*'),
+                            _supabase.from('Parts').select('Part_Number')
+                        ]);
+                        for (const r of [tm, tc, tp, pr, us]) if (r.error) throw r.error;
+
+                        const catById = new Map((tc.data || []).map(c => [c.id, c.name]));
+                        tools.value = (tm.data || []).map(t => ({
+                            ...t, category_name: catById.get(t.category_id) || '—'
+                        }));
+                        parts.value = tp.data || [];
+                        processes.value = pr.data || [];
+                        // Parts carries 235 rows but only 220 distinct numbers, so the
+                        // picker dedupes — offering the same part twice is not a choice.
+                        masterParts.value = mp.error ? []
+                            : [...new Set((mp.data || []).map(p => p.Part_Number).filter(Boolean))].sort();
+
+                        const toolById = new Map(tools.value.map(t => [t.id, t]));
+                        const partById = new Map(parts.value.map(p => [p.id, p]));
+                        const procById = new Map(processes.value.map(p => [p.id, p]));
+                        usage.value = (us.data || []).map(u => {
+                            const t = toolById.get(u.tool_id) || {};
+                            const p = partById.get(u.part_id) || {};
+                            const pr2 = procById.get(u.process_id);
+                            return {
+                                ...u,
+                                tool_code: t.tool_code || '?', tool_name: t.tool_name || '',
+                                category_name: t.category_name || '—',
+                                part_no: p.part_no || '?',
+                                process_code: pr2 ? pr2.code : null,
+                                process_name: pr2 ? pr2.name : null,
+                                process_family: pr2 ? pr2.family : null,
+                                process_seq: pr2 ? (pr2.seq_no ?? 99) : 999
+                            };
+                        });
+
+                        // Keep the current selection pointing at the refreshed row.
+                        if (selPart.value) selPart.value = parts.value.find(p => p.id === selPart.value.id) || null;
+                        if (selTool.value) selTool.value = tools.value.find(t => t.id === selTool.value.id) || null;
+                    } catch (e) {
+                        console.error('Assignment load failed', e);
+                        loadError.value = e.message || String(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                // ---- derived ---------------------------------------------------
+                const onMaster = computed(() => new Set(masterParts.value));
+
+                const usageByPart = computed(() => {
+                    const m = {};
+                    usage.value.forEach(u => { (m[u.part_id] = m[u.part_id] || []).push(u); });
+                    return m;
+                });
+
+                const usageByTool = computed(() => {
+                    const m = {};
+                    usage.value.forEach(u => { (m[u.tool_id] = m[u.tool_id] || []).push(u); });
+                    Object.values(m).forEach(list => list.sort((a, b) =>
+                        String(a.part_no).localeCompare(String(b.part_no)) ||
+                        a.process_seq - b.process_seq));
+                    return m;
+                });
+
+                const unassignedTools = computed(() =>
+                    tools.value.filter(t => !usageByTool.value[t.id]).length);
+
+                const partList = computed(() => {
+                    const q = partSearch.value.toLowerCase();
+                    const list = q
+                        ? parts.value.filter(p => String(p.part_no).toLowerCase().includes(q))
+                        : parts.value;
+                    return list.slice(0, q ? 200 : pickLimit);
+                });
+
+                const toolList = computed(() => {
+                    const q = toolSearch.value.toLowerCase();
+                    const list = q
+                        ? tools.value.filter(t => (t.tool_code + ' ' + t.tool_name).toLowerCase().includes(q))
+                        : tools.value;
+                    return list.slice(0, q ? 200 : pickLimit);
+                });
+
+                const processGroups = computed(() => {
+                    const g = new Map();
+                    processes.value.forEach(p => {
+                        if (!g.has(p.family)) g.set(p.family, []);
+                        g.get(p.family).push(p);
+                    });
+                    return [...g.entries()].map(([family, list]) => ({
+                        family, list: list.sort((a, b) => (a.seq_no ?? 99) - (b.seq_no ?? 99))
+                    }));
+                });
+
+                // Grouped by process and ordered the way the shop runs them —
+                // family, then sequence — so the blocks read in the order the part
+                // is actually made, not by database id.
+                const partProcBlocks = computed(() => {
+                    if (!selPart.value) return [];
+                    const rows = usageByPart.value[selPart.value.id] || [];
+                    const g = new Map();
+                    rows.forEach(u => {
+                        const k = u.process_id === null ? 'none' : String(u.process_id);
+                        if (!g.has(k)) g.set(k, []);
+                        g.get(k).push(u);
+                    });
+                    const procById = new Map(processes.value.map(p => [p.id, p]));
+                    return [...g.entries()].map(([key, list]) => ({
+                        key,
+                        process: key === 'none' ? null : procById.get(Number(key)),
+                        rows: list.sort((a, b) => String(a.tool_code).localeCompare(String(b.tool_code)))
+                    })).sort((a, b) => {
+                        // "no process" last: it is the exception, not the first thing
+                        // somebody setting up a machine wants to read.
+                        if (!a.process) return 1;
+                        if (!b.process) return -1;
+                        return String(a.process.family).localeCompare(String(b.process.family))
+                            || (a.process.seq_no ?? 99) - (b.process.seq_no ?? 99);
+                    });
+                });
+
+                const toolOptions = computed(() =>
+                    tools.value.map(t => ({ id: t.id, label: `${t.tool_code} · ${t.tool_name}` })));
+
+                const masterOptions = computed(() => {
+                    const have = new Set(parts.value.map(p => p.part_no));
+                    return masterParts.value.filter(p => !have.has(p));
+                });
+
+                const cellClass = (id, field) => {
+                    const s = cellState[`${id}:${field}`];
+                    return s === 'saving' ? 'is-saving' : (s ? 'is-error' : '');
+                };
+
+                // ---- writes ----------------------------------------------------
+                async function saveCell(u, field, input) {
+                    const key = `${u.id}:${field}`;
+                    const raw = String(input.value).trim();
+                    let value;
+                    if (field === 'remarks') {
+                        value = raw === '' ? null : raw;
+                    } else {
+                        // Blank is "no standard set", which is not zero — the return
+                        // form distinguishes the two and says so.
+                        value = raw === '' ? null : Number(raw);
+                        if (value !== null && !Number.isFinite(value)) {
+                            cellState[key] = 'Not a number'; input.value = u[field] ?? ''; return;
+                        }
+                        if (field === 'tool_life_pcs') {
+                            value = value === null ? null : Math.trunc(value);
+                            // out_tool_usage_tool_life_pcs_check allows null or > 0.
+                            if (value !== null && value <= 0) {
+                                cellState[key] = 'Must be more than 0';
+                                input.value = u[field] ?? '';
+                                return;
+                            }
+                        }
+                    }
+                    delete cellState[key];
+                    cellState[key] = 'saving';
+                    try {
+                        const { error } = await _supabase.from('tools_usage')
+                            .update({ [field]: value }).eq('id', u.id);
+                        if (error) throw error;
+                        u[field] = value;
+                        delete cellState[key];
+                    } catch (e) {
+                        console.error('Cell save failed', e);
+                        cellState[key] = e.message || 'Save failed';
+                        input.value = u[field] ?? '';
+                    }
+                }
+
+                async function toggleActive(u) {
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('tools_usage')
+                            .update({ is_active: !u.is_active }).eq('id', u.id);
+                        if (error) throw error;
+                        u.is_active = !u.is_active;
+                    } catch (e) { console.error('Toggle failed', e); }
+                    finally { saving.value = false; }
+                }
+
+                async function removeUsage(u) {
+                    if (!confirm(`Remove ${u.tool_code} from ${u.part_no}` +
+                        (u.process_code ? ` at ${u.process_code}` : '') + '?\n\n' +
+                        'This deletes the assignment. Deactivate instead if the tool may come back.')) return;
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('tools_usage').delete().eq('id', u.id);
+                        if (error) throw error;
+                        await loadAll();
+                    } catch (e) { console.error('Remove failed', e); }
+                    finally { saving.value = false; }
+                }
+
+                // A part typed here is upserted into tools_part, so tooling spells
+                // parts the way the rest of the system spells them. 28 of the 45
+                // rows already in the table are not on the Parts master; those are
+                // flagged rather than corrected, because which is a typo and which
+                // is a part the master is missing is a person's call.
+                async function addPart() {
+                    partMsg.value = ''; partMsgBad.value = false;
+                    const pn = newPartNo.value.trim();
+                    if (!pn) return;
+                    if (parts.value.some(p => p.part_no === pn)) {
+                        partMsgBad.value = true;
+                        partMsg.value = `${pn} is already in the tooling part list.`;
+                        return;
+                    }
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('tools_part').insert({ part_no: pn });
+                        if (error) throw error;
+                        newPartNo.value = '';
+                        await loadAll();
+                        selPart.value = parts.value.find(p => p.part_no === pn) || null;
+                        partMsg.value = onMaster.value.has(pn)
+                            ? `${pn} added.`
+                            : `${pn} added — note it is not on the Parts master.`;
+                    } catch (e) {
+                        partMsgBad.value = true;
+                        partMsg.value = e.message || String(e);
+                    } finally { saving.value = false; }
+                }
+
+                async function addUsage() {
+                    addMsg.value = ''; addMsgBad.value = false;
+                    if (!selPart.value) return;
+                    const label = addToolSearch.value.trim();
+                    const tool = toolOptions.value.find(t => t.label === label)
+                        || tools.value.find(t => t.tool_code === label);
+                    if (!tool) {
+                        addMsgBad.value = true;
+                        addMsg.value = 'Pick a tool from the list.';
+                        return;
+                    }
+                    const toolId = tool.id;
+                    const procId = addProcId.value === null || addProcId.value === '' ? null : Number(addProcId.value);
+
+                    // The duplicate check the database cannot fully make. UNIQUE
+                    // (tool, part, process) does not bite when process is null,
+                    // which 2026-08-06_tooling_usage_unique.sql closes with a
+                    // partial index — but an index rejects, it does not explain.
+                    // Catching it here says which row already exists.
+                    const dupe = usage.value.find(u =>
+                        u.tool_id === toolId && u.part_id === selPart.value.id && u.process_id === procId);
+                    if (dupe) {
+                        addMsgBad.value = true;
+                        addMsg.value = `${dupe.tool_code} is already assigned to ${dupe.part_no}` +
+                            (dupe.process_code ? ` at ${dupe.process_code}` : ' with no process named') +
+                            ' — edit the existing row instead.';
+                        return;
+                    }
+
+                    const life = addLife.value === null || addLife.value === '' ? null : Math.trunc(Number(addLife.value));
+                    if (life !== null && (!Number.isFinite(life) || life <= 0)) {
+                        addMsgBad.value = true;
+                        addMsg.value = 'Tool life must be a whole number greater than 0, or blank.';
+                        return;
+                    }
+
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('tools_usage').insert({
+                            tool_id: toolId, part_id: selPart.value.id,
+                            process_id: procId, tool_life_pcs: life
+                        });
+                        if (error) throw error;
+                        addToolSearch.value = ''; addLife.value = null;
+                        await loadAll();
+                        addMsg.value = 'Assignment added.';
+                    } catch (e) {
+                        addMsgBad.value = true;
+                        addMsg.value = e.code === '23505'
+                            ? 'That tool is already assigned to this part and process.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    await loadAll();
+                });
+
+                return {
+                    tools, parts, processes, usage, loading, loadError, saving,
+                    accessLevel, canWrite, mode, pickLimit,
+                    partSearch, toolSearch, selPart, selTool,
+                    newPartNo, partMsg, partMsgBad,
+                    addToolSearch, addProcId, addLife, addMsg, addMsgBad,
+                    onMaster, usageByPart, usageByTool, unassignedTools,
+                    partList, toolList, processGroups, partProcBlocks,
+                    toolOptions, masterOptions,
+                    cellClass, saveCell, toggleActive, removeUsage, addPart, addUsage, loadAll
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

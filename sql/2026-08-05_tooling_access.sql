@@ -305,9 +305,11 @@ notify pgrst, 'reload schema';
 --
 -- NOTE 1 - what this file does NOT do.
 --   No screen reads any of it yet. Also left alone, deliberately:
---     * tools_part overlaps Parts on only 19 of its 45 rows. The assignment screen will pick from
+--     * tools_part overlaps Parts on only 17 of its 45 rows. The assignment screen will pick from
 --       the Parts master and upsert here, so new rows are spelled the way the rest of the system
---       spells them; the 26 that do not match are a reconciliation for a person, not a migration.
+--       spells them; the 28 that do not match are a reconciliation for a person, not a migration.
+--       (Counted with NOT EXISTS, not a join: Parts holds 235 rows but only 220 distinct part
+--       numbers, so a join over-counts the matches.)
 --     * tools_usage's UNIQUE (tool_id, part_id, process_id) does not constrain what it appears to,
 --       because Postgres treats NULLs as distinct - the same tool and part can be added again and
 --       again with no process. 6 rows already have a null process, though none is a duplicate
