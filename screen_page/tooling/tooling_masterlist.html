@@ -48,8 +48,177 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../../assets/app-config.js"></script>
     <style>
-        body { font-family: var(--font-sans); }
+        body { font-family: var(--font-sans); background: var(--bg-body); }
         [v-cloak] { display: none; }
+
+        /* ---- Shell: identity rail + content column ------------------------
+           The same shell gauge_masterlist.html uses, which in turn mirrors
+           AdminLogin. The category strip that used to sit under the filters is
+           the rail's navigation now — same activeCat check, same counts, only
+           the chrome around them changed. */
+        #app.shell { display: flex; align-items: flex-start; }
+
+        /* Must out-specify #app.shell, or its display:flex beats the plain
+           [v-cloak] rule and the uncompiled template flashes before Vue mounts. */
+        #app[v-cloak] { display: none; }
+
+        .column {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .column__inner { padding: var(--space-6) var(--space-8) 48px; }
+
+        .rail {
+            position: sticky;
+            top: 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            width: 284px;
+            height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+        /* White tile: the falcon is navy/grey artwork, so it needs a light
+           plate to read against the dark rail. */
+        .rail__mark {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+        .rail__name {
+            font-size: 15px; font-weight: 700;
+            letter-spacing: -0.2px; line-height: 1; color: #fff;
+        }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px;
+            padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3);
+            padding: 4px 10px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary);
+            border-radius: var(--radius-full);
+        }
+        .access-level--read {
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.14);
+        }
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px;
+            border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        /* ---- Side navigation (was the category tab strip) ---- */
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none; border: 0;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .rail-nav__code {
+            flex-shrink: 0;
+            padding: 2px 6px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.65);
+            font-variant-numeric: tabular-nums;
+        }
+        .rail-nav__item.is-active .rail-nav__code {
+            background: rgba(255, 255, 255, 0.22); color: #fff;
+        }
+        .rail-nav__add {
+            margin-top: 6px; padding: 8px 12px;
+            font-family: var(--font-sans);
+            font-size: 12px; font-weight: 700; text-align: left;
+            color: rgba(255, 255, 255, 0.5);
+            background: none; border: 1px dashed rgba(255, 255, 255, 0.18);
+            border-radius: var(--radius-sm); cursor: pointer;
+            transition: color var(--transition), border-color var(--transition);
+        }
+        .rail-nav__add:hover { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        /* Rail-inverted button — same shape as AdminLogin's .logout-btn. This
+           page only navigates, so it warms to --primary not --danger. */
+        .rail__link {
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--space-2);
+            width: 100%; padding: 11px 16px; margin-top: var(--space-2);
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__link:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__link svg { width: 15px; height: 15px; }
 
         /* One tint per category, so a scan down the list groups by eye before
            the label is read. Eight categories, eight tints — a ninth added to
@@ -114,20 +283,6 @@
         }
         .filters .field { flex: 1 1 200px; min-width: 0; }
         .filters .field--narrow { flex: 0 1 150px; }
-
-        .cat-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
-        .cat-tab {
-            padding: 5px 12px;
-            border-radius: 999px;
-            border: 1px solid var(--border, #e2e8f0);
-            background: #fff;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .cat-tab--on { background: var(--primary, #0078d4); border-color: var(--primary, #0078d4); color: #fff; }
-        .cat-tab__n { opacity: .65; margin-left: 4px; font-weight: 500; }
 
         .summary {
             display: flex;
@@ -288,6 +443,25 @@
             .hide-sm { display: none; }
         }
 
+        /* Below 900 the rail lies down into a header strip, same as the gauge
+           masterlist and AdminLogin. */
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail {
+                position: static; width: 100%; height: auto;
+                padding: 16px 20px;
+            }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail-nav__add { margin-top: 0; }
+            .rail__spacer { display: none; }
+            .rail__link { width: auto; margin-top: 16px; }
+            .column__inner { padding: var(--space-5) var(--space-4) 40px; }
+        }
+
         @media (max-width: 560px) {
             .dlg__head, .dlg__foot { padding-left: var(--space-4); padding-right: var(--space-4); }
             .dlg__body { padding: var(--space-4); }
@@ -303,7 +477,82 @@
         <ul id="bootErrorList"></ul>
     </div>
 
-    <div id="app" v-cloak class="container" style="padding-bottom:48px">
+    <div id="app" v-cloak class="shell">
+
+        <!-- ---------- Identity rail / side nav ---------- -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">Tooling Masterlist</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span v-if="canWrite" class="access-level">{{ accessLevel }}</span>
+                <span v-else class="access-level access-level--read">Read only</span>
+            </div>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <!-- The category strip that used to sit under the filters. Same
+                 activeCat check and the same counts, laid out vertically. -->
+            <nav class="rail-nav">
+                <div class="rail-nav__label">Categories</div>
+
+                <button class="rail-nav__item" :class="{ 'is-active': activeCat === null }"
+                    @click="activeCat = null">
+                    <span class="rail-nav__name">All tools</span>
+                    <span class="rail-nav__code">{{ tools.length }}</span>
+                </button>
+                <button v-for="c in categories" :key="c.id" class="rail-nav__item"
+                    :class="{ 'is-active': activeCat === c.id }"
+                    @click="activeCat = (activeCat === c.id ? null : c.id)">
+                    <span class="rail-nav__name">{{ c.name }}</span>
+                    <span class="rail-nav__code">{{ catCount[c.id] || 0 }}</span>
+                </button>
+
+                <button v-if="canWrite" class="rail-nav__add" @click="openTool(null)">
+                    + Tool type
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__link"
+                onclick="window.location.href='tooling_transaction.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+                Transactions
+            </button>
+            <button class="rail__link"
+                onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+        <div class="column__inner">
 
         <div class="page-head">
             <div>
@@ -316,7 +565,6 @@
             <button class="btn btn--secondary" @click="loadAll" :disabled="loading">
                 {{ loading ? 'Loading…' : 'Refresh' }}
             </button>
-            <button v-if="canWrite" class="btn" @click="openTool(null)">+ Tool type</button>
         </div>
 
         <div v-if="loadError" class="panel" style="border-color:#fecaca">
@@ -366,17 +614,6 @@
                     </div>
                 </div>
 
-                <div class="cat-tabs" style="margin-top:12px">
-                    <button class="cat-tab" :class="{ 'cat-tab--on': activeCat === null }"
-                        @click="activeCat = null">
-                        All<span class="cat-tab__n">{{ tools.length }}</span>
-                    </button>
-                    <button v-for="c in categories" :key="c.id" class="cat-tab"
-                        :class="{ 'cat-tab--on': activeCat === c.id }"
-                        @click="activeCat = (activeCat === c.id ? null : c.id)">
-                        {{ c.name }}<span class="cat-tab__n">{{ catCount[c.id] || 0 }}</span>
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -527,6 +764,9 @@
             </div>
         </div>
 
+        </div><!-- /.column__inner -->
+        </div><!-- /.column -->
+
         <!-- ---------- Tool type editor ---------- -->
         <div class="modal-overlay" v-if="toolModal" style="display:flex" @click.self="toolModal = null">
             <div class="modal modal--form" role="dialog" aria-modal="true" aria-labelledby="toolDlgTitle">
@@ -546,10 +786,19 @@
 
                 <div class="dlg__body">
                     <div class="form-grid">
+                        <!-- The code is the database's to give, not a person's to
+                             remember. Reading the last one off the list and typing
+                             the next is how you get FTL-0310 twice, and it is a
+                             race between two people adding a tool at once. -->
                         <div class="field">
-                            <label class="label">Tool code <span class="req">*</span></label>
-                            <input class="input" v-model.trim="toolForm.tool_code" placeholder="FTL-0310">
-                            <p class="hint">Unique. The factory's own code for this tool.</p>
+                            <label class="label">Tool code</label>
+                            <input class="input" :value="toolForm.tool_code || 'Assigned on save'"
+                                disabled>
+                            <p class="hint">
+                                {{ toolForm.id
+                                    ? 'Running numbers are not edited here.'
+                                    : 'The next FTL- number is assigned by the database when you save.' }}
+                            </p>
                         </div>
                         <div class="field">
                             <label class="label">Category <span class="req">*</span></label>
@@ -614,9 +863,14 @@
                 <div class="dlg__body">
                     <div class="form-grid">
                         <div class="field">
-                            <label class="label">Item code <span class="req">*</span></label>
-                            <input class="input" v-model.trim="itemForm.item_code" placeholder="FTI-00346">
-                            <p class="hint">Unique across every tool.</p>
+                            <label class="label">Item code</label>
+                            <input class="input" :value="itemForm.item_code || 'Assigned on save'"
+                                disabled>
+                            <p class="hint">
+                                {{ itemForm.id
+                                    ? 'Running numbers are not edited here.'
+                                    : 'The next FTI- number is assigned by the database when you save.' }}
+                            </p>
                         </div>
                         <div class="field">
                             <label class="label">Manufacturer code</label>
@@ -669,11 +923,71 @@
                         </div>
                     </div>
 
-                    <!-- Stock is deliberately not editable here. It is the sum of a
-                         ledger, and a masterlist that could overwrite it would be a
-                         second source of truth for the number Phase 0 spent a
-                         migration making single. -->
-                    <p class="hint">
+                    <!-- Opening stock, on a NEW item only. An item that reads 0 when
+                         it is not 0 is worse than one that does not exist, because
+                         it is a number people trust — so the count is taken here
+                         rather than left for a second visit to another screen.
+                         It is not a column on the item: it becomes an ordinary
+                         ledger row, typed, dated and signed like every other
+                         movement, and stock stays the sum of tools_txn. -->
+                    <template v-if="!itemForm.id">
+                        <hr style="margin:var(--space-5) 0;border:0;border-top:1px solid var(--border)">
+                        <h4 style="margin:0 0 var(--space-4);font-size:var(--fs-base);font-weight:700">
+                            Opening stock <span style="font-weight:400;color:var(--text-muted)">— optional</span>
+                        </h4>
+
+                        <div class="form-grid">
+                            <div class="field">
+                                <label class="label">Quantity on the shelf</label>
+                                <input class="input num" type="number" min="1" step="1"
+                                    v-model="itemForm.qty" placeholder="leave blank to count later">
+                            </div>
+                            <div class="field">
+                                <label class="label">How it got here</label>
+                                <select class="input" v-model="itemForm.txn_type">
+                                    <option value="OPENING">Opening count — already on the shelf</option>
+                                    <option value="RECEIPT_PO">Receipt — bought in against a PO</option>
+                                </select>
+                            </div>
+                            <div class="field" v-if="itemForm.txn_type === 'RECEIPT_PO'">
+                                <label class="label">PO number</label>
+                                <input class="input" v-model.trim="itemForm.po_no">
+                            </div>
+                        </div>
+
+                        <!-- Signed, because it is a ledger row. Without this the
+                             masterlist would be a way to write unsigned stock that
+                             the transaction screen refuses to write. -->
+                        <div class="form-grid" v-if="itemForm.qty" style="margin-top:var(--space-4)">
+                            <div class="field">
+                                <label class="label">Recorded by <span class="req">*</span></label>
+                                <select class="input" v-model="itemForm.by">
+                                    <option value="">
+                                        {{ people.length ? 'Select name…' : 'No PIN holders — set a PIN in EmployeeTable' }}
+                                    </option>
+                                    <option v-for="p in people" :key="p.name" :value="p.name">
+                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label class="label">PIN <span class="req">*</span></label>
+                                <input class="input" type="password" autocomplete="off"
+                                    v-model="itemForm.pin">
+                                <p class="hint">Checked here, never stored.</p>
+                            </div>
+                        </div>
+                        <p class="hint">
+                            The item and its opening movement are written together — either both or
+                            neither, so an item can never exist with stock that was not recorded.
+                        </p>
+                    </template>
+
+                    <!-- Stock is deliberately not editable on an EXISTING item. It is
+                         the sum of a ledger, and a masterlist that could overwrite it
+                         would be a second source of truth for the number the
+                         2026-08-05 migration spent its length making single. -->
+                    <p v-else class="hint">
                         Stock is not edited here. It is the sum of the tooling ledger — use a
                         transaction (receipt, issue, return or a stock-count adjustment) to change
                         it, so every movement has a date, a reason and a name against it.
@@ -749,6 +1063,12 @@
                 const formError = ref('');
                 const accessLevel = ref('');
                 const canWrite = ref(false);
+                // Rail identity — display only, filled from the lookup
+                // resolveAccess() already does.
+                const railUser = ref('—');
+                // Only needed to sign an opening count, so the list is loaded
+                // with everything else rather than on demand.
+                const people = ref([]);
 
                 const search = ref('');
                 const activeCat = ref(null);
@@ -765,6 +1085,7 @@
                 async function resolveAccess() {
                     const userId = sessionStorage.getItem('userId');
                     if (sessionStorage.getItem('isLoggedIn') !== 'true' || !userId) return;
+                    railUser.value = userId;
                     try {
                         const { data } = await _supabase
                             .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
@@ -786,17 +1107,29 @@
                     loading.value = true;
                     loadError.value = '';
                     try {
-                        const [cats, masters, stock] = await Promise.all([
+                        const [cats, masters, stock, em] = await Promise.all([
                             _supabase.from('tools_category').select('*').order('id'),
                             _supabase.from('tools_master')
                                 .select('id,tool_code,category_id,tool_name,nominal_size,needs_review,remarks')
                                 .order('tool_code'),
-                            _supabase.from('v_tools_item_stock').select('*')
+                            _supabase.from('v_tools_item_stock').select('*'),
+                            _supabase.from('EmployeeTable').select('name,position,pin')
+                                .not('pin', 'is', null).order('name')
                         ]);
 
                         for (const r of [cats, masters, stock]) {
                             if (r.error) throw r.error;
                         }
+                        // Not fatal: the list is only needed to sign an opening
+                        // count, and browsing the catalogue must not fail because
+                        // EmployeeTable is unreachable.
+                        people.value = em.error ? [] : (em.data || [])
+                            .map(e => ({
+                                name: (e.name || '').trim(),
+                                position: e.position || '',
+                                pin: String(e.pin ?? '').trim()
+                            }))
+                            .filter(p => p.name && p.pin);
 
                         categories.value = cats.data || [];
                         const catById = new Map(categories.value.map(c => [c.id, c]));
@@ -949,12 +1282,10 @@
 
                 async function saveTool() {
                     formError.value = '';
-                    if (!toolForm.tool_code) { formError.value = 'Tool code is required.'; return; }
                     if (!toolForm.tool_name) { formError.value = 'Tool name is required.'; return; }
                     if (!toolForm.category_id) { formError.value = 'Pick a category.'; return; }
 
                     const row = {
-                        tool_code: toolForm.tool_code,
                         category_id: toolForm.category_id,
                         tool_name: toolForm.tool_name,
                         // '' from an emptied number box is not 0, it is "not stated".
@@ -964,6 +1295,10 @@
                         remarks: toolForm.remarks || null,
                         updated_at: new Date().toISOString()
                     };
+                    // tool_code is deliberately absent on insert: omitting the
+                    // column is what lets the sequence default fill it. Sending it
+                    // — even unchanged — on update would be equally pointless, so
+                    // it stays out of both.
 
                     saving.value = true;
                     try {
@@ -976,7 +1311,8 @@
                         await loadAll();
                     } catch (e) {
                         formError.value = e.code === '23505'
-                            ? `Tool code ${row.tool_code} is already used by another tool type.`
+                            ? 'That tool code is already in use. Re-run the 2026-08-06 migration to ' +
+                              're-sync the counter past any code entered by hand.'
                             : (e.message || String(e));
                     } finally {
                         saving.value = false;
@@ -993,18 +1329,25 @@
                             is_active: it.is_active, remarks: it.remarks || '' }
                         : { item_code: '', mfr_code: '', brand: '', supplier: '',
                             location: '', reorder_point: null,
-                            is_preferred: false, is_active: true, remarks: '' });
+                            is_preferred: false, is_active: true, remarks: '',
+                            qty: null, txn_type: 'OPENING', po_no: '', by: '', pin: '' });
                     itemModal.value = { tool };
                 }
 
                 async function saveItem() {
                     formError.value = '';
-                    if (!itemForm.item_code) { formError.value = 'Item code is required.'; return; }
 
                     const rp = itemForm.reorder_point;
-                    const row = {
-                        tool_id: itemModal.value.tool.id,
-                        item_code: itemForm.item_code,
+                    const reorder = (rp === '' || rp === null || rp === undefined)
+                        ? null : Math.trunc(Number(rp));
+                    if (reorder !== null && (!Number.isFinite(reorder) || reorder < 0)) {
+                        formError.value = 'Reorder point must be a whole number, 0 or more.';
+                        return;
+                    }
+
+                    // Shared by both paths. item_code is absent on purpose: omitting
+                    // the column is what lets the sequence default fill it.
+                    const common = {
                         mfr_code: itemForm.mfr_code || null,
                         brand: itemForm.brand || null,
                         supplier: itemForm.supplier || null,
@@ -1012,35 +1355,77 @@
                         // Blank means "no reorder alert for this item", which is not
                         // a threshold of 0 — the view treats null and 0 differently
                         // and so must this form.
-                        reorder_point: (rp === '' || rp === null || rp === undefined)
-                            ? null : Math.trunc(Number(rp)),
+                        reorder_point: reorder,
                         is_preferred: !!itemForm.is_preferred,
                         is_active: !!itemForm.is_active,
                         remarks: itemForm.remarks || null
                     };
-                    if (row.reorder_point !== null &&
-                        (!Number.isFinite(row.reorder_point) || row.reorder_point < 0)) {
-                        formError.value = 'Reorder point must be a whole number, 0 or more.';
-                        return;
-                    }
 
+                    const toolId = itemModal.value.tool.id;
                     saving.value = true;
                     try {
-                        const q = itemForm.id
-                            ? _supabase.from('tools_item').update(row).eq('id', itemForm.id)
-                            : _supabase.from('tools_item').insert(row);
-                        const { error } = await q;
-                        if (error) throw error;
-                        // qty_on_hand is deliberately absent from `row`. It is inert
-                        // as of the 2026-08-05 migration; writing it here would
-                        // restart the drift that migration ended.
-                        const toolId = itemModal.value.tool.id;
+                        if (itemForm.id) {
+                            // qty_on_hand is deliberately absent. It is inert as of
+                            // the 2026-08-05 migration; writing it here would
+                            // restart the drift that migration ended.
+                            const { error } = await _supabase.from('tools_item')
+                                .update(common).eq('id', itemForm.id);
+                            if (error) throw error;
+                        } else {
+                            const raw = itemForm.qty;
+                            const qty = (raw === '' || raw === null || raw === undefined)
+                                ? null : Math.trunc(Number(raw));
+                            if (qty !== null && (!Number.isFinite(qty) || qty <= 0)) {
+                                formError.value = 'Opening quantity must be a whole number ' +
+                                    'greater than 0, or left blank.';
+                                saving.value = false;
+                                return;
+                            }
+
+                            let person = null;
+                            if (qty !== null) {
+                                person = people.value.find(p => p.name === itemForm.by);
+                                if (!person) {
+                                    formError.value = 'Select who counted the opening stock.';
+                                    saving.value = false; return;
+                                }
+                                if (String(itemForm.pin).trim() !== person.pin) {
+                                    formError.value = 'That PIN does not match the selected name.';
+                                    saving.value = false; return;
+                                }
+                            }
+
+                            // One call, so the item and its opening movement are one
+                            // transaction. Two round trips could leave an item
+                            // reading 0 when it is not 0, which is worse than no
+                            // item at all — people trust a number.
+                            const { error } = await _supabase.rpc('tools_create_item', {
+                                p_tool_id: toolId,
+                                p_mfr_code: common.mfr_code,
+                                p_brand: common.brand,
+                                p_supplier: common.supplier,
+                                p_location: common.location,
+                                p_reorder_point: common.reorder_point,
+                                p_is_preferred: common.is_preferred,
+                                p_is_active: common.is_active,
+                                p_remarks: common.remarks,
+                                p_qty: qty,
+                                p_txn_type: itemForm.txn_type || 'OPENING',
+                                p_po_no: itemForm.po_no || null,
+                                p_txn_by: person ? person.name : null,
+                                p_txn_by_position: person ? (person.position || null) : null
+                            });
+                            if (error) throw error;
+                        }
+
                         itemModal.value = null;
                         await loadAll();
                         open[toolId] = true;      // keep the list where the user left it
                     } catch (e) {
+                        console.error('Item save failed', e);
                         formError.value = e.code === '23505'
-                            ? `Item code ${row.item_code} already exists.`
+                            ? 'That item code is already in use. Re-run the 2026-08-06 migration ' +
+                              'to re-sync the counter past any code entered by hand.'
                             : (e.message || String(e));
                     } finally {
                         saving.value = false;
@@ -1062,7 +1447,7 @@
 
                 return {
                     categories, tools, loading, loadError, saving, formError,
-                    accessLevel, canWrite,
+                    accessLevel, canWrite, railUser, people,
                     search, activeCat, stockFilter, sortBy, open,
                     toolModal, itemModal, toolForm, itemForm,
                     catCount, reviewCount, shown, shownItemCount, totals,
