@@ -1176,7 +1176,7 @@
             <div class="group-head">
               <span class="group-dot" style="background: #c2410c"></span>
               <h2 class="group-title">Production Planning</h2>
-              <span class="group-count">3</span>
+              <span class="group-count">4</span>
             </div>
             <div class="module-list">
               <div
@@ -1249,6 +1249,32 @@
                   <span class="card-desc"
                     >Track a JO through routing: QC status, sign-off and
                     output</span
+                  >
+                </div>
+                <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+
+              <div
+                id="btn-process-cost"
+                class="dashboard-card"
+                onclick="
+                  navigateTo('screen_page/process_cost/process_cost.html')
+                "
+              >
+                <div class="icon-box tint-planning">
+                  <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"
+                    />
+                  </svg>
+                </div>
+                <div class="card-text">
+                  <span class="card-title">Process Costing</span>
+                  <span class="card-desc"
+                    >Material and routing cost per piece, and the value of work
+                    in progress</span
                   >
                 </div>
                 <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
@@ -1734,6 +1760,7 @@
           "btn-tooling-assign",
           "btn-sales-order-form",
           "btn-subcon-delivery",
+          "btn-process-cost",
         ];
 
         // First, disable everything safely
@@ -1762,6 +1789,7 @@
               "removeFolderBtn",
               "notifyEmailBtn",
               "btn-dms",
+              "btn-process-cost",
             ]);
             break;
 
@@ -1772,6 +1800,10 @@
               "btn-fg-store",
               "btn-subcon-delivery",
               "btn-tooling-txn",
+              // Read-only for this role — the page's own access check decides that.
+              // Production reads what a job is worth part-finished; setting the rate
+              // is engineering's and management's call.
+              "btn-process-cost",
             ]);
             break;
 
@@ -1794,6 +1826,8 @@
               "btn-packing-list-form",
               "btn-sales-order-form",
               "btn-subcon-delivery",
+              // Read-only. Quoting reads the cost of a quantity; it does not set the rate.
+              "btn-process-cost",
             ]);
             break;
 
@@ -1833,6 +1867,7 @@
               "btn-tooling-masterlist",
               "btn-tooling-txn",
               "btn-tooling-assign",
+              "btn-process-cost",
             ]);
             break;
 

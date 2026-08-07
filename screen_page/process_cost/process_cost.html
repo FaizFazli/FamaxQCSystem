@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process Costing</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page — see tooling_masterlist.html. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <style>
+        body { font-family: var(--font-sans); background: var(--bg-body); }
+        [v-cloak] { display: none; }
+
+        /* ---- Shell: identity rail + content column ------------------------
+           The same shell tooling_masterlist.html and gauge_masterlist.html use.
+           The rail carries how much of the master is costed, and at its foot the
+           change trail — on a costing screen a rate move is the event that
+           re-prices fifteen parts at once, so it belongs where it is passed. */
+        #app.shell { display: flex; align-items: flex-start; }
+        #app[v-cloak] { display: none; }
+
+        .column { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .column__inner { padding: var(--space-6) var(--space-8) 48px; }
+
+        .rail {
+            position: sticky; top: 0; flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh; padding: 28px 24px;
+            background: var(--text-main); color: #fff; overflow-y: auto;
+        }
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+        .rail__mark {
+            width: 36px; height: 36px; border-radius: 10px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+        .rail__name { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; line-height: 1; color: #fff; }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.16em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px; padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius); background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px; border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3); padding: 4px 10px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary); border-radius: var(--radius-full);
+        }
+        .access-level--read { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.14); }
+
+        .rail-nav { margin-top: 24px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans); font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65); background: none; border: 0;
+            border-radius: var(--radius-sm); cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .rail-nav__code {
+            flex-shrink: 0; padding: 2px 6px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.65);
+            font-variant-numeric: tabular-nums;
+        }
+        .rail-nav__item.is-active .rail-nav__code { background: rgba(255, 255, 255, 0.22); color: #fff; }
+
+        /* ---- The trail, in the rail --------------------------------------
+           Whole-master, newest first, every kind of change in one list —
+           a rate move and the part costs it shifts are not two stories. */
+        .trail { margin-top: 26px; }
+        .trail__item {
+            display: block; width: 100%; text-align: left;
+            padding: 8px 10px; margin-bottom: 2px;
+            background: none; border: 0; border-left: 2px solid rgba(255, 255, 255, 0.14);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            cursor: pointer; font-family: var(--font-sans);
+            transition: background var(--transition), border-color var(--transition);
+        }
+        .trail__item:hover { background: rgba(255, 255, 255, 0.08); border-left-color: var(--primary); }
+        .trail__item--rate { border-left-color: rgba(251, 191, 36, 0.55); }
+        .trail__head { font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.9); }
+        .trail__what {
+            font-size: 11px; color: rgba(255, 255, 255, 0.5);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .trail__move { font-size: 11px; color: rgba(255, 255, 255, 0.75); font-variant-numeric: tabular-nums; }
+        .trail__move b { color: #fff; }
+        .trail__when { font-size: 10px; color: rgba(255, 255, 255, 0.35); }
+        .trail__empty { font-size: 11px; color: rgba(255, 255, 255, 0.4); line-height: 1.5; padding-left: 2px; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+        .rail__link {
+            display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+            width: 100%; padding: 11px 16px; margin-top: var(--space-2);
+            font-family: var(--font-sans); font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius); cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__link:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__link svg { width: 15px; height: 15px; }
+
+        /* ---- Content ------------------------------------------------------ */
+        .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        .part-row { cursor: pointer; }
+        .part-row:hover { background: var(--surface-muted, #f1f5f9); }
+
+        .pill {
+            display: inline-block; padding: 1px 7px; border-radius: 999px;
+            font-size: 11px; font-weight: 700; line-height: 18px; white-space: nowrap;
+        }
+        .pill--warn  { background: #fef3c7; color: #92400e; }
+        .pill--none  { background: #f1f5f9; color: #475569; }
+        .pill--ok    { background: #dcfce7; color: #166534; }
+        .pill--info  { background: #e0f2fe; color: #075985; }
+        .pill--bad   { background: #fee2e2; color: #991b1b; }
+        .pill--dirty { background: #fed7aa; color: #9a3412; }
+        .pill--froz  { background: #e0e7ff; color: #3730a3; }
+
+        .figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+        .fig {
+            padding: 14px 16px; border-radius: var(--radius);
+            background: var(--bg-card, #fff); border: 1px solid var(--border, #e2e8f0);
+        }
+        .fig--hero { background: #eff6ff; border-color: #bfdbfe; }
+        .fig__lab {
+            font-size: 11px; color: var(--text-muted, #64748b);
+            text-transform: uppercase; letter-spacing: .04em;
+        }
+        .fig__val { font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 4px; }
+        .fig__sub { font-size: 11px; color: var(--text-muted, #64748b); margin-top: 2px; }
+
+        .warn-note {
+            background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px;
+            font-size: 12px; color: #92400e; border-radius: 4px;
+        }
+        .info-note {
+            background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px;
+            font-size: 12px; color: #1e40af; border-radius: 4px;
+        }
+
+        /* ---- Dialog chrome -------------------------------------------------
+           Same vocabulary as tooling_masterlist and gauge_masterlist. theme.css
+           sizes `.modal-overlay > .modal` as a 420px confirmation card, right for
+           "are you sure?" and wrong for a cost sheet, so this page out-specifies
+           it as every page with a form dialog does. */
+        .modal-overlay > .modal--form {
+            display: flex; flex-direction: column;
+            width: 100%; max-width: 940px; max-height: min(90vh, 900px);
+            padding: 0; text-align: left;
+        }
+        .modal-overlay > .modal--narrow { max-width: 560px; }
+        .dlg__head {
+            display: flex; align-items: flex-start; gap: var(--space-4);
+            padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border);
+        }
+        .dlg__title { flex: 1; margin: 0; font-size: var(--fs-md); font-weight: 700; color: var(--text-main); }
+        .dlg__sub {
+            display: block; margin-top: 3px;
+            font-size: var(--fs-sm); font-weight: 400; color: var(--text-muted);
+        }
+        .dlg__close {
+            flex-shrink: 0; width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; line-height: 1; color: var(--text-muted);
+            background: none; border: 1px solid transparent;
+            border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .dlg__close:hover { background: var(--surface-muted); color: var(--text-main); }
+        .dlg__body { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6) var(--space-6); }
+        .dlg__foot {
+            display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-4) var(--space-6);
+            border-top: 1px solid var(--border); background: var(--surface-muted);
+        }
+        .dlg__err { margin: var(--space-4) 0 0; font-size: var(--fs-sm); font-weight: 600; color: var(--danger); }
+        .dlg__ok  { margin: var(--space-4) 0 0; font-size: var(--fs-sm); font-weight: 600; color: #166534; }
+
+        :root { --control-h: 42px; }
+        .dlg__body input:not([type="checkbox"]),
+        .dlg__body select { height: var(--control-h); line-height: normal; box-sizing: border-box; }
+        .dlg__body select { padding-right: var(--space-8); }
+
+        .dlg-tabs { display: flex; gap: 4px; margin: 0 0 var(--space-5); border-bottom: 1px solid var(--border); }
+        .dlg-tab {
+            padding: 9px 16px; font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; color: var(--text-muted);
+            background: none; border: 0; border-bottom: 2px solid transparent;
+            cursor: pointer; margin-bottom: -1px;
+        }
+        .dlg-tab:hover { color: var(--text-main); }
+        .dlg-tab.is-active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .sec { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: var(--space-5); }
+        .sec__head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; background: var(--surface-muted);
+            border-bottom: 1px solid var(--border);
+            border-radius: var(--radius) var(--radius) 0 0;
+            font-size: 13px; font-weight: 700;
+        }
+        .sec__body { padding: var(--space-4); }
+        .sec table { width: 100%; }
+
+        .spec { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 18px; }
+        .spec__lab {
+            font-size: 10px; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .spec__val { font-size: 13px; font-weight: 600; color: var(--text-main); margin-top: 2px; }
+
+        /* The computed line. Deliberately looks like a result and not a field —
+           the cost per piece is never typed in the ordinary case. */
+        .calc-line {
+            display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+            padding: 12px 14px; margin-top: var(--space-4);
+            background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius);
+            font-variant-numeric: tabular-nums;
+        }
+        .calc-line__op { color: var(--text-muted); font-size: 13px; }
+        .calc-line__val { font-size: 15px; font-weight: 700; }
+        .calc-line__out { font-size: 20px; font-weight: 700; color: #0369a1; }
+        .calc-line--dead { background: var(--surface-muted); border-color: var(--border); }
+
+        .cost-in {
+            width: 130px; padding: 5px 8px; font-size: 13px; text-align: right;
+            border: 1px solid var(--border); border-radius: 6px;
+            font-variant-numeric: tabular-nums; background: #fff;
+        }
+        .cost-in:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+        .cost-in--dirty { border-color: #d97706; background: #fffbeb; }
+        .cost-in--bad   { border-color: var(--danger); background: #fee2e2; }
+        .rem-in {
+            width: 100%; min-width: 130px; padding: 5px 8px; font-size: 12px;
+            border: 1px solid var(--border); border-radius: 6px; background: #fff;
+        }
+        .rem-in--dirty { border-color: #d97706; background: #fffbeb; }
+        tr.row--dirty td { background: #fffdf5; }
+
+        .step-no {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; border-radius: 6px;
+            background: var(--surface-muted); color: #475569;
+            font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+        }
+        .step-no--done { background: #dcfce7; color: #166534; }
+        tr.step--todo td { opacity: .5; }
+
+        .link-btn {
+            background: none; border: 0; padding: 0;
+            font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+            color: var(--primary); cursor: pointer; text-decoration: underline;
+        }
+
+        .boot-error {
+            margin: 40px auto; max-width: 700px; border: 1px solid #fecaca;
+            background: #fef2f2; color: #991b1b; padding: 18px 22px;
+            border-radius: 8px; font-size: 14px; line-height: 1.6;
+        }
+        .boot-error h2 { font-weight: 700; margin-bottom: 8px; }
+        .boot-error ul { margin: 8px 0 0 18px; list-style: disc; }
+
+        @media (max-width: 820px) { .hide-sm { display: none; } }
+
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail { position: static; width: 100%; height: auto; padding: 16px 20px; }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .trail { display: none; }
+            .rail__spacer { display: none; }
+            .rail__link { width: auto; margin-top: 16px; }
+            .column__inner { padding: var(--space-5) var(--space-4) 40px; }
+        }
+        @media (max-width: 560px) {
+            .dlg__head, .dlg__foot { padding-left: var(--space-4); padding-right: var(--space-4); }
+            .dlg__body { padding: var(--space-4); }
+            .dlg__foot { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="bootError" class="boot-error" style="display:none">
+        <h2>This page could not start.</h2>
+        <div id="bootErrorWhy"></div>
+        <ul id="bootErrorList"></ul>
+    </div>
+
+    <div id="app" v-cloak class="shell">
+
+        <!-- ==================== RAIL ==================== -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <div class="rail__mark">
+                    <img src="../../assets/Famax%20Falcon.png" alt="" />
+                </div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">Process Costing</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span v-if="canWrite" class="access-level">{{ accessLevel }}</span>
+                <span v-else class="access-level access-level--read">Read only</span>
+            </div>
+
+            <nav class="rail-nav">
+                <div class="rail-nav__label">View</div>
+                <button class="rail-nav__item" :class="{ 'is-active': mode === 'parts' }"
+                    @click="mode = 'parts'">
+                    <span class="rail-nav__name">Part costs</span>
+                    <span class="rail-nav__code">{{ allParts.length }}</span>
+                </button>
+                <button class="rail-nav__item" :class="{ 'is-active': mode === 'materials' }"
+                    @click="mode = 'materials'">
+                    <span class="rail-nav__name">Material rates</span>
+                    <span class="rail-nav__code">{{ ratedCount }} / {{ materials.length }}</span>
+                </button>
+                <button class="rail-nav__item" :class="{ 'is-active': mode === 'wip' }"
+                    @click="mode = 'wip'">
+                    <span class="rail-nav__name">Work in progress</span>
+                    <span class="rail-nav__code">{{ openJobCount }}</span>
+                </button>
+            </nav>
+
+            <nav class="rail-nav" v-if="mode === 'parts'">
+                <div class="rail-nav__label">Show</div>
+                <button v-for="f in filters" :key="f.key" class="rail-nav__item"
+                    :class="{ 'is-active': filterMode === f.key }" @click="filterMode = f.key">
+                    <span class="rail-nav__name">{{ f.label }}</span>
+                    <span class="rail-nav__code">{{ filterCount[f.key] }}</span>
+                </button>
+            </nav>
+
+            <div class="trail">
+                <div class="rail-nav__label">Recent changes</div>
+                <p v-if="!railTrail.length" class="trail__empty">
+                    Nothing has been costed yet. Every change — a process rate, a part's material
+                    consumption, a material's price per kg — is recorded, and the last
+                    {{ TRAIL_N }} appear here.
+                </p>
+                <button v-for="h in railTrail" :key="h.id" class="trail__item"
+                    :class="{ 'trail__item--rate': h.cost_type === 'RATE' }"
+                    @click="openFromTrail(h)">
+                    <div class="trail__head">{{ trailHead(h) }}</div>
+                    <div class="trail__what">{{ trailWhat(h) }}</div>
+                    <div class="trail__move" v-html="trailMove(h)"></div>
+                    <div class="trail__when">{{ h.changed_by || 'not recorded' }} · {{ shortDate(h.changed_at) }}</div>
+                </button>
+            </div>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__link" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <!-- ==================== CONTENT ==================== -->
+        <div class="column">
+            <div class="column__inner">
+
+                <div class="page-head">
+                    <div>
+                        <h1 class="page-head__title">{{ pageTitle }}</h1>
+                        <p class="page-head__subtitle">{{ pageSub }}</p>
+                    </div>
+                    <div class="toolbar__spacer"></div>
+                    <button class="btn btn--secondary" @click="loadAll" :disabled="loading || dirtyTotal > 0"
+                        :title="dirtyTotal ? 'Save or discard your changes first — a refresh would drop them' : ''">
+                        {{ loading ? 'Loading…' : 'Refresh' }}
+                    </button>
+                </div>
+
+                <div v-if="loadError" class="panel" style="border-color:#fecaca;margin-bottom:14px">
+                    <div class="panel__body" style="color:#991b1b">
+                        <strong>Could not load.</strong> {{ loadError }}
+                        <div style="margin-top:6px;font-size:12px">
+                            If this mentions a missing relation or column, the four
+                            <code>2026-08-07_*.sql</code> costing migrations have not all been run here.
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="!canWrite && !loading" class="warn-note" style="margin-bottom:14px">
+                    Read-only — your access level ({{ accessLevel || 'unknown' }}) can view costs
+                    but not change them.
+                </div>
+
+                <div v-if="dirtyParts.length" class="warn-note" style="margin-bottom:14px">
+                    Unsaved changes on <strong>{{ dirtyParts.join(', ') }}</strong>.
+                    Each part is saved from its own cost card — select it to save or discard.
+                </div>
+
+                <!-- ---------- PART COSTS ---------- -->
+                <template v-if="mode === 'parts'">
+                    <div class="panel" style="margin-bottom:14px">
+                        <div class="panel__body">
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label class="label">Search part number, name or material</label>
+                                    <input class="input" v-model.trim="search"
+                                        placeholder="07150-04036, BRAKE SPRING, SUS303…">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="figs" style="margin-bottom:14px">
+                        <div class="fig fig--hero">
+                            <div class="fig__lab">Parts fully costed</div>
+                            <div class="fig__val">{{ filterCount.full }} / {{ allParts.length }}</div>
+                            <div class="fig__sub">material and every routing step</div>
+                        </div>
+                        <div class="fig">
+                            <div class="fig__lab">Routing steps costed</div>
+                            <div class="fig__val">{{ fmtInt(masterStats.costed) }} / {{ fmtInt(masterStats.steps) }}</div>
+                            <div class="fig__sub">across the whole part master</div>
+                        </div>
+                        <div class="fig">
+                            <div class="fig__lab">Material priced</div>
+                            <div class="fig__val">{{ fmtInt(masterStats.matOk) }} / {{ allParts.length }}</div>
+                            <div class="fig__sub">
+                                {{ masterStats.noUsage }} without a weight ·
+                                {{ masterStats.noRate }} without a rate
+                            </div>
+                        </div>
+                        <div class="fig" v-if="masterStats.stale">
+                            <div class="fig__lab">Material changed since costing</div>
+                            <div class="fig__val" style="color:#b45309">{{ masterStats.stale }}</div>
+                            <div class="fig__sub">weighed against a material the master no longer names</div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel__body" style="padding:0">
+                            <table class="table table--striped">
+                                <thead>
+                                    <tr>
+                                        <th>Part number</th>
+                                        <th class="hide-sm">Raw material</th>
+                                        <th class="num hide-sm">kg / pc</th>
+                                        <th class="num hide-sm">Rate / kg</th>
+                                        <th class="num">Material / pc</th>
+                                        <th class="num">Process / pc</th>
+                                        <th class="num">Total / pc</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="p in partList" :key="p.part_no" class="part-row"
+                                        @click="openCard(p)">
+                                        <td>
+                                            <strong>{{ p.part_no }}</strong>
+                                            <span v-if="p.revisions.length > 1" class="pill pill--info"
+                                                :title="'Revisions: ' + p.revisions.join(', ')">
+                                                {{ p.revisions.length }} REV
+                                            </span>
+                                            <div style="font-size:11px;color:var(--text-muted)">
+                                                {{ p.part_name || '—' }}
+                                            </div>
+                                        </td>
+                                        <td class="hide-sm" style="font-size:12px">
+                                            {{ p.material || '—' }}
+                                            <span v-if="p.grade" style="color:var(--text-muted)">· {{ p.grade }}</span>
+                                        </td>
+                                        <td class="num hide-sm">
+                                            <template v-if="p.pm && p.pm.kg_per_pcs">{{ money4(p.pm.kg_per_pcs) }}</template>
+                                            <span v-else class="pill pill--none">—</span>
+                                        </td>
+                                        <td class="num hide-sm">
+                                            <template v-if="p.rate">{{ money4(p.rate.rate_per_kg) }}</template>
+                                            <span v-else class="pill pill--none">—</span>
+                                        </td>
+                                        <td class="num">
+                                            <template v-if="p.materialCost !== null">
+                                                {{ money4(p.materialCost) }}
+                                                <span v-if="p.isOverride" class="pill pill--info">FLAT</span>
+                                            </template>
+                                            <span v-else class="pill pill--none">—</span>
+                                        </td>
+                                        <td class="num">
+                                            <template v-if="p.costedCount">{{ money4(p.processTotal) }}</template>
+                                            <span v-else class="pill pill--none">—</span>
+                                        </td>
+                                        <td class="num">
+                                            <strong v-if="p.fullyCosted">{{ money4(p.grandTotal) }}</strong>
+                                            <span v-else style="color:var(--text-muted)">{{ money4(p.grandTotal) }}</span>
+                                        </td>
+                                        <td style="white-space:nowrap">
+                                            <span v-if="isPartDirty(p)" class="pill pill--dirty">UNSAVED</span>
+                                            <span v-if="p.fullyCosted" class="pill pill--ok">COSTED</span>
+                                            <span v-else-if="!p.costedCount && !p.pm" class="pill pill--none">
+                                                NOT COSTED
+                                            </span>
+                                            <span v-else class="pill pill--warn">{{ p.missingCount }} MISSING</span>
+                                            <span v-if="p.materialState === 'NO_RATE'" class="pill pill--warn"
+                                                title="This part has a weight but its material has no rate">
+                                                NO RATE
+                                            </span>
+                                            <span v-if="p.materialStale" class="pill pill--bad"
+                                                title="Weighed against a material the part master no longer names">
+                                                MATERIAL CHANGED
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!partList.length">
+                                        <td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">
+                                            {{ loading ? 'Loading…' : 'No part matches.' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                        Showing {{ partList.length }} of {{ allParts.length }} part numbers.
+                        Material cost per piece is <strong>kg per piece × rate per kg</strong> —
+                        set the weight here, the rate under Material rates.
+                    </p>
+                </template>
+
+                <!-- ---------- MATERIAL RATES ---------- -->
+                <template v-else-if="mode === 'materials'">
+                    <div class="panel" style="margin-bottom:14px">
+                        <div class="panel__body">
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label class="label">Search material or grade</label>
+                                    <input class="input" v-model.trim="matSearch"
+                                        placeholder="SUS303, ROUND BAR, 1215…">
+                                </div>
+                                <div class="field">
+                                    <label class="label">Show</label>
+                                    <select class="input" v-model="matFilter">
+                                        <option value="all">All materials</option>
+                                        <option value="unrated">No rate set</option>
+                                        <option value="rated">Rated</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="info-note" style="margin-top:12px">
+                                One rate per material and grade, in {{ CURRENCY }} per kilogram.
+                                Change it once and every part made from that material re-prices —
+                                which is the whole reason the rate is not stored on each part.
+                                Jobs already frozen keep the rate they were frozen at.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel__body" style="padding:0">
+                            <table class="table table--striped">
+                                <thead>
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Grade</th>
+                                        <th class="num">Parts</th>
+                                        <th class="num">Rate / kg</th>
+                                        <th class="hide-sm">Source</th>
+                                        <th class="hide-sm">Last set</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="m in materialList" :key="m.key" class="part-row"
+                                        @click="openRate(m)">
+                                        <td><strong>{{ m.material }}</strong></td>
+                                        <td>{{ m.grade || '—' }}</td>
+                                        <td class="num">{{ m.partCount }}</td>
+                                        <td class="num">
+                                            <strong v-if="m.rate">{{ CURRENCY }} {{ money4(m.rate.rate_per_kg) }}</strong>
+                                            <span v-else class="pill pill--warn">NO RATE</span>
+                                        </td>
+                                        <td class="hide-sm" style="font-size:12px;color:var(--text-muted)">
+                                            {{ m.rate && m.rate.source ? m.rate.source : '—' }}
+                                        </td>
+                                        <td class="hide-sm" style="font-size:11px;color:var(--text-muted)">
+                                            <template v-if="m.rate">
+                                                {{ m.rate.updated_by || 'not recorded' }}<br>
+                                                {{ shortDate(m.rate.updated_at) }}
+                                            </template>
+                                            <span v-else>—</span>
+                                        </td>
+                                        <td>
+                                            <span v-if="m.weighedParts" class="pill pill--info"
+                                                :title="m.weighedParts + ' part(s) have a weight and will re-price when this rate changes'">
+                                                {{ m.weighedParts }} PRICED
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!materialList.length">
+                                        <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">
+                                            {{ loading ? 'Loading…' : 'No material matches.' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                        {{ materialList.length }} of {{ materials.length }} material/grade
+                        combinations, taken from the part master. A rate typed here is somebody's
+                        figure — nothing in this system records what raw material was actually
+                        bought for.
+                    </p>
+                </template>
+
+                <!-- ---------- WORK IN PROGRESS ---------- -->
+                <template v-else>
+                    <div class="panel" style="margin-bottom:14px">
+                        <div class="panel__body">
+                            <div class="form-grid">
+                                <div class="field">
+                                    <label class="label">Search job order or part</label>
+                                    <input class="input" v-model.trim="joSearch"
+                                        placeholder="SO/200426/01573, KNOCKOUT…">
+                                </div>
+                                <div class="field">
+                                    <label class="label">Show</label>
+                                    <select class="input" v-model="joFilter">
+                                        <option value="open">Open — not every step signed off</option>
+                                        <option value="started">Started but not finished</option>
+                                        <option value="frozen">Frozen</option>
+                                        <option value="done">Finished</option>
+                                        <option value="all">All job orders</option>
+                                    </select>
+                                </div>
+                                <div class="field">
+                                    <label class="label">Raw material</label>
+                                    <select class="input" v-model="withMaterial">
+                                        <option :value="false">Processing only</option>
+                                        <option :value="true">Include raw material</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <p class="info-note" style="margin-top:12px">
+                                A step counts as done when its Job Order row reads
+                                <strong>Completed</strong> — the QC sign-off, which is the only
+                                completion signal recorded today because <code>produced_qty</code>
+                                from Daily Output is still 0 on every row.
+                                <template v-if="withMaterial">
+                                    Raw material is included at full value from the moment a job
+                                    exists: nothing records when material is issued, so this is an
+                                    assumption, not a reading.
+                                </template>
+                                <template v-else>
+                                    Raw material is excluded — this is processing value added, and
+                                    nothing else.
+                                </template>
+                            </p>
+                            <p class="info-note" style="margin-top:8px">
+                                <strong>Freezing</strong> copies today's rates onto a job, so a
+                                later price change cannot re-value work already priced. A frozen
+                                job shows the rate it was frozen at, not the current one.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="figs" style="margin-bottom:14px">
+                        <div class="fig fig--hero">
+                            <div class="fig__lab">Work in progress value</div>
+                            <div class="fig__val">{{ CURRENCY }} {{ money2(joTotals.wip) }}</div>
+                            <div class="fig__sub">
+                                across {{ joTotals.count }} job order / part unit(s)
+                                {{ withMaterial ? '· material included' : '· processing only' }}
+                            </div>
+                        </div>
+                        <div class="fig">
+                            <div class="fig__lab">Value at completion</div>
+                            <div class="fig__val">{{ CURRENCY }} {{ money2(joTotals.full) }}</div>
+                            <div class="fig__sub">if every listed step were finished</div>
+                        </div>
+                        <div class="fig">
+                            <div class="fig__lab">Frozen</div>
+                            <div class="fig__val">{{ joTotals.frozen }} / {{ joTotals.count }}</div>
+                            <div class="fig__sub">held at the rates in force when frozen</div>
+                        </div>
+                        <div class="fig" v-if="joTotals.incomplete">
+                            <div class="fig__lab">Not fully costed</div>
+                            <div class="fig__val" style="color:#b45309">{{ joTotals.incomplete }}</div>
+                            <div class="fig__sub">
+                                job(s) with an uncosted step or no material price — every total
+                                above is understated
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="panel__body" style="padding:0">
+                            <table class="table table--striped">
+                                <thead>
+                                    <tr>
+                                        <th>Job order</th>
+                                        <th class="hide-sm">Part</th>
+                                        <th class="num">Qty</th>
+                                        <th class="num">Steps done</th>
+                                        <th class="num hide-sm">Cost / pc so far</th>
+                                        <th class="num">WIP value</th>
+                                        <th class="num hide-sm">At completion</th>
+                                        <th></th>
+                                        <th v-if="canWrite"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="j in joList" :key="j.jo_number + '|' + j.part_name">
+                                        <td>
+                                            <strong>{{ j.jo_number }}</strong>
+                                            <div v-if="j.is_frozen" style="font-size:10px;color:var(--text-muted)">
+                                                frozen {{ shortDate(j.frozen_at) }}
+                                                by {{ j.frozen_by || 'not recorded' }}
+                                            </div>
+                                        </td>
+                                        <td class="hide-sm">
+                                            {{ j.part_name }}
+                                            <span v-if="!j.part_no" class="pill pill--bad"
+                                                title="Part_Name nests brackets, so no part number could be read from it">
+                                                NO PART NO
+                                            </span>
+                                        </td>
+                                        <td class="num">
+                                            {{ j.qty === null ? '—' : fmtInt(j.qty) }}
+                                            <span v-if="j.qty_inconsistent" class="pill pill--bad"
+                                                title="The rows of this job carry more than one quantity — the largest is used">
+                                                QTY VARIES
+                                            </span>
+                                        </td>
+                                        <td class="num">{{ j.steps_done }} / {{ j.steps }}</td>
+                                        <td class="num hide-sm">{{ money4(joDonePerPc(j)) }}</td>
+                                        <td class="num"><strong>{{ money2(joWip(j)) }}</strong></td>
+                                        <td class="num hide-sm">{{ money2(joFull(j)) }}</td>
+                                        <td style="white-space:nowrap">
+                                            <span v-if="j.is_frozen" class="pill pill--froz">FROZEN</span>
+                                            <span v-if="j.all_done" class="pill pill--ok">FINISHED</span>
+                                            <span v-else-if="j.steps_done === 0" class="pill pill--none">NOT STARTED</span>
+                                            <span v-else class="pill pill--info">IN PROGRESS</span>
+                                            <span v-if="j.steps > j.steps_costed" class="pill pill--warn"
+                                                :title="j.steps_done_uncosted + ' finished step(s) have no cost and add nothing to the WIP figure'">
+                                                {{ j.steps - j.steps_costed }} UNCOSTED
+                                            </span>
+                                            <span v-if="withMaterial && !j.material_costed" class="pill pill--warn">
+                                                NO MATERIAL PRICE
+                                            </span>
+                                        </td>
+                                        <td v-if="canWrite" style="white-space:nowrap">
+                                            <button v-if="!j.is_frozen" class="btn btn--secondary"
+                                                @click="openFreeze(j, 'freeze')" :disabled="!j.part_no">
+                                                Freeze
+                                            </button>
+                                            <button v-else class="btn btn--secondary"
+                                                @click="openFreeze(j, 'unfreeze')">
+                                                Unfreeze
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!joList.length">
+                                        <td :colspan="canWrite ? 9 : 8"
+                                            style="text-align:center;padding:24px;color:var(--text-muted)">
+                                            {{ loading ? 'Loading…' : 'No job order matches.' }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ==================== THE COST CARD ==================== -->
+        <div class="modal-overlay" v-if="card" style="display:flex" @click.self="closeCard">
+            <div class="modal modal--form" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
+                <div class="dlg__head">
+                    <h3 class="dlg__title" id="cardTitle">
+                        {{ card.part_no }}
+                        <span class="dlg__sub">
+                            {{ card.part_name || 'no name on the master' }}
+                            <template v-if="card.revisions.length">· rev {{ card.revisions.join(', ') }}</template>
+                        </span>
+                    </h3>
+                    <button class="dlg__close" @click="closeCard" aria-label="Close">&times;</button>
+                </div>
+
+                <div class="dlg__body">
+                    <div class="dlg-tabs">
+                        <button class="dlg-tab" :class="{ 'is-active': tab === 'cost' }" @click="tab = 'cost'">
+                            Costs
+                            <span v-if="cardDirty" class="pill pill--dirty" style="margin-left:4px">{{ cardDirty }}</span>
+                        </button>
+                        <button class="dlg-tab" :class="{ 'is-active': tab === 'calc' }" @click="tab = 'calc'">
+                            Calculate
+                        </button>
+                        <button class="dlg-tab" :class="{ 'is-active': tab === 'hist' }" @click="tab = 'hist'">
+                            History
+                            <span class="pill pill--none" style="margin-left:4px">{{ cardHistory.length }}</span>
+                        </button>
+                    </div>
+
+                    <!-- ---- COSTS ---- -->
+                    <template v-if="tab === 'cost'">
+                        <div v-if="card.revisions.length > 1" class="info-note" style="margin-bottom:14px">
+                            This part number has {{ card.revisions.length }} revisions
+                            ({{ card.revisions.join(', ') }}) and their routings differ. Every step
+                            used by any revision is listed, and a cost entered here applies to all
+                            of them — the <strong>Used by</strong> column says which.
+                        </div>
+                        <div v-if="!card.routingReadable" class="warn-note" style="margin-bottom:14px">
+                            The routing stored against this part could not be read as a list of
+                            processes. Fix it in the part master before costing it.
+                        </div>
+
+                        <!-- Material -->
+                        <div class="sec">
+                            <div class="sec__head">
+                                Raw material
+                                <span class="toolbar__spacer"></span>
+                                <span v-if="card.materialStale" class="pill pill--bad">MATERIAL CHANGED</span>
+                                <span v-else-if="draftMaterialState === 'OK'" class="pill pill--ok">PRICED</span>
+                                <span v-else-if="draftMaterialState === 'NO_RATE'" class="pill pill--warn">NO RATE</span>
+                                <span v-else class="pill pill--none">NO WEIGHT</span>
+                            </div>
+                            <div class="sec__body">
+                                <div v-if="card.materialStale" class="warn-note" style="margin-bottom:12px">
+                                    This weight was entered against
+                                    <strong>{{ card.pm.costed_material || 'no material' }}</strong>,
+                                    but the part master now says
+                                    <strong>{{ card.material || 'no material' }}</strong>.
+                                    A change of material usually changes the weight too — re-check
+                                    it. Saving re-stamps it against what the master says today.
+                                </div>
+                                <div v-if="card.materialVaries" class="warn-note" style="margin-bottom:12px">
+                                    The revisions of this part number do not all name the same
+                                    material. The weight below covers them all; the rate applied
+                                    is the one for the material shown.
+                                </div>
+
+                                <!-- Read from Parts, never re-typed here. -->
+                                <div class="spec">
+                                    <div>
+                                        <div class="spec__lab">Material</div>
+                                        <div class="spec__val">{{ card.material || '—' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="spec__lab">Grade</div>
+                                        <div class="spec__val">{{ card.grade || '—' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="spec__lab">Bar size</div>
+                                        <div class="spec__val">{{ card.size || '—' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="spec__lab">Rate / kg</div>
+                                        <div class="spec__val">
+                                            <template v-if="card.rate">
+                                                {{ CURRENCY }} {{ money4(card.rate.rate_per_kg) }}
+                                            </template>
+                                            <span v-else style="color:#b45309">not set</span>
+                                            <button v-if="canWrite && card.material" class="link-btn"
+                                                style="margin-left:8px" @click="openRateForCard">
+                                                {{ card.rate ? 'change' : 'set rate' }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid" style="margin-top:14px">
+                                    <div class="field">
+                                        <label class="label">Kilograms per finished piece</label>
+                                        <input class="cost-in" style="width:100%" type="number" min="0"
+                                            step="0.0001" inputmode="decimal"
+                                            :class="{ 'cost-in--dirty': matDirty, 'cost-in--bad': !!matErr }"
+                                            :disabled="!canWrite || overrideOn" v-model="matDraft.kg"
+                                            :placeholder="overrideOn ? 'not used — flat cost set' : 'e.g. 0.5120'">
+                                        <p style="font-size:11px;color:var(--text-muted);margin-top:4px">
+                                            Including whatever cutting allowance, offcut and bar-end
+                                            you carry. Geometry — it changes when the drawing does,
+                                            not when the market does.
+                                        </p>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Remarks</label>
+                                        <input class="rem-in" style="height:auto"
+                                            :class="{ 'rem-in--dirty': matDirty }"
+                                            :disabled="!canWrite" v-model="matDraft.remarks"
+                                            placeholder="how the weight was worked out…">
+                                    </div>
+                                </div>
+
+                                <!-- The result, which is never typed in the ordinary case. -->
+                                <div class="calc-line" :class="{ 'calc-line--dead': draftMaterialCost === null }">
+                                    <template v-if="overrideOn">
+                                        <span class="calc-line__op">Flat cost, rate not used</span>
+                                        <span class="toolbar__spacer"></span>
+                                        <span class="calc-line__out">
+                                            {{ CURRENCY }} {{ money4(draftMaterialCost || 0) }} / pc
+                                        </span>
+                                    </template>
+                                    <template v-else-if="draftMaterialCost !== null">
+                                        <span class="calc-line__val">{{ money4(matDraft.kg) }} kg/pc</span>
+                                        <span class="calc-line__op">×</span>
+                                        <span class="calc-line__val">
+                                            {{ CURRENCY }} {{ money4(card.rate.rate_per_kg) }} /kg
+                                        </span>
+                                        <span class="calc-line__op">=</span>
+                                        <span class="calc-line__out">
+                                            {{ CURRENCY }} {{ money4(draftMaterialCost) }} / pc
+                                        </span>
+                                        <span class="toolbar__spacer"></span>
+                                        <span style="font-size:11px;color:var(--text-muted)">
+                                            re-prices whenever the rate changes
+                                        </span>
+                                    </template>
+                                    <template v-else-if="draftMaterialState === 'NO_RATE'">
+                                        <span style="font-size:13px;color:#b45309">
+                                            <strong>{{ card.material }}</strong> has no rate, so this
+                                            part's material cannot be priced. Set one under Material
+                                            rates and every part made from it prices at once.
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <span style="font-size:13px;color:var(--text-muted)">
+                                            Enter kilograms per piece, or set a flat cost below.
+                                        </span>
+                                    </template>
+                                </div>
+
+                                <!-- The exception. Free-issue material, or a bought-in part. -->
+                                <div style="margin-top:14px">
+                                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">
+                                        <input type="checkbox" v-model="overrideOn" :disabled="!canWrite">
+                                        Flat cost instead — free-issue material, or a bought-in part
+                                    </label>
+                                    <div v-if="overrideOn" class="form-grid" style="margin-top:10px">
+                                        <div class="field">
+                                            <label class="label">Material cost per piece ({{ CURRENCY }})</label>
+                                            <input class="cost-in" style="width:100%" type="number" min="0"
+                                                step="0.0001" inputmode="decimal"
+                                                :class="{ 'cost-in--dirty': matDirty, 'cost-in--bad': !!matErr }"
+                                                :disabled="!canWrite" v-model="matDraft.override"
+                                                placeholder="0 for free-issue">
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">Why</label>
+                                            <input class="rem-in" style="height:auto"
+                                                :class="{ 'rem-in--dirty': matDirty }"
+                                                :disabled="!canWrite" v-model="matDraft.reason"
+                                                placeholder="free-issue from customer, bought in…">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="matErr" style="font-size:12px;color:#b91c1c;margin-top:8px;font-weight:600">
+                                    {{ matErr }}
+                                </p>
+                                <p v-if="card.pm" style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                                    Last set by {{ card.pm.updated_by || 'not recorded' }}
+                                    on {{ shortDate(card.pm.updated_at) }}.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Processes -->
+                        <div class="sec">
+                            <div class="sec__head">
+                                Routing
+                                <span class="toolbar__spacer"></span>
+                                <span class="pill" :class="draftCosted === card.steps.length ? 'pill--ok' : 'pill--warn'">
+                                    {{ draftCosted }} / {{ card.steps.length }} COSTED
+                                </span>
+                            </div>
+                            <div class="sec__body" style="padding:0">
+                                <div v-if="!card.steps.length" class="empty-state" style="padding:26px">
+                                    This part has no processes in its routing, so there is nothing
+                                    to cost.
+                                </div>
+                                <table v-else class="table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:1%"></th>
+                                            <th>Process</th>
+                                            <th v-if="card.revisions.length > 1" class="hide-sm">Used by</th>
+                                            <th class="num">Cost / pc ({{ CURRENCY }})</th>
+                                            <th class="hide-sm">Remarks</th>
+                                            <th class="hide-sm">Last set by</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="s in card.steps" :key="s.dkey"
+                                            :class="{ 'row--dirty': isDirty(s) }">
+                                            <td><span class="step-no">{{ s.stepNo }}</span></td>
+                                            <td><strong>{{ s.name }}</strong></td>
+                                            <td v-if="card.revisions.length > 1" class="hide-sm"
+                                                style="font-size:11px;color:var(--text-muted)">
+                                                {{ s.usedBy.join(', ') }}
+                                            </td>
+                                            <td class="num">
+                                                <input class="cost-in" type="number" min="0" step="0.0001"
+                                                    inputmode="decimal"
+                                                    :class="{ 'cost-in--dirty': isDirty(s), 'cost-in--bad': !!fieldErr[s.dkey] }"
+                                                    :disabled="!canWrite" v-model="draft[s.dkey]"
+                                                    :placeholder="canWrite ? 'not costed' : '—'">
+                                                <div v-if="fieldErr[s.dkey]"
+                                                    style="font-size:11px;color:#b91c1c;margin-top:2px">
+                                                    {{ fieldErr[s.dkey] }}
+                                                </div>
+                                            </td>
+                                            <td class="hide-sm">
+                                                <input class="rem-in" :class="{ 'rem-in--dirty': isDirty(s) }"
+                                                    :disabled="!canWrite" v-model="draftRem[s.dkey]"
+                                                    placeholder="optional">
+                                            </td>
+                                            <td class="hide-sm" style="font-size:11px;color:var(--text-muted)">
+                                                <template v-if="s.cost">
+                                                    {{ s.cost.updated_by || 'not recorded' }}<br>
+                                                    {{ shortDate(s.cost.updated_at) }}
+                                                </template>
+                                                <span v-else>—</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="figs">
+                            <div class="fig">
+                                <div class="fig__lab">Material / pc</div>
+                                <div class="fig__val">{{ money4(draftMaterialCost || 0) }}</div>
+                            </div>
+                            <div class="fig">
+                                <div class="fig__lab">Processing / pc</div>
+                                <div class="fig__val">{{ money4(draftProcess) }}</div>
+                                <div class="fig__sub">{{ draftCosted }} of {{ card.steps.length }} steps</div>
+                            </div>
+                            <div class="fig fig--hero">
+                                <div class="fig__lab">Total cost / pc</div>
+                                <div class="fig__val">{{ CURRENCY }} {{ money4(draftTotal) }}</div>
+                                <div class="fig__sub" v-if="draftIncomplete">incomplete — see below</div>
+                                <div class="fig__sub" v-else>material and every step priced</div>
+                            </div>
+                        </div>
+
+                        <div v-if="draftIncomplete" class="warn-note" style="margin-top:12px">
+                            <strong>Not the whole cost of this part.</strong>&nbsp;
+                            <template v-if="draftCosted < card.steps.length">
+                                {{ card.steps.length - draftCosted }} routing step(s) have no cost.
+                            </template>
+                            <template v-if="draftMaterialCost === null">
+                                Material is not priced ({{ draftMaterialState === 'NO_RATE'
+                                    ? 'the material has no rate' : 'no weight entered' }}).
+                            </template>
+                            Blank means nobody has said, which is not the same as zero — enter 0 if
+                            that is what you mean.
+                        </div>
+                    </template>
+
+                    <!-- ---- CALCULATE ---- -->
+                    <template v-else-if="tab === 'calc'">
+                        <div class="form-grid" style="margin-bottom:14px">
+                            <div class="field">
+                                <label class="label">Quantity (pcs)</label>
+                                <input class="input num" type="number" min="0" step="1" v-model="qty"
+                                    placeholder="e.g. 1000">
+                            </div>
+                            <div class="field" v-if="card.routings.length > 1">
+                                <label class="label">Revision</label>
+                                <select class="input" v-model="calcRev">
+                                    <option v-for="r in card.routings" :key="r.rowId" :value="r.rowId">
+                                        rev {{ r.rev }} — {{ r.steps.length }} steps
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label class="label">Completed up to and including</label>
+                                <select class="input" v-model.number="cutStep">
+                                    <option :value="0">Nothing started — 0 of {{ calcSteps.length }}</option>
+                                    <option v-for="s in calcSteps" :key="s.stepNo" :value="s.stepNo">
+                                        {{ s.stepNo }} · {{ s.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label class="label">Raw material in WIP</label>
+                                <select class="input" v-model="calcWithMaterial">
+                                    <option :value="true">Include — material is on the floor</option>
+                                    <option :value="false">Exclude — processing only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div v-if="cardDirty" class="warn-note" style="margin-bottom:14px">
+                            These figures use the <strong>saved</strong> costs. You have
+                            {{ cardDirty }} unsaved change(s) on the Costs tab which are not
+                            included here.
+                        </div>
+
+                        <table class="table table--striped">
+                            <thead>
+                                <tr>
+                                    <th style="width:1%"></th>
+                                    <th>Item</th>
+                                    <th class="num">Cost / pc</th>
+                                    <th class="num">x {{ qtyNum ? fmtInt(qtyNum) : '—' }} pcs</th>
+                                    <th class="num hide-sm">Cumulative / pc</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr :class="{ 'step--todo': !calcWithMaterial }">
+                                    <td><span class="step-no" :class="{ 'step-no--done': calcWithMaterial }">M</span></td>
+                                    <td>
+                                        <strong>Raw material</strong>
+                                        <span style="font-size:11px;color:var(--text-muted)">
+                                            — {{ card.material || 'not named' }}<template
+                                                v-if="card.pm && card.pm.kg_per_pcs && card.rate">,
+                                                {{ money4(card.pm.kg_per_pcs) }} kg × {{ money4(card.rate.rate_per_kg) }}/kg</template>
+                                        </span>
+                                    </td>
+                                    <td class="num">
+                                        <template v-if="card.materialCost !== null">{{ money4(card.materialCost) }}</template>
+                                        <span v-else class="pill pill--none">no price</span>
+                                    </td>
+                                    <td class="num">
+                                        <template v-if="card.materialCost !== null && qtyNum">
+                                            {{ money2(card.materialCost * qtyNum) }}
+                                        </template>
+                                        <span v-else>—</span>
+                                    </td>
+                                    <td class="num hide-sm">{{ money4(calcWithMaterial ? savedMaterial : 0) }}</td>
+                                    <td>
+                                        <span v-if="calcWithMaterial" class="pill pill--ok">IN WIP</span>
+                                        <span v-else class="pill pill--none">EXCLUDED</span>
+                                    </td>
+                                </tr>
+                                <tr v-for="s in calcSteps" :key="s.stepNo"
+                                    :class="{ 'step--todo': s.stepNo > cutStep }">
+                                    <td>
+                                        <span class="step-no" :class="{ 'step-no--done': s.stepNo <= cutStep }">
+                                            {{ s.stepNo }}
+                                        </span>
+                                    </td>
+                                    <td><strong>{{ s.name }}</strong></td>
+                                    <td class="num">
+                                        <template v-if="s.cost">{{ money4(s.cost.cost_per_pcs) }}</template>
+                                        <span v-else class="pill pill--none">no cost</span>
+                                    </td>
+                                    <td class="num">
+                                        <template v-if="s.cost && qtyNum">{{ money2(s.cost.cost_per_pcs * qtyNum) }}</template>
+                                        <span v-else>—</span>
+                                    </td>
+                                    <td class="num hide-sm">{{ money4(s.cumulative) }}</td>
+                                    <td>
+                                        <span v-if="s.stepNo <= cutStep" class="pill pill--ok">DONE</span>
+                                        <span v-else class="pill pill--none">TO DO</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr style="font-weight:700;border-top:2px solid var(--border)">
+                                    <td></td>
+                                    <td>Total — material and whole routing</td>
+                                    <td class="num">{{ money4(savedGrandTotal) }}</td>
+                                    <td class="num">{{ qtyNum ? money2(savedGrandTotal * qtyNum) : '—' }}</td>
+                                    <td class="hide-sm"></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="figs" style="margin-top:16px">
+                            <div class="fig fig--hero">
+                                <div class="fig__lab">Total cost</div>
+                                <div class="fig__val">
+                                    {{ qtyNum ? CURRENCY + ' ' + money2(savedGrandTotal * qtyNum) : '—' }}
+                                </div>
+                                <div class="fig__sub">
+                                    {{ fmtInt(qtyNum) }} pcs × {{ money4(savedGrandTotal) }} / pc
+                                </div>
+                            </div>
+                            <div class="fig">
+                                <div class="fig__lab">Work in progress value</div>
+                                <div class="fig__val">
+                                    {{ qtyNum ? CURRENCY + ' ' + money2(wipPerPc * qtyNum) : '—' }}
+                                </div>
+                                <div class="fig__sub">
+                                    {{ cutStep }} of {{ calcSteps.length }} steps ·
+                                    {{ money4(wipPerPc) }} / pc put in
+                                    {{ calcWithMaterial ? '(material included)' : '(processing only)' }}
+                                </div>
+                            </div>
+                            <div class="fig">
+                                <div class="fig__lab">Still to spend</div>
+                                <div class="fig__val">
+                                    {{ qtyNum
+                                        ? CURRENCY + ' ' + money2((savedGrandTotal - wipPerPc) * qtyNum)
+                                        : '—' }}
+                                </div>
+                                <div class="fig__sub">{{ calcSteps.length - cutStep }} step(s) remaining</div>
+                            </div>
+                        </div>
+
+                        <div v-if="!card.fullyCosted" class="warn-note" style="margin-top:14px">
+                            This part is not fully costed — {{ card.missingCount }} figure(s) are
+                            missing, so every total above is understated.
+                        </div>
+                    </template>
+
+                    <!-- ---- HISTORY ---- -->
+                    <template v-else>
+                        <p v-if="!cardHistory.length" class="empty-state" style="padding:26px">
+                            Nothing has been changed on this part yet. Rate changes on
+                            <strong>{{ card.material || 'its material' }}</strong> also move this
+                            part's cost, and appear here too.
+                        </p>
+                        <table v-else class="table table--striped">
+                            <thead>
+                                <tr>
+                                    <th>When</th>
+                                    <th>What</th>
+                                    <th>Change</th>
+                                    <th class="num">From</th>
+                                    <th class="num">To</th>
+                                    <th>Unit</th>
+                                    <th>By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="h in cardHistory" :key="h.id">
+                                    <td style="font-size:12px">{{ shortDate(h.changed_at) }}</td>
+                                    <td style="font-size:12px">{{ trailWhat(h) }}</td>
+                                    <td>
+                                        <span class="pill"
+                                            :class="h.action === 'DELETE' ? 'pill--warn' : (h.action === 'INSERT' ? 'pill--ok' : 'pill--info')">
+                                            {{ h.action }}
+                                        </span>
+                                    </td>
+                                    <td class="num">{{ h.old_value === null ? '—' : money4(h.old_value) }}</td>
+                                    <td class="num">{{ h.new_value === null ? '—' : money4(h.new_value) }}</td>
+                                    <td style="font-size:11px;color:var(--text-muted)">{{ h.unit }}</td>
+                                    <td style="font-size:12px">{{ h.changed_by || 'not recorded' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <template v-if="canWrite && tab === 'cost'">
+                        <div class="form-grid" style="margin-top:18px">
+                            <div class="field">
+                                <label class="label">Entered by <span style="color:var(--danger)">*</span></label>
+                                <select class="input" v-model="byName">
+                                    <option value="">
+                                        {{ people.length ? 'Select name…' : 'No PIN holders — set a PIN in EmployeeTable' }}
+                                    </option>
+                                    <option v-for="p in people" :key="p.name" :value="p.name">
+                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label class="label">PIN <span style="color:var(--danger)">*</span></label>
+                                <input class="input" type="password" v-model="pin" autocomplete="off"
+                                    @keyup.enter="save">
+                            </div>
+                        </div>
+                        <p v-if="formError" class="dlg__err">{{ formError }}</p>
+                        <p v-if="okMsg" class="dlg__ok">{{ okMsg }}</p>
+                    </template>
+                </div>
+
+                <div class="dlg__foot">
+                    <span style="font-size:12px;color:var(--text-muted)">
+                        <template v-if="cardDirty">
+                            {{ cardDirty }} unsaved change(s):
+                            {{ plan.inserts.length }} new,
+                            {{ plan.updates.length }} changed,
+                            {{ plan.deletes.length }} cleared{{ plan.material ? ', material ' + plan.material.op : '' }}.
+                        </template>
+                        <template v-else>No unsaved changes.</template>
+                    </span>
+                    <span class="toolbar__spacer"></span>
+                    <button class="btn btn--secondary" @click="closeCard">Close</button>
+                    <button v-if="canWrite" class="btn btn--secondary" @click="discardCard"
+                        :disabled="!cardDirty || saving">Discard</button>
+                    <button v-if="canWrite" class="btn" @click="save" :disabled="saving || !cardDirty">
+                        {{ saving ? 'Saving…' : 'Save cost card' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== RATE DIALOG ==================== -->
+        <div class="modal-overlay" v-if="rateModal" style="display:flex" @click.self="rateModal = null">
+            <div class="modal modal--form modal--narrow" role="dialog" aria-modal="true">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">
+                        {{ rateModal.material }}
+                        <span class="dlg__sub">
+                            {{ rateModal.grade || 'no grade' }} ·
+                            used by {{ rateModal.partCount }} part number(s)
+                        </span>
+                    </h3>
+                    <button class="dlg__close" @click="rateModal = null" aria-label="Close">&times;</button>
+                </div>
+
+                <div class="dlg__body">
+                    <!-- The consequence, stated before the field rather than after the save. -->
+                    <div class="info-note" style="margin-bottom:14px">
+                        <template v-if="rateModal.weighedParts">
+                            Changing this re-prices <strong>{{ rateModal.weighedParts }} part(s)</strong>
+                            immediately — every one made from this material that has a weight
+                            entered. Job orders already frozen keep the rate they were frozen at.
+                        </template>
+                        <template v-else>
+                            No part made from this material has a weight entered yet, so setting a
+                            rate will not price anything on its own. Enter kilograms per piece on
+                            each part's cost card.
+                        </template>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="field">
+                            <label class="label">
+                                Rate per kilogram ({{ CURRENCY }}) <span style="color:var(--danger)">*</span>
+                            </label>
+                            <input class="cost-in" style="width:100%" type="number" min="0" step="0.0001"
+                                inputmode="decimal" v-model="rateDraft.rate" :disabled="!canWrite"
+                                placeholder="e.g. 6.8500">
+                        </div>
+                        <div class="field">
+                            <label class="label">Where the figure came from</label>
+                            <input class="input" v-model.trim="rateDraft.source" :disabled="!canWrite"
+                                placeholder="supplier, quote number, date…">
+                        </div>
+                        <div class="field" style="grid-column:1/-1">
+                            <label class="label">Remarks</label>
+                            <input class="input" v-model.trim="rateDraft.remarks" :disabled="!canWrite"
+                                placeholder="optional">
+                        </div>
+                    </div>
+
+                    <p style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                        Nothing in this system records what raw material was actually bought for —
+                        there is no price on RawMaterialStock and no purchase order table — so this
+                        is a figure somebody stands behind. Say where it came from.
+                    </p>
+
+                    <div v-if="rateModal.rate && rateHistory.length" style="margin-top:18px">
+                        <h4 style="font-size:12px;font-weight:700;margin-bottom:8px">Rate history</h4>
+                        <table class="table">
+                            <thead>
+                                <tr><th>When</th><th class="num">From</th><th class="num">To</th><th>By</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="h in rateHistory" :key="h.id">
+                                    <td style="font-size:12px">{{ shortDate(h.changed_at) }}</td>
+                                    <td class="num">{{ h.old_value === null ? '—' : money4(h.old_value) }}</td>
+                                    <td class="num">{{ h.new_value === null ? '—' : money4(h.new_value) }}</td>
+                                    <td style="font-size:12px">{{ h.changed_by || 'not recorded' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <template v-if="canWrite">
+                        <div class="form-grid" style="margin-top:18px">
+                            <div class="field">
+                                <label class="label">Entered by <span style="color:var(--danger)">*</span></label>
+                                <select class="input" v-model="byName">
+                                    <option value="">Select name…</option>
+                                    <option v-for="p in people" :key="p.name" :value="p.name">
+                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label class="label">PIN <span style="color:var(--danger)">*</span></label>
+                                <input class="input" type="password" v-model="pin" autocomplete="off"
+                                    @keyup.enter="saveRate">
+                            </div>
+                        </div>
+                        <p v-if="rateError" class="dlg__err">{{ rateError }}</p>
+                        <p v-if="rateOk" class="dlg__ok">{{ rateOk }}</p>
+                    </template>
+                </div>
+
+                <div class="dlg__foot">
+                    <span class="toolbar__spacer"></span>
+                    <button class="btn btn--secondary" @click="rateModal = null">Close</button>
+                    <button v-if="canWrite && rateModal.rate" class="btn btn--danger"
+                        @click="saveRate(true)" :disabled="saving">Clear rate</button>
+                    <button v-if="canWrite" class="btn" @click="saveRate(false)" :disabled="saving">
+                        {{ saving ? 'Saving…' : (rateModal.rate ? 'Update rate' : 'Set rate') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== FREEZE DIALOG ==================== -->
+        <div class="modal-overlay" v-if="freezeModal" style="display:flex" @click.self="freezeModal = null">
+            <div class="modal modal--form modal--narrow" role="dialog" aria-modal="true">
+                <div class="dlg__head">
+                    <h3 class="dlg__title">
+                        {{ freezeModal.mode === 'freeze' ? 'Freeze' : 'Unfreeze' }}
+                        {{ freezeModal.job.jo_number }}
+                        <span class="dlg__sub">{{ freezeModal.job.part_name }}</span>
+                    </h3>
+                    <button class="dlg__close" @click="freezeModal = null" aria-label="Close">&times;</button>
+                </div>
+
+                <div class="dlg__body">
+                    <template v-if="freezeModal.mode === 'freeze'">
+                        <p class="info-note" style="margin-bottom:14px">
+                            Copies the rates below onto this job. It stops re-valuing when material
+                            or process costs change, so a WIP figure printed today still reproduces
+                            next month.
+                        </p>
+
+                        <table class="table">
+                            <thead>
+                                <tr><th>Item</th><th class="num">Cost / pc</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Raw material</strong>
+                                        <span v-if="freezeLines.material"
+                                            style="font-size:11px;color:var(--text-muted)">
+                                            — {{ money4(freezeLines.material.kg_per_pcs) }} kg ×
+                                            {{ money4(freezeLines.material.material_rate_per_kg) }}/kg
+                                        </span>
+                                    </td>
+                                    <td class="num">
+                                        <template v-if="freezeLines.material">
+                                            {{ money4(freezeLines.material.cost_per_pcs) }}
+                                        </template>
+                                        <span v-else class="pill pill--warn">no price</span>
+                                    </td>
+                                </tr>
+                                <tr v-for="s in freezeLines.steps" :key="s.process_name">
+                                    <td>{{ s.process_name }}</td>
+                                    <td class="num">
+                                        <template v-if="s.cost_per_pcs !== null">{{ money4(s.cost_per_pcs) }}</template>
+                                        <span v-else class="pill pill--warn">no cost</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div v-if="freezeLines.missing" class="warn-note" style="margin-top:12px">
+                            <strong>{{ freezeLines.missing }} line(s) have no cost</strong> and will
+                            be frozen as uncosted — this job will stay understated until it is
+                            unfrozen and frozen again. Cost the part first unless you mean to.
+                        </div>
+                    </template>
+                    <template v-else>
+                        <p class="warn-note" style="margin-bottom:14px">
+                            Removes the frozen rates from this job.
+                            It goes back to being valued at whatever the rates say today, which may
+                            not be what it was priced at. The unfreeze is recorded against your
+                            name.
+                        </p>
+                    </template>
+
+                    <div class="form-grid" style="margin-top:14px">
+                        <div class="field">
+                            <label class="label">
+                                {{ freezeModal.mode === 'freeze' ? 'Frozen' : 'Unfrozen' }} by
+                                <span style="color:var(--danger)">*</span>
+                            </label>
+                            <select class="input" v-model="byName">
+                                <option value="">Select name…</option>
+                                <option v-for="p in people" :key="p.name" :value="p.name">
+                                    {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label">PIN <span style="color:var(--danger)">*</span></label>
+                            <input class="input" type="password" v-model="pin" autocomplete="off"
+                                @keyup.enter="doFreeze">
+                        </div>
+                    </div>
+                    <p v-if="freezeError" class="dlg__err">{{ freezeError }}</p>
+                    <p v-if="freezeOk" class="dlg__ok">{{ freezeOk }}</p>
+                </div>
+
+                <div class="dlg__foot">
+                    <span class="toolbar__spacer"></span>
+                    <button class="btn btn--secondary" @click="freezeModal = null">Cancel</button>
+                    <button class="btn" :class="{ 'btn--danger': freezeModal.mode === 'unfreeze' }"
+                        @click="doFreeze" :disabled="saving">
+                        {{ saving ? 'Working…' : (freezeModal.mode === 'freeze' ? 'Freeze this job' : 'Unfreeze') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function bootFailed(why) {
+            var box = document.getElementById('bootError');
+            if (!box) return;
+            box.style.display = 'block';
+            document.getElementById('bootErrorWhy').textContent = why;
+            window.__bootReport();
+        }
+        window.__bootReport = function () {
+            var ul = document.getElementById('bootErrorList');
+            if (!ul) return;
+            ul.innerHTML = '';
+            (window.__bootErrors || []).forEach(function (m) {
+                var li = document.createElement('li');
+                li.textContent = String(m);
+                ul.appendChild(li);
+            });
+        };
+
+        if (typeof Vue === 'undefined') { bootFailed('Vue did not load (unpkg.com).'); throw new Error('Vue missing'); }
+        if (typeof supabase === 'undefined') { bootFailed('The Supabase client did not load (unpkg.com).'); throw new Error('supabase missing'); }
+        if (!window.APP_CONFIG) { bootFailed('assets/app-config.js did not load.'); throw new Error('APP_CONFIG missing'); }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, watch, onMounted, onUnmounted } = Vue;
+
+        const WRITE_ROLES = ['ALL', 'MANAGEMENT', 'ENGINEER'];
+        const CURRENCY = 'RM';
+        const TRAIL_N = 12;
+
+        createApp({
+            setup() {
+                const partsRaw = ref([]);
+                const costs = ref([]);        // process_cost
+                const partMats = ref([]);     // part_material
+                const rates = ref([]);        // material_rate
+                const history = ref([]);      // cost_history
+                const jobs = ref([]);         // v_joborder_wip_cost
+                const joRows = ref([]);       // JobOrder, needed to build a freeze
+                const people = ref([]);
+
+                const loading = ref(true);
+                const loadError = ref('');
+                const saving = ref(false);
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+                const railUser = ref('—');
+
+                const mode = ref('parts');
+                const search = ref('');
+                const filterMode = ref('all');
+                const matSearch = ref('');
+                const matFilter = ref('all');
+                const joSearch = ref('');
+                const joFilter = ref('open');
+                const withMaterial = ref(false);
+
+                const cardPartNo = ref('');
+                const tab = ref('cost');
+                const qty = ref(1000);
+                const cutStep = ref(0);
+                const calcRev = ref(null);
+                const calcWithMaterial = ref(true);
+                const overrideOn = ref(false);
+
+                const draft = reactive({});
+                const draftRem = reactive({});
+                const matDrafts = reactive({ '': { kg: '', override: '', reason: '', remarks: '' } });
+                const fieldErr = reactive({});
+                const matErr = ref('');
+
+                const rateModal = ref(null);
+                const rateDraft = reactive({ rate: '', source: '', remarks: '' });
+                const rateError = ref(''); const rateOk = ref('');
+
+                const freezeModal = ref(null);
+                const freezeError = ref(''); const freezeOk = ref('');
+
+                const byName = ref('');
+                const pin = ref('');
+                const formError = ref('');
+                const okMsg = ref('');
+
+                const filters = [
+                    { key: 'all', label: 'All parts' },
+                    { key: 'none', label: 'Not costed' },
+                    { key: 'part', label: 'Partly costed' },
+                    { key: 'full', label: 'Fully costed' }
+                ];
+
+                // ---- helpers ---------------------------------------------------
+                //
+                // nk() is the JavaScript half of the database's norm_key(). String.trim() strips
+                // every kind of whitespace including the tabs that four part numbers in the
+                // master carry; btrim() in SQL did not, which is the bug
+                // 2026-08-07_key_whitespace.sql exists to fix. These two must keep agreeing.
+                const nk = s => String(s ?? '').trim();
+                const NK = s => nk(s).toUpperCase();
+                const matKey = (m, g) => `${NK(m)}|${NK(g)}`;
+
+                const money2 = v => Number(v ?? 0).toLocaleString('en-MY',
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const money4 = v => Number(v ?? 0).toLocaleString('en-MY',
+                    { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+                const fmtInt = v => Number(v ?? 0).toLocaleString('en-MY', { maximumFractionDigits: 0 });
+                const shortDate = t => t
+                    ? new Date(t).toLocaleString('en-MY', {
+                        day: '2-digit', month: 'short', year: '2-digit',
+                        hour: '2-digit', minute: '2-digit'
+                    })
+                    : '—';
+
+                const num = v => {
+                    const raw = nk(v);
+                    if (raw === '') return null;
+                    const n = Number(raw);
+                    return Number.isFinite(n) ? n : NaN;
+                };
+                const round4 = n => Math.round(n * 10000) / 10000;
+
+                const pageTitle = computed(() => mode.value === 'parts' ? 'Part Costs'
+                    : (mode.value === 'materials' ? 'Material Rates' : 'Work in Progress'));
+                const pageSub = computed(() => mode.value === 'parts'
+                    ? 'Raw material and every step of the routing, per piece. Select a part to open its cost card.'
+                    : (mode.value === 'materials'
+                        ? 'One price per kilogram per material. Change it once, and every part made from it re-prices.'
+                        : 'What the floor is holding part-finished, valued from the steps already signed off.'));
+
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (sessionStorage.getItem('isLoggedIn') !== 'true' || !userId) return;
+                    railUser.value = userId;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) { console.error('Access lookup failed', e); }
+                }
+
+                async function loadAll() {
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const [pt, pc, pm, mr, ch, jb, jr, emp] = await Promise.all([
+                            _supabase.from('Parts')
+                                .select('id,Part_Number,Part_Name,Revision,Process,Raw_Material,Raw_Material_Grade,Raw_Material_Size')
+                                .order('Part_Number').range(0, 1999),
+                            _supabase.from('process_cost').select('*').range(0, 9999),
+                            _supabase.from('part_material').select('*').range(0, 4999),
+                            _supabase.from('material_rate').select('*').range(0, 4999),
+                            _supabase.from('cost_history').select('*')
+                                .order('changed_at', { ascending: false }).limit(800),
+                            _supabase.from('v_joborder_wip_cost').select('*').range(0, 1999),
+                            _supabase.from('JobOrder')
+                                .select('JO_Number,Part_Name,Process,Status,Quantity').range(0, 4999),
+                            _supabase.from('EmployeeTable').select('name,position,pin')
+                                .not('pin', 'is', null).order('name')
+                        ]);
+                        for (const r of [pt, pc, pm, mr, jb, jr]) if (r.error) throw r.error;
+
+                        partsRaw.value = pt.data || [];
+                        costs.value = pc.data || [];
+                        partMats.value = pm.data || [];
+                        rates.value = mr.data || [];
+                        history.value = ch.error ? [] : (ch.data || []);
+                        jobs.value = jb.data || [];
+                        joRows.value = jr.data || [];
+                        people.value = emp.error ? [] : (emp.data || [])
+                            .map(e => ({
+                                name: nk(e.name), position: nk(e.position), pin: nk(e.pin)
+                            }))
+                            .filter(p => p.name && p.pin);
+
+                        resetDraft();
+                    } catch (e) {
+                        console.error('Process cost load failed', e);
+                        loadError.value = e.message || String(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                // ---- indexes ----------------------------------------------------
+                const costByKey = computed(() => {
+                    const m = new Map();
+                    costs.value.forEach(c => m.set(`${nk(c.part_no)}|${NK(c.process_name)}`, c));
+                    return m;
+                });
+                const matByPart = computed(() => {
+                    const m = new Map();
+                    partMats.value.forEach(x => m.set(nk(x.part_no), x));
+                    return m;
+                });
+                const rateByKey = computed(() => {
+                    const m = new Map();
+                    rates.value.forEach(r => m.set(matKey(r.material, r.grade), r));
+                    return m;
+                });
+
+                // ---- the parts, folded to one entry per part number -------------
+                const allParts = computed(() => {
+                    const byNo = new Map();
+
+                    partsRaw.value.forEach(row => {
+                        const partNo = nk(row.Part_Number);
+                        if (!partNo) return;
+
+                        let e = byNo.get(partNo);
+                        if (!e) {
+                            e = {
+                                part_no: partNo,
+                                part_name: row.Part_Name || '',
+                                material: nk(row.Raw_Material),
+                                grade: nk(row.Raw_Material_Grade),
+                                size: nk(row.Raw_Material_Size),
+                                materialVaries: false,
+                                revisions: [], routings: [], steps: [],
+                                stepIx: new Map(), routingReadable: true
+                            };
+                            byNo.set(partNo, e);
+                        }
+
+                        const rev = nk(row.Revision) || '(none)';
+                        if (!e.revisions.includes(rev)) e.revisions.push(rev);
+                        const mat = nk(row.Raw_Material);
+                        if (mat && e.material && mat !== e.material) e.materialVaries = true;
+
+                        let list = null;
+                        try {
+                            const parsed = JSON.parse(row.Process);
+                            if (Array.isArray(parsed)) list = parsed;
+                        } catch (err) { /* handled below */ }
+                        if (!list) { e.routingReadable = false; return; }
+
+                        const routing = { rowId: row.id, rev, steps: [] };
+                        list.forEach((raw, i) => {
+                            const name = nk(raw);
+                            if (!name) return;
+                            const key = NK(name);
+                            routing.steps.push({ key, name });
+
+                            let step = e.stepIx.get(key);
+                            if (!step) {
+                                step = { key, name, order: i, usedBy: [] };
+                                e.stepIx.set(key, step);
+                                e.steps.push(step);
+                            } else if (i < step.order) {
+                                step.order = i;
+                            }
+                            if (!step.usedBy.includes(rev)) step.usedBy.push(rev);
+                        });
+                        e.routings.push(routing);
+                    });
+
+                    return [...byNo.values()].map(e => {
+                        e.steps.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+                        e.steps.forEach((s, i) => {
+                            s.stepNo = i + 1;
+                            s.dkey = `${e.part_no}|${s.key}`;
+                            s.cost = costByKey.value.get(s.dkey) || null;
+                        });
+
+                        e.pm = matByPart.value.get(e.part_no) || null;
+                        e.rate = rateByKey.value.get(matKey(e.material, e.grade)) || null;
+                        e.matKey = matKey(e.material, e.grade);
+
+                        // The whole model in three lines: an override wins outright, otherwise
+                        // weight times rate, otherwise it cannot be priced and cost_state says
+                        // which half is missing.
+                        e.isOverride = !!(e.pm && e.pm.cost_per_pcs_override !== null
+                                          && e.pm.cost_per_pcs_override !== undefined);
+                        if (e.isOverride) {
+                            e.materialCost = Number(e.pm.cost_per_pcs_override);
+                            e.materialState = 'OK';
+                        } else if (e.pm && e.pm.kg_per_pcs !== null && e.rate) {
+                            e.materialCost = round4(Number(e.pm.kg_per_pcs) * Number(e.rate.rate_per_kg));
+                            e.materialState = 'OK';
+                        } else {
+                            e.materialCost = null;
+                            e.materialState = !e.pm ? 'NO_USAGE' : (e.rate ? 'NO_USAGE' : 'NO_RATE');
+                        }
+
+                        e.costedCount = e.steps.filter(s => s.cost).length;
+                        e.processTotal = e.steps.reduce(
+                            (t, s) => t + (s.cost ? Number(s.cost.cost_per_pcs) : 0), 0);
+                        e.grandTotal = e.processTotal + (e.materialCost || 0);
+
+                        e.fullyCosted = e.steps.length > 0
+                            && e.costedCount === e.steps.length
+                            && e.materialCost !== null;
+                        e.missingCount = (e.steps.length - e.costedCount)
+                            + (e.materialCost === null ? 1 : 0);
+                        e.materialStale = !!e.pm
+                            && (nk(e.pm.costed_material) || null) !== (e.material || null);
+                        return e;
+                    }).sort((a, b) => a.part_no.localeCompare(b.part_no));
+                });
+
+                const partIndex = computed(() => {
+                    const m = new Map();
+                    allParts.value.forEach(p => m.set(p.part_no, p));
+                    return m;
+                });
+
+                const bucketOf = p => p.fullyCosted ? 'full'
+                    : ((!p.costedCount && !p.pm) ? 'none' : 'part');
+
+                const filterCount = computed(() => {
+                    const c = { all: allParts.value.length, none: 0, part: 0, full: 0 };
+                    allParts.value.forEach(p => { c[bucketOf(p)]++; });
+                    return c;
+                });
+
+                const masterStats = computed(() => allParts.value.reduce((t, p) => ({
+                    steps: t.steps + p.steps.length,
+                    costed: t.costed + p.costedCount,
+                    matOk: t.matOk + (p.materialCost !== null ? 1 : 0),
+                    noUsage: t.noUsage + (p.materialState === 'NO_USAGE' ? 1 : 0),
+                    noRate: t.noRate + (p.materialState === 'NO_RATE' ? 1 : 0),
+                    stale: t.stale + (p.materialStale ? 1 : 0)
+                }), { steps: 0, costed: 0, matOk: 0, noUsage: 0, noRate: 0, stale: 0 }));
+
+                const partList = computed(() => {
+                    const q = search.value.toLowerCase();
+                    return allParts.value.filter(p => {
+                        if (q && !(p.part_no + ' ' + p.part_name + ' ' + p.material + ' ' + p.grade)
+                            .toLowerCase().includes(q)) return false;
+                        return filterMode.value === 'all' || bucketOf(p) === filterMode.value;
+                    });
+                });
+
+                // ---- materials ---------------------------------------------------
+                //
+                // Built from the part master, not from material_rate: the question is "what does
+                // this shop buy", and the answer is whatever the parts are made of. A rate with
+                // no part behind it would otherwise sit in the list forever.
+                const materials = computed(() => {
+                    const m = new Map();
+                    allParts.value.forEach(p => {
+                        if (!p.material) return;
+                        let e = m.get(p.matKey);
+                        if (!e) {
+                            e = {
+                                key: p.matKey, material: p.material, grade: p.grade,
+                                partCount: 0, weighedParts: 0,
+                                rate: rateByKey.value.get(p.matKey) || null
+                            };
+                            m.set(p.matKey, e);
+                        }
+                        e.partCount++;
+                        if (p.pm && p.pm.kg_per_pcs !== null) e.weighedParts++;
+                    });
+                    return [...m.values()].sort((a, b) =>
+                        a.material.localeCompare(b.material) || String(a.grade).localeCompare(String(b.grade)));
+                });
+
+                const ratedCount = computed(() => materials.value.filter(m => m.rate).length);
+
+                const materialList = computed(() => {
+                    const q = matSearch.value.toLowerCase();
+                    return materials.value.filter(m => {
+                        if (q && !(m.material + ' ' + m.grade).toLowerCase().includes(q)) return false;
+                        if (matFilter.value === 'rated') return !!m.rate;
+                        if (matFilter.value === 'unrated') return !m.rate;
+                        return true;
+                    });
+                });
+
+                // ---- draft state --------------------------------------------------
+                function seedStep(s) {
+                    draft[s.dkey] = s.cost ? String(s.cost.cost_per_pcs) : '';
+                    draftRem[s.dkey] = s.cost ? (s.cost.remarks || '') : '';
+                }
+                function seedMaterial(p) {
+                    if (!p) return;
+                    matDrafts[p.part_no] = {
+                        kg: p.pm && p.pm.kg_per_pcs !== null ? String(p.pm.kg_per_pcs) : '',
+                        override: p.isOverride ? String(p.pm.cost_per_pcs_override) : '',
+                        reason: p.pm ? (p.pm.override_reason || '') : '',
+                        remarks: p.pm ? (p.pm.remarks || '') : ''
+                    };
+                }
+                function resetDraft() {
+                    Object.keys(draft).forEach(k => delete draft[k]);
+                    Object.keys(draftRem).forEach(k => delete draftRem[k]);
+                    Object.keys(fieldErr).forEach(k => delete fieldErr[k]);
+                    matErr.value = ''; formError.value = ''; okMsg.value = '';
+                    allParts.value.forEach(p => { p.steps.forEach(seedStep); seedMaterial(p); });
+                    if (card.value) overrideOn.value = card.value.isOverride;
+                }
+
+                // A blank box and a value of 0 are different answers — "nobody has said" against
+                // "it is nothing" — so blanks compare as strings. Numbers compare as numbers, or
+                // re-typing 1.50 over 1.5 would read as a change.
+                const sameVal = (raw, was) => {
+                    if (raw === '' || was === '') return raw === was;
+                    return Number(raw) === Number(was);
+                };
+
+                function isDirty(s) {
+                    const raw = nk(draft[s.dkey]);
+                    const rem = nk(draftRem[s.dkey]);
+                    const was = s.cost ? String(s.cost.cost_per_pcs) : '';
+                    const wasRem = s.cost ? (s.cost.remarks || '') : '';
+                    if (rem !== wasRem) return true;
+                    return !sameVal(raw, was);
+                }
+
+                const card = computed(() => partIndex.value.get(cardPartNo.value) || null);
+                const matDraft = computed(() => matDrafts[cardPartNo.value] || matDrafts['']);
+
+                function matDirtyFor(p) {
+                    if (!p) return false;
+                    const d = matDrafts[p.part_no];
+                    if (!d) return false;
+                    const wasKg = p.pm && p.pm.kg_per_pcs !== null ? String(p.pm.kg_per_pcs) : '';
+                    const wasOv = p.isOverride ? String(p.pm.cost_per_pcs_override) : '';
+                    const wasRe = p.pm ? (p.pm.override_reason || '') : '';
+                    const wasRm = p.pm ? (p.pm.remarks || '') : '';
+                    if (nk(d.reason) !== wasRe || nk(d.remarks) !== wasRm) return true;
+                    if (!sameVal(nk(d.kg), wasKg)) return true;
+                    return !sameVal(nk(d.override), wasOv);
+                }
+
+                const matDirty = computed(() => matDirtyFor(card.value));
+                const isPartDirty = p => p.steps.some(isDirty) || matDirtyFor(p);
+                const dirtyParts = computed(() =>
+                    allParts.value.filter(isPartDirty).map(p => p.part_no));
+                const dirtyTotal = computed(() => dirtyParts.value.length);
+                const cardDirty = computed(() => card.value
+                    ? card.value.steps.filter(isDirty).length + (matDirty.value ? 1 : 0) : 0);
+
+                // Unticking the override clears its boxes, so the plan below does not have to
+                // guess whether a leftover figure was meant.
+                watch(overrideOn, on => {
+                    if (!card.value) return;
+                    const d = matDrafts[card.value.part_no];
+                    if (!d) return;
+                    if (!on) { d.override = ''; d.reason = ''; }
+                });
+
+                const draftMaterialState = computed(() => {
+                    if (!card.value) return 'NO_USAGE';
+                    const d = matDraft.value;
+                    if (overrideOn.value) return nk(d.override) === '' ? 'NO_USAGE' : 'OK';
+                    if (nk(d.kg) === '') return 'NO_USAGE';
+                    return card.value.rate ? 'OK' : 'NO_RATE';
+                });
+
+                const draftMaterialCost = computed(() => {
+                    if (!card.value) return null;
+                    const d = matDraft.value;
+                    if (overrideOn.value) {
+                        const n = num(d.override);
+                        return n === null || Number.isNaN(n) || n < 0 ? null : round4(n);
+                    }
+                    const kg = num(d.kg);
+                    if (kg === null || Number.isNaN(kg) || kg <= 0 || !card.value.rate) return null;
+                    return round4(kg * Number(card.value.rate.rate_per_kg));
+                });
+
+                const draftProcess = computed(() => {
+                    if (!card.value) return 0;
+                    return card.value.steps.reduce((t, s) => {
+                        const n = num(draft[s.dkey]);
+                        return t + (n !== null && !Number.isNaN(n) && n > 0 ? n : 0);
+                    }, 0);
+                });
+                const draftTotal = computed(() => (draftMaterialCost.value || 0) + draftProcess.value);
+                const draftCosted = computed(() => card.value
+                    ? card.value.steps.filter(s => nk(draft[s.dkey]) !== '').length : 0);
+                const draftIncomplete = computed(() => !card.value
+                    || draftCosted.value < card.value.steps.length
+                    || draftMaterialCost.value === null);
+
+                // ---- trail --------------------------------------------------------
+                const trailHead = h => h.cost_type === 'RATE'
+                    ? nk(h.material) : (h.part_no || h.ref || '—');
+
+                const trailWhat = h => {
+                    switch (h.cost_type) {
+                        case 'RATE': return (nk(h.grade) || 'no grade') + ' · rate per kg';
+                        case 'MATERIAL_USAGE': return 'Material weight';
+                        case 'MATERIAL_OVERRIDE': return 'Material flat cost';
+                        case 'FREEZE': return 'Job frozen — ' + (h.ref || '');
+                        case 'UNFREEZE': return 'Job unfrozen — ' + (h.ref || '');
+                        default: return h.process_name || '—';
+                    }
+                };
+
+                const trailMove = h => {
+                    const u = h.unit === 'kg/pc' ? ' kg' : '';
+                    const o = h.old_value === null ? null : money4(h.old_value) + u;
+                    const n = h.new_value === null ? null : money4(h.new_value) + u;
+                    if (h.action === 'INSERT') return `set <b>${n}</b>`;
+                    if (h.action === 'DELETE') return `cleared, was ${o}`;
+                    return `${o} → <b>${n}</b>`;
+                };
+
+                const railTrail = computed(() => history.value.slice(0, TRAIL_N));
+
+                // A part's history includes rate changes on the material it is made of, because
+                // those moved its cost just as surely as editing the part did.
+                const cardHistory = computed(() => {
+                    if (!card.value) return [];
+                    const mk = card.value.matKey;
+                    return history.value.filter(h =>
+                        (h.part_no && nk(h.part_no) === card.value.part_no)
+                        || (h.cost_type === 'RATE' && matKey(h.material, h.grade) === mk));
+                });
+
+                const rateHistory = computed(() => {
+                    if (!rateModal.value) return [];
+                    return history.value.filter(h => h.cost_type === 'RATE'
+                        && matKey(h.material, h.grade) === rateModal.value.key).slice(0, 15);
+                });
+
+                // ---- calculate tab -------------------------------------------------
+                const qtyNum = computed(() => {
+                    const n = Number(qty.value);
+                    return Number.isFinite(n) && n > 0 ? n : 0;
+                });
+
+                const calcRouting = computed(() => {
+                    if (!card.value || !card.value.routings.length) return null;
+                    return card.value.routings.find(r => r.rowId === calcRev.value)
+                        || card.value.routings[0];
+                });
+
+                const savedMaterial = computed(() =>
+                    card.value && card.value.materialCost !== null ? card.value.materialCost : 0);
+
+                const calcSteps = computed(() => {
+                    const r = calcRouting.value;
+                    if (!r || !card.value) return [];
+                    let run = calcWithMaterial.value ? savedMaterial.value : 0;
+                    return r.steps.map((rs, i) => {
+                        const cost = costByKey.value.get(`${card.value.part_no}|${rs.key}`) || null;
+                        run += cost ? Number(cost.cost_per_pcs) : 0;
+                        return { stepNo: i + 1, name: rs.name, cost, cumulative: run };
+                    });
+                });
+
+                const savedProcessTotal = computed(() =>
+                    calcSteps.value.reduce((t, s) => t + (s.cost ? Number(s.cost.cost_per_pcs) : 0), 0));
+                const savedGrandTotal = computed(() => savedMaterial.value + savedProcessTotal.value);
+                const wipPerPc = computed(() => {
+                    const base = calcWithMaterial.value ? savedMaterial.value : 0;
+                    return base + calcSteps.value.filter(s => s.stepNo <= cutStep.value)
+                        .reduce((t, s) => t + (s.cost ? Number(s.cost.cost_per_pcs) : 0), 0);
+                });
+
+                watch(cardPartNo, () => {
+                    cutStep.value = 0;
+                    tab.value = 'cost';
+                    calcRev.value = card.value && card.value.routings.length
+                        ? card.value.routings[0].rowId : null;
+                    overrideOn.value = !!(card.value && card.value.isOverride);
+                });
+                watch(calcRev, () => { cutStep.value = 0; });
+
+                // ---- work in progress ------------------------------------------------
+                const joDonePerPc = j => Number(j.cost_per_pcs_done)
+                    + (withMaterial.value ? Number(j.material_cost_per_pcs) : 0);
+                const joWip = j => Number(withMaterial.value ? j.wip_value_with_material : j.wip_value);
+                const joFull = j => Number(withMaterial.value ? j.full_value_with_material : j.full_value);
+
+                const joList = computed(() => {
+                    const q = joSearch.value.toLowerCase();
+                    return jobs.value
+                        .filter(j => {
+                            if (q && !((j.jo_number + ' ' + (j.part_name || '')).toLowerCase().includes(q)))
+                                return false;
+                            if (joFilter.value === 'open') return !j.all_done;
+                            if (joFilter.value === 'started') return !j.all_done && j.steps_done > 0;
+                            if (joFilter.value === 'frozen') return j.is_frozen;
+                            if (joFilter.value === 'done') return j.all_done;
+                            return true;
+                        })
+                        .sort((a, b) => joWip(b) - joWip(a)
+                            || String(a.jo_number).localeCompare(String(b.jo_number)));
+                });
+
+                const openJobCount = computed(() => jobs.value.filter(j => !j.all_done).length);
+
+                const joTotals = computed(() => joList.value.reduce((t, j) => ({
+                    count: t.count + 1,
+                    qty: t.qty + Number(j.qty || 0),
+                    wip: t.wip + joWip(j),
+                    full: t.full + joFull(j),
+                    frozen: t.frozen + (j.is_frozen ? 1 : 0),
+                    incomplete: t.incomplete
+                        + ((withMaterial.value ? !j.fully_costed : !j.process_fully_costed) ? 1 : 0)
+                }), { count: 0, qty: 0, wip: 0, full: 0, frozen: 0, incomplete: 0 }));
+
+                // ---- the card ---------------------------------------------------------
+                function openCard(p) {
+                    cardPartNo.value = p.part_no;
+                    overrideOn.value = p.isOverride || nk((matDrafts[p.part_no] || {}).override) !== '';
+                    formError.value = ''; okMsg.value = ''; matErr.value = '';
+                }
+                function openFromTrail(h) {
+                    if (h.cost_type === 'RATE') {
+                        const m = materials.value.find(x => x.key === matKey(h.material, h.grade));
+                        if (m) { mode.value = 'materials'; openRate(m); }
+                        return;
+                    }
+                    const p = partIndex.value.get(nk(h.part_no));
+                    if (p) { mode.value = 'parts'; openCard(p); }
+                }
+                function closeCard() { cardPartNo.value = ''; pin.value = ''; }
+                function discardCard() {
+                    if (!card.value) return;
+                    card.value.steps.forEach(s => { seedStep(s); delete fieldErr[s.dkey]; });
+                    seedMaterial(card.value);
+                    overrideOn.value = card.value.isOverride;
+                    matErr.value = ''; formError.value = ''; okMsg.value = '';
+                }
+
+                function onKey(e) {
+                    if (e.key !== 'Escape') return;
+                    if (freezeModal.value) { freezeModal.value = null; return; }
+                    if (rateModal.value) { rateModal.value = null; return; }
+                    if (card.value) closeCard();
+                }
+                onMounted(() => window.addEventListener('keydown', onKey));
+                onUnmounted(() => window.removeEventListener('keydown', onKey));
+
+                // Whoever is signing, checked once for every write on this page.
+                function person() {
+                    const p = people.value.find(x => x.name === byName.value);
+                    if (!p) return { err: 'Select who is entering this.' };
+                    if (nk(pin.value) !== p.pin) return { err: 'That PIN does not match the selected name.' };
+                    return { p, who: { updated_by: p.name, updated_by_position: p.position || null } };
+                }
+
+                // ---- save the card -----------------------------------------------------
+                const plan = computed(() => {
+                    const inserts = [], updates = [], deletes = [];
+                    let material = null;
+                    if (!card.value) return { inserts, updates, deletes, material };
+
+                    card.value.steps.forEach(s => {
+                        if (!isDirty(s)) return;
+                        const raw = nk(draft[s.dkey]);
+                        const rem = nk(draftRem[s.dkey]) || null;
+                        if (raw === '') { if (s.cost) deletes.push({ step: s, row: s.cost }); return; }
+                        const n = num(raw);
+                        if (n === null || Number.isNaN(n) || n < 0) return;   // validate() reports it
+                        if (s.cost) updates.push({ step: s, row: s.cost, cost: round4(n), remarks: rem });
+                        else inserts.push({ step: s, cost: round4(n), remarks: rem });
+                    });
+
+                    if (matDirty.value) {
+                        const d = matDraft.value;
+                        const kg = overrideOn.value ? null : num(d.kg);
+                        const ov = overrideOn.value ? num(d.override) : null;
+                        const hasKg = kg !== null && !Number.isNaN(kg) && kg > 0;
+                        const hasOv = ov !== null && !Number.isNaN(ov) && ov >= 0;
+                        const row = card.value.pm;
+                        if (!hasKg && !hasOv) {
+                            if (row) material = { op: 'cleared', row };
+                        } else {
+                            const body = {
+                                kg_per_pcs: hasKg ? round4(kg) : null,
+                                cost_per_pcs_override: hasOv ? round4(ov) : null,
+                                override_reason: hasOv ? (nk(d.reason) || null) : null,
+                                remarks: nk(d.remarks) || null
+                            };
+                            material = row ? { op: 'changed', row, body } : { op: 'set', body };
+                        }
+                    }
+                    return { inserts, updates, deletes, material };
+                });
+
+                function validate() {
+                    Object.keys(fieldErr).forEach(k => delete fieldErr[k]);
+                    matErr.value = '';
+                    let ok = true;
+                    card.value.steps.forEach(s => {
+                        const n = num(draft[s.dkey]);
+                        if (n === null) return;
+                        if (Number.isNaN(n)) { fieldErr[s.dkey] = 'Not a number'; ok = false; }
+                        else if (n < 0) { fieldErr[s.dkey] = 'Cannot be negative'; ok = false; }
+                    });
+                    const d = matDraft.value;
+                    if (overrideOn.value) {
+                        const n = num(d.override);
+                        if (n !== null && Number.isNaN(n)) { matErr.value = 'Flat cost is not a number'; ok = false; }
+                        else if (n !== null && n < 0) { matErr.value = 'Flat cost cannot be negative'; ok = false; }
+                        else if (n === null) { matErr.value = 'Enter the flat cost, or untick it'; ok = false; }
+                    } else {
+                        const n = num(d.kg);
+                        if (n !== null && Number.isNaN(n)) { matErr.value = 'Weight is not a number'; ok = false; }
+                        else if (n !== null && n <= 0) { matErr.value = 'Weight must be more than zero'; ok = false; }
+                    }
+                    return ok;
+                }
+
+                async function save() {
+                    formError.value = ''; okMsg.value = '';
+                    if (!canWrite.value) { formError.value = 'Your access level cannot change costs.'; return; }
+                    if (!card.value) return;
+                    if (!validate()) { formError.value = 'Fix the highlighted boxes first.'; return; }
+
+                    const who = person();
+                    if (who.err) { formError.value = who.err; tab.value = 'cost'; return; }
+
+                    const p = plan.value;
+                    if (!p.inserts.length && !p.updates.length && !p.deletes.length && !p.material) {
+                        formError.value = 'Nothing has changed.'; return;
+                    }
+
+                    const partNo = card.value.part_no;
+                    const stamp = { ...who.who };
+                    saving.value = true;
+                    try {
+                        if (p.material) {
+                            const snap = {
+                                costed_material: card.value.material || null,
+                                costed_grade: card.value.grade || null
+                            };
+                            if (p.material.op === 'set') {
+                                const { error } = await _supabase.from('part_material')
+                                    .insert({ part_no: partNo, ...p.material.body, ...snap, ...stamp });
+                                if (error) throw error;
+                            } else if (p.material.op === 'changed') {
+                                const { error } = await _supabase.from('part_material')
+                                    .update({ ...p.material.body, ...snap, ...stamp })
+                                    .eq('id', p.material.row.id);
+                                if (error) throw error;
+                            } else {
+                                // Stamp then delete: a DELETE carries no name, so the row is
+                                // marked with who is about to remove it and the trigger reads it.
+                                const st = await _supabase.from('part_material')
+                                    .update(stamp).eq('id', p.material.row.id);
+                                if (st.error) throw st.error;
+                                const { error } = await _supabase.from('part_material')
+                                    .delete().eq('id', p.material.row.id);
+                                if (error) throw error;
+                            }
+                        }
+
+                        if (p.inserts.length) {
+                            const { error } = await _supabase.from('process_cost').insert(
+                                p.inserts.map(i => ({
+                                    part_no: partNo, process_name: i.step.name,
+                                    cost_per_pcs: i.cost, remarks: i.remarks, ...stamp
+                                })));
+                            if (error) throw error;
+                        }
+                        for (const u of p.updates) {
+                            const { error } = await _supabase.from('process_cost')
+                                .update({ cost_per_pcs: u.cost, remarks: u.remarks, ...stamp })
+                                .eq('id', u.row.id);
+                            if (error) throw error;
+                        }
+                        for (const d of p.deletes) {
+                            const st = await _supabase.from('process_cost').update(stamp).eq('id', d.row.id);
+                            if (st.error) throw st.error;
+                            const { error } = await _supabase.from('process_cost').delete().eq('id', d.row.id);
+                            if (error) throw error;
+                        }
+
+                        const n = p.inserts.length + p.updates.length + p.deletes.length
+                            + (p.material ? 1 : 0);
+                        pin.value = '';
+                        await reloadKeepingOtherDrafts(partNo);
+                        okMsg.value = `Saved — ${n} change(s) to ${partNo}.`;
+                    } catch (e) {
+                        console.error('Cost save failed', e);
+                        formError.value = (e.code === '23505')
+                            ? 'That cost already exists on this part — refresh and edit the existing row.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                // The reload reseeds every draft box, which is right for the part just saved and
+                // wrong for any other part still being edited. Those are carried across by hand
+                // rather than lost to a refresh nobody asked for.
+                async function reloadKeepingOtherDrafts(exceptPartNo) {
+                    const keep = {}, keepMat = {};
+                    allParts.value.forEach(q => {
+                        if (q.part_no === exceptPartNo) return;
+                        q.steps.forEach(s => {
+                            if (isDirty(s)) keep[s.dkey] = [draft[s.dkey], draftRem[s.dkey]];
+                        });
+                        if (matDirtyFor(q)) keepMat[q.part_no] = { ...matDrafts[q.part_no] };
+                    });
+                    await loadAll();
+                    Object.keys(keep).forEach(k => {
+                        draft[k] = keep[k][0]; draftRem[k] = keep[k][1];
+                    });
+                    Object.keys(keepMat).forEach(k => { matDrafts[k] = keepMat[k]; });
+                }
+
+                // ---- rates --------------------------------------------------------------
+                function openRate(m) {
+                    rateModal.value = m;
+                    rateDraft.rate = m.rate ? String(m.rate.rate_per_kg) : '';
+                    rateDraft.source = m.rate ? (m.rate.source || '') : '';
+                    rateDraft.remarks = m.rate ? (m.rate.remarks || '') : '';
+                    rateError.value = ''; rateOk.value = '';
+                }
+                function openRateForCard() {
+                    const m = materials.value.find(x => x.key === card.value.matKey);
+                    if (m) openRate(m);
+                }
+
+                async function saveRate(clear) {
+                    rateError.value = ''; rateOk.value = '';
+                    if (!canWrite.value) { rateError.value = 'Your access level cannot change rates.'; return; }
+                    const m = rateModal.value;
+                    const who = person();
+                    if (who.err) { rateError.value = who.err; return; }
+
+                    let value = null;
+                    if (!clear) {
+                        const n = num(rateDraft.rate);
+                        if (n === null) { rateError.value = 'Enter a rate per kilogram.'; return; }
+                        if (Number.isNaN(n)) { rateError.value = 'That is not a number.'; return; }
+                        if (n < 0) { rateError.value = 'A rate cannot be negative.'; return; }
+                        value = round4(n);
+                    }
+
+                    saving.value = true;
+                    try {
+                        if (clear) {
+                            if (!m.rate) { rateError.value = 'There is no rate to clear.'; return; }
+                            const st = await _supabase.from('material_rate')
+                                .update(who.who).eq('id', m.rate.id);
+                            if (st.error) throw st.error;
+                            const { error } = await _supabase.from('material_rate')
+                                .delete().eq('id', m.rate.id);
+                            if (error) throw error;
+                        } else if (m.rate) {
+                            const { error } = await _supabase.from('material_rate').update({
+                                rate_per_kg: value,
+                                source: nk(rateDraft.source) || null,
+                                remarks: nk(rateDraft.remarks) || null,
+                                ...who.who
+                            }).eq('id', m.rate.id);
+                            if (error) throw error;
+                        } else {
+                            const { error } = await _supabase.from('material_rate').insert({
+                                material: m.material,
+                                grade: m.grade || null,
+                                rate_per_kg: value,
+                                source: nk(rateDraft.source) || null,
+                                remarks: nk(rateDraft.remarks) || null,
+                                ...who.who
+                            });
+                            if (error) throw error;
+                        }
+
+                        const affected = m.weighedParts;
+                        pin.value = '';
+                        await reloadKeepingOtherDrafts(null);
+                        rateModal.value = materials.value.find(x => x.key === m.key) || null;
+                        if (rateModal.value) openRateKeepMsg(rateModal.value);
+                        rateOk.value = clear
+                            ? `Rate cleared — ${affected} part(s) no longer priced.`
+                            : `Saved — ${affected} part(s) re-priced at ${CURRENCY} ${money4(value)}/kg.`;
+                    } catch (e) {
+                        console.error('Rate save failed', e);
+                        rateError.value = (e.code === '23505')
+                            ? 'A rate for this material and grade already exists — refresh.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                // Re-seed the dialog from the refreshed row without wiping the message that says
+                // what just happened.
+                function openRateKeepMsg(m) {
+                    rateDraft.rate = m.rate ? String(m.rate.rate_per_kg) : '';
+                    rateDraft.source = m.rate ? (m.rate.source || '') : '';
+                    rateDraft.remarks = m.rate ? (m.rate.remarks || '') : '';
+                }
+
+                // ---- freezing ------------------------------------------------------------
+                //
+                // A freeze is built from the JobOrder rows themselves, not from the part's
+                // routing: the job is what will be worked, and 55 of the 898 rows name a process
+                // the routing does not.
+                const freezeLines = computed(() => {
+                    if (!freezeModal.value || freezeModal.value.mode !== 'freeze')
+                        return { steps: [], material: null, missing: 0 };
+                    const j = freezeModal.value.job;
+                    const p = partIndex.value.get(nk(j.part_no));
+                    const steps = joRows.value
+                        .filter(r => r.JO_Number === j.jo_number && r.Part_Name === j.part_name)
+                        .map(r => {
+                            const c = costByKey.value.get(`${nk(j.part_no)}|${NK(r.Process)}`) || null;
+                            return {
+                                process_name: nk(r.Process),
+                                cost_per_pcs: c ? Number(c.cost_per_pcs) : null
+                            };
+                        });
+                    const material = (p && p.materialCost !== null) ? {
+                        cost_per_pcs: p.materialCost,
+                        material_rate_per_kg: p.rate ? Number(p.rate.rate_per_kg) : null,
+                        kg_per_pcs: p.pm && p.pm.kg_per_pcs !== null ? Number(p.pm.kg_per_pcs) : null
+                    } : null;
+                    const missing = steps.filter(s => s.cost_per_pcs === null).length + (material ? 0 : 1);
+                    return { steps, material, missing };
+                });
+
+                function openFreeze(job, mode2) {
+                    freezeModal.value = { job, mode: mode2 };
+                    freezeError.value = ''; freezeOk.value = '';
+                }
+
+                async function doFreeze() {
+                    freezeError.value = ''; freezeOk.value = '';
+                    if (!canWrite.value) { freezeError.value = 'Your access level cannot freeze a job.'; return; }
+                    const who = person();
+                    if (who.err) { freezeError.value = who.err; return; }
+                    const j = freezeModal.value.job;
+                    const isFreeze = freezeModal.value.mode === 'freeze';
+                    const ref = `${j.jo_number} | ${j.part_name}`;
+
+                    saving.value = true;
+                    try {
+                        if (isFreeze) {
+                            const stamp = {
+                                jo_number: j.jo_number, part_name: j.part_name, part_no: nk(j.part_no),
+                                frozen_by: who.p.name, frozen_by_position: who.p.position || null
+                            };
+                            const rows = freezeLines.value.steps
+                                .filter(s => s.cost_per_pcs !== null)
+                                .map(s => ({
+                                    ...stamp, cost_type: 'PROCESS',
+                                    process_name: s.process_name, cost_per_pcs: s.cost_per_pcs
+                                }));
+                            if (freezeLines.value.material) {
+                                rows.push({
+                                    ...stamp, cost_type: 'MATERIAL', process_name: null,
+                                    cost_per_pcs: freezeLines.value.material.cost_per_pcs,
+                                    material_rate_per_kg: freezeLines.value.material.material_rate_per_kg,
+                                    kg_per_pcs: freezeLines.value.material.kg_per_pcs
+                                });
+                            }
+                            if (!rows.length) {
+                                freezeError.value = 'Nothing on this job is costed, so there is nothing to freeze.';
+                                return;
+                            }
+                            const { error } = await _supabase.from('joborder_cost_frozen').insert(rows);
+                            if (error) throw error;
+
+                            await _supabase.from('cost_history').insert({
+                                part_no: nk(j.part_no) || null, cost_type: 'FREEZE', action: 'INSERT',
+                                unit: 'RM/pc', ref,
+                                old_value: null,
+                                new_value: rows.reduce((t, r) => t + Number(r.cost_per_pcs), 0),
+                                changed_by: who.p.name, changed_by_position: who.p.position || null
+                            });
+                            freezeOk.value = `Frozen — ${rows.length} line(s) copied onto ${j.jo_number}.`;
+                        } else {
+                            const { error } = await _supabase.from('joborder_cost_frozen').delete()
+                                .eq('jo_number', j.jo_number).eq('part_name', j.part_name);
+                            if (error) throw error;
+                            await _supabase.from('cost_history').insert({
+                                part_no: nk(j.part_no) || null, cost_type: 'UNFREEZE', action: 'DELETE',
+                                unit: 'RM/pc', ref,
+                                old_value: Number(j.cost_per_pcs_all) + Number(j.material_cost_per_pcs),
+                                new_value: null,
+                                changed_by: who.p.name, changed_by_position: who.p.position || null
+                            });
+                            freezeOk.value = `Unfrozen — ${j.jo_number} is valued at today's rates again.`;
+                        }
+
+                        pin.value = '';
+                        await reloadKeepingOtherDrafts(null);
+                        freezeModal.value = null;
+                    } catch (e) {
+                        console.error('Freeze failed', e);
+                        freezeError.value = (e.code === '23505')
+                            ? 'This job is already frozen — refresh the page.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                onMounted(async () => { await resolveAccess(); await loadAll(); });
+
+                return {
+                    CURRENCY, TRAIL_N, filters, pageTitle, pageSub,
+                    loading, loadError, saving, accessLevel, canWrite, railUser, loadAll,
+                    mode, search, filterMode, filterCount, masterStats,
+                    partsRaw, allParts, partList, isPartDirty, dirtyParts, dirtyTotal,
+                    matSearch, matFilter, materials, materialList, ratedCount,
+                    card, cardPartNo, tab, openCard, openFromTrail, closeCard, discardCard,
+                    draft, draftRem, matDraft, fieldErr, matErr, isDirty, matDirty, overrideOn,
+                    plan, cardDirty, draftMaterialCost, draftMaterialState, draftProcess,
+                    draftTotal, draftCosted, draftIncomplete, cardHistory,
+                    railTrail, trailHead, trailWhat, trailMove,
+                    qty, qtyNum, cutStep, calcRev, calcWithMaterial, calcSteps,
+                    savedMaterial, savedGrandTotal, wipPerPc,
+                    joSearch, joFilter, withMaterial, joList, joTotals, openJobCount,
+                    joDonePerPc, joWip, joFull,
+                    rateModal, rateDraft, rateError, rateOk, rateHistory,
+                    openRate, openRateForCard, saveRate,
+                    freezeModal, freezeError, freezeOk, freezeLines, openFreeze, doFreeze,
+                    people, byName, pin, formError, okMsg, save,
+                    money2, money4, fmtInt, shortDate
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

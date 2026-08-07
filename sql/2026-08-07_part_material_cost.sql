@@ -1,0 +1,471 @@
+-- 2026-08-07  Material cost joins process cost, and the two share one trail.
+--
+-- Follows 2026-08-07_process_cost.sql, which costed the routing and nothing else. A part that
+-- costs RM 2.40 to machine but starts life as a 3-metre bar of SUS303 is not a part that costs
+-- RM 2.40, and a work-in-progress figure that counts the machining while ignoring the steel the
+-- floor is holding understates what is actually tied up. This file adds the material side.
+--
+-- WHERE THE MATERIAL COMES FROM, AND WHERE THE COST DOES NOT.
+--   Parts already names the material on every one of its 235 rows: Raw_Material on all 235,
+--   Raw_Material_Grade on 234, Raw_Material_Size on all 235. That is read, never re-typed - the
+--   part master is where somebody decides a part is made from SUS303 and this file does not offer
+--   a second place to say so.
+--
+--   What Parts does not carry is a price, and neither does RawMaterialStock: it has kg_per_pc but
+--   no rate per kg anywhere in the schema. So the number is entered, once per part number, as a
+--   cost per piece - the same unit as a process cost, so the two add up without a conversion in
+--   between. A rate per kg times a weight per piece would be the better model the day a purchase
+--   price lands in RawMaterialStock; cost_per_pcs is what that model would fill in, so nothing
+--   here has to change shape when it does.
+--
+-- ONE COST PER PART NUMBER, AND A NOTE OF WHAT IT WAS QUOTED AGAINST.
+--   Keyed on part number, exactly as process cost is, so all revisions of a number share it. Of
+--   the ten part numbers carrying more than one revision, one - 120059 - names a different
+--   material on different revisions. That is a real difference and the screen flags it rather
+--   than averaging it away.
+--
+--   The material and grade the cost was entered against are stored alongside it. Not as a second
+--   source of truth - Parts stays authoritative and the screens read it - but so that a part
+--   whose material is later changed in the master shows its cost as stale instead of silently
+--   pricing SUS303 at the cost of mild steel.
+--
+-- ONE TRAIL FOR BOTH.
+--   process_cost_history becomes part_cost_history and grows a cost_type. A person asking "who
+--   changed the cost of this part and when" is not asking two questions, and two tables would
+--   make them read two lists and merge the dates by eye. The table is empty at the time of this
+--   rename, so nothing is migrated and nothing can be lost.
+--
+-- Safe to re-run. Preserves every existing row.
+--
+-- Run as the table owner, AFTER 2026-08-07_process_cost.sql:
+--   docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+--       < sql/2026-08-07_part_material_cost.sql
+
+begin;
+
+-- ---------------------------------------------------------------------
+-- 1. One trail for both kinds of cost
+-- ---------------------------------------------------------------------
+
+do $$
+begin
+    if exists (select 1 from information_schema.tables
+                where table_schema = 'public' and table_name = 'process_cost_history')
+       and not exists (select 1 from information_schema.tables
+                        where table_schema = 'public' and table_name = 'part_cost_history')
+    then
+        execute 'alter table process_cost_history rename to part_cost_history';
+    end if;
+end $$;
+
+alter table part_cost_history add column if not exists cost_type text not null default 'PROCESS';
+
+-- Null for a material change: material is not a step of the routing and inventing a process name
+-- for it would put a row in the trail that reads like a process nobody can find on the part.
+alter table part_cost_history alter column process_name drop not null;
+
+alter table part_cost_history drop constraint if exists part_cost_history_kind_ck;
+alter table part_cost_history
+    add constraint part_cost_history_kind_ck check (
+        case cost_type
+            when 'PROCESS'  then process_name is not null
+            when 'MATERIAL' then process_name is null
+            else false
+        end
+    );
+
+comment on table part_cost_history is
+    'Append-only trail of every change to a part''s costs, of either kind. cost_type PROCESS '
+    'carries the process_name it applied to; MATERIAL carries null, because raw material is not '
+    'a step of the routing. Read to answer "who set this and when" - calculations always use the '
+    'live figure. Was process_cost_history until 2026-08-07, renamed while empty.';
+comment on column part_cost_history.cost_type is
+    'PROCESS or MATERIAL. Existing rows default to PROCESS, which is what they all were.';
+
+create index if not exists part_cost_history_type_idx
+    on part_cost_history (cost_type, changed_at desc);
+
+-- ---------------------------------------------------------------------
+-- 2. The material cost
+-- ---------------------------------------------------------------------
+
+create table if not exists part_material_cost (
+    id                   bigint generated by default as identity primary key,
+    part_no              text           not null,
+    cost_per_pcs         numeric(12,4)  not null,
+    -- What the figure was quoted against, snapshotted from Parts at entry. Parts stays the
+    -- authority on what the part is made of; this is only here so a later change there can be
+    -- noticed rather than quietly inherited.
+    costed_material      text,
+    costed_grade         text,
+    remarks              text,
+    created_at           timestamptz    not null default now(),
+    updated_at           timestamptz    not null default now(),
+    updated_by           text,
+    updated_by_position  text,
+
+    constraint part_material_cost_part_no_ck check (btrim(part_no) <> ''),
+    -- Zero is a real answer - material supplied free by the customer is a live arrangement here -
+    -- and is not the same as no row, which means nobody has costed it.
+    constraint part_material_cost_amount_ck  check (cost_per_pcs >= 0)
+);
+
+comment on table part_material_cost is
+    'Raw material cost per finished piece, one row per part number. Read together with '
+    'process_cost: a part''s cost per piece is this plus the sum of its routing steps. What the '
+    'part is made of is not stored here - Parts.Raw_Material is the authority - only what the '
+    'cost was quoted against, so a change of material shows up as stale rather than as a wrong '
+    'number nobody notices.';
+
+comment on column part_material_cost.cost_per_pcs is
+    'Currency amount of raw material per finished piece, 4 decimal places. Per piece rather than '
+    'per kg because there is no purchase rate anywhere in this schema to convert from - '
+    'RawMaterialStock carries kg_per_pc and no price. Scrap, offcut and cutting allowance are '
+    'whatever the person entering it decided they are; nothing here derives it.';
+comment on column part_material_cost.costed_material is
+    'Parts.Raw_Material as it read when this cost was entered. Compared against the live value to '
+    'flag a cost quoted for a material the part is no longer made from.';
+
+create unique index if not exists part_material_cost_part_uidx
+    on part_material_cost (btrim(part_no));
+
+-- ---------------------------------------------------------------------
+-- 3. Triggers
+-- ---------------------------------------------------------------------
+
+create or replace function part_material_cost_normalise() returns trigger
+    language plpgsql as $$
+begin
+    new.part_no         := btrim(new.part_no);
+    new.costed_material := nullif(btrim(coalesce(new.costed_material, '')), '');
+    new.costed_grade    := nullif(btrim(coalesce(new.costed_grade, '')), '');
+    new.remarks         := nullif(btrim(coalesce(new.remarks, '')), '');
+    new.updated_at      := now();
+    return new;
+end $$;
+
+drop trigger if exists part_material_cost_normalise_trg on part_material_cost;
+create trigger part_material_cost_normalise_trg
+    before insert or update on part_material_cost
+    for each row execute function part_material_cost_normalise();
+
+create or replace function part_material_cost_log() returns trigger
+    language plpgsql as $$
+begin
+    if tg_op = 'INSERT' then
+        insert into part_cost_history
+            (cost_id, part_no, process_name, cost_type, action,
+             old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+        values (new.id, new.part_no, null, 'MATERIAL', 'INSERT',
+                null, new.cost_per_pcs, new.updated_by, new.updated_by_position);
+        return new;
+
+    elsif tg_op = 'UPDATE' then
+        -- The delete path stamps updated_by and nothing else; that stamp must not become a
+        -- history row claiming the cost moved. Same reasoning as process_cost_log().
+        if new.cost_per_pcs is distinct from old.cost_per_pcs
+           or new.remarks is distinct from old.remarks then
+            insert into part_cost_history
+                (cost_id, part_no, process_name, cost_type, action,
+                 old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+            values (new.id, new.part_no, null, 'MATERIAL', 'UPDATE',
+                    old.cost_per_pcs, new.cost_per_pcs, new.updated_by, new.updated_by_position);
+        end if;
+        return new;
+
+    else
+        insert into part_cost_history
+            (cost_id, part_no, process_name, cost_type, action,
+             old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+        values (null, old.part_no, null, 'MATERIAL', 'DELETE',
+                old.cost_per_pcs, null, old.updated_by, old.updated_by_position);
+        return old;
+    end if;
+end $$;
+
+drop trigger if exists part_material_cost_log_trg on part_material_cost;
+create trigger part_material_cost_log_trg
+    after insert or update or delete on part_material_cost
+    for each row execute function part_material_cost_log();
+
+-- The process trigger, repointed at the renamed table and stamping its own cost_type.
+create or replace function process_cost_log() returns trigger
+    language plpgsql as $$
+begin
+    if tg_op = 'INSERT' then
+        insert into part_cost_history
+            (cost_id, part_no, process_name, cost_type, action,
+             old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+        values (new.id, new.part_no, new.process_name, 'PROCESS', 'INSERT',
+                null, new.cost_per_pcs, new.updated_by, new.updated_by_position);
+        return new;
+
+    elsif tg_op = 'UPDATE' then
+        if new.cost_per_pcs is distinct from old.cost_per_pcs
+           or new.remarks is distinct from old.remarks then
+            insert into part_cost_history
+                (cost_id, part_no, process_name, cost_type, action,
+                 old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+            values (new.id, new.part_no, new.process_name, 'PROCESS', 'UPDATE',
+                    old.cost_per_pcs, new.cost_per_pcs, new.updated_by, new.updated_by_position);
+        end if;
+        return new;
+
+    else
+        insert into part_cost_history
+            (cost_id, part_no, process_name, cost_type, action,
+             old_cost_per_pcs, new_cost_per_pcs, changed_by, changed_by_position)
+        values (null, old.part_no, old.process_name, 'PROCESS', 'DELETE',
+                old.cost_per_pcs, null, old.updated_by, old.updated_by_position);
+        return old;
+    end if;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 4. The rollups, with material in them
+-- ---------------------------------------------------------------------
+--
+-- v_part_process_cost is unchanged - it is the routing, and material is not a routing step.
+-- Everything that adds the two together happens here.
+
+drop view if exists v_joborder_wip_cost;
+drop view if exists v_part_cost_summary;
+
+create view v_part_cost_summary
+    with (security_invoker = true) as
+select s.part_row_id,
+       s.part_no,
+       max(s.part_name)                              as part_name,
+       max(s.revision)                               as revision,
+       max(s.raw_material)                           as raw_material,
+       max(s.raw_material_grade)                     as raw_material_grade,
+       max(s.raw_material_size)                      as raw_material_size,
+
+       count(s.process_name)::int                    as steps,
+       count(s.cost_id)::int                         as steps_costed,
+       (count(s.process_name) - count(s.cost_id))::int as steps_uncosted,
+
+       -- Kept apart on purpose. A part can be fully costed for machining and have no material
+       -- figure at all, and a total that hides which half is missing is the failure this whole
+       -- screen exists to avoid.
+       coalesce(sum(s.cost_per_pcs), 0)::numeric(12,4)      as cost_per_pcs_process,
+       coalesce(max(s.material_cost), 0)::numeric(12,4)     as cost_per_pcs_material,
+       (coalesce(sum(s.cost_per_pcs), 0)
+        + coalesce(max(s.material_cost), 0))::numeric(12,4) as cost_per_pcs_total,
+
+       bool_or(s.material_cost is not null)          as material_costed,
+       (count(s.process_name) > 0
+        and count(s.process_name) = count(s.cost_id)) as process_fully_costed,
+       (count(s.process_name) > 0
+        and count(s.process_name) = count(s.cost_id)
+        and bool_or(s.material_cost is not null))     as fully_costed,
+
+       -- The cost was quoted against a material the part is no longer made from. One flag, not a
+       -- correction: which of the two is right is a person's call.
+       bool_or(s.material_cost is not null
+               and s.costed_material is distinct from nullif(btrim(s.raw_material), ''))
+                                                     as material_changed,
+       max(s.costed_material)                        as costed_material,
+       bool_and(s.routing_readable)                  as routing_readable
+  from (
+        select v.*,
+               p."Raw_Material"       as raw_material,
+               p."Raw_Material_Grade" as raw_material_grade,
+               p."Raw_Material_Size"  as raw_material_size,
+               m.cost_per_pcs         as material_cost,
+               m.costed_material
+          from v_part_process_cost v
+          join "Parts" p on p.id = v.part_row_id
+          left join part_material_cost m on m.part_no = v.part_no
+       ) s
+ group by s.part_row_id, s.part_no;
+
+comment on view v_part_cost_summary is
+    'One row per Parts row: its routing steps, how many are costed, its material cost, and the '
+    'three per-piece figures those produce. cost_per_pcs_total is only the whole cost of the part '
+    'when fully_costed is true - which requires every step costed AND a material figure. '
+    'material_changed means the material cost was quoted against something the part master no '
+    'longer says the part is made of.';
+
+grant select on v_part_cost_summary to anon, authenticated;
+
+-- Work in progress, from the job orders that are open.
+--
+-- MATERIAL IS REPORTED BESIDE THE PROCESSING, NOT INSIDE IT. Whether the steel counts as work in
+-- progress depends on whether it has been issued to the floor, and nothing in JobOrder records
+-- that - Material_ID names which stock row a job draws on, not that it has been drawn. So
+-- wip_value stays what it was, purely the processing put in, and material_value sits next to it
+-- for whoever wants the two added. The screen makes that an explicit choice rather than a
+-- silent assumption; a job not yet started would otherwise jump from nothing to the full cost of
+-- its bar stock on the strength of a foreign key.
+
+create view v_joborder_wip_cost
+    with (security_invoker = true) as
+with steps as (
+    select j."JO_Number"                                              as jo_number,
+           j."Part_Name"                                              as part_name,
+           -- The last parenthesised group of Part_Name. Resolves on 843 of 898 rows; the rest
+           -- nest brackets and are left null rather than guessed at.
+           btrim(substring(j."Part_Name" from '\(([^()]+)\)\s*$'))    as part_no,
+           btrim(j."Process")                                         as process_name,
+           case when btrim(coalesce(j."Quantity", '')) ~ '^[0-9]+(\.[0-9]+)?$'
+                then btrim(j."Quantity")::numeric end                 as qty,
+           (j."Status" = 'Completed')                                 as step_done,
+           j.completed_at,
+           c.id                                                       as cost_id,
+           c.cost_per_pcs
+      from "JobOrder" j
+      left join process_cost c
+             on c.part_no = btrim(substring(j."Part_Name" from '\(([^()]+)\)\s*$'))
+            and upper(c.process_name) = upper(btrim(j."Process"))
+),
+rolled as (
+    select jo_number,
+           part_name,
+           part_no,
+           max(qty)                                             as qty,
+           (min(qty) is distinct from max(qty))                 as qty_inconsistent,
+           count(*)::int                                        as steps,
+           count(*) filter (where step_done)::int               as steps_done,
+           count(cost_id)::int                                  as steps_costed,
+           count(*) filter (where step_done and cost_id is null)::int as steps_done_uncosted,
+           coalesce(sum(cost_per_pcs) filter (where step_done), 0)::numeric(12,4) as cost_per_pcs_done,
+           coalesce(sum(cost_per_pcs), 0)::numeric(12,4)        as cost_per_pcs_all,
+           (count(*) = count(*) filter (where step_done))       as all_done,
+           (count(*) = count(cost_id))                          as process_fully_costed,
+           max(completed_at)                                    as last_completed_at
+      from steps
+     group by jo_number, part_name, part_no
+)
+select r.jo_number,
+       r.part_name,
+       r.part_no,
+       r.qty,
+       r.qty_inconsistent,
+       r.steps,
+       r.steps_done,
+       r.steps_costed,
+       r.steps_done_uncosted,
+       r.cost_per_pcs_done,
+       r.cost_per_pcs_all,
+       coalesce(m.cost_per_pcs, 0)::numeric(12,4)               as material_cost_per_pcs,
+       (m.cost_per_pcs is not null)                             as material_costed,
+
+       (r.qty * r.cost_per_pcs_done)::numeric(14,2)             as wip_value,
+       (r.qty * r.cost_per_pcs_all)::numeric(14,2)              as full_value,
+       (r.qty * coalesce(m.cost_per_pcs, 0))::numeric(14,2)     as material_value,
+       (r.qty * (r.cost_per_pcs_done + coalesce(m.cost_per_pcs, 0)))::numeric(14,2)
+                                                                as wip_value_with_material,
+       (r.qty * (r.cost_per_pcs_all + coalesce(m.cost_per_pcs, 0)))::numeric(14,2)
+                                                                as full_value_with_material,
+
+       r.all_done,
+       r.process_fully_costed,
+       (r.process_fully_costed and m.cost_per_pcs is not null)   as fully_costed,
+       r.last_completed_at
+  from rolled r
+  left join part_material_cost m on m.part_no = r.part_no;
+
+comment on view v_joborder_wip_cost is
+    'One row per job order and part - not per job order, because 34 of the 141 JO numbers carry '
+    'more than one part. wip_value is quantity times the per-piece cost of the steps already '
+    'marked Completed, processing only. material_value is the raw material for the same quantity, '
+    'reported separately because nothing records whether it has been issued to the floor; '
+    'wip_value_with_material adds the two for callers who want that.';
+
+comment on column v_joborder_wip_cost.material_value is
+    'Quantity times the part''s material cost per piece. Not added into wip_value: this system '
+    'has no record of material actually being issued against a job, so counting it as work in '
+    'progress would value an unstarted job at the full cost of its bar stock.';
+
+grant select on v_joborder_wip_cost to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 5. RLS
+-- ---------------------------------------------------------------------
+--
+-- Same shape and the same trade-off as 2026-08-07_process_cost.sql section 7 and
+-- 2026-08-05_tooling_access.sql section 5: this application arrives on the shared anon key, so
+-- `to authenticated` policies evaluate false and every read returns [].
+
+alter table part_material_cost enable row level security;
+
+drop policy if exists part_material_cost_read  on part_material_cost;
+drop policy if exists part_material_cost_write on part_material_cost;
+create policy part_material_cost_read  on part_material_cost
+    for select to anon, authenticated using (true);
+create policy part_material_cost_write on part_material_cost
+    for all    to anon, authenticated using (true) with check (true);
+
+-- The trail's policies followed the table through the rename; these restate them under the new
+-- name so a re-run of this file alone is enough. Still no update or delete policy: a trail that
+-- can be edited is not a trail.
+drop policy if exists process_cost_history_read   on part_cost_history;
+drop policy if exists process_cost_history_insert on part_cost_history;
+drop policy if exists part_cost_history_read      on part_cost_history;
+drop policy if exists part_cost_history_insert    on part_cost_history;
+create policy part_cost_history_read   on part_cost_history
+    for select to anon, authenticated using (true);
+create policy part_cost_history_insert on part_cost_history
+    for insert to anon, authenticated with check (true);
+
+grant select, insert, update, delete on part_material_cost to anon, authenticated;
+grant select, insert                 on part_cost_history  to anon, authenticated;
+
+-- The identity sequences keep their original names through a table rename, so the trail's is
+-- still process_cost_history_id_seq. Granted by lookup rather than by name, so this is correct
+-- whether or not the rename has happened yet.
+do $$
+declare s text;
+begin
+    for s in
+        select quote_ident(seq.relname)
+          from pg_class seq
+          join pg_depend d      on d.objid = seq.oid and d.classid = 'pg_class'::regclass
+          join pg_class tbl     on tbl.oid = d.refobjid
+         where seq.relkind = 'S'
+           and tbl.relname in ('part_material_cost', 'part_cost_history')
+    loop
+        execute format('grant usage, select on sequence %s to anon, authenticated', s);
+    end loop;
+end $$;
+
+commit;
+
+notify pgrst, 'reload schema';
+
+-- =====================================================================
+--  NOTES
+-- =====================================================================
+--
+-- NOTE 1 - what a material cost per piece does not say.
+--   It is one number covering the bar, the offcut and whatever cutting allowance the person
+--   entering it decided to include. Nothing here derives it from Raw_Material_Size, and nothing
+--   checks it against RawMaterialStock.kg_per_pc, because there is no purchase price in this
+--   schema to check against. When one exists, the honest version is rate per kg times kg per
+--   piece, and it fills this same column.
+--
+-- NOTE 2 - the one part whose revisions disagree.
+--   120059 names a different material on different revisions. Cost is keyed to the part number,
+--   so both revisions read the same figure, and v_part_cost_summary.material_changed goes true on
+--   whichever revision does not match what the cost was quoted against. That is a prompt for
+--   somebody to look, not a fault in the key: splitting material cost by revision would leave the
+--   other 219 part numbers re-entering an unchanged number every time a drawing revises.
+--
+-- NOTE 3 - verify:
+--   select count(*) from part_material_cost;                                   -- 0 to start
+--   select count(*) from v_part_cost_summary;                                  -- 235
+--   select count(*) from v_part_cost_summary where raw_material is not null;    -- 235
+--   select count(*) from v_part_cost_summary where fully_costed;                -- 0, until costs exist
+--   select count(*) from v_joborder_wip_cost;                                   -- 210
+--   select cost_type, count(*) from part_cost_history group by 1;               -- PROCESS only, to start
+--   -- material trail, insert / change / delete:
+--   insert into part_material_cost (part_no, cost_per_pcs, costed_material, updated_by)
+--        values ('TESTPN', 1.25, 'MILD STEEL', 'tester');
+--   update part_material_cost set cost_per_pcs = 1.40, updated_by = 'tester' where part_no='TESTPN';
+--   delete from part_material_cost where part_no = 'TESTPN';
+--   select cost_type, action, old_cost_per_pcs, new_cost_per_pcs, process_name
+--     from part_cost_history where part_no = 'TESTPN' order by id;
+--        -- MATERIAL | INSERT | null | 1.2500 | null
+--        -- MATERIAL | UPDATE | 1.2500 | 1.4000 | null
+--        -- MATERIAL | DELETE | 1.4000 | null | null
