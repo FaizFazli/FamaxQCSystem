@@ -251,6 +251,41 @@
             font-weight: bold;
         }
 
+        /* Accepted, but only because a point was conceded. A green a reader can tell
+           apart from a clean pass without having to look anything up. Hex must match
+           the export map in getAcceptanceMeta. */
+        .acc-conceded {
+            background-color: #0d9488;
+            color: var(--on-primary);
+            font-weight: bold;
+        }
+
+        .sa-mark {
+            display: inline-block;
+            margin-left: 4px;
+            padding: 0 4px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.25);
+            font-size: 0.75em;
+            letter-spacing: 0.04em;
+        }
+
+        .legend-sa {
+            margin-top: var(--space-3);
+            font-size: var(--fs-sm);
+            color: var(--text-muted);
+        }
+
+        .legend-sa .swatch {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 2px;
+            background: #0d9488;
+            vertical-align: -1px;
+            margin-right: 4px;
+        }
+
         .status-accept {
             background-color: var(--success);
             color: var(--on-primary);
@@ -352,6 +387,24 @@
         }
 
         // Helper to determine status based on 60% rule
+        // One JUSTIFICATION, used by the screen and by the export. They were built
+        // separately and had drifted — the export dropped the stop event the screen
+        // showed — which is how the same report comes to say two things. Whatever a
+        // reader sees on screen is now what lands in the workbook.
+        function buildJustification(row) {
+            const parts = [];
+            if (row.remarks && row.remarks.trim() !== "") parts.push(row.remarks.trim());
+            if (row.stopEvent) parts.push(row.stopEvent);
+            // The conceded points, in the wording the IPQC daily form already prints,
+            // so the two documents describe the same decision the same way. A green
+            // cell with nothing beside it leaves the reader guessing why a failing
+            // reading was accepted.
+            if (row.concededPoints && row.concededPoints.length) {
+                parts.push(`Special accept for point ${row.concededPoints.join(", ")}`);
+            }
+            return parts.join(" | ");
+        }
+
         function isRatioAccepted(ratioStr) {
             if (!ratioStr) return false;
             const [pass, total] = ratioStr.split("/").map(Number);
@@ -383,8 +436,13 @@
             return map[prefix] || { class: "m-default", hex: "FFEEEEEE" };
         }
 
-        function getAcceptanceMeta(ratioStr) {
+        // Green when accepted, red when not — and a third, distinct green when it is
+        // only accepted because a point was conceded in IPQC Verification. Passing on
+        // merit and passing on a concession are different facts about the shift, and a
+        // summary that paints them the same colour hides how often the shop concedes.
+        function getAcceptanceMeta(ratioStr, conceded) {
             const isPass = isRatioAccepted(ratioStr);
+            if (isPass && conceded) return { class: "acc-conceded", hex: "FF0D9488" };
             return {
                 class: isPass ? "acc-green" : "acc-red",
                 hex: isPass ? "FF10B981" : "FFEF4444",
@@ -420,6 +478,10 @@
                         remarks: row.Remarks? remarkEach : "",
                         stopEvent: null, // Initialize stopEvent
                         sets: {},
+                        // Points whose out-of-spec reading was conceded in IPQC
+                        // Verification. A Set, because the same point measured
+                        // every hour must be named once, not once per reading.
+                        concededPoints: new Set(),
                     };
                 }
 
@@ -436,7 +498,7 @@
 
                 // --- NORMAL READING LOGIC ---
                 if (!byDate[dateKey][groupKey].sets[timeKey]) {
-                    byDate[dateKey][groupKey].sets[timeKey] = { is_fail: false };
+                    byDate[dateKey][groupKey].sets[timeKey] = { is_fail: false, conceded: false };
                 }
 
                 const LSL = parseFloat(row.LSL_OK);
@@ -454,8 +516,21 @@
                     }
                 });
 
+                // A special accept is a concession granted in IPQC Verification against
+                // this exact reading: somebody with a name and a PIN decided the part
+                // ships despite the dimension being out. This report showing that as a
+                // reject contradicts the decision, so a conceded failure does not fail
+                // its set — it is recorded as conceded instead, and the point is named
+                // in the justification. Only THIS row's concession counts; another point
+                // failing in the same hour still fails the set.
                 if (rowHasFailure || (row.Status || "").toUpperCase().trim() === "NG") {
-                    byDate[dateKey][groupKey].sets[timeKey].is_fail = true;
+                    if (Number(row.special_accept) === 1) {
+                        byDate[dateKey][groupKey].sets[timeKey].conceded = true;
+                        byDate[dateKey][groupKey].concededPoints.add(
+                            row.Point_DWG_Zone || "Unknown");
+                    } else {
+                        byDate[dateKey][groupKey].sets[timeKey].is_fail = true;
+                    }
                 }
             });
 
@@ -465,11 +540,17 @@
                     .map((item) => {
                         const setsArray = Object.values(item.sets);
                         const totalSets = setsArray.length;
+                        // A conceded set is not is_fail, so it counts here — which is
+                        // the point. It is still counted separately below, so the row
+                        // can say it passed BY concession rather than passing cleanly.
                         const passSets = setsArray.filter((s) => !s.is_fail).length;
+                        const concededSets = setsArray.filter((s) => s.conceded && !s.is_fail).length;
 
                         return {
                             ...item, // This spreads 'stopEvent' into the final object
-                            acceptance: totalSets > 0 ? `${passSets}/${totalSets}` : "0/0"
+                            acceptance: totalSets > 0 ? `${passSets}/${totalSets}` : "0/0",
+                            concededSets,
+                            concededPoints: [...item.concededPoints].sort(),
                         };
                     })
                     .sort((a, b) => a.person.localeCompare(b.person) || a.machine.localeCompare(b.machine));
@@ -526,28 +607,22 @@
 
             let html = `<div class="report-section"><h2>DAILY IPQC SUMMARY REPORT</h2><div style="text-align:right; font-weight:bold; color:var(--text-muted); margin-bottom:10px;">DATE: ${date}</div>${summaryHtml}<div class="table-responsive"><table><thead><tr><th>MACHINE NO</th><th>P/N</th><th>PROCESS</th><th>OPERATOR</th><th>IPQC'S IN CHARGE</th><th>ACCEPTANCE</th><th>REMARKS</th><th>JUSTIFICATION</th></tr></thead><tbody>`;
 
+            let anyConceded = false;
+
             rows.forEach((row) => {
                 const mMeta = getMachineMeta(row.machine);
-                const aMeta = getAcceptanceMeta(row.acceptance);
+                const conceded = row.concededSets > 0;
+                const aMeta = getAcceptanceMeta(row.acceptance, conceded);
 
                 const calculatedStatus = isRatioAccepted(row.acceptance) ? "ACCEPT" : "REJECT";
                 const sClass = calculatedStatus === "ACCEPT" ? "status-accept" : "acc-red";
+                if (conceded && calculatedStatus === "ACCEPT") anyConceded = true;
 
-                // --- JUSTIFICATION LOGIC ---
-                let justificationParts = [];
+                const finalJustification = buildJustification(row);
 
-                // 1. Add manual Remarks if they exist
-                if (row.remarks && row.remarks.trim() !== "") {
-                    justificationParts.push(row.remarks.trim());
-                }
-
-                // 2. Add the Stop Event if it exists
-                if (row.stopEvent) {
-                    justificationParts.push(row.stopEvent);
-                }
-
-                // Join them with a separator
-                const finalJustification = justificationParts.join(" | ");
+                const saMark = (conceded && calculatedStatus === "ACCEPT")
+                    ? ` <span class="sa-mark" title="Accepted with a concession on point ${row.concededPoints.join(", ")}">SA</span>`
+                    : "";
 
                 html += `<tr>
       <td class="${mMeta.class}">${row.machine}</td>
@@ -555,151 +630,28 @@
       <td class="data-cell">${row.process}</td>
       <td class="data-cell"></td>
       <td class="data-cell" style="font-weight:600">${row.person}</td>
-      <td class="${aMeta.class}">${row.acceptance}</td>
+      <td class="${aMeta.class}">${row.acceptance}${saMark}</td>
       <td class="${sClass}">${calculatedStatus}</td>
-      <td class="data-cell">${finalJustification}</td> 
+      <td class="data-cell">${finalJustification}</td>
     </tr>`;
             });
-            return html + `</tbody></table></div>`;
-        }
 
-        async function exportToExcel() {
-            if (Object.keys(globalReportData).length === 0) return;
-            const workbook = new ExcelJS.Workbook();
-
-            for (const date of Object.keys(globalReportData).sort()) {
-                const sheet = workbook.addWorksheet(date);
-                const rows = globalReportData[date];
-
-                // Summary Section
-                sheet.addRow(["INSPECTION SUMMARY"]).font = { bold: true, size: 12 };
-
-                const pMap = {};
-                rows.forEach((r) => {
-                    if (!pMap[r.person]) pMap[r.person] = { mStatus: {} };
-                    const isAcc = isRatioAccepted(r.acceptance);
-                    if (pMap[r.person].mStatus[r.machine] === undefined) {
-                        pMap[r.person].mStatus[r.machine] = isAcc;
-                    } else if (!isAcc) {
-                        pMap[r.person].mStatus[r.machine] = false;
-                    }
-                });
-
-                sheet.addRow([
-                    "Name",
-                    "Machines Running",
-                    "Total Accept",
-                    "Total Reject",
-                ]).font = { bold: true };
-                for (const p in pMap) {
-                    const mList = Object.keys(pMap[p].mStatus);
-                    const total = mList.length;
-                    const acc = mList.filter((m) => pMap[p].mStatus[m] === true).length;
-                    const rej = total - acc;
-                    sheet.addRow([p, total, acc, rej]);
-                }
-                sheet.addRow([]);
-
-                // Data Table headers and rows (rest of logic remains same...)
-                const headerRow = sheet.addRow([
-                    "IPQC'S IN CHARGE",
-                    "MACHINE NO",
-                    "P/N",
-                    "PROCESS",
-                    "OPERATOR",
-                    "ACCEPTANCE ( /4)",
-                    "REMARKS",
-                    "JUSTIFICATION",
-                ]);
-                sheet.columns = [
-                    { key: "person", width: 20 },
-                    { key: "machine", width: 15 },
-                    { key: "pn", width: 25 },
-                    { key: "process", width: 15 },
-                    { key: "operator", width: 15 },
-                    { key: "acceptance", width: 18 },
-                    { key: "remarks", width: 15 },
-                    { key: "justification", width: 15 },
-                ];
-
-                headerRow.eachCell((cell) => {
-                    cell.font = { bold: true };
-                    cell.alignment = { vertical: "middle", horizontal: "center" };
-                    cell.border = {
-                        top: { style: "thin" },
-                        left: { style: "thin" },
-                        bottom: { style: "thin" },
-                        right: { style: "thin" },
-                    };
-                });
-
-                rows.forEach((r) => {
-                    const calculatedStatus = isRatioAccepted(r.acceptance)
-                        ? "ACCEPT"
-                        : "REJECT";
-                    const row = sheet.addRow([
-                        r.person,
-                        r.machine,
-                        r.pn,
-                        r.process,
-                        "",
-                        r.acceptance,
-                        calculatedStatus,
-                        r.remarks || "",
-                    ]);
-                    const mMeta = getMachineMeta(r.machine);
-                    const aMeta = getAcceptanceMeta(r.acceptance);
-
-                    row.getCell(2).fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: { argb: mMeta.hex },
-                    };
-                    [1, 3, 4, 5, 8].forEach(
-                        (idx) =>
-                        (row.getCell(idx).fill = {
-                            type: "pattern",
-                            pattern: "solid",
-                            fgColor: { argb: "FFCFE2F3" },
-                        })
-                    );
-
-                    row.getCell(6).fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: { argb: aMeta.hex },
-                    };
-                    row.getCell(6).font = { color: { argb: "FFFFFFFF" }, bold: true };
-
-                    const remarkColor =
-                        calculatedStatus === "ACCEPT" ? "FF10B981" : "FFEF4444";
-                    row.getCell(7).fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: { argb: remarkColor },
-                    };
-                    row.getCell(7).font = { color: { argb: "FFFFFFFF" }, bold: true };
-
-                    row.eachCell((cell) => {
-                        cell.border = {
-                            top: { style: "thin" },
-                            left: { style: "thin" },
-                            bottom: { style: "thin" },
-                            right: { style: "thin" },
-                        };
-                        cell.alignment = { vertical: "middle", horizontal: "center" };
-                    });
-                });
+            html += `</tbody></table></div>`;
+            if (anyConceded) {
+                html += `<p class="legend-sa"><span class="swatch"></span>
+          <strong>SA</strong> — accepted with a special accept granted in IPQC Verification.
+          The reading was out of spec and somebody signed for it; the point is named in
+          JUSTIFICATION.</p>`;
             }
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(new Blob([buffer]));
-            link.download = `IPQC_Summary_Report_${dayjs().format(
-                "YYYYMMDD"
-            )}.xlsx`;
-            link.click();
+            return html;
         }
+
+        // NOTE: a second, identical-named exportToExcel() used to sit here. Two
+        // function declarations with one name means the later one wins, so this copy
+        // had never run — and it was the copy that filled the JUSTIFICATION column.
+        // Removed rather than merged: the live one below is what the workbook has
+        // actually looked like, and it now fills JUSTIFICATION too.
+
 
         async function generateReport() {
             const dateInput = document.getElementById("reportDate").value;
@@ -810,24 +762,34 @@
                     const calculatedStatus = isRatioAccepted(r.acceptance)
                         ? "ACCEPT"
                         : "REJECT";
+                    const conceded = r.concededSets > 0 && calculatedStatus === "ACCEPT";
                     const row = sheet.addRow([
                         r.person,
                         r.machine,
                         r.pn,
                         r.process,
                         "",
-                        r.acceptance,
+                        // "(SA)" rather than a badge: a workbook cell has no room for
+                        // markup, and colour alone does not survive a black-and-white
+                        // printout of a quality record.
+                        conceded ? `${r.acceptance} (SA)` : r.acceptance,
                         calculatedStatus,
+                        // The eighth column. The header has always said JUSTIFICATION
+                        // and the cell was never written, so every workbook exported
+                        // from here has had an empty column under it.
+                        buildJustification(r),
                     ]);
                     const mMeta = getMachineMeta(r.machine);
-                    const aMeta = getAcceptanceMeta(r.acceptance);
+                    const aMeta = getAcceptanceMeta(r.acceptance, conceded);
 
                     row.getCell(2).fill = {
                         type: "pattern",
                         pattern: "solid",
                         fgColor: { argb: mMeta.hex },
                     };
-                    [1, 3, 4, 5].forEach(
+                    // 8 included now that JUSTIFICATION carries a value — it was left
+                    // out of this list because the cell was always blank.
+                    [1, 3, 4, 5, 8].forEach(
                         (idx) =>
                         (row.getCell(idx).fill = {
                             type: "pattern",

@@ -134,9 +134,11 @@
         /* The one field on this form anybody types into. Sized to the column
            and stripped of its spinner, because a spinner inside a 55px cell
            leaves no room for three digits. */
+        /* Wider than it was, and no spinner rules: this is a text box now, so a
+           word like ALL has to fit and there is no number widget to suppress. */
         .qty-input {
             width: 100%;
-            max-width: 60px;
+            max-width: 74px;
             padding: 1px 2px;
             font-family: var(--font-sans);
             font-size: 10px;
@@ -146,13 +148,6 @@
             background: #fffbeb;
             border: 1px solid #fcd34d;
             border-radius: 3px;
-            -moz-appearance: textfield;
-        }
-
-        .qty-input::-webkit-outer-spin-button,
-        .qty-input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
         }
 
         .qty-input:focus {
@@ -464,11 +459,15 @@
                             <td class="p-0">
                                 <div class="sub-row-container">
                                     <div v-for="d in row.defects" :key="d.id" class="sub-row-item">
-                                        <input type="number" min="0" step="1" class="qty-input"
+                                        <!-- Text, not a number. The true answer is often ALL —
+                                             the run was never segregated, so the whole lot is
+                                             suspect — and a number input cannot say it. -->
+                                        <input type="text" inputmode="text" class="qty-input"
                                             :class="{ 'is-saving': saving[d.id], 'is-error': failed[d.id] }"
                                             :value="d.affected_qty"
                                             @change="saveQty(d, $event.target)"
-                                            :title="failed[d.id] || 'Parts affected by this point'">
+                                            list="affectedQtyOptions"
+                                            :title="failed[d.id] || 'Parts affected by this point — a count, or ALL'">
                                     </div>
                                 </div>
                             </td>
@@ -508,6 +507,14 @@
                 </table>
             </div>
         </div>
+
+        <!-- Suggestion, not a restriction: the box takes any text. ALL is offered
+             because it is the answer people reach for when a run was never
+             segregated, and typing it should not depend on remembering the
+             spelling this screen folds to. -->
+        <datalist id="affectedQtyOptions">
+            <option value="ALL"></option>
+        </datalist>
 
         <div class="footer mt-8 no-print text-center text-xs text-gray-400">
             © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
@@ -692,14 +699,23 @@
                 });
 
                 // Blanking the box means "not answered yet", which is null, not
-                // 0 — nobody has counted rather than nothing was affected.
+                // 0 — nobody has counted rather than nothing was affected. ALL is
+                // a third answer again: the run was not segregated, so the whole
+                // lot is suspect and there is no number to give.
                 const saveQty = async (defect, input) => {
                     const raw = input.value.trim();
-                    const value = raw === '' ? null : Math.trunc(Number(raw));
+                    let value = raw === '' ? null : raw;
 
-                    if (value !== null && (!Number.isFinite(value) || value < 0)) {
-                        failed[defect.id] = 'Enter a whole number of parts, 0 or more.';
-                        return;
+                    if (value !== null) {
+                        // Case-fold only the keyword. Anything else is left exactly as
+                        // written — it is a person's note on a controlled form, and this
+                        // is not the place to decide what wording is allowed.
+                        if (value.toUpperCase() === 'ALL') value = 'ALL';
+                        else if (/^\d+$/.test(value)) value = String(parseInt(value, 10));
+                        else if (/^-/.test(value)) {
+                            failed[defect.id] = 'A quantity cannot be negative.';
+                            return;
+                        }
                     }
 
                     delete failed[defect.id];
@@ -707,6 +723,10 @@
                     try {
                         await api.patch(`/Data_IPQC?id=eq.${defect.id}`, { affected_qty: value });
                         defect.affected_qty = value;
+                        // The box shows what was stored, not what was typed — "all"
+                        // is saved as ALL and leading spaces are gone, and a field
+                        // that keeps displaying the typed form is lying about the row.
+                        input.value = value ?? '';
                         // Keep the fetched copy in step, so a re-render from a
                         // search or a month re-read does not resurrect the old
                         // number without going back to the database.
