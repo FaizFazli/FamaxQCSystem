@@ -588,6 +588,24 @@
       white-space: nowrap;
     }
 
+    /* A point with no drawing number. The chip stops looking like an identifier,
+       because "N/A" in the same blue as a real point number reads as one. */
+    .zone-chip--missing {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .zone-blocked {
+      margin-bottom: 1rem;
+      padding: 12px 14px;
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #92400e;
+    }
+
     /* --- INPUTS --- */
     .input-wrapper {
       margin-bottom: 1rem;
@@ -1301,11 +1319,23 @@
         const zoneElement = document.createElement('div');
         zoneElement.className = 'zone-card';
 
+        const hasPoint = !!String(currentZone.Point_DWG_Zone ?? '').trim();
+
         zoneElement.innerHTML = `
                     <div class="zone-header">
                         <h3 class="zone-title">Zone ${currentZoneIndex + 1} <span class="zone-count">of ${ipqcData.length}</span></h3>
-                        <span class="zone-chip">${currentZone.Point_DWG_Zone || 'N/A'}</span>
+                        <span class="zone-chip${hasPoint ? '' : ' zone-chip--missing'}">${hasPoint ? currentZone.Point_DWG_Zone : 'NO POINT NO.'}</span>
                     </div>
+                    ${hasPoint ? '' : `
+                    <div class="zone-blocked">
+                        <strong>This point has no drawing point number.</strong>
+                        A reading saved against it could not be traced back to a feature —
+                        the Rejected Product Record lists points by number and the summary
+                        groups by it. Add the point number to this part's inspection guide
+                        (${partName} &middot; ${processName}) in the Data Editor, then reload
+                        this page. Readings can be typed, but this inspection cannot be
+                        carried forward until it is fixed.
+                    </div>`}
 
                     <div class="spec-grid">
                         <div class="spec-item">
@@ -1369,17 +1399,31 @@
         updateButtonStates();
       }
 
+      // A point with no drawing zone cannot be traced back to a feature. The
+      // measurement would land in Data_IPQC with a blank Point_DWG_Zone, where the
+      // Rejected Product Record lists points by zone and the summary groups by it —
+      // so it would be a reading nobody can say what was measured. Refuse to carry
+      // it forward instead, and say which guide row to fix.
+      //
+      // No active guide row is in this state today (0 of 4,057), so this is a net
+      // for one added later, or for an edit that blanks the field.
+      function currentZoneHasPoint() {
+        const z = ipqcData[currentZoneIndex];
+        return !!(z && String(z.Point_DWG_Zone ?? '').trim());
+      }
+
       function checkReadingsAndEnableButtons() {
         const reading1 = document.getElementById('reading-input-1')?.value.trim() || '';
         const reading2 = document.getElementById('reading-input-2')?.value.trim() || '';
         const reading3 = document.getElementById('reading-input-3')?.value.trim() || '';
 
         const allReadingsEntered = reading1 && reading2 && reading3 && personNameEntered;
+        const ready = allReadingsEntered && currentZoneHasPoint();
 
         if (currentZoneIndex === ipqcData.length - 1) {
-          submitButton.disabled = !allReadingsEntered;
+          submitButton.disabled = !ready;
         } else {
-          nextButton.disabled = !allReadingsEntered;
+          nextButton.disabled = !ready;
         }
       }
 
@@ -1532,6 +1576,22 @@
           reading2: document.getElementById('reading-input-2').value.trim(),
           reading3: document.getElementById('reading-input-3').value.trim()
         };
+
+        // Submit carries EVERY zone, not just the one on screen, so it is checked
+        // against all of them. The Next button only ever guards the current point,
+        // and a blank point number three zones back would otherwise ride along.
+        const noPoint = ipqcData
+          .map((z, i) => (String(z.Point_DWG_Zone ?? '').trim() ? null : i + 1))
+          .filter((n) => n !== null);
+        if (noPoint.length) {
+          alert(
+            `Zone ${noPoint.join(', ')} has no drawing point number, so this inspection ` +
+            `cannot be submitted.\n\nA reading with no point number cannot be traced back ` +
+            `to a feature. Add the point number to the inspection guide for ${partName} ` +
+            `(${processName}), then reload this page.`
+          );
+          return;
+        }
 
         const personName = personNameInput.value.trim();
         const key = personName.toUpperCase();

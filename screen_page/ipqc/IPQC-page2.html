@@ -203,6 +203,72 @@
             border-radius: 4px;
         }
 
+        /* Affected quantity — one box for the whole inspection, sitting under the
+           remark that explains it. Neutral rather than alarm-coloured: it is a
+           standing part of the form, not a warning, and a permanently red panel
+           stops being read after the second inspection of the day. */
+        .affected-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            padding: 0.85rem 1rem;
+            background: #fafafa;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .affected-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        /* Two classes deep on purpose: theme.css sets input[type="text"] to
+           width:100%, which is specificity 0,1,1 and beats a bare .affected-input.
+           A quantity box the width of the card reads as a free-text note. */
+        .affected-row .affected-input {
+            width: 130px;
+            max-width: 130px;
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            font-weight: 700;
+            text-align: center;
+            background: #fff;
+        }
+
+        .affected-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .affected-input.is-bad {
+            border-color: var(--error);
+            background: #fee2e2;
+        }
+
+        .affected-hint {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            flex: 1;
+            min-width: 190px;
+        }
+
+        /* On the printed/PDF copy the box is chrome; the value has to read as text. */
+        @media print {
+            .affected-input {
+                border: none;
+                background: transparent;
+                font-size: 0.9rem;
+            }
+        }
+
         /* Remarks Section */
         .remark-container {
             margin-top: 2rem;
@@ -520,9 +586,32 @@
                 </select>
                 <input type="text" id="remark-detail" class="remark-detail-input"
                     placeholder="Optional detail: point no, value, time (e.g. POINT 8 66.553)" />
+
+                <!-- One quantity for the whole inspection, next to the remark that
+                     explains it. A rejection is of the part, not of a dimension: a
+                     point drifting out is the reason, and the parts put at risk are
+                     the whole run in front of the inspector - not a share of it
+                     apportioned per zone. -->
+                <div class="affected-row">
+                    <label class="affected-label" for="affected-qty">Affected qty</label>
+                    <input type="text" id="affected-qty" class="affected-input"
+                        list="affectedQtyOptions" autocomplete="off" placeholder="e.g. 150" />
+                    <span class="affected-hint">
+                        How many parts this rejection covers. Enter <strong>ALL</strong> if the
+                        run was not segregated. Leave blank if nobody has counted yet — blank,
+                        0 and ALL are three different answers.
+                    </span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Suggestion, not a restriction: the box takes any text. ALL is offered
+         because it is the answer when a run was never segregated, and typing it
+         should not depend on remembering the spelling this page folds to. -->
+    <datalist id="affectedQtyOptions">
+        <option value="ALL"></option>
+    </datalist>
 
     <!-- Buttons outside print area -->
     <div class="container">
@@ -548,6 +637,24 @@
                 localStorage.getItem("summaryData") || "[]"
             );
 
+            // One affected quantity for the whole inspection, read off the single box
+            // beside the remark at submit time. It is not per zone: a rejection is of
+            // the part, and the same run is at risk whichever dimension drifted.
+            const affectedQtyBox = document.getElementById("affected-qty");
+            affectedQtyBox.addEventListener("change", () => {
+                const res = normaliseAffectedQty(affectedQtyBox.value);
+                if (res.error) {
+                    affectedQtyBox.classList.add("is-bad");
+                    affectedQtyBox.title = res.error;
+                    return;
+                }
+                affectedQtyBox.classList.remove("is-bad");
+                affectedQtyBox.title = "";
+                // Written back so the box shows what will be stored — "all" becomes
+                // ALL and 0250 becomes 250 before anyone submits.
+                affectedQtyBox.value = res.value ?? "";
+            });
+
             // --- 2. DISPLAY HEADER INFO ---
             document.getElementById("selected-part").textContent = partName || "Not provided";
             document.getElementById("selected-process").textContent = processName || "Not provided";
@@ -561,32 +668,15 @@
                 const zoneElement = document.createElement("div");
                 zoneElement.className = "zone-card";
 
-                // Validation Helpers
-                const checkExceeded = (val, min, max) => {
-                    if (val === "" || val === null || val === undefined) return false;
-                    const v = parseFloat(val);
-                    const l = parseFloat(min);
-                    const h = parseFloat(max);
-                    if (!isNaN(v) && !isNaN(l) && v < l) return true;
-                    if (!isNaN(v) && !isNaN(h) && v > h) return true;
-                    return false;
-                };
-
-                const checkTextExceeded = (val, okCriteria, ngCriteria) => {
-                    if (typeof val !== "string") return false;
-                    if (okCriteria && okCriteria.toLowerCase() === "ok" && val.toLowerCase() !== "ok") return true;
-                    if (ngCriteria && ngCriteria.toLowerCase() === "ng" && val.toLowerCase() === "ng") return true;
-                    return false;
-                };
-
+                // Out of spec is decided in one place — readingIsNG(), which mirrors
+                // the database's ipqc_reading_ng(). The two hand-rolled checks that
+                // used to live here disagreed with the one used at submit.
                 const generateCells = (tagType) => {
                     return ["Reading_1", "Reading_2", "Reading_3"]
                         .map((key) => {
                             const isHeader = tagType === "th";
                             const val = zone[key];
-                            const isErr =
-                                checkExceeded(val, zone.LSL_OK, zone.USL_NG) ||
-                                checkTextExceeded(val, zone.LSL_OK, zone.USL_NG);
+                            const isErr = readingIsNG(val, zone.LSL_OK, zone.USL_NG);
 
                             let className = "";
                             if (isErr) className = isHeader ? "exceeded" : "exceeded-value";
@@ -690,6 +780,22 @@
                 const personName = localStorage.getItem("personName") || "UnknownInspector";
                 const readings = JSON.parse(localStorage.getItem("summaryData") || "[]");
 
+                // Re-read the box rather than trusting the change event. Enter anywhere
+                // on this page clicks Finish, and a value typed and submitted with Enter
+                // never blurs, so change has not fired for it.
+                const qtyResult = normaliseAffectedQty(affectedQtyBox.value);
+                if (qtyResult.error) {
+                    affectedQtyBox.classList.add("is-bad");
+                    affectedQtyBox.title = qtyResult.error;
+                    alert(`Affected quantity: ${qtyResult.error}`);
+                    affectedQtyBox.focus();
+                    return;
+                }
+                affectedQtyBox.classList.remove("is-bad");
+                affectedQtyBox.title = "";
+                affectedQtyBox.value = qtyResult.value ?? "";
+                const affectedQtyValue = qtyResult.value;
+
                 btn.innerText = "Processing...";
                 btn.disabled = true;
 
@@ -697,21 +803,20 @@
                     const outOfSpecList = [];
 
                     // 3. Prepare Data for DB and Check for Out-of-Spec
-                    const rowsToInsert = readings.map(zone => {
+                    const rowsToInsert = readings.map((zone, index) => {
                         [1, 2, 3].forEach(num => {
                             const val = zone[`Reading_${num}`];
-
-                            // ONLY check and add to outOfSpecList if there is actually a value
-                            if (val !== "" && val !== null && val !== undefined) {
-                                if (!validateReading(val, zone.LSL_OK, zone.USL_NG)) {
-                                    outOfSpecList.push({
-                                        zone: zone.Point_DWG_Zone,
-                                        readingNum: num,
-                                        value: val,
-                                        min: zone.LSL_OK,
-                                        max: zone.USL_NG
-                                    });
-                                }
+                            // readingIsNG already treats blank as "not a failure" and a
+                            // STOP/DOWNTIME entry as "not a measurement", so neither
+                            // needs guarding for here.
+                            if (readingIsNG(val, zone.LSL_OK, zone.USL_NG)) {
+                                outOfSpecList.push({
+                                    zone: zone.Point_DWG_Zone,
+                                    readingNum: num,
+                                    value: val,
+                                    min: zone.LSL_OK,
+                                    max: zone.USL_NG
+                                });
                             }
                         });
 
@@ -729,7 +834,14 @@
                             Reading_1: zone.Reading_1,
                             Reading_2: zone.Reading_2,
                             Reading_3: zone.Reading_3,
-                            Remarks: remarkValue
+                            Remarks: remarkValue,
+                            // Repeated on every row of the submission, exactly as
+                            // Remarks and verify_status are, because Data_IPQC has no
+                            // batch key a per-inspection fact could hang off. The
+                            // consequence is that summing this column across rows
+                            // multiplies one rejection by its point count — the
+                            // per-inspection figure is one value repeated, not a total.
+                            affected_qty: affectedQtyValue
                         };
                     });
 
@@ -831,35 +943,58 @@
             });
         });
 
-        // Helper to check if a reading is within spec
-        function validateReading(reading, min, max) {
-            // 1. If there is no reading, don't treat it as Out of Spec (skip empty cells)
-            if (reading === null || reading === undefined || reading === "") return true;
+        // Is this reading a failure? The JavaScript half of ipqc_reading_ng(), the
+        // IMMUTABLE function Data_IPQC.is_ng is generated from. This page used to
+        // carry TWO different answers to that question — checkExceeded/
+        // checkTextExceeded for the red highlighting and validateReading for the
+        // alert — and they disagreed. One definition now, and it is the database's,
+        // because is_ng is what the Rejected Product Record and the IPQC Summary
+        // read. A screen that calls a point out of spec while the record does not
+        // is worse than either answer on its own.
+        //
+        // Two rules the old JavaScript did not have, both taken from the SQL:
+        //   * STOP and DOWNTIME are not measurements. A machine stop written into
+        //     the reading slots used to paint red and fire a Telegram alert.
+        //   * A variable spec is only judgeable when BOTH limits are numbers.
+        //     One-sided limits cannot be judged, so nothing is claimed about them.
+        function readingIsNG(reading, lsl, usl) {
+            const r = String(reading ?? "").trim();
+            if (r === "") return false;                       // blank is not a failure
+            const rl = r.toLowerCase();
+            if (rl === "stop" || rl === "downtime") return false;   // not a measurement
 
-            const rStr = String(reading).toLowerCase();
-            const minStr = String(min || "").toLowerCase();
-            const maxStr = String(max || "").toLowerCase();
+            const lo = String(lsl ?? "").trim().toLowerCase();
+            const hi = String(usl ?? "").trim().toLowerCase();
 
-            // 2. Handle Text-based specs (OK/NG or GO/NOGO)
-            // We check if the spec is actually "ok" or "go"
-            if (minStr === 'ok' || minStr === 'go') {
-                return rStr === 'ok' || rStr === 'go';
-            }
-            if (maxStr === 'ng' || maxStr === 'nogo') {
-                return rStr !== 'ng' && rStr !== 'nogo';
-            }
+            // Attribute specs: pass is OK/GO, anything else fails.
+            if (lo === "ok" || lo === "go") return !(rl === "ok" || rl === "go");
+            if (hi === "ng" || hi === "nogo") return rl === "ng" || rl === "nogo";
 
-            // 3. Handle Numeric-based specs
-            const readingValue = parseFloat(reading);
-            const minValue = parseFloat(min);
-            const maxValue = parseFloat(max);
+            // Variable specs. The leading-number match mirrors the SQL's substring(),
+            // so "34.02mm" is judged on 34.02 rather than discarded.
+            const lead = (s) => {
+                const m = String(s).trim().match(/^-?(?:\d+(?:\.\d+)?|\.\d+)/);
+                return m ? parseFloat(m[0]) : null;
+            };
+            const l = lead(lsl), h = lead(usl);
+            if (l === null || h === null) return false;       // not judgeable, claim nothing
 
-            // If limits are not numbers (and not the text "ok/ng" handled above), 
-            // we can't validate, so we assume it's OK to avoid false alarms.
-            if (isNaN(minValue) || isNaN(maxValue)) return true;
+            const v = lead(r);
+            if (v === null) return true;                      // a value where a number belongs
+            return v < l || v > h;
+        }
 
-            // Return true if value is within range
-            return !isNaN(readingValue) && readingValue >= minValue && readingValue <= maxValue;
+        // Blank means "nobody has said yet" — not zero, and not ALL. ALL is its own
+        // answer: the run was never segregated, so the whole lot is suspect and
+        // there is no number to give. Same three-way distinction the Rejected
+        // Product Record keeps, because both write the same column.
+        function normaliseAffectedQty(raw) {
+            const v = String(raw ?? "").trim();
+            if (v === "") return { value: null };
+            if (v.toUpperCase() === "ALL") return { value: "ALL" };
+            if (/^\d+$/.test(v)) return { value: String(parseInt(v, 10)) };
+            if (/^-/.test(v)) return { error: "A quantity cannot be negative." };
+            return { value: v };
         }
 
         // Telegram Alert Function
