@@ -322,6 +322,22 @@
                     // ws.getCell(11 + rowOffset, 17).value = dayRows[0].JO_Number || "";
                     ws.getCell(45 + rowOffset, 17).value = dayRows[0].Person || "";
                     ws.getCell(46 + rowOffset, 18).value = sheetName|| "";
+
+                    // U45 — a concession granted on any point PRINTED ON THIS BLOCK.
+                    // This form generator had never mentioned special_accept at all,
+                    // so a conceded reading printed red with nothing to say somebody
+                    // had signed for it. Scoped to the block's own points, because a
+                    // second form stacked below prints different points and must not
+                    // inherit page one's marker.
+                    const saOnThisBlock = sortedPts
+                        .slice(tableIdx * pointsPerTable, (tableIdx + 1) * pointsPerTable)
+                        .filter(pt => ptGroups[pt].some(r => Number(r.special_accept) === 1));
+                    if (saOnThisBlock.length) {
+                        const sa = ws.getCell(45 + rowOffset, 21);
+                        sa.value = "SPECIAL ACCEPT";
+                        sa.font = { color: { argb: "FFFF0000" }, bold: true };
+                        sa.alignment = { vertical: "middle", horizontal: "center" };
+                    }
                     ws.getCell(10 + rowOffset, 3).value = currentProcessNumber;
                     ws.getCell(10 + rowOffset, 5).value = totalProcessCount > 0 ? totalProcessCount : "";
 

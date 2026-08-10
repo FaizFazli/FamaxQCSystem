@@ -784,6 +784,17 @@
           if (blockRemarks.length) remarkLines.push(blockRemarks.join("; "));
           if (saPoints.length) remarkLines.push(`Special accept for point ${saPoints.join(", ")}`);
           ws.getCell(40 + rowOffset, 17).value = "Remark: " + remarkLines.join("\n");
+
+          // U45 — the marker, beside the VERIFIED BY signature block. The remark box
+          // above says WHICH points were conceded; this says THAT one was, where
+          // somebody signing the form is already looking. Offset with the block, so
+          // a second form stacked below carries its own marker and not page one's.
+          if (saPoints.length) {
+            const sa = ws.getCell(45 + rowOffset, 21);
+            sa.value = "SPECIAL ACCEPT";
+            sa.font = { color: { argb: "FFFF0000" }, bold: true };
+            sa.alignment = { vertical: "middle", horizontal: "center" };
+          }
         }
       });
 
