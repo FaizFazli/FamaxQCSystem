@@ -29,6 +29,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../../assets/app-config.js"></script>
+    <script src="../../assets/signer.js"></script>
     <style>
         body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
@@ -347,23 +348,23 @@
                     {{ effectText }}
                 </div>
 
-                <!-- Person: name from EmployeeTable, proven by that person's PIN.
-                     The PIN is checked here and never stored — same rule as the
-                     special accept in the Data Editor. -->
+                <!-- Person: the account already signed in, re-confirming with its own
+                     password. Not a name picked from a list — see assets/signer.js for
+                     why the EmployeeTable PIN it replaced proved nothing. The password
+                     is checked and never stored. -->
                 <div class="form-grid" style="margin-top:12px">
                     <div class="field">
-                        <label class="label">Recorded by *</label>
-                        <select class="input" v-model="form.by">
-                            <option value="">{{ people.length ? 'Select name…' : 'No PIN holders — set a PIN in EmployeeTable' }}</option>
-                            <option v-for="p in people" :key="p.name" :value="p.name">
-                                {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
-                            </option>
-                        </select>
+                        <label class="label">Recorded by</label>
+                        <input class="input" :value="signer.name || '—'" readonly
+                            :title="signer.error || 'The account you are signed in as'">
+                        <p v-if="!signer.ok" style="font-size:11px;color:#b45309;margin-top:4px">
+                            {{ signer.error }}
+                        </p>
                     </div>
                     <div class="field">
-                        <label class="label">PIN *</label>
-                        <input class="input" type="password" v-model="form.pin" autocomplete="off"
-                            @keyup.enter="submit">
+                        <label class="label">Your password *</label>
+                        <input class="input" type="password" v-model="form.password"
+                            autocomplete="current-password" @keyup.enter="submit">
                     </div>
                 </div>
 
@@ -455,12 +456,13 @@
         if (typeof Vue === 'undefined') { bootFailed('Vue did not load (unpkg.com).'); throw new Error('Vue missing'); }
         if (typeof supabase === 'undefined') { bootFailed('The Supabase client did not load (unpkg.com).'); throw new Error('supabase missing'); }
         if (!window.APP_CONFIG) { bootFailed('assets/app-config.js did not load.'); throw new Error('APP_CONFIG missing'); }
+        if (!window.Signer) { bootFailed('assets/signer.js did not load, so nothing could be signed for.'); throw new Error('Signer missing'); }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
         const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT', 'PRODUCTION'];
+        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT', 'PRODUCTION', 'TOOLING'];
 
         // The movement types this page offers, and what each does to the shelf.
         // OPENING is not here: it means "the count the store started from", which
@@ -489,7 +491,6 @@
                 const parts = ref([]);        // tools_part rows {id, part_no}
                 const masterParts = ref([]);  // Parts.Part_Number
                 const usage = ref([]);
-                const people = ref([]);
                 const txns = ref([]);
 
                 const loading = ref(true);
@@ -507,8 +508,11 @@
                 const form = reactive({
                     type: 'ISSUE_PRD', qty: null, reuseQty: null, scrapQty: null,
                     countedQty: null, po_no: '', part_no: '', process_id: null,
-                    machine: '', remarks: '', by: '', pin: ''
+                    machine: '', remarks: '', password: ''
                 });
+
+                // Who the record will name: the signed-in account, resolved once.
+                const signer = ref({ ok: false, name: '', position: null, error: '' });
 
                 const typeOptions = TYPES;
 
@@ -529,16 +533,14 @@
                     loading.value = true;
                     loadError.value = '';
                     try {
-                        const [st, pr, tp, mp, us, em] = await Promise.all([
+                        const [st, pr, tp, mp, us] = await Promise.all([
                             _supabase.from('v_tools_item_stock').select('*'),
                             _supabase.from('tools_process').select('*'),
                             _supabase.from('tools_part').select('id,part_no'),
                             _supabase.from('Parts').select('Part_Number'),
-                            _supabase.from('tools_usage').select('tool_id,part_id,process_id,tool_life_pcs'),
-                            _supabase.from('EmployeeTable').select('name,position,pin')
-                                .not('pin', 'is', null).order('name')
+                            _supabase.from('tools_usage').select('tool_id,part_id,process_id,tool_life_pcs')
                         ]);
-                        for (const r of [st, pr, tp, us, em]) if (r.error) throw r.error;
+                        for (const r of [st, pr, tp, us]) if (r.error) throw r.error;
 
                         stock.value = (st.data || []).sort((a, b) =>
                             String(a.item_code).localeCompare(String(b.item_code)));
@@ -552,13 +554,6 @@
                         masterParts.value = mp.error ? []
                             : [...new Set((mp.data || []).map(p => p.Part_Number).filter(Boolean))];
                         usage.value = us.data || [];
-                        people.value = (em.data || [])
-                            .map(e => ({
-                                name: (e.name || '').trim(),
-                                position: e.position || '',
-                                pin: String(e.pin ?? '').trim()
-                            }))
-                            .filter(p => p.name && p.pin);
 
                         if (sel.value) {
                             const again = stock.value.find(s => s.item_id === sel.value.item_id);
@@ -774,11 +769,11 @@
                     if (!canWrite.value) { formError.value = 'Your access level cannot record movements.'; return; }
                     if (!sel.value) { formError.value = 'Pick an item first.'; return; }
 
-                    const person = people.value.find(p => p.name === form.by);
-                    if (!person) { formError.value = 'Select who is recording this.'; return; }
-                    if (String(form.pin).trim() !== person.pin) {
-                        formError.value = 'That PIN does not match the selected name.'; return;
-                    }
+                    // Re-reads AdminCredential, so a password changed a minute ago
+                    // takes effect at once and a deleted account cannot sign.
+                    const auth = await Signer.verify(form.password);
+                    if (!auth.ok) { formError.value = auth.error; return; }
+                    const person = { name: auth.name, position: auth.position };
 
                     const p = plan.value;
                     const base = {
@@ -818,7 +813,7 @@
                             ? `Recorded — ${p.reuse} reusable and ${p.scrap} worn out.`
                             : 'Movement recorded.';
                         form.qty = null; form.reuseQty = null; form.scrapQty = null;
-                        form.countedQty = null; form.po_no = ''; form.remarks = ''; form.pin = '';
+                        form.countedQty = null; form.po_no = ''; form.remarks = ''; form.password = '';
                         await loadAll();
                     } catch (e) {
                         console.error('Movement failed', e);
@@ -833,11 +828,12 @@
 
                 onMounted(async () => {
                     await resolveAccess();
+                    signer.value = await Signer.current();
                     await loadAll();
                 });
 
                 return {
-                    stock, processes, people, loading, loadError, saving, formError, okMsg,
+                    stock, processes, signer, loading, loadError, saving, formError, okMsg,
                     accessLevel, canWrite, pickSearch, pickLimit, sel, form, typeOptions,
                     pickList, processGroups, partOptions, needsJob, lifeNote,
                     effectText, effectClass, history,

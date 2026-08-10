@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/theme.css">
     <script src="/assets/app-config.js"></script>
+    <script src="/assets/signer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -84,11 +85,12 @@
             <div class="approve-form">
                 <div>
                     <label for="m-approver">Approver</label>
-                    <select id="m-approver" class="input"><option value="">Select approver...</option></select>
+                    <input id="m-approver" class="input" readonly value="—"
+                           title="The account you are signed in as" />
                 </div>
                 <div>
-                    <label for="m-pin">PIN</label>
-                    <input type="password" id="m-pin" class="input" inputmode="numeric" autocomplete="off" placeholder="Enter PIN" />
+                    <label for="m-pin">Your password</label>
+                    <input type="password" id="m-pin" class="input" autocomplete="current-password" placeholder="Enter your password" />
                 </div>
                 <div>
                     <label for="m-remark">Remark (optional / required to reject)</label>
@@ -110,7 +112,7 @@
         const supabaseClient = window.supabase.createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
 
         let current = null;        // the approval row under review
-        let approverMap = {};      // { NAME_UPPER: { pin, position } }
+        let signer = { ok: false, name: '', position: null, error: '' };
 
         function isNg(val, min, max) {
             if (val === null || val === undefined || val === "") return false;
@@ -172,23 +174,15 @@
                     `<tr><td>${z.Point_DWG_Zone}</td><td>${z.Measuring_Instrument || '-'}</td><td class="spec-mini">${z.LSL_OK} ~ ${z.USL_NG}</td>${cells}</tr>`);
             });
 
-            // approvers = anyone with a PIN set in EmployeeTable
-            const select = document.getElementById('m-approver');
-            select.innerHTML = '<option value="">Select approver...</option>';
-            approverMap = {};
-            const { data: emps } = await supabaseClient
-                .from('EmployeeTable').select('name, position, pin')
-                .not('pin', 'is', null).order('name', { ascending: true });
-            (emps || []).forEach(e => {
-                const nm = (e.name || e.Name || '').trim();
-                const pin = String(e.pin || e.PIN || '').trim();
-                if (!nm || !pin) return;
-                const position = e.position || e.Position || '';
-                approverMap[nm.toUpperCase()] = { pin, position };
-                const opt = document.createElement('option');
-                opt.value = nm; opt.textContent = nm + (position ? ` (${position})` : '');
-                select.appendChild(opt);
-            });
+            // The approver is the account already signed in, re-confirming with its
+            // own password. It used to be any EmployeeTable PIN holder — four people
+            // sharing one PIN. See assets/signer.js.
+            const whoBox = document.getElementById('m-approver');
+            signer = await Signer.current();
+            whoBox.value = signer.ok
+                ? signer.name + (signer.position ? ` (${signer.position})` : '')
+                : '—';
+            whoBox.title = signer.error || 'The account you are signed in as';
 
             document.getElementById('modal').classList.add('show');
         }
@@ -198,13 +192,12 @@
         async function decide(newStatus) {
             const msg = document.getElementById('m-msg');
             msg.style.color = 'var(--danger)';
-            const name = document.getElementById('m-approver').value.trim();
-            const pin = document.getElementById('m-pin').value.trim();
+            const password = document.getElementById('m-pin').value.trim();
             const remark = document.getElementById('m-remark').value.trim();
-            if (!name) { msg.textContent = 'Select an approver.'; return; }
-            const rec = approverMap[name.toUpperCase()];
-            if (!rec || !rec.pin) { msg.textContent = 'No PIN set for this approver — contact HR.'; return; }
-            if (pin !== rec.pin) { msg.textContent = 'Incorrect PIN.'; return; }
+            const auth = await Signer.verify(password);
+            if (!auth.ok) { msg.textContent = auth.error; return; }
+            const name = auth.name;
+            const rec = { position: auth.position };
             if (newStatus === 'REJECTED' && !remark) { msg.textContent = 'A remark is required to reject.'; return; }
 
             const { error } = await supabaseClient.from('buyoff_approvals').update({

@@ -47,6 +47,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../../assets/app-config.js"></script>
+    <script src="../../assets/signer.js"></script>
     <style>
         body { font-family: var(--font-sans); background: var(--bg-body); }
         [v-cloak] { display: none; }
@@ -960,20 +961,15 @@
                              the transaction screen refuses to write. -->
                         <div class="form-grid" v-if="itemForm.qty" style="margin-top:var(--space-4)">
                             <div class="field">
-                                <label class="label">Recorded by <span class="req">*</span></label>
-                                <select class="input" v-model="itemForm.by">
-                                    <option value="">
-                                        {{ people.length ? 'Select name…' : 'No PIN holders — set a PIN in EmployeeTable' }}
-                                    </option>
-                                    <option v-for="p in people" :key="p.name" :value="p.name">
-                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
-                                    </option>
-                                </select>
+                                <label class="label">Recorded by</label>
+                                <input class="input" :value="signer.name || '—'" readonly
+                                    :title="signer.error || 'The account you are signed in as'">
+                                <p v-if="!signer.ok" class="hint" style="color:#b45309">{{ signer.error }}</p>
                             </div>
                             <div class="field">
-                                <label class="label">PIN <span class="req">*</span></label>
-                                <input class="input" type="password" autocomplete="off"
-                                    v-model="itemForm.pin">
+                                <label class="label">Your password <span class="req">*</span></label>
+                                <input class="input" type="password" autocomplete="current-password"
+                                    v-model="itemForm.password">
                                 <p class="hint">Checked here, never stored.</p>
                             </div>
                         </div>
@@ -1042,6 +1038,10 @@
             bootFailed('assets/app-config.js did not load, so there is no database address.');
             throw new Error('APP_CONFIG missing');
         }
+        if (!window.Signer) {
+            bootFailed('assets/signer.js did not load, so an opening count could not be signed for.');
+            throw new Error('Signer missing');
+        }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -1051,7 +1051,7 @@
         // step — a role that cannot see the card should not be able to write.
         // Read stays open to anyone who can reach the page: knowing what is on
         // the shelf is not a privileged question, changing the catalogue is.
-        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT'];
+        const WRITE_ROLES = ['ALL', 'QUALITY', 'MANAGEMENT', 'TOOLING'];
 
         createApp({
             setup() {
@@ -1068,7 +1068,9 @@
                 const railUser = ref('—');
                 // Only needed to sign an opening count, so the list is loaded
                 // with everything else rather than on demand.
-                const people = ref([]);
+                // Who an opening count will be signed by: the account already
+                // signed in, re-confirming with its own password.
+                const signer = ref({ ok: false, name: '', position: null, error: '' });
 
                 const search = ref('');
                 const activeCat = ref(null);
@@ -1107,29 +1109,17 @@
                     loading.value = true;
                     loadError.value = '';
                     try {
-                        const [cats, masters, stock, em] = await Promise.all([
+                        const [cats, masters, stock] = await Promise.all([
                             _supabase.from('tools_category').select('*').order('id'),
                             _supabase.from('tools_master')
                                 .select('id,tool_code,category_id,tool_name,nominal_size,needs_review,remarks')
                                 .order('tool_code'),
-                            _supabase.from('v_tools_item_stock').select('*'),
-                            _supabase.from('EmployeeTable').select('name,position,pin')
-                                .not('pin', 'is', null).order('name')
+                            _supabase.from('v_tools_item_stock').select('*')
                         ]);
 
                         for (const r of [cats, masters, stock]) {
                             if (r.error) throw r.error;
                         }
-                        // Not fatal: the list is only needed to sign an opening
-                        // count, and browsing the catalogue must not fail because
-                        // EmployeeTable is unreachable.
-                        people.value = em.error ? [] : (em.data || [])
-                            .map(e => ({
-                                name: (e.name || '').trim(),
-                                position: e.position || '',
-                                pin: String(e.pin ?? '').trim()
-                            }))
-                            .filter(p => p.name && p.pin);
 
                         categories.value = cats.data || [];
                         const catById = new Map(categories.value.map(c => [c.id, c]));
@@ -1330,7 +1320,7 @@
                         : { item_code: '', mfr_code: '', brand: '', supplier: '',
                             location: '', reorder_point: null,
                             is_preferred: false, is_active: true, remarks: '',
-                            qty: null, txn_type: 'OPENING', po_no: '', by: '', pin: '' });
+                            qty: null, txn_type: 'OPENING', po_no: '', password: '' });
                     itemModal.value = { tool };
                 }
 
@@ -1384,15 +1374,12 @@
 
                             let person = null;
                             if (qty !== null) {
-                                person = people.value.find(p => p.name === itemForm.by);
-                                if (!person) {
-                                    formError.value = 'Select who counted the opening stock.';
+                                const auth = await Signer.verify(itemForm.password);
+                                if (!auth.ok) {
+                                    formError.value = auth.error;
                                     saving.value = false; return;
                                 }
-                                if (String(itemForm.pin).trim() !== person.pin) {
-                                    formError.value = 'That PIN does not match the selected name.';
-                                    saving.value = false; return;
-                                }
+                                person = { name: auth.name, position: auth.position };
                             }
 
                             // One call, so the item and its opening movement are one
@@ -1442,12 +1429,13 @@
                         else if (toolModal.value) toolModal.value = null;
                     });
                     await resolveAccess();
+                    signer.value = await Signer.current();
                     await loadAll();
                 });
 
                 return {
                     categories, tools, loading, loadError, saving, formError,
-                    accessLevel, canWrite, railUser, people,
+                    accessLevel, canWrite, railUser, signer,
                     search, activeCat, stockFilter, sortBy, open,
                     toolModal, itemModal, toolForm, itemForm,
                     catCount, reviewCount, shown, shownItemCount, totals,

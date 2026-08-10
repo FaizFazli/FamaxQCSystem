@@ -296,6 +296,9 @@
         .badge-BUSINESSDEV { background: #ecfeff; color: #0891b2; }
         .badge-QUALITY { background: #fce7f3; color: #8a042c; }
         .badge-MANAGEMENT { background: #fef3c7; color: #b45309; }
+        /* Same indigo the Tooling section uses on the dashboard, so a role badge
+           and the section it opens are recognisably the same thing. */
+        .badge-TOOLING { background: #e0e7ff; color: #4338ca; }
 
         /* Small row-action buttons */
         .btn-sm {
@@ -539,6 +542,7 @@
                         <option value="RESOURCE">RESOURCE</option>
                         <option value="BUSINESSDEV">BUSINESSDEV</option>
                         <option value="MANAGEMENT">MANAGEMENT</option>
+                        <option value="TOOLING">TOOLING</option>
                     </select>
                 </div>
 
@@ -578,6 +582,10 @@
                 </div>
                 <div class="form-group field">
                     <label class="label" for="edit-access">Access Level</label>
+                    <!-- Must list EVERY role the Add form can create. MANAGEMENT was
+                         missing: setting .value to a role with no matching option
+                         leaves the select empty, and `required` then blocks the save —
+                         so a MANAGEMENT user simply could not be edited. -->
                     <select id="edit-access" required>
                         <option value="ALL">ALL</option>
                         <option value="QUALITY">QUALITY</option>
@@ -586,6 +594,8 @@
                         <option value="REGISTER">REGISTER</option>
                         <option value="RESOURCE">RESOURCE</option>
                         <option value="BUSINESSDEV">BUSINESSDEV</option>
+                        <option value="MANAGEMENT">MANAGEMENT</option>
+                        <option value="TOOLING">TOOLING</option>
                     </select>
                 </div>
                 <div class="modal-footer">

@@ -877,54 +877,6 @@
                         </svg></span> Preventive Maintenance
                 </a>
             </div>
-
-            <div class="nav-section-label">Tooling</div>
-            <div class="dropdown-content" style="display:block;">
-                <a href="javascript:void(0)" onclick="loadInView('screen_page/tooling/tooling_masterlist.html', this)">
-                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"
-                                fill="#EFF6FF" stroke="#2563EB" stroke-width="1.5" stroke-linejoin="round" />
-                        </svg></span> Tooling Masterlist
-                </a>
-                <a href="javascript:void(0)" onclick="loadInView('screen_page/tooling/tooling_transaction.html', this)">
-                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="4" width="18" height="16" rx="2" fill="#F0FDF4" stroke="#16A34A"
-                                stroke-width="1.5" />
-                            <path d="M7 10H14M7 10L9.5 7.5M7 10L9.5 12.5" stroke="#16A34A" stroke-width="1.6"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                            <path d="M17 14H10M17 14L14.5 11.5M17 14L14.5 16.5" stroke="#B45309" stroke-width="1.6"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg></span> Tooling Transaction
-                </a>
-                <a href="javascript:void(0)" onclick="loadInView('screen_page/tooling/tooling_assignment.html', this)">
-                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="3" width="7" height="7" rx="1.5" fill="#FEF3C7" stroke="#D97706"
-                                stroke-width="1.5" />
-                            <rect x="14" y="3" width="7" height="7" rx="1.5" fill="#EFF6FF" stroke="#2563EB"
-                                stroke-width="1.5" />
-                            <rect x="3" y="14" width="7" height="7" rx="1.5" fill="#EFF6FF" stroke="#2563EB"
-                                stroke-width="1.5" />
-                            <path d="M10 6.5H14M6.5 10V14" stroke="#94A3B8" stroke-width="1.5"
-                                stroke-linecap="round" />
-                            <path d="M14.5 17.5L16.5 19.5L20.5 15" stroke="#16A34A" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg></span> Tooling Assignment
-                </a>
-            </div>
-
-            <div class="nav-section-label">Costing</div>
-            <div class="dropdown-content" style="display:block;">
-                <a href="javascript:void(0)" onclick="loadInView('screen_page/process_cost/process_cost.html', this)">
-                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                            <rect x="3" y="3" width="18" height="18" rx="2.5" fill="#FEF3C7" stroke="#D97706"
-                                stroke-width="1.5" />
-                            <path d="M12 7V17" stroke="#B45309" stroke-width="1.6" stroke-linecap="round" />
-                            <path d="M14.5 9.2C14.5 8.2 13.4 7.6 12 7.6C10.6 7.6 9.5 8.2 9.5 9.3C9.5 11.9 14.5 10.8 14.5 13.6C14.5 14.8 13.4 15.5 12 15.5C10.6 15.5 9.5 14.8 9.5 13.8"
-                                stroke="#B45309" stroke-width="1.6" stroke-linecap="round" />
-                        </svg></span> Process Costing
-                </a>
-            </div>
         </nav>
         <div class="sidebar-footer">
             <button class="admin-btn" id="loginButton">
@@ -1399,6 +1351,15 @@
                     // Same wording and the same "Remark:" label the report
                     // generator prints — one form, two ways of asking for it.
                     ws.getCell(40, 17).value = `Remark: Special accept for point ${saPoints.join(", ")}`;
+                    // U45 — the marker, beside the VERIFIED BY signature block. The
+                    // remark box says WHICH points were conceded; this says THAT one
+                    // was, where somebody signing the form is already looking. Bold red
+                    // rather than filled: the signature area stays legible, and the
+                    // out-of-spec readings above are already the red-filled ones.
+                    const sa = ws.getCell(45, 21);
+                    sa.value = "SPECIAL ACCEPT";
+                    sa.font = { color: { argb: "FFFF0000" }, bold: true };
+                    sa.alignment = { vertical: "middle", horizontal: "center" };
                 }
 
                 Object.keys(pts).forEach((pt, idx) => {

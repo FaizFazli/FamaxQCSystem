@@ -9,6 +9,7 @@
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
+    <script src="/assets/signer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
@@ -579,12 +580,11 @@
             <p id="approval-sub">Ask the approver to sign off now, or finish and let them approve later from the
                 dashboard.</p>
             <label class="approval-label" for="approver-name">Approver</label>
-            <select id="approver-name" class="approval-input">
-                <option value="">Select approver...</option>
-            </select>
-            <label class="approval-label" for="approver-pin">PIN</label>
-            <input type="password" id="approver-pin" class="approval-input" inputmode="numeric" autocomplete="off"
-                placeholder="Enter PIN" />
+            <input id="approver-name" class="approval-input" readonly value="—"
+                title="The account you are signed in as" />
+            <label class="approval-label" for="approver-pin">Your password</label>
+            <input type="password" id="approver-pin" class="approval-input" autocomplete="current-password"
+                placeholder="Enter your password" />
             <div id="approval-msg" class="approval-msg"></div>
             <div class="approval-actions">
                 <button id="approve-btn" class="btn btn-primary">Approve &amp; Finish</button>
@@ -948,7 +948,7 @@
         };
 
         // --- Segment approval (name + PIN) ---
-        let approverMap = {}; // { NAME_UPPER: { pin, position } }
+        let signer = { ok: false, name: '', position: null, error: '' };
 
         function finishAndExit() {
             localStorage.clear();
@@ -958,34 +958,19 @@
         async function showApprovalPanel() {
             const panel = document.getElementById('approval-overlay');
             const title = document.getElementById('approval-title');
-            const select = document.getElementById('approver-name');
+            const whoBox = document.getElementById('approver-name');
             title.textContent = store.tech === 'QC'
                 ? 'QC Segment — HOD of QA Approval'
                 : 'Technician Segment — Supervisor Approval';
-            select.innerHTML = '<option value="">Select approver...</option>';
 
-            try {
-                // Anyone with a PIN set in EmployeeTable is an eligible approver.
-                const { data, error } = await supabaseClient
-                    .from('EmployeeTable')
-                    .select('name, position, pin')
-                    .not('pin', 'is', null)
-                    .order('name', { ascending: true });
-                if (error) throw error;
-                approverMap = {};
-                (data || []).forEach(e => {
-                    const nm = (e.name || e.Name || '').trim();
-                    const pin = String(e.pin || e.PIN || '').trim();
-                    if (!nm || !pin) return;
-                    const position = e.position || e.Position || '';
-                    approverMap[nm.toUpperCase()] = { pin, position };
-                    const opt = document.createElement('option');
-                    opt.value = nm; opt.textContent = nm + (position ? ` (${position})` : '');
-                    select.appendChild(opt);
-                });
-            } catch (e) {
-                console.error('Failed to load approvers:', e);
-            }
+            // The approver is the account already signed in, re-confirming with its
+            // own password. It used to be any EmployeeTable PIN holder — four people
+            // sharing one PIN. See assets/signer.js.
+            signer = await Signer.current();
+            whoBox.value = signer.ok
+                ? signer.name + (signer.position ? ` (${signer.position})` : '')
+                : '—';
+            whoBox.title = signer.error || 'The account you are signed in as';
             panel.classList.remove('hidden');
         }
 
@@ -996,14 +981,13 @@
 
         document.getElementById('approve-btn').onclick = async function () {
             const msg = document.getElementById('approval-msg');
-            const name = document.getElementById('approver-name').value.trim();
-            const pin = document.getElementById('approver-pin').value.trim();
+            const password = document.getElementById('approver-pin').value.trim();
             msg.style.color = 'var(--danger, #ef4444)';
 
-            if (!name) { msg.textContent = 'Select an approver.'; return; }
-            const rec = approverMap[name.toUpperCase()];
-            if (!rec || !rec.pin) { msg.textContent = 'No PIN set for this approver — contact HR.'; return; }
-            if (pin !== rec.pin) { msg.textContent = 'Incorrect PIN.'; return; }
+            const auth = await Signer.verify(password);
+            if (!auth.ok) { msg.textContent = auth.error; return; }
+            const name = auth.name;
+            const rec = { position: auth.position };
 
             const btn = this;
             btn.disabled = true; btn.textContent = 'Approving...';

@@ -10,6 +10,7 @@
         rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/assets/app-config.js"></script>
+    <script src="/assets/signer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.js"></script>
@@ -756,7 +757,6 @@
         const MYT = 'Asia/Kuala_Lumpur';
 
         let canVerify = false;
-        let verifierMap = {};   // { NAME_UPPER: { pin, position } }
         let partGroups = [];    // [{ name, sessions, rows }] — one entry per part card
         let rowIndex = {};      // Data_IPQC id -> { row, part: index into partGroups }
         let verifyIdx = null;   // part whose sign-off panel is open
@@ -1217,35 +1217,23 @@
             });
         }
 
-        // Anyone with a PIN set in EmployeeTable is an eligible verifier — the
-        // same rule BUYOFF-approvals uses.
+        // The verifier is the account already signed in, re-confirming with its own
+        // password. It used to be any of the EmployeeTable PIN holders, which was four
+        // people sharing one PIN — see assets/signer.js.
+        let signer = { ok: false, name: '', position: null, error: '' };
+
         async function loadVerifiers() {
-            verifierMap = {};
-            const { data, error } = await _supabase
-                .from('EmployeeTable').select('name, position, pin')
-                .not('pin', 'is', null).order('name', { ascending: true });
-            if (error) { console.error('Verifier list failed', error); return; }
-            (data || []).forEach(e => {
-                const nm = (e.name || '').trim();
-                const pin = String(e.pin ?? '').trim();
-                if (!nm || !pin) return;
-                verifierMap[nm.toUpperCase()] = { pin, position: e.position || '' };
-            });
+            signer = await Signer.current();
         }
 
-        function verifierOptions() {
-            const names = Object.keys(verifierMap).sort();
-            // The list loads in the background, so it can genuinely be empty for
-            // the first moment of the page — and it stays empty if nobody has a
-            // PIN at all. Saying which of the two it is beats an empty dropdown.
-            if (!names.length) {
-                return '<option value="">No PIN holders found — set a PIN in EmployeeTable</option>';
-            }
-            return '<option value="">Select name…</option>' +
-                names.map(k => {
-                    const pos = verifierMap[k].position;
-                    return `<option value="${esc(k)}">${esc(k)}${pos ? ' (' + esc(pos) + ')' : ''}</option>`;
-                }).join('');
+        // Read-only: there is nothing to choose. Shown as a field rather than as text
+        // so the dialog keeps the shape people already know.
+        function verifierField(id) {
+            const who = signer.ok ? signer.name : '—';
+            const pos = signer.ok && signer.position ? ' (' + signer.position + ')' : '';
+            return `<input id="${id}" class="input" readonly value="${esc(who + pos)}" `
+                 + `title="${esc(signer.error || 'The account you are signed in as')}">`
+                 + (signer.ok ? '' : `<div class="hint" style="color:#b45309">${esc(signer.error)}</div>`);
         }
 
         /* Read off the same .out-of-spec marks validateSpec puts on the reading
@@ -1390,12 +1378,12 @@
                 <div class="vf__grid">
                     <div>
                         <label for="vfVerifier">Verified by</label>
-                        <select id="vfVerifier" class="input">${verifierOptions()}</select>
+                        ${verifierField('vfVerifier')}
                     </div>
                     <div>
-                        <label for="vfPin">PIN</label>
-                        <input type="password" id="vfPin" class="input" inputmode="numeric"
-                               autocomplete="off" placeholder="PIN" />
+                        <label for="vfPin">Your password</label>
+                        <input type="password" id="vfPin" class="input"
+                               autocomplete="current-password" placeholder="Password" />
                     </div>
                     <div>
                         <label for="vfRemark">Remark <span style="text-transform:none;font-weight:500">(required to reject)</span></label>
@@ -1417,22 +1405,29 @@
             const $msg = $('#vfMsg').css('color', 'var(--danger)');
             if (!pg) { $msg.text('Reopen this part before signing it off.'); return; }
 
-            const name = ($('#vfVerifier').val() || '').trim();
-            const pin = ($('#vfPin').val() || '').trim();
+            const password = ($('#vfPin').val() || '').trim();
             const remark = ($('#vfRemark').val() || '').trim();
 
-            if (!name) { $msg.text('Select a verifier.'); return; }
-            const rec = verifierMap[name.toUpperCase()];
-            if (!rec || !rec.pin) { $msg.text('No PIN set for this person — contact HR.'); return; }
+            const auth = await Signer.verify(password);
+            if (!auth.ok) { $msg.text(auth.error); return; }
+            const name = auth.name;
+            const rec = { position: auth.position };
 
-            // The whole point of the step is a second pair of eyes, so signing
-            // off your own readings is refused — checked against every
-            // inspector who measured this part during the day, not just one.
+            // The whole point of the step is a second pair of eyes, so signing off
+            // your own readings is refused — checked against every inspector who
+            // measured this part during the day, not just one.
+            //
+            // Weaker than it was, and worth knowing why: it compares the SIGNED-IN
+            // ACCOUNT's name against inspector names recorded on the readings. Those
+            // come from different tables — an account is "QA/QC" or "Mr. Vicson", an
+            // inspector is "DIPAK POKHREL" — so they now rarely collide and this
+            // catches less than it did. The real fix is an account per person with
+            // its name matching the inspector list; until then it is a guard that
+            // still fires when the names do match, not one to rely on.
             if (inspectorsOf(pg.rows).some(p => p.toUpperCase() === name.toUpperCase())) {
                 $msg.text('You recorded readings for this part — someone else has to verify it.');
                 return;
             }
-            if (pin !== rec.pin) { $msg.text('Incorrect PIN.'); return; }
             if (status === 'REJECTED' && !remark) { $msg.text('A remark is required to reject.'); return; }
 
             const $btns = $('#vfVerify, #vfReject').prop('disabled', true);
@@ -1572,12 +1567,12 @@
                     <div class="vf__grid" style="grid-template-columns:1.6fr 0.8fr">
                         <div>
                             <label for="saBy">Granted by</label>
-                            <select id="saBy" class="input">${verifierOptions()}</select>
+                            ${verifierField('saBy')}
                         </div>
                         <div>
-                            <label for="saPin">PIN</label>
-                            <input type="password" id="saPin" class="input" inputmode="numeric"
-                                   autocomplete="off" placeholder="PIN" />
+                            <label for="saPin">Your password</label>
+                            <input type="password" id="saPin" class="input"
+                                   autocomplete="current-password" placeholder="Password" />
                         </div>
                     </div>
                     <div class="vf__actions">
@@ -1601,7 +1596,7 @@
             $('#saConfirm').on('click', commitSa);
             $('#saCancel').on('click', cancelSa);
             $('#saModal').addClass('show');
-            if (granting) $('#saBy').trigger('focus');
+            if (granting) $('#saPin').trigger('focus');
         }
 
         // Backing out has to put the tick back where it was, since the browser
@@ -1623,16 +1618,13 @@
             let payload;
 
             if (p.mode === 'GRANT') {
-                const name = ($('#saBy').val() || '').trim();
-                const pin = ($('#saPin').val() || '').trim();
-                if (!name) { $msg.text('Select who is granting this.'); return; }
-                const rec = verifierMap[name.toUpperCase()];
-                if (!rec || !rec.pin) { $msg.text('No PIN set for this person — contact HR.'); return; }
-                if (pin !== rec.pin) { $msg.text('Incorrect PIN.'); return; }
+                const password = ($('#saPin').val() || '').trim();
+                const auth = await Signer.verify(password);
+                if (!auth.ok) { $msg.text(auth.error); return; }
                 payload = {
                     special_accept: 1,
-                    sa_by: name,
-                    sa_position: rec.position || null,
+                    sa_by: auth.name,
+                    sa_position: auth.position || null,
                     sa_at: new Date().toISOString()
                 };
             } else {

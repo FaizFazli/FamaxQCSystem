@@ -27,6 +27,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="../../assets/app-config.js"></script>
+    <script src="../../assets/signer.js"></script>
     <style>
         body { font-family: var(--font-sans); background: var(--bg-body); }
         [v-cloak] { display: none; }
@@ -296,6 +297,23 @@
         }
         .step-no--done { background: #dcfce7; color: #166534; }
         tr.step--todo td { opacity: .5; }
+
+        /* Signing block. The name is stated, not chosen — the account is whoever is
+           already logged in, so a dropdown would only offer one answer. */
+        .signer {
+            display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-4);
+            margin-top: var(--space-5); padding: var(--space-4);
+            background: var(--surface-muted); border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+        .signer__who { flex: 1; min-width: 200px; }
+        .signer__lab {
+            display: block; margin-bottom: 4px;
+            font-size: 10px; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .signer__name { font-size: 15px; font-weight: 700; color: var(--text-main); }
+        .signer__pw { min-width: 220px; margin: 0; }
 
         .link-btn {
             background: none; border: 0; padding: 0;
@@ -1314,22 +1332,20 @@
                     </template>
 
                     <template v-if="canWrite && tab === 'cost'">
-                        <div class="form-grid" style="margin-top:18px">
-                            <div class="field">
-                                <label class="label">Entered by <span style="color:var(--danger)">*</span></label>
-                                <select class="input" v-model="byName">
-                                    <option value="">
-                                        {{ people.length ? 'Select name…' : 'No PIN holders — set a PIN in EmployeeTable' }}
-                                    </option>
-                                    <option v-for="p in people" :key="p.name" :value="p.name">
-                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
-                                    </option>
-                                </select>
+                        <div class="signer">
+                            <div class="signer__who">
+                                <span class="signer__lab">Signing as</span>
+                                <span class="signer__name">{{ signer.name || '—' }}</span>
+                                <span v-if="signer.position" class="pill pill--info"
+                                    style="margin-left:6px">{{ signer.position }}</span>
+                                <p v-if="!signer.ok" style="font-size:11px;color:#b45309;margin-top:4px">
+                                    {{ signer.error }}
+                                </p>
                             </div>
-                            <div class="field">
-                                <label class="label">PIN <span style="color:var(--danger)">*</span></label>
-                                <input class="input" type="password" v-model="pin" autocomplete="off"
-                                    @keyup.enter="save">
+                            <div class="field signer__pw">
+                                <label class="label">Your password <span style="color:var(--danger)">*</span></label>
+                                <input class="input" type="password" v-model="password"
+                                    autocomplete="current-password" @keyup.enter="save">
                             </div>
                         </div>
                         <p v-if="formError" class="dlg__err">{{ formError }}</p>
@@ -1432,20 +1448,20 @@
                     </div>
 
                     <template v-if="canWrite">
-                        <div class="form-grid" style="margin-top:18px">
-                            <div class="field">
-                                <label class="label">Entered by <span style="color:var(--danger)">*</span></label>
-                                <select class="input" v-model="byName">
-                                    <option value="">Select name…</option>
-                                    <option v-for="p in people" :key="p.name" :value="p.name">
-                                        {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
-                                    </option>
-                                </select>
+                        <div class="signer">
+                            <div class="signer__who">
+                                <span class="signer__lab">Signing as</span>
+                                <span class="signer__name">{{ signer.name || '—' }}</span>
+                                <span v-if="signer.position" class="pill pill--info"
+                                    style="margin-left:6px">{{ signer.position }}</span>
+                                <p v-if="!signer.ok" style="font-size:11px;color:#b45309;margin-top:4px">
+                                    {{ signer.error }}
+                                </p>
                             </div>
-                            <div class="field">
-                                <label class="label">PIN <span style="color:var(--danger)">*</span></label>
-                                <input class="input" type="password" v-model="pin" autocomplete="off"
-                                    @keyup.enter="saveRate">
+                            <div class="field signer__pw">
+                                <label class="label">Your password <span style="color:var(--danger)">*</span></label>
+                                <input class="input" type="password" v-model="password"
+                                    autocomplete="current-password" @keyup.enter="saveRate(false)">
                             </div>
                         </div>
                         <p v-if="rateError" class="dlg__err">{{ rateError }}</p>
@@ -1531,23 +1547,22 @@
                         </p>
                     </template>
 
-                    <div class="form-grid" style="margin-top:14px">
-                        <div class="field">
-                            <label class="label">
-                                {{ freezeModal.mode === 'freeze' ? 'Frozen' : 'Unfrozen' }} by
-                                <span style="color:var(--danger)">*</span>
-                            </label>
-                            <select class="input" v-model="byName">
-                                <option value="">Select name…</option>
-                                <option v-for="p in people" :key="p.name" :value="p.name">
-                                    {{ p.name }}{{ p.position ? ' (' + p.position + ')' : '' }}
-                                </option>
-                            </select>
+                    <div class="signer">
+                        <div class="signer__who">
+                            <span class="signer__lab">
+                                {{ freezeModal.mode === 'freeze' ? 'Freezing' : 'Unfreezing' }} as
+                            </span>
+                            <span class="signer__name">{{ signer.name || '—' }}</span>
+                            <span v-if="signer.position" class="pill pill--info"
+                                style="margin-left:6px">{{ signer.position }}</span>
+                            <p v-if="!signer.ok" style="font-size:11px;color:#b45309;margin-top:4px">
+                                {{ signer.error }}
+                            </p>
                         </div>
-                        <div class="field">
-                            <label class="label">PIN <span style="color:var(--danger)">*</span></label>
-                            <input class="input" type="password" v-model="pin" autocomplete="off"
-                                @keyup.enter="doFreeze">
+                        <div class="field signer__pw">
+                            <label class="label">Your password <span style="color:var(--danger)">*</span></label>
+                            <input class="input" type="password" v-model="password"
+                                autocomplete="current-password" @keyup.enter="doFreeze">
                         </div>
                     </div>
                     <p v-if="freezeError" class="dlg__err">{{ freezeError }}</p>
@@ -1588,6 +1603,7 @@
         if (typeof Vue === 'undefined') { bootFailed('Vue did not load (unpkg.com).'); throw new Error('Vue missing'); }
         if (typeof supabase === 'undefined') { bootFailed('The Supabase client did not load (unpkg.com).'); throw new Error('supabase missing'); }
         if (!window.APP_CONFIG) { bootFailed('assets/app-config.js did not load.'); throw new Error('APP_CONFIG missing'); }
+        if (!window.Signer) { bootFailed('assets/signer.js did not load, so nothing could be signed for.'); throw new Error('Signer missing'); }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -1606,7 +1622,6 @@
                 const history = ref([]);      // cost_history
                 const jobs = ref([]);         // v_joborder_wip_cost
                 const joRows = ref([]);       // JobOrder, needed to build a freeze
-                const people = ref([]);
 
                 const loading = ref(true);
                 const loadError = ref('');
@@ -1645,8 +1660,11 @@
                 const freezeModal = ref(null);
                 const freezeError = ref(''); const freezeOk = ref('');
 
-                const byName = ref('');
-                const pin = ref('');
+                // Who the record will name, resolved once from the session. Not a
+                // choice: it is the account already signed in, and the password box
+                // below is that account re-confirming it is still at the keyboard.
+                const signer = ref({ ok: false, name: '', position: null, error: '' });
+                const password = ref('');
                 const formError = ref('');
                 const okMsg = ref('');
 
@@ -1713,7 +1731,7 @@
                     loading.value = true;
                     loadError.value = '';
                     try {
-                        const [pt, pc, pm, mr, ch, jb, jr, emp] = await Promise.all([
+                        const [pt, pc, pm, mr, ch, jb, jr] = await Promise.all([
                             _supabase.from('Parts')
                                 .select('id,Part_Number,Part_Name,Revision,Process,Raw_Material,Raw_Material_Grade,Raw_Material_Size')
                                 .order('Part_Number').range(0, 1999),
@@ -1724,9 +1742,7 @@
                                 .order('changed_at', { ascending: false }).limit(800),
                             _supabase.from('v_joborder_wip_cost').select('*').range(0, 1999),
                             _supabase.from('JobOrder')
-                                .select('JO_Number,Part_Name,Process,Status,Quantity').range(0, 4999),
-                            _supabase.from('EmployeeTable').select('name,position,pin')
-                                .not('pin', 'is', null).order('name')
+                                .select('JO_Number,Part_Name,Process,Status,Quantity').range(0, 4999)
                         ]);
                         for (const r of [pt, pc, pm, mr, jb, jr]) if (r.error) throw r.error;
 
@@ -1737,11 +1753,6 @@
                         history.value = ch.error ? [] : (ch.data || []);
                         jobs.value = jb.data || [];
                         joRows.value = jr.data || [];
-                        people.value = emp.error ? [] : (emp.data || [])
-                            .map(e => ({
-                                name: nk(e.name), position: nk(e.position), pin: nk(e.pin)
-                            }))
-                            .filter(p => p.name && p.pin);
 
                         resetDraft();
                     } catch (e) {
@@ -2180,7 +2191,7 @@
                     const p = partIndex.value.get(nk(h.part_no));
                     if (p) { mode.value = 'parts'; openCard(p); }
                 }
-                function closeCard() { cardPartNo.value = ''; pin.value = ''; }
+                function closeCard() { cardPartNo.value = ''; password.value = ''; }
                 function discardCard() {
                     if (!card.value) return;
                     card.value.steps.forEach(s => { seedStep(s); delete fieldErr[s.dkey]; });
@@ -2198,12 +2209,17 @@
                 onMounted(() => window.addEventListener('keydown', onKey));
                 onUnmounted(() => window.removeEventListener('keydown', onKey));
 
-                // Whoever is signing, checked once for every write on this page.
-                function person() {
-                    const p = people.value.find(x => x.name === byName.value);
-                    if (!p) return { err: 'Select who is entering this.' };
-                    if (nk(pin.value) !== p.pin) return { err: 'That PIN does not match the selected name.' };
-                    return { p, who: { updated_by: p.name, updated_by_position: p.position || null } };
+                // Whoever is signing, checked once for every write on this page. The
+                // password is re-read from AdminCredential each time rather than
+                // compared against anything cached, so a password changed a minute ago
+                // takes effect at once.
+                async function person() {
+                    const res = await Signer.verify(password.value);
+                    if (!res.ok) return { err: res.error };
+                    return {
+                        p: { name: res.name, position: res.position },
+                        who: { updated_by: res.name, updated_by_position: res.position || null }
+                    };
                 }
 
                 // ---- save the card -----------------------------------------------------
@@ -2275,7 +2291,7 @@
                     if (!card.value) return;
                     if (!validate()) { formError.value = 'Fix the highlighted boxes first.'; return; }
 
-                    const who = person();
+                    const who = await person();
                     if (who.err) { formError.value = who.err; tab.value = 'cost'; return; }
 
                     const p = plan.value;
@@ -2336,7 +2352,7 @@
 
                         const n = p.inserts.length + p.updates.length + p.deletes.length
                             + (p.material ? 1 : 0);
-                        pin.value = '';
+                        password.value = '';
                         await reloadKeepingOtherDrafts(partNo);
                         okMsg.value = `Saved — ${n} change(s) to ${partNo}.`;
                     } catch (e) {
@@ -2383,7 +2399,7 @@
                     rateError.value = ''; rateOk.value = '';
                     if (!canWrite.value) { rateError.value = 'Your access level cannot change rates.'; return; }
                     const m = rateModal.value;
-                    const who = person();
+                    const who = await person();
                     if (who.err) { rateError.value = who.err; return; }
 
                     let value = null;
@@ -2426,7 +2442,7 @@
                         }
 
                         const affected = m.weighedParts;
-                        pin.value = '';
+                        password.value = '';
                         await reloadKeepingOtherDrafts(null);
                         rateModal.value = materials.value.find(x => x.key === m.key) || null;
                         if (rateModal.value) openRateKeepMsg(rateModal.value);
@@ -2485,7 +2501,7 @@
                 async function doFreeze() {
                     freezeError.value = ''; freezeOk.value = '';
                     if (!canWrite.value) { freezeError.value = 'Your access level cannot freeze a job.'; return; }
-                    const who = person();
+                    const who = await person();
                     if (who.err) { freezeError.value = who.err; return; }
                     const j = freezeModal.value.job;
                     const isFreeze = freezeModal.value.mode === 'freeze';
@@ -2541,7 +2557,7 @@
                             freezeOk.value = `Unfrozen — ${j.jo_number} is valued at today's rates again.`;
                         }
 
-                        pin.value = '';
+                        password.value = '';
                         await reloadKeepingOtherDrafts(null);
                         freezeModal.value = null;
                     } catch (e) {
@@ -2552,7 +2568,11 @@
                     } finally { saving.value = false; }
                 }
 
-                onMounted(async () => { await resolveAccess(); await loadAll(); });
+                onMounted(async () => {
+                    await resolveAccess();
+                    signer.value = await Signer.current();
+                    await loadAll();
+                });
 
                 return {
                     CURRENCY, TRAIL_N, filters, pageTitle, pageSub,
@@ -2572,7 +2592,7 @@
                     rateModal, rateDraft, rateError, rateOk, rateHistory,
                     openRate, openRateForCard, saveRate,
                     freezeModal, freezeError, freezeOk, freezeLines, openFreeze, doFreeze,
-                    people, byName, pin, formError, okMsg, save,
+                    signer, password, formError, okMsg, save,
                     money2, money4, fmtInt, shortDate
                 };
             }

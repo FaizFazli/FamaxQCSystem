@@ -11,6 +11,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
     <script src="/assets/app-config.js"></script>
+    <script src="/assets/signer.js"></script>
 
     <style>
         body { display: flex; flex-direction: column; min-height: 100vh; }
@@ -57,8 +58,10 @@
             </table>
             <div v-if="!pending.length" class="empty-state">Nothing awaiting validation. 🎉</div>
         </div>
-    </div>
-
+    <!-- The review modal lives INSIDE #app. It sat outside it until 2026-08-07,
+         which meant Vue never compiled it: the checks table, the approver fields
+         and the Approve/Reject buttons were raw template text with no handlers.
+         Nothing on this dialog had ever worked. -->
     <!-- Review modal -->
     <div class="modal-overlay" :class="{show: current}" @click.self="current = null">
         <div class="modal card" v-if="current">
@@ -81,11 +84,12 @@
 
             <div class="approve-form">
                 <div class="field"><label class="label">Approver</label>
-                    <select class="select" v-model="approver"><option value="">Select approver…</option>
-                        <option v-for="a in approvers" :key="a.name" :value="a.name">{{ a.label }}</option>
-                    </select></div>
-                <div class="field"><label class="label">PIN</label>
-                    <input class="input" type="password" v-model="pin" inputmode="numeric" autocomplete="off" placeholder="Enter PIN"></div>
+                    <input class="input" :value="signer.name || '—'" readonly
+                        :title="signer.error || 'The account you are signed in as'">
+                    <div v-if="!signer.ok" class="msg" style="color:#b45309">{{ signer.error }}</div></div>
+                <div class="field"><label class="label">Your password</label>
+                    <input class="input" type="password" v-model="password" autocomplete="current-password"
+                        placeholder="Enter your password"></div>
                 <div class="field"><label class="label">Remark (required to reject)</label>
                     <input class="input" v-model="remark" placeholder="Reason / note"></div>
                 <div class="msg" :style="{color: 'var(--danger)'}">{{ msg }}</div>
@@ -96,6 +100,7 @@
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
@@ -116,12 +121,14 @@
                 const parts = ref([]);
                 const stock = ref([]);
                 const tooling = ref([]);
-                const approverMap = ref({});
-                const approvers = ref([]);
+                // The approver is the account already signed in, re-confirming with
+                // its own password. It used to be any EmployeeTable PIN holder — four
+                // people sharing one PIN. See assets/signer.js.
+                const signer = ref({ ok: false, name: '', position: null, error: '' });
 
                 const current = ref(null);
                 const checks = ref([]);
-                const approver = ref(''); const pin = ref(''); const remark = ref(''); const msg = ref(''); const busy = ref(false);
+                const password = ref(''); const remark = ref(''); const msg = ref(''); const busy = ref(false);
 
                 const norm = v => (v || '').toString().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
@@ -135,20 +142,13 @@
                         const it = await api.get(`/rest/v1/SalesOrder_Items?so_id=in.(${ids.join(',')})&select=*`);
                         it.data.forEach(r => { (itemsBySo.value[r.so_id] = itemsBySo.value[r.so_id] || []).push(r); });
                     }
-                    const [p, s, t, e] = await Promise.all([
+                    const [p, s, t] = await Promise.all([
                         api.get('/rest/v1/Parts?select=Part_Number,Part_Name,Raw_Material,Raw_Material_Grade,Raw_Material_Size'),
                         api.get('/rest/v1/RawMaterialStock?select=material_type,grade,size_dimensions,qty_pcs'),
-                        api.get('/rest/v1/Tooling?select=part_number,status'),
-                        api.get('/rest/v1/EmployeeTable?select=name,position,pin&pin=not.is.null&order=name.asc')
+                        api.get('/rest/v1/Tooling?select=part_number,status')
                     ]);
                     parts.value = p.data; stock.value = s.data; tooling.value = t.data;
-                    approverMap.value = {}; approvers.value = [];
-                    e.data.forEach(emp => {
-                        const nm = (emp.name || '').trim(), pn = String(emp.pin || '').trim();
-                        if (!nm || !pn) return;
-                        approverMap.value[nm.toUpperCase()] = { pin: pn, position: emp.position || '' };
-                        approvers.value.push({ name: nm, label: nm + (emp.position ? ` (${emp.position})` : '') });
-                    });
+                    signer.value = await Signer.current();
                 }
 
                 // Lenient stock match: count qty for stock whose grade+size (or material desc) match the part's spec.
@@ -167,7 +167,7 @@
                 }
 
                 function review(so) {
-                    current.value = so; approver.value = ''; pin.value = ''; remark.value = ''; msg.value = '';
+                    current.value = so; password.value = ''; remark.value = ''; msg.value = '';
                     const items = itemsBySo.value[so.id] || [];
                     checks.value = items.map(it => {
                         const part = parts.value.find(p => p.Part_Number === it.part_number) || {};
@@ -184,11 +184,10 @@
 
                 async function decide(newStatus) {
                     msg.value = '';
-                    const nm = approver.value.trim();
-                    if (!nm) { msg.value = 'Select an approver.'; return; }
-                    const rec = approverMap.value[nm.toUpperCase()];
-                    if (!rec) { msg.value = 'No PIN set for this approver.'; return; }
-                    if (pin.value.trim() !== rec.pin) { msg.value = 'Incorrect PIN.'; return; }
+                    const auth = await Signer.verify(password.value);
+                    if (!auth.ok) { msg.value = auth.error; return; }
+                    const nm = auth.name;
+                    const rec = { position: auth.position };
                     if (newStatus === 'REJECTED' && !remark.value.trim()) { msg.value = 'A remark is required to reject.'; return; }
 
                     busy.value = true;
@@ -214,7 +213,7 @@
                 }
 
                 load();
-                return { pending, itemsBySo, current, checks, approver, pin, remark, msg, busy, approvers, review, decide, load };
+                return { pending, itemsBySo, current, checks, signer, password, remark, msg, busy, review, decide, load };
             }
         }).mount('#app');
     </script>
