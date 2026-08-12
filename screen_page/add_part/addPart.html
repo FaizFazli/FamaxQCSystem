@@ -1333,6 +1333,23 @@
             }
         }
 
+        /* Supabase storage keys are ASCII only, so a part name the shop floor
+           writes with a diameter mark — "DS BURNER TUBE COLLAR 2X Ø8MM" —
+           gets the whole upload refused as an invalid key. Fold each path
+           segment down to characters the bucket accepts. Only the key changes;
+           Part_Name in the database still carries the real name, and the
+           inspection pages read the stored URL rather than rebuilding it. */
+        function storageSafe(segment, fallback) {
+            const safe = String(segment ?? "")
+                .normalize("NFKD")
+                .replace(/[ØøΦφ⌀]/g, "DIA")
+                .replace(/[^\x20-\x7E]/g, "")
+                .replace(/[^A-Za-z0-9 ()._-]/g, "_")
+                .replace(/\s+/g, " ")
+                .trim();
+            return /[A-Za-z0-9]/.test(safe) ? safe : fallback;
+        }
+
         async function uploadProcessSlot(slot, partName, revision) {
             await uploadDms(
                 partName,
@@ -1343,7 +1360,8 @@
 
             const bucketMap = { IPQC: "ipqc", IQC: "iqc", OQC: "oqc" };
             const bucket = bucketMap[slot.category] || "general-images";
-            const imgPath = `${partName}/${slot.process}/${slot.imageFile.name}`;
+            const keyFolder = `${storageSafe(partName, "part")}/${storageSafe(slot.process, "process")}`;
+            const imgPath = `${keyFolder}/${storageSafe(slot.imageFile.name, "image.png")}`;
             const { error: upErr } = await supabaseClient.storage
                 .from(bucket)
                 .upload(imgPath, slot.imageFile, { upsert: true });
@@ -1353,7 +1371,7 @@
             const updates = { Path: `${imgData.publicUrl}?t=${Date.now()}` };
 
             if (slot.pdfFile) {
-                const pdfPath = `${partName}/${slot.process}/guide_${slot.pdfFile.name}`;
+                const pdfPath = `${keyFolder}/guide_${storageSafe(slot.pdfFile.name, "guide.pdf")}`;
                 const { error: pdfErr } = await supabaseClient.storage
                     .from(bucket)
                     .upload(pdfPath, slot.pdfFile, { upsert: true });
