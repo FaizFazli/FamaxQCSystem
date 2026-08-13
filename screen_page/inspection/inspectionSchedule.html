@@ -418,12 +418,15 @@
                     <table class="w-full">
                         <thead style="background: var(--surface-muted);">
                             <tr>
-                                <th class="table-th w-[20%]">Job Order & Part</th>
+                                <th class="table-th w-[18%]">Job Order & Part</th>
                                 <th class="table-th w-[10%]">Remaining Qty/Total</th>
-                                <th class="table-th w-[15%]">Parameter</th>
-                                <th class="table-th w-[20%]">Assignment</th>
-                                <th class="table-th w-[20%]">Est. Finished</th>
-                                <th class="table-th w-[15%] text-right">Actions</th>
+                                <th class="table-th w-[11%]"
+                                    title="Parts per working hour this task was planned at — the shift's breaks are not counted, so this is the rate while inspecting.">
+                                    Est. Parts/Hour</th>
+                                <th class="table-th w-[13%]">Parameter</th>
+                                <th class="table-th w-[17%]">Assignment</th>
+                                <th class="table-th w-[19%]">Est. Finished</th>
+                                <th class="table-th w-[12%] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -448,6 +451,25 @@
                                         <span class="mx-1" style="color: var(--border-strong);">/</span>
                                         <span style="color: var(--text-main);">{{ item.quantity || 0 }}</span>
                                         <span class="text-[9px] font-black ml-1 uppercase" style="color: var(--text-muted);">Balance</span>
+                                    </div>
+                                </td>
+
+                                <!-- Estimated output rate. Read back out of the task's own
+                                     quantity and planned window, so it is the rate this
+                                     assignment was built on rather than a fresh guess. -->
+                                <td class="table-td">
+                                    <div v-if="plannedRates[item.id]">
+                                        <div class="font-bold text-sm" style="color: var(--text-main);">
+                                            {{ formatRate(plannedRates[item.id].perHour) }}
+                                            <span class="text-[9px] font-black ml-1 uppercase" style="color: var(--text-muted);">pcs/hr</span>
+                                        </div>
+                                        <div class="text-[9px] font-bold mt-0.5" style="color: var(--text-faint);">
+                                            &asymp; {{ plannedRates[item.id].cycle.toFixed(1) }}s / pc
+                                        </div>
+                                    </div>
+                                    <div v-else class="text-[10px] font-bold" style="color: var(--text-faint);"
+                                        title="This task has no quantity, or no planned start and finish, to work a rate out of.">
+                                        &mdash;
                                     </div>
                                 </td>
 
@@ -739,12 +761,28 @@
                                 </div>
                             </div>
 
-                            <div
-                                class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 min-w-[140px]">
-                                <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Working
-                                    Duration
+                            <div class="flex gap-4">
+                                <div
+                                    class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 min-w-[140px]">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Working
+                                        Duration
+                                    </div>
+                                    <div class="text-2xl font-black" style="color: var(--primary);">{{ newTask.estimatedDuration }}
+                                    </div>
                                 </div>
-                                <div class="text-2xl font-black" style="color: var(--primary);">{{ newTask.estimatedDuration }}
+
+                                <!-- The same cycle time said the other way round: what the
+                                     inspector is expected to get through in an hour. -->
+                                <div
+                                    class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 min-w-[140px]">
+                                    <div class="text-[10px] font-black text-slate-400 uppercase mb-1">Est.
+                                        Parts / Hour
+                                    </div>
+                                    <div class="text-2xl font-black" style="color: var(--primary);">{{ estPartsPerHour }}
+                                    </div>
+                                    <div class="text-[9px] text-slate-400 mt-1 font-bold">
+                                        per working hour &mdash; breaks not counted
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -812,7 +850,12 @@
                     return `${hours}h ${minutes}m overdue`;
                 };
 
-                const newTask = ref({
+                // One shape for the form, used both to create it and to reset it.
+                // Re-opening the modal used to replace it with a shorter object —
+                // no quantity, no cycle time, and a startDate key the estimator
+                // does not read — which left the estimate panel blank until a
+                // parameter happened to be picked.
+                const blankTask = () => ({
                     jo: '',
                     part: '',
                     param: '',
@@ -826,71 +869,158 @@
                     estFinished: ''        // ISO Timestamp for DB
                 });
 
+                const newTask = ref(blankTask());
+
+                // ------------------------------------------------------------
+                // The shift calendar, walked in both directions
+                //
+                // 08:00-18:00, an hour of lunch at 13:00, no Sunday and no
+                // Saturday unless OT is on. Two questions are asked of it:
+                // "spend this many working seconds from here, where do I land"
+                // — which is how a task's finish time is planned — and "how
+                // many working seconds lie between these two times", which is
+                // how the queue reads a planned rate back out of a task that
+                // was already saved. One walk answers both, so the estimate and
+                // the parts-per-hour derived from it cannot drift apart.
+                // ------------------------------------------------------------
+                const SHIFT = { start: 8, lunchStart: 13, lunchEnd: 14, end: 18 };
+
+                const walkShift = (from, { spend = null, until = null }) => {
+                    let current = new Date(from);
+                    let remaining = spend;
+                    let worked = 0;
+
+                    // A malformed date would otherwise spin the tab. 20000 is
+                    // years of shifts — far past anything this page schedules.
+                    let guard = 0;
+                    while (guard++ < 20000) {
+                        if (until && current >= until) break;
+                        if (spend !== null && remaining <= 0) break;
+
+                        const day = current.getDay();   // 0 = Sun, 6 = Sat
+                        const y = current.getFullYear();
+                        const m = current.getMonth();
+                        const d = current.getDate();
+
+                        // 1. SKIP WEEKENDS
+                        if (day === 0) { current = new Date(y, m, d + 1, SHIFT.start, 0, 0); continue; }
+                        if (day === 6 && !isSaturdayOT.value) { current = new Date(y, m, d + 2, SHIFT.start, 0, 0); continue; }
+
+                        // 2. DEFINE SHIFT (8am-6pm) and LUNCH (1pm-2pm)
+                        const shiftStart = new Date(y, m, d, SHIFT.start, 0, 0);
+                        const lunchStart = new Date(y, m, d, SHIFT.lunchStart, 0, 0);
+                        const lunchEnd = new Date(y, m, d, SHIFT.lunchEnd, 0, 0);
+                        const shiftEnd = new Date(y, m, d, SHIFT.end, 0, 0);
+
+                        if (current >= shiftEnd) { current = new Date(y, m, d + 1, SHIFT.start, 0, 0); continue; }
+                        if (current < shiftStart) { current = shiftStart; continue; }
+                        if (current >= lunchStart && current < lunchEnd) { current = lunchEnd; continue; }
+
+                        // 3. CALCULATE SEGMENT
+                        let boundary = (current < lunchStart) ? lunchStart : shiftEnd;
+                        if (until && until < boundary) boundary = until;
+                        const available = (boundary - current) / 1000;
+
+                        if (spend !== null && remaining <= available) {
+                            current = new Date(current.getTime() + (remaining * 1000));
+                            worked += remaining;
+                            remaining = 0;
+                            break;
+                        }
+                        worked += available;
+                        if (spend !== null) remaining -= available;
+                        current = boundary;
+                    }
+
+                    return { end: current, seconds: worked };
+                };
+
+                const formatDuration = (seconds) => {
+                    if (!(seconds > 0)) return "0s";
+                    const h = Math.floor(seconds / 3600);
+                    const m = Math.floor((seconds % 3600) / 60);
+                    const s = Math.round(seconds % 60);
+                    return `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
+                };
+
+                // Parts per WORKING hour — lunch and the end of shift are not
+                // hours anybody inspects in, so counting them would state a rate
+                // the floor can never hit. 3600/cycle is the same number the
+                // queue derives from a saved task, by construction.
+                //
+                // Always rounded DOWN, never to nearest: a part only counts when
+                // it is finished, so 119.8 parts in the hour is 119 parts done
+                // and one still in the fixture. Rounding up — which is what
+                // "nearest" does above .5 — would put a piece on the plan that
+                // the hour did not produce.
+                const formatRate = (perHour) => {
+                    if (!(perHour > 0)) return '--';
+                    // Under one an hour, flooring would read as "none": say so
+                    // as a rate instead of printing a 0 nobody can act on.
+                    if (perHour < 1) return '<1';
+                    return String(Math.floor(perHour));
+                };
+
                 const calculateTime = () => {
                     const qty = parseFloat(newTask.value.quantity) || 0;
                     const cycle = parseFloat(newTask.value.cycleTime) || 0;
-                    let remainingSeconds = qty * cycle;
+                    const totalSeconds = qty * cycle;
 
-                    // Format duration display
-                    const hDisplay = Math.floor(remainingSeconds / 3600);
-                    const mDisplay = Math.floor((remainingSeconds % 3600) / 60);
-                    const sDisplay = Math.round(remainingSeconds % 60);
-                    newTask.value.estimatedDuration = remainingSeconds > 0
-                        ? `${hDisplay > 0 ? hDisplay + 'h ' : ''}${mDisplay}m ${sDisplay}s`
-                        : "0s";
+                    newTask.value.estimatedDuration = formatDuration(totalSeconds);
 
-                    if (!newTask.value.startDateTime || remainingSeconds <= 0) {
+                    if (!newTask.value.startDateTime || totalSeconds <= 0) {
                         newTask.value.estFinished = newTask.value.startDateTime;
                         return;
                     }
 
-                    let current = new Date(newTask.value.startDateTime);
-
-                    while (remainingSeconds > 0) {
-                        const day = current.getDay(); // 0 = Sun, 6 = Sat
-                        const year = current.getFullYear();
-                        const month = current.getMonth();
-                        const date = current.getDate();
-
-                        // 1. SKIP WEEKENDS
-                        // If Sunday, always skip to Monday 8am
-                        if (day === 0) {
-                            current = new Date(year, month, date + 1, 8, 0, 0);
-                            continue;
-                        }
-                        // If Saturday and OT is OFF, skip to Monday 8am
-                        if (day === 6 && !isSaturdayOT.value) {
-                            current = new Date(year, month, date + 2, 8, 0, 0);
-                            continue;
-                        }
-
-                        // 2. DEFINE SHIFT (8am-6pm) and NEW LUNCH (1pm-2pm)
-                        const shiftStart = new Date(year, month, date, 8, 0, 0);
-                        const lunchStart = new Date(year, month, date, 13, 0, 0); // Changed to 1pm
-                        const lunchEnd = new Date(year, month, date, 14, 0, 0);   // Changed to 2pm
-                        const shiftEnd = new Date(year, month, date, 18, 0, 0);
-
-                        if (current >= shiftEnd) {
-                            current = new Date(year, month, date + 1, 8, 0, 0);
-                            continue;
-                        }
-                        if (current < shiftStart) current = shiftStart;
-                        if (current >= lunchStart && current < lunchEnd) current = lunchEnd;
-
-                        // 3. CALCULATE SEGMENT
-                        let nextBoundary = (current < lunchStart) ? lunchStart : shiftEnd;
-                        let availableSeconds = (nextBoundary - current) / 1000;
-
-                        if (remainingSeconds <= availableSeconds) {
-                            current = new Date(current.getTime() + (remainingSeconds * 1000));
-                            remainingSeconds = 0;
-                        } else {
-                            remainingSeconds -= availableSeconds;
-                            current = nextBoundary;
-                        }
-                    }
-                    newTask.value.estFinished = current.toISOString();
+                    newTask.value.estFinished =
+                        walkShift(new Date(newTask.value.startDateTime), { spend: totalSeconds }).end.toISOString();
                 };
+
+                // What the modal shows while the task is being built.
+                const estPartsPerHour = computed(() => {
+                    const cycle = parseFloat(newTask.value.cycleTime) || 0;
+                    return cycle > 0 ? formatRate(3600 / cycle) : '--';
+                });
+
+                // ------------------------------------------------------------
+                // The rate a queued task was planned at
+                //
+                // Nothing new is stored. InspectionSchedule keeps no cycle time,
+                // but it keeps the quantity and the two ends of the window that
+                // quantity was planned to fill — so the rate is that quantity
+                // over the WORKING time between them, which is the cycle time
+                // that produced EstFinished, inverted. It therefore describes
+                // this task as it was actually assigned, and not whatever the
+                // master cycle-time table has been edited to since.
+                //
+                // Null whenever the row cannot answer: no quantity, no start, no
+                // estimate, or a window with no working time in it. A dash is
+                // the honest output there — a made-up rate on a schedule people
+                // plan a shift around is worse than a blank.
+                // ------------------------------------------------------------
+                const plannedRate = (item) => {
+                    const qty = parseFloat(item.quantity) || 0;
+                    if (qty <= 0 || !item.StartDate || !item.EstFinished) return null;
+
+                    const start = new Date(item.StartDate);
+                    const end = new Date(item.EstFinished);
+                    if (isNaN(start) || isNaN(end) || end <= start) return null;
+
+                    const seconds = walkShift(start, { until: end }).seconds;
+                    if (seconds <= 0) return null;
+
+                    return { perHour: (qty * 3600) / seconds, cycle: seconds / qty };
+                };
+
+                // Keyed by id and computed once per fetch rather than per render:
+                // every row walks a calendar, and the queue re-renders on every
+                // filter and every clock-driven overdue check.
+                const plannedRates = computed(() => {
+                    const out = {};
+                    schedule.value.forEach((item) => { out[item.id] = plannedRate(item); });
+                    return out;
+                });
 
                 // Formatting helper for the UI display
                 const formatDisplayTime = (isoString) => {
@@ -1272,7 +1402,7 @@
                 };
 
                 const closeDropdown = (type) => setTimeout(() => dropdowns.value[type] = false, 250);
-                const openModal = () => { newTask.value = { jo: '', part: '', param: '', user: '', startDate: new Date().toISOString().split('T')[0] }; showAddModal.value = true; };
+                const openModal = () => { newTask.value = blankTask(); showAddModal.value = true; };
 
 
                 onMounted(fetchData);
@@ -1285,6 +1415,7 @@
                     closeDropdown, openModal, addTask, markComplete, openReplaceModal, submitReplacement,
                     newTask, calculateTime, formatDisplayTime, guideMapping, guideDetails, isOverdue,
                     getOverdueDuration, isFormValid,
+                    plannedRates, formatRate, estPartsPerHour,
                     fetchData, clearForm, filteredParams, allSortedParams, filterList, // Added clearForm and filteredParams
                 };
             }
