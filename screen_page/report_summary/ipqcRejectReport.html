@@ -131,14 +131,18 @@
             margin-right: 5px;
         }
 
-        /* The one field on this form anybody types into. Sized to the column
-           and stripped of its spinner, because a spinner inside a 55px cell
-           leaves no room for three digits. */
-        /* Wider than it was, and no spinner rules: this is a text box now, so a
-           word like ALL has to fit and there is no number widget to suppress. */
+        /* The one field on this form anybody types into. It is a text box, not a
+           number one: the answer is a count, or ALL, or a note about which
+           cavity.
+
+           A MINIMUM width, never a maximum. width:100% contributes nothing to a
+           cell's minimum in auto table layout, so this column was squeezed to
+           whatever was left after the defect descriptions had taken theirs, and
+           the box showed the first character of ALL and nothing else. A minimum
+           on the box is what makes the column reserve room for the answer. */
         .qty-input {
             width: 100%;
-            max-width: 74px;
+            min-width: 76px;
             padding: 1px 2px;
             font-family: var(--font-sans);
             font-size: 10px;
@@ -148,6 +152,13 @@
             background: #fffbeb;
             border: 1px solid #fcd34d;
             border-radius: 3px;
+        }
+
+        /* The same minimum stated on the column itself, so it survives the rows
+           that have no input in them — the empty ones that pad the paper. */
+        .report-table th.col-qty,
+        .report-table td.col-qty {
+            min-width: 92px;
         }
 
         .qty-input:focus {
@@ -162,6 +173,14 @@
         .qty-input.is-error {
             border-color: var(--danger);
             background: #fee2e2;
+        }
+
+        /* Printed twin of the box, hidden on screen. An <input> clips whatever
+           does not fit rather than wrapping it, and a clipped quantity on a
+           controlled record is a wrong record — so paper gets the value as
+           text. Shown by the print block at the foot of this stylesheet. */
+        .qty-print {
+            display: none;
         }
 
         .search-indicator {
@@ -272,13 +291,23 @@
                 print-color-adjust: exact;
             }
 
-            /* On paper the quantity is a number in a box, not a form control —
-               and an empty one has to print as an empty box somebody can write
-               in by hand, which is why it keeps its border. */
+            /* On paper the quantity is a written answer, not a form control, so
+               the box gives way to plain text that wraps and prints in full.
+               An unanswered one prints as the empty half of a ruled line —
+               the sub-row borders are what somebody writes on by hand. */
             .qty-input {
-                background: transparent !important;
-                border: 0 !important;
+                display: none !important;
+            }
+
+            .qty-print {
+                display: block;
+                width: 100%;
+                font-size: 10px;
+                font-weight: 700;
+                text-align: center;
                 color: #000 !important;
+                white-space: normal;
+                overflow-wrap: anywhere;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -360,6 +389,10 @@
                 <p class="mt-4 text-xs text-gray-500 leading-relaxed">
                     Every IPQC point measured outside its spec appears here, one line per zone.
                     Key in how many parts each one affected — it saves as you leave the box.
+                    An inspection that measured clean also appears, on one line, when somebody
+                    recorded an affected quantity against it at entry: the rejection happened for
+                    a reason the remark carries, and editing that line writes to the whole
+                    inspection.
                     A point leaves this record when it is special-accepted in the
                     <strong>Data Editor</strong>, which asks for the granting name and PIN and
                     records both.
@@ -420,7 +453,7 @@
                             <th rowspan="2">Defect Description</th>
                             <th rowspan="2">Inspected By</th>
                             <th rowspan="2">Production Record By</th>
-                            <th rowspan="2">Affected Qty</th>
+                            <th rowspan="2" class="col-qty">Affected Qty</th>
                             <th rowspan="2">Sorted OK</th>
                             <th rowspan="2">Return to Vendor</th>
                             <th rowspan="2">Scraped Qty</th>
@@ -456,7 +489,7 @@
                             <td>{{ row.inspector }}</td>
                             <td>&nbsp;</td>
                             <!-- Affected Qty lines up one-for-one with the zones above. -->
-                            <td class="p-0">
+                            <td class="p-0 col-qty">
                                 <div class="sub-row-container">
                                     <div v-for="d in row.defects" :key="d.id" class="sub-row-item">
                                         <!-- Text, not a number. The true answer is often ALL —
@@ -467,7 +500,10 @@
                                             :value="d.affected_qty"
                                             @change="saveQty(d, $event.target)"
                                             list="affectedQtyOptions"
-                                            :title="failed[d.id] || 'Parts affected by this point — a count, or ALL'">
+                                            :title="failed[d.id] || d.affected_qty || (d.ids ? 'Parts this inspection rejected — a count, or ALL' : 'Parts affected by this point — a count, or ALL')">
+                                        <!-- Print only. Screen keeps the editable box; paper gets
+                                             the whole answer, wrapped rather than clipped. -->
+                                        <span class="qty-print">{{ d.affected_qty }}</span>
                                     </div>
                                 </div>
                             </td>
@@ -601,15 +637,17 @@
                             params: {
                                 select: 'id,created_at,JO_Number,Part_Name,Machine,Process,Person,' +
                                     'Point_DWG_Zone,LSL_OK,USL_NG,Reading_1,Reading_2,Reading_3,' +
-                                    'special_accept,affected_qty,Remarks',
+                                    'is_ng,special_accept,affected_qty,Remarks',
                                 // Axios repeats the key: ?created_at=gte...&created_at=lt...
                                 created_at: [`gte.${start}`, `lt.${end}`],
-                                // The database's verdict, not a fourth copy of the spec rule.
-                                is_ng: 'is.true',
-                                // A granted concession takes the point off the record. Null and 0
-                                // both mean "not accepted" — the column defaults to 0 but older
-                                // rows predate the default.
-                                or: '(special_accept.is.null,special_accept.eq.0)',
+                                // Two ways onto this record. is_ng is the database's own verdict
+                                // on a reading, not a fourth copy of the spec rule. affected_qty
+                                // is a person saying how many parts an inspection rejected — and
+                                // that answer is given for reasons a dimension never sees, so an
+                                // inspection carrying one belongs here even with every point in
+                                // spec. Which rows become LINES is decided below; this only
+                                // decides which come back.
+                                or: '(is_ng.is.true,affected_qty.not.is.null)',
                                 order: 'created_at.asc'
                             }
                         });
@@ -630,6 +668,16 @@
                     const m = String(z ?? '').match(/\d+/);
                     return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
                 };
+
+                // A concession takes a point off the record. Null and 0 both mean
+                // "not accepted" — the column defaults to 0 but older rows predate
+                // the default. Read as text so a 1 and a '1' are the same answer.
+                const isAccepted = (v) =>
+                    v !== null && v !== undefined &&
+                    String(v).trim() !== '' && String(v).trim() !== '0';
+
+                const hasQty = (v) =>
+                    v !== null && v !== undefined && String(v).trim() !== '';
 
                 // One form row per inspection round — the same job, on the same
                 // machine, for the same process, recorded in one go. Every zone
@@ -655,9 +703,26 @@
                                 machine: p.Machine || '-',
                                 process: p.Process || '-',
                                 inspector: p.Person || '-',
-                                defects: []
+                                defects: [],
+                                // Everything below is for the quantity-only case,
+                                // decided once the whole round has been seen.
+                                ids: [],
+                                anyNg: false,
+                                qty: null,
+                                remark: ''
                             });
                         }
+
+                        const g = groups.get(key);
+                        g.ids.push(p.id);
+                        if (p.is_ng) g.anyNg = true;
+                        if (g.qty === null && hasQty(p.affected_qty)) g.qty = p.affected_qty;
+                        if (!g.remark) g.remark = String(p.Remarks ?? '').trim();
+
+                        // Only an out-of-spec point still awaiting disposition
+                        // earns a line of its own. The rest of the submission
+                        // came back because it carries the same affected_qty.
+                        if (!p.is_ng || isAccepted(p.special_accept)) return;
 
                         const out = [p.Reading_1, p.Reading_2, p.Reading_3]
                             .map((v, i) => ({ v, label: `R${i + 1}` }))
@@ -684,7 +749,7 @@
                         // from the rest of the line because it is bold, and
                         // interpolation is what keeps it text rather than
                         // markup the database could inject.
-                        groups.get(key).defects.push({
+                        g.defects.push({
                             id: p.id,
                             zone: p.Point_DWG_Zone,
                             affected_qty: p.affected_qty,
@@ -693,7 +758,31 @@
                         });
                     });
 
-                    const rows = [...groups.values()];
+                    // Rounds that measured clean but were given an affected qty.
+                    // Somebody wrote down how many parts that inspection rejected,
+                    // so the rejection happened — for a reason the remark carries
+                    // and no dimension records. One line, because the quantity is
+                    // one answer for the whole inspection, not one per point.
+                    //
+                    // anyNg is the guard that keeps a granted concession off the
+                    // record: if the round DID measure out and every out point was
+                    // special-accepted, it left this report on purpose, and the
+                    // quantity it still carries must not walk it back on.
+                    const rows = [...groups.values()].filter((g) => {
+                        if (g.defects.length) return true;
+                        if (g.anyNg || g.qty === null) return false;
+                        g.defects.push({
+                            id: g.ids[0],
+                            // Every row of the submission holds this one answer, so
+                            // an edit here has to write to all of them or they drift.
+                            ids: g.ids,
+                            zone: null,
+                            affected_qty: g.qty,
+                            remark: g.remark,
+                            detail: 'No measurement out of spec'
+                        });
+                        return true;
+                    });
                     rows.forEach((r) => r.defects.sort((a, b) => zoneNo(a.zone) - zoneNo(b.zone)));
                     return rows.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
                 });
@@ -718,10 +807,17 @@
                         }
                     }
 
+                    // A zone line owns its own box — the paper form lets one point
+                    // be adjusted when it genuinely differs. A quantity-only line
+                    // stands for the whole inspection, and the value lives on every
+                    // row of it, so it is written to every row of it.
+                    const ids = defect.ids?.length ? defect.ids : [defect.id];
+                    const filter = ids.length > 1 ? `id=in.(${ids.join(',')})` : `id=eq.${ids[0]}`;
+
                     delete failed[defect.id];
                     saving[defect.id] = true;
                     try {
-                        await api.patch(`/Data_IPQC?id=eq.${defect.id}`, { affected_qty: value });
+                        await api.patch(`/Data_IPQC?${filter}`, { affected_qty: value });
                         defect.affected_qty = value;
                         // The box shows what was stored, not what was typed — "all"
                         // is saved as ALL and leading spaces are gone, and a field
@@ -730,8 +826,9 @@
                         // Keep the fetched copy in step, so a re-render from a
                         // search or a month re-read does not resurrect the old
                         // number without going back to the database.
-                        const src = points.value.find((p) => p.id === defect.id);
-                        if (src) src.affected_qty = value;
+                        points.value.forEach((p) => {
+                            if (ids.includes(p.id)) p.affected_qty = value;
+                        });
                     } catch (err) {
                         console.error('affected_qty save failed', err);
                         failed[defect.id] = err?.response?.data?.message || 'Could not save.';
