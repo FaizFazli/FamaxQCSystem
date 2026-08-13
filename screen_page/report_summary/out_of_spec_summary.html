@@ -206,8 +206,60 @@
             line-height: 1.4;
         }
 
-        */ .remark-text:focus {
+        .remark-text:focus {
             background: var(--primary-soft);
+        }
+
+        /* The remark picker holds whole sentences — "Surface defect (dent /
+           burr / line / vibration / off-center)" — so it needs room the month
+           box does not. */
+        #remarkPicker {
+            min-width: 260px;
+            max-width: 440px;
+        }
+
+        /* Which parts the selected remark landed on, and how many points of
+           each. It sits above the detail tables and answers the question people
+           open this report with, so it prints with them. */
+        .summary-panel {
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--oos-danger);
+            border-radius: var(--radius-sm);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+            background: var(--bg-card);
+        }
+
+        .summary-panel h3 {
+            margin: 0 0 var(--space-1);
+            font-size: var(--fs-base);
+            font-weight: 700;
+        }
+
+        .summary-caption {
+            margin: 0 0 var(--space-3);
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
+        }
+
+        /* Overrides the 1000px minimum every other table on this page needs to
+           keep nine columns apart — this one has four. */
+        .summary-panel table {
+            min-width: 0;
+        }
+
+        .summary-panel td {
+            font-size: var(--fs-sm);
+        }
+
+        .summary-total td {
+            font-weight: 700;
+            background: var(--surface-muted);
+        }
+
+        .num {
+            text-align: right;
+            white-space: nowrap;
         }
 
         .footer {
@@ -365,6 +417,17 @@
                 <input type="month" id="monthPicker" onchange="generateReport()">
             </div>
 
+            <!-- Built from the remarks the month actually contains, not from a
+                 fixed vocabulary: rows written before the standard list existed,
+                 and anything filed under "Other", are free text and still have
+                 to be selectable. -->
+            <div class="filter-group">
+                <label>Remark</label>
+                <select id="remarkPicker" onchange="applyRemarkFilter()">
+                    <option value="__all__">All remarks</option>
+                </select>
+            </div>
+
             <div style="margin-left: auto; display: flex; gap: var(--space-4);">
                 <button class="btn btn-blue" onclick="generateReport()">Update Report</button>
                 <button class="btn" style="background: #475569; color: white;" onclick="window.print()">Print
@@ -386,7 +449,10 @@
         const SUPABASE_KEY = window.APP_CONFIG.key;
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let globalOOSData = [];
+        let globalOOSData = [];      // the whole month, whatever the filter says
+        let remarkGroups = [];       // one entry per distinct remark, biggest first
+        let activeRemark = "__all__";
+        let activeMonth = "";
 
         window.onload = () => {
             const currentMonth = dayjs().format("YYYY-MM");
@@ -394,8 +460,195 @@
             generateReport();
         };
 
+        // Remarks are free text and always will be, so they are escaped rather
+        // than trusted: a stray < in a typed remark otherwise eats the rest of
+        // the cell.
+        const esc = (v) => String(v ?? "")
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+
+        // ---------------------------------------------------------------
+        // Reading remarks that were never standardised
+        //
+        // IPQC writes Remarks as "<category> | <free detail>" and takes the
+        // category from a fixed list — but "Other" writes the detail on its
+        // own, and rows recorded before that list existed are free text end to
+        // end. So the filter cannot assume the vocabulary. It groups on the
+        // CATEGORY, meaning everything before the first "|", because the detail
+        // is deliberately unique per inspection and grouping on it would give
+        // one group per row.
+        //
+        // The key folds the ways the same remark differs when it is typed twice
+        // instead of picked from the list: case, runs of whitespace, trailing
+        // punctuation, and the separator — "Tooling problem / broken",
+        // "tooling problem/broken" and "Tooling problem – broken." are one
+        // remark, because / - – — between words are the same word here.
+        //
+        // Nothing beyond that is folded. Deciding that two unlike sentences
+        // mean the same thing is a judgement about the factory's words, not one
+        // this page gets to make, so two old remarks that mean the same stay
+        // two entries — visible, countable, and fixable by editing the remark.
+        // Where folding DID happen the summary panel names every spelling it
+        // merged, so a count nobody can reproduce by eye is never silent.
+        // ---------------------------------------------------------------
+        function remarkCategory(text) {
+            const s = String(text ?? "").replace(/\s+/g, " ").trim();
+            const bar = s.indexOf("|");
+            return (bar === -1 ? s : s.slice(0, bar)).trim();
+        }
+
+        function remarkKey(text) {
+            return remarkCategory(text)
+                .toUpperCase()
+                .replace(/[‐-―]/g, "-")             // en and em dashes are typed as - too
+                .replace(/\s*[\/-]+\s*/g, " / ")     // "a/b", "a / b" and "a - b" are one remark
+                .replace(/[.,;:]+$/, "")
+                .replace(/\s+/g, " ")
+                .replace(/^\s*\/\s*|\s*\/\s*$/g, "")
+                .trim();
+        }
+
+        // Rows arrive newest first, so the label of a group is its most recent
+        // spelling — the closest thing to what the floor writes today.
+        function buildRemarkGroups(rows) {
+            const map = new Map();
+            rows.forEach((r) => {
+                if (!map.has(r.remarkKey)) {
+                    map.set(r.remarkKey, {
+                        key: r.remarkKey,
+                        label: r.remarkCategory || "(No remark)",
+                        count: 0,
+                        spellings: new Set()
+                    });
+                }
+                const g = map.get(r.remarkKey);
+                g.count += 1;
+                if (r.remarkCategory) g.spellings.add(r.remarkCategory);
+            });
+            return [...map.values()]
+                .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+        }
+
+        function fillRemarkPicker() {
+            const sel = document.getElementById("remarkPicker");
+            const previous = activeRemark;
+            sel.innerHTML = "";
+
+            const all = document.createElement("option");
+            all.value = "__all__";
+            all.textContent = `All remarks — ${globalOOSData.length} point${globalOOSData.length === 1 ? "" : "s"}`;
+            sel.appendChild(all);
+
+            remarkGroups.forEach((g) => {
+                const o = document.createElement("option");
+                o.value = g.key;
+                // textContent, not innerHTML: the label is somebody's typing.
+                o.textContent = `${g.label} — ${g.count} point${g.count === 1 ? "" : "s"}`
+                    + (g.spellings.size > 1 ? ` (${g.spellings.size} spellings)` : "");
+                sel.appendChild(o);
+            });
+
+            // A remark stays selected across a month change when the new month
+            // has it, so stepping back through months follows one problem.
+            activeRemark = remarkGroups.some((g) => g.key === previous) ? previous : "__all__";
+            sel.value = activeRemark;
+        }
+
+        function visibleRows() {
+            return activeRemark === "__all__"
+                ? globalOOSData
+                : globalOOSData.filter((d) => d.remarkKey === activeRemark);
+        }
+
+        function applyRemarkFilter() {
+            activeRemark = document.getElementById("remarkPicker").value;
+            renderReport();
+        }
+
+        // A row is one point measured in one inspection, so the row count is
+        // how many points the remark affected. Distinct zones is the other
+        // question people ask — twelve points on one zone across a month is a
+        // different story from twelve zones once each.
+        function partSummary(rows) {
+            const map = new Map();
+            rows.forEach((r) => {
+                if (!map.has(r.part)) {
+                    map.set(r.part, {
+                        part: r.part, points: 0,
+                        zones: new Set(), machines: new Set(),
+                        lastTs: 0, lastDate: ""
+                    });
+                }
+                const s = map.get(r.part);
+                s.points += 1;
+                if (r.zone && r.zone !== "-") s.zones.add(String(r.zone));
+                if (r.machine && r.machine !== "N/A") s.machines.add(r.machine);
+                if (r.ts > s.lastTs) { s.lastTs = r.ts; s.lastDate = r.date; }
+            });
+            return [...map.values()]
+                .sort((a, b) => b.points - a.points || a.part.localeCompare(b.part));
+        }
+
+        function activeRemarkLabel() {
+            if (activeRemark === "__all__") return "All remarks";
+            const g = remarkGroups.find((x) => x.key === activeRemark);
+            return g ? g.label : "All remarks";
+        }
+
+        function summaryHtml(rows) {
+            const summary = partSummary(rows);
+            const group = remarkGroups.find((x) => x.key === activeRemark);
+
+            // Say out loud when a group folded more than one spelling together,
+            // so a count nobody can reproduce by eye is explained rather than
+            // just wrong-looking.
+            const spellings = (group && group.spellings.size > 1)
+                ? ` Written ${group.spellings.size} different ways this month, counted as one: `
+                + [...group.spellings].map((s) => `"${esc(s)}"`).join(", ") + "."
+                : "";
+
+            const caption = activeRemark === "__all__"
+                ? `Every out-of-spec point this month, whatever the remark says.`
+                : `Points whose remark is <strong>${esc(activeRemarkLabel())}</strong>.${spellings}`;
+
+            let html = `<div class="summary-panel">
+                <h3>Affected parts — ${esc(activeRemarkLabel())}</h3>
+                <p class="summary-caption">${caption}</p>
+                <table class="summary-table">
+                    <thead><tr>
+                        <th>Part Name / No</th>
+                        <th class="num">Points Affected</th>
+                        <th class="num">Distinct Zones</th>
+                        <th>Machines</th>
+                        <th>Last Seen</th>
+                    </tr></thead>
+                    <tbody>`;
+
+            summary.forEach((s) => {
+                html += `<tr>
+                    <td>${esc(s.part)}</td>
+                    <td class="num">${s.points}</td>
+                    <td class="num">${s.zones.size}</td>
+                    <td>${esc([...s.machines].sort().join(", ") || "-")}</td>
+                    <td>${esc(s.lastDate)}</td>
+                </tr>`;
+            });
+
+            const zones = new Set();
+            rows.forEach((r) => { if (r.zone && r.zone !== "-") zones.add(r.part + "|" + r.zone); });
+
+            html += `<tr class="summary-total">
+                    <td>${summary.length} part${summary.length === 1 ? "" : "s"}</td>
+                    <td class="num">${rows.length}</td>
+                    <td class="num">${zones.size}</td>
+                    <td></td><td></td>
+                </tr></tbody></table></div>`;
+            return html;
+        }
+
         async function generateReport() {
             const selectedMonth = document.getElementById("monthPicker").value;
+            activeMonth = selectedMonth;
             const container = document.getElementById("reportContent");
             container.innerHTML = "<p style='text-align:center'>Fetching and sorting data...</p>";
 
@@ -417,6 +670,9 @@
             });
 
             if (oosRecords.length === 0) {
+                globalOOSData = [];
+                remarkGroups = [];
+                fillRemarkPicker();
                 container.innerHTML = `<div style="text-align:center; padding:50px;"><p style="color:#64748b;">No Numeric OOS Found</p></div>`;
                 document.getElementById("exportBtn").disabled = true;
                 return;
@@ -426,11 +682,16 @@
                 id: row.id, date: dayjs(row.created_at).format("YYYY-MM-DD HH:mm"),
                 machine: row.Machine || "N/A", process: row.Process || "N/A", part: row.Part_Name || "N/A",
                 zone: row.Point_DWG_Zone || "-", r1: row.Reading_1, r2: row.Reading_2, r3: row.Reading_3,
-                lsl: row.LSL_OK, usl: row.USL_NG, remarks: row.Remarks || "", ts: dayjs(row.created_at).unix()
+                lsl: row.LSL_OK, usl: row.USL_NG, remarks: row.Remarks || "", ts: dayjs(row.created_at).unix(),
+                // Carried on the row so the filter and the grouping never disagree
+                // about what a remark says.
+                remarkCategory: remarkCategory(row.Remarks),
+                remarkKey: remarkKey(row.Remarks)
             })).sort((a, b) => b.ts - a.ts);
 
-            renderTable(selectedMonth);
-            document.getElementById("exportBtn").disabled = false;
+            remarkGroups = buildRemarkGroups(globalOOSData);
+            fillRemarkPicker();
+            renderReport();
         }
 
         async function saveRemark(element, rowId) {
@@ -438,18 +699,49 @@
             element.classList.add('saving');
             await _supabase.from("Data_IPQC").update({ Remarks: text }).eq("id", rowId);
             element.classList.remove('saving');
+
+            // The remark that was just edited is what the picker groups on, so
+            // the list and its counts are rebuilt rather than left describing
+            // the text that used to be there. Re-rendering is what keeps a row
+            // from sitting under a filter it no longer matches; the scroll
+            // position is put back because the edit was made mid-table.
+            const row = globalOOSData.find((d) => String(d.id) === String(rowId));
+            if (row) {
+                row.remarks = text;
+                row.remarkCategory = remarkCategory(text);
+                row.remarkKey = remarkKey(text);
+                remarkGroups = buildRemarkGroups(globalOOSData);
+                fillRemarkPicker();
+                const y = window.scrollY;
+                renderReport();
+                window.scrollTo(0, y);
+            }
         }
 
-        function renderTable(selectedMonth) {
+        function renderReport() {
             const container = document.getElementById("reportContent");
-            container.innerHTML = `<h2 style="text-align:center; font-size: 16px; margin-bottom: 20px;">Quality Exceptions: ${dayjs(selectedMonth).format("MMMM YYYY")}</h2>`;
-            const parts = [...new Set(globalOOSData.map(d => d.part))];
+            const rowsShown = visibleRows();
+            const monthLabel = activeMonth ? dayjs(activeMonth).format("MMMM YYYY") : "";
+
+            container.innerHTML =
+                `<h2 style="text-align:center; font-size: 16px; margin-bottom: 20px;">Quality Exceptions: ${esc(monthLabel)}</h2>`
+                + summaryHtml(rowsShown);
+
+            document.getElementById("exportBtn").disabled = rowsShown.length === 0;
+
+            if (rowsShown.length === 0) {
+                container.innerHTML += `<div style="text-align:center; padding:40px;">
+                    <p style="color:#64748b;">No out-of-spec point this month carries that remark.</p></div>`;
+                return;
+            }
+
+            const parts = [...new Set(rowsShown.map(d => d.part))];
 
             parts.forEach(partName => {
-                const rows = globalOOSData.filter(d => d.part === partName);
+                const rows = rowsShown.filter(d => d.part === partName);
                 let html = `
             <div class="part-group-header">
-                <span>PART: ${partName}</span>
+                <span>PART: ${esc(partName)}</span>
                 <span style="font-weight:400; font-size:11px;">OOS: ${rows.length}</span>
             </div>
             <div class="table-responsive">
@@ -475,22 +767,25 @@
                         const n = parseFloat(v);
                         if (isNaN(n)) return v;
                         const isOos = ((!isNaN(row.lsl) && n < row.lsl) || (!isNaN(row.usl) && n > row.usl));
-                        return isOos ? `<span class="oos-bold">${v}</span>` : v;
+                        return isOos ? `<span class="oos-bold">${esc(v)}</span>` : esc(v);
                     };
 
                     // NEW LOGIC: Break lines at / or |
                     // We add a newline (\n) after every / or | symbol
-                    const formattedRemarks = (row.remarks || '')
+                    // Escaped first: the box is contenteditable and saves back
+                    // what innerText reads, so a typed < has to stay a typed <
+                    // rather than become the start of a tag.
+                    const formattedRemarks = esc(row.remarks || '')
                         .replace(/\//g, '/\n')
                         .replace(/\|/g, '|\n');
 
                     html += `
                             <tr>
-                                <td class="col-date">${row.date}</td>
-                                <td class="col-machine"><b>${row.machine}</b></td>
-                                <td class="col-process">${row.process}</td>
-                                <td class="col-zone" style="text-align:center">${row.zone}</td>
-                                <td class="col-spec" style="text-align:center">${row.lsl || '-'} / ${row.usl || '-'}</td>
+                                <td class="col-date">${esc(row.date)}</td>
+                                <td class="col-machine"><b>${esc(row.machine)}</b></td>
+                                <td class="col-process">${esc(row.process)}</td>
+                                <td class="col-zone" style="text-align:center">${esc(row.zone)}</td>
+                                <td class="col-spec" style="text-align:center">${esc(row.lsl || '-')} / ${esc(row.usl || '-')}</td>
                                 <td class="col-read">${formatReading(row.r1)}</td>
                                 <td class="col-read">${formatReading(row.r2)}</td>
                                 <td class="col-read">${formatReading(row.r3)}</td>
@@ -505,7 +800,41 @@
 
         async function exportToExcel() {
             const monthLabel = dayjs(document.getElementById("monthPicker").value).format("MMMM_YYYY");
+            // What was asked for on screen is what leaves the page. Exporting the
+            // whole month from a filtered view would hand somebody a workbook
+            // that does not match the report they were reading.
+            const rowsShown = visibleRows();
             const workbook = new ExcelJS.Workbook();
+
+            // The affected-parts table first, because it is the answer; the
+            // point-by-point detail is the working behind it.
+            const summarySheet = workbook.addWorksheet('Affected Parts');
+            summarySheet.columns = [
+                { header: 'Part Name / No', key: 'part', width: 42 },
+                { header: 'Points Affected', key: 'points', width: 16 },
+                { header: 'Distinct Zones', key: 'zones', width: 15 },
+                { header: 'Machines', key: 'machines', width: 22 },
+                { header: 'Last Seen', key: 'last', width: 20 }
+            ];
+            const sHead = summarySheet.getRow(1);
+            sHead.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            sHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+
+            const remarkRow = summarySheet.addRow(['REMARK: ' + activeRemarkLabel()]);
+            summarySheet.mergeCells(remarkRow.number, 1, remarkRow.number, 5);
+            remarkRow.font = { bold: true };
+            remarkRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+
+            partSummary(rowsShown).forEach((s) => {
+                summarySheet.addRow({
+                    part: s.part,
+                    points: s.points,
+                    zones: s.zones.size,
+                    machines: [...s.machines].sort().join(', '),
+                    last: s.lastDate
+                });
+            });
+
             const sheet = workbook.addWorksheet('Numeric OOS');
 
             // 1. Setup Columns
@@ -528,10 +857,10 @@
             headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } }; // Blue header
 
             // 2. Grouping Logic (Same as display)
-            const parts = [...new Set(globalOOSData.map(d => d.part))];
+            const parts = [...new Set(rowsShown.map(d => d.part))];
 
             parts.forEach(partName => {
-                const partRows = globalOOSData.filter(d => d.part === partName);
+                const partRows = rowsShown.filter(d => d.part === partName);
 
                 // Add a Part Group Header Row
                 const groupHeader = sheet.addRow(['PART: ' + partName]);
@@ -580,7 +909,12 @@
             const buffer = await workbook.xlsx.writeBuffer();
             const link = document.createElement("a");
             link.href = URL.createObjectURL(new Blob([buffer]));
-            link.download = `Numeric_OOS_Report_${monthLabel}.xlsx`;
+            // The remark is in the name, so two exports of the same month do not
+            // land in Downloads as the same file with (1) after it.
+            const remarkSlug = activeRemark === "__all__"
+                ? ""
+                : "_" + activeRemarkLabel().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40);
+            link.download = `Numeric_OOS_Report_${monthLabel}${remarkSlug}.xlsx`;
             link.click();
         }
     </script>
