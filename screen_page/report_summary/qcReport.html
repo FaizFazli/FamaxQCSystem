@@ -260,6 +260,16 @@
             font-weight: bold;
         }
 
+        /* Nothing was measured — the machine was stopped. Deliberately neither green
+           nor red: a stopped machine did not pass and did not fail, and painting it
+           either colour states something about quality that nobody checked. Hex must
+           match the export map in getAcceptanceMeta. */
+        .acc-none {
+            background-color: #94a3b8;
+            color: var(--on-primary);
+            font-weight: bold;
+        }
+
         .sa-mark {
             display: inline-block;
             margin-left: 4px;
@@ -288,6 +298,12 @@
 
         .status-accept {
             background-color: var(--success);
+            color: var(--on-primary);
+            font-weight: bold;
+        }
+
+        .status-stopped {
+            background-color: #94a3b8;
             color: var(--on-primary);
             font-weight: bold;
         }
@@ -412,6 +428,34 @@
             return pass / total >= 0.6;
         }
 
+        // A STOPPED MACHINE IS NOT A REJECT.
+        //
+        // submitStopReport() in IPQC-page.html writes the stop type into all three
+        // reading slots of every configured point, so a machine stop arrives as
+        // Data_IPQC rows carrying no measurement. fetchAndProcess skips those rows,
+        // which is correct — but it leaves the group with an empty `sets`, an
+        // acceptance of "0/0", and isRatioAccepted("0/0") === false. Everything
+        // downstream read that false as "rejected", so a machine that was stopped
+        // counted against the shift in Total Reject, was painted red, and had its
+        // status printed as REJECT in both the screen and the workbook.
+        //
+        // Nothing was measured, so the group can be neither accepted nor rejected.
+        // It is reported separately and left out of both counts. The row still
+        // appears in the table — the stop and its reason belong on the record.
+        //
+        // Keyed off the ratio rather than off stopEvent so that a group which
+        // measured nothing for any other reason is also not called a reject; only
+        // the LABEL distinguishes a stop from an empty round.
+        function notInspected(row) {
+            const total = Number(String(row?.acceptance || "").split("/")[1]);
+            return !total;
+        }
+
+        function inspectionStatus(row) {
+            if (notInspected(row)) return row?.stopEvent ? "STOPPED" : "NO DATA";
+            return isRatioAccepted(row.acceptance) ? "ACCEPT" : "REJECT";
+        }
+
         const SUPABASE_URL = window.APP_CONFIG.url;
         const SUPABASE_KEY = window.APP_CONFIG.key;
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -441,6 +485,10 @@
         // merit and passing on a concession are different facts about the shift, and a
         // summary that paints them the same colour hides how often the shop concedes.
         function getAcceptanceMeta(ratioStr, conceded) {
+            // Nothing measured — grey, not red. See notInspected() above.
+            if (!Number(String(ratioStr || "").split("/")[1])) {
+                return { class: "acc-none", hex: "FF94A3B8" };
+            }
             const isPass = isRatioAccepted(ratioStr);
             if (isPass && conceded) return { class: "acc-conceded", hex: "FF0D9488" };
             return {
@@ -585,7 +633,17 @@
                 if (!personSummary[r.person]) {
                     personSummary[r.person] = {
                         machineStatus: {}, // Stores machineName: isAccepted (boolean)
+                        stopped: new Set(), // Machines that only ever stopped this day
                     };
+                }
+
+                // A stopped machine measured nothing, so it votes neither way. Left in
+                // machineStatus it would have made the machine Reject, and — because the
+                // rule below is "Reject if ANY row rejects" — it would also have dragged
+                // down a machine that ran and passed on another job the same day.
+                if (notInspected(r)) {
+                    personSummary[r.person].stopped.add(r.machine);
+                    return;
                 }
 
                 const isRowAcc = isRatioAccepted(r.acceptance);
@@ -614,12 +672,20 @@
                 ).length;
                 const rejectCount = totalMachines - acceptCount;
 
+                // Only machines that did nothing BUT stop. One that stopped and also ran
+                // is already counted on the merit of the work it did, and would otherwise
+                // be reported twice.
+                const stoppedOnly = [...personSummary[person].stopped].filter(
+                    (m) => !(m in mData)
+                ).length;
+
                 summaryHtml += `
       <div class="person-stat-card">
         <span class="person-name">${person}</span>
         <div class="stat-row"><span class="stat-label">Total Machines Running:</span> <span class="stat-val">${totalMachines}</span></div>
         <div class="stat-row"><span class="stat-label">Total Accept:</span> <span class="stat-val val-accept">${acceptCount}</span></div>
         <div class="stat-row"><span class="stat-label">Total Reject:</span> <span class="stat-val val-reject">${rejectCount}</span></div>
+        ${stoppedOnly ? `<div class="stat-row"><span class="stat-label">Machines Stopped:</span> <span class="stat-val">${stoppedOnly}</span></div>` : ""}
       </div>`;
             }
             summaryHtml += `</div></div>`;
@@ -633,8 +699,10 @@
                 const conceded = row.concededSets > 0;
                 const aMeta = getAcceptanceMeta(row.acceptance, conceded);
 
-                const calculatedStatus = isRatioAccepted(row.acceptance) ? "ACCEPT" : "REJECT";
-                const sClass = calculatedStatus === "ACCEPT" ? "status-accept" : "acc-red";
+                const calculatedStatus = inspectionStatus(row);
+                const sClass = notInspected(row)
+                    ? "status-stopped"
+                    : calculatedStatus === "ACCEPT" ? "status-accept" : "acc-red";
                 if (conceded && calculatedStatus === "ACCEPT") anyConceded = true;
 
                 const finalJustification = buildJustification(row);
@@ -720,7 +788,16 @@
                 const pMap = {};
                 rows.forEach((r) => {
                     if (!pMap[r.person])
-                        pMap[r.person] = { machines: new Set(), accept: 0, reject: 0 };
+                        pMap[r.person] = { machines: new Set(), accept: 0, reject: 0, stopped: 0 };
+
+                    // A stopped machine measured nothing — counted separately, and kept
+                    // out of "Machines Running" too, because it was not running. Same
+                    // rule as the screen; the workbook must not disagree with it.
+                    if (notInspected(r)) {
+                        pMap[r.person].stopped++;
+                        return;
+                    }
+
                     pMap[r.person].machines.add(r.machine);
 
                     // UPDATED: Count based on 60% rule
@@ -733,6 +810,7 @@
                     "Machines Running",
                     "Total Accept",
                     "Total Reject",
+                    "Stopped",
                 ]).font = { bold: true };
                 for (const p in pMap) {
                     sheet.addRow([
@@ -740,6 +818,7 @@
                         pMap[p].machines.size,
                         pMap[p].accept,
                         pMap[p].reject,
+                        pMap[p].stopped,
                     ]);
                 }
                 sheet.addRow([]);
@@ -778,9 +857,7 @@
                 });
 
                 rows.forEach((r) => {
-                    const calculatedStatus = isRatioAccepted(r.acceptance)
-                        ? "ACCEPT"
-                        : "REJECT";
+                    const calculatedStatus = inspectionStatus(r);
                     const conceded = r.concededSets > 0 && calculatedStatus === "ACCEPT";
                     const row = sheet.addRow([
                         r.person,
