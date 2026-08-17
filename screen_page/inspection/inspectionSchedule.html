@@ -1057,8 +1057,10 @@
                             api.get('/Parts?select=Part_Name'),
                             // Fetch ID, Parameter, and Details for mapping
                             api.get('/InspectionGuide?select=id,Parameter,Details'),
-                            // Inspection staff now come from the HR-owned EmployeeTable, QA/QC department only
-                            api.get('/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc'),
+                            // Inspection staff now come from the HR-owned EmployeeTable, QA/QC
+                            // department only, and only those still employed — a leaver is
+                            // marked resigned in the Employee Register rather than deleted.
+                            api.get('/EmployeeTable?select=name&department=eq.QA%2FQC&resigned_on=is.null&order=name.asc'),
                             // Fetch the new mapping table
                             api.get('/InspectionGuideDetails?select=*')
                         ]);

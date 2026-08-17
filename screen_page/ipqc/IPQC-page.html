@@ -775,7 +775,9 @@
         async function fetchStopPersons() {
             try {
                 const res = await supabaseClient.get(
-                    "/rest/v1/EmployeeTable?select=name,position&position=ilike.*TECHNICIAN*&order=name.asc"
+                    // resigned_on is null: a leaver is marked resigned in the Employee
+                    // Register rather than deleted, so they drop off this list.
+                    "/rest/v1/EmployeeTable?select=name,position&position=ilike.*TECHNICIAN*&resigned_on=is.null&order=name.asc"
                 );
                 const names = [...new Set((res.data || []).map(e => e.name).filter(Boolean))];
                 const $sel = $("#stop-person").empty();

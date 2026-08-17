@@ -802,7 +802,11 @@
                 employeesArr = []; employeeMap = {};
                 if (!role) { renderEmployeeList(''); return; }
                 try {
-                    let q = supabaseClient.from('EmployeeTable').select('name, empID, position');
+                    // Somebody who has left is marked resigned, not deleted, so both
+                    // branches below drop them. sql/2026-08-17_employee_resigned.sql.
+                    let q = supabaseClient.from('EmployeeTable')
+                        .select('name, empID, position')
+                        .is('resigned_on', null);
                     if (role === 'QC') {
                         q = q.eq('department', 'QA/QC');
                     } else {

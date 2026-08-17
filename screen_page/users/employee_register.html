@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Register | Famax Quality Hub</title>
+    <link rel="icon" type="png" href="/FamaxQCSystem/assets/LogoRound.png?v=2">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="/assets/app-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/theme.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* Framed inside index.html as well as opened on its own. */
+        html,
+        body {
+            height: auto !important;
+            min-height: 100% !important;
+            background-color: var(--bg-body);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 0;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        #app {
+            width: 100%;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 1rem;
+        }
+
+        .toolbar .field { flex: 1 1 190px; }
+
+        .roster {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .roster th,
+        .roster td {
+            padding: 8px 10px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border, #e2e8f0);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .roster th {
+            font-size: 11px;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--text-muted, #64748b);
+            background: var(--bg-subtle, #f8fafc);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .roster tbody tr:hover { background: var(--bg-subtle, #f8fafc); }
+
+        /* A leaver stays legible but is visibly not part of the working roster —
+           they are shown only when the toggle asks for them. */
+        .roster tr.is-resigned td {
+            color: #94a3b8;
+        }
+
+        .roster tr.is-resigned .emp-name {
+            text-decoration: line-through;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .tag--qa { background: #EAF6FF; color: #0369A1; }
+        .tag--prod { background: #E7F6EC; color: #16A34A; }
+        .tag--other { background: #EEF0F4; color: #64748B; }
+        .tag--gone { background: #F1F5F9; color: #64748B; }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 60;
+        }
+
+        .modal-card {
+            background: #fff;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 620px;
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, .35);
+        }
+
+        .modal-card__head {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-card__body { padding: 20px; }
+
+        .modal-card__foot {
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            gap: .5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        @media (max-width: 640px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+
+        .span-2 { grid-column: 1 / -1; }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-muted, #64748b);
+            margin-top: 3px;
+        }
+
+        .warn {
+            background: #FEF3C7;
+            border: 1px solid #FDE68A;
+            color: #92400E;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body class="p-2 md:p-8">
+    <div id="app" class="max-w-[1400px] mx-auto">
+
+        <!-- A div not a header — theme.css hides body>header when framed. -->
+        <div class="panel mb-6">
+            <div class="panel__head">
+                <h1 class="panel__title">Employee Register</h1>
+            </div>
+            <div class="panel__body">
+                <div class="toolbar">
+                    <div class="field">
+                        <label class="label">Search name / emp ID / position</label>
+                        <div class="relative">
+                            <input type="text" v-model="search" placeholder="Type to search..." class="input pl-10">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Department</label>
+                        <select v-model="deptFilter" class="input">
+                            <option value="">All departments</option>
+                            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                        </select>
+                    </div>
+
+                    <div class="field" style="flex:0 0 auto">
+                        <label class="label">Show</label>
+                        <label class="flex items-center gap-2 text-sm" style="height:38px">
+                            <input type="checkbox" v-model="showResigned">
+                            Include resigned
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button @click="openAdd" class="btn"><i class="fa fa-user-plus mr-2"></i>Add Employee</button>
+                        <button @click="load" class="btn btn--secondary"><i class="fa fa-sync mr-2"></i>Refresh</button>
+                    </div>
+                </div>
+
+                <p class="mt-4 text-xs text-gray-500 leading-relaxed">
+                    The roster every name dropdown in the system reads — inspection checkers,
+                    the IPQC Machine Stop person list, the buy-off inspector.
+                    Someone who leaves is marked <strong>resigned</strong>, not deleted: they drop off
+                    every dropdown immediately, but their emp ID and PIN stay on file so a signature
+                    on an old inspection or tool movement can still be traced to a person, and the
+                    mark can be undone if they return.
+                    <span class="font-semibold text-slate-700">{{ activeCount }} active</span>,
+                    {{ resignedCount }} resigned.
+                    <span v-if="loading" class="text-blue-600 font-semibold">Loading…</span>
+                    <span v-if="loadError" class="text-red-600 font-semibold">{{ loadError }}</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel__body" style="padding:0">
+                <div style="overflow:auto; max-height:70vh">
+                    <table class="roster">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Emp ID</th>
+                                <th>Position</th>
+                                <th>Department</th>
+                                <th>Nation</th>
+                                <th>PIN</th>
+                                <th>Status</th>
+                                <th style="text-align:right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="e in visible" :key="e.id" :class="{ 'is-resigned': !!e.resigned_on }">
+                                <td class="emp-name font-semibold">{{ e.name }}</td>
+                                <td>{{ e.empID || '—' }}</td>
+                                <td>{{ e.position || '—' }}</td>
+                                <td><span class="tag" :class="deptClass(e.department)">{{ e.department || '—' }}</span></td>
+                                <td>{{ e.nation || '—' }}</td>
+                                <td>
+                                    <i v-if="e.pin" class="fa fa-lock text-slate-500" title="A PIN is set"></i>
+                                    <span v-else class="text-slate-300">—</span>
+                                </td>
+                                <td>
+                                    <span v-if="e.resigned_on" class="tag tag--gone"
+                                        :title="'Recorded by ' + (e.resigned_by || 'unknown')">
+                                        Resigned {{ e.resigned_on }}
+                                    </span>
+                                    <span v-else class="tag tag--prod">Active</span>
+                                </td>
+                                <td style="text-align:right; white-space:nowrap">
+                                    <button @click="openEdit(e)" class="btn btn--secondary" style="padding:4px 10px">
+                                        <i class="fa fa-pen"></i>
+                                    </button>
+                                    <button v-if="!e.resigned_on" @click="askResign(e)" class="btn btn--secondary"
+                                        style="padding:4px 10px" title="Mark as resigned">
+                                        <i class="fa fa-user-slash"></i>
+                                    </button>
+                                    <button v-else @click="reinstate(e)" class="btn btn--secondary"
+                                        style="padding:4px 10px" title="Reinstate">
+                                        <i class="fa fa-rotate-left"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="!visible.length && !loading">
+                                <td colspan="8" style="text-align:center; padding:28px; color:#94a3b8">
+                                    Nobody matches that.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADD / EDIT -->
+        <div v-if="form.open" class="modal-backdrop" @click.self="form.open = false">
+            <div class="modal-card">
+                <div class="modal-card__head">
+                    <h2 class="panel__title">{{ form.id ? 'Edit Employee' : 'Add Employee' }}</h2>
+                    <button @click="form.open = false" class="btn btn--secondary" style="padding:4px 10px">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="modal-card__body">
+                    <div v-if="form.error" class="warn mb-4">{{ form.error }}</div>
+
+                    <div class="form-grid">
+                        <div class="field span-2">
+                            <label class="label">Name *</label>
+                            <input type="text" v-model="form.name" class="input" placeholder="FULL NAME"
+                                @input="form.name = form.name.toUpperCase()">
+                            <div class="hint">
+                                Stored on every inspection this person signs, so it is the one field
+                                that must not change casually — old records keep the old spelling.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Emp ID</label>
+                            <input type="text" v-model="form.empID" class="input" placeholder="e.g. 751">
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Nation</label>
+                            <input type="text" v-model="form.nation" class="input" list="nation-list"
+                                placeholder="e.g. MALAYSIAN" @input="form.nation = form.nation.toUpperCase()">
+                            <datalist id="nation-list">
+                                <option v-for="n in nations" :key="n" :value="n"></option>
+                            </datalist>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Position</label>
+                            <input type="text" v-model="form.position" class="input" list="position-list"
+                                placeholder="e.g. PRODUCTION OPERATORS"
+                                @input="form.position = form.position.toUpperCase()">
+                            <datalist id="position-list">
+                                <option v-for="p in positions" :key="p" :value="p"></option>
+                            </datalist>
+                            <div class="hint">
+                                Pick an existing one where you can. The IPQC Machine Stop list matches
+                                on the word TECHNICIAN, so a new spelling can quietly leave somebody
+                                off it.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Department</label>
+                            <input type="text" v-model="form.department" class="input" list="dept-list"
+                                placeholder="e.g. PRODUCTION"
+                                @input="form.department = form.department.toUpperCase()">
+                            <datalist id="dept-list">
+                                <option v-for="d in departments" :key="d" :value="d"></option>
+                            </datalist>
+                            <div class="hint">
+                                Every inspection screen lists <strong>QA/QC</strong> only. Anything else
+                                will not appear as a checker.
+                            </div>
+                        </div>
+
+                        <div class="field span-2">
+                            <label class="label">PIN</label>
+                            <input type="text" v-model="form.pin" class="input"
+                                :placeholder="form.id && form.hadPin ? 'A PIN is set — type to replace it' : 'Leave blank for none'">
+                            <div class="hint">
+                                Proves identity when a special accept is granted or a tool movement is
+                                recorded. Leave blank to keep the current one.
+                                <a v-if="form.id && form.hadPin" href="#" @click.prevent="form.clearPin = !form.clearPin"
+                                    class="underline">
+                                    {{ form.clearPin ? 'keep the PIN after all' : 'remove the PIN' }}
+                                </a>
+                                <span v-if="form.clearPin" class="font-semibold text-amber-700">
+                                    — the PIN will be removed on save.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-card__foot">
+                    <button @click="form.open = false" class="btn btn--secondary">Cancel</button>
+                    <button @click="save" class="btn" :disabled="form.saving">
+                        <i class="fa fa-check mr-2"></i>{{ form.saving ? 'Saving…' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESIGN -->
+        <div v-if="resign.open" class="modal-backdrop" @click.self="resign.open = false">
+            <div class="modal-card" style="max-width:460px">
+                <div class="modal-card__head">
+                    <h2 class="panel__title">Mark as resigned</h2>
+                </div>
+                <div class="modal-card__body">
+                    <p class="text-sm mb-4">
+                        <strong>{{ resign.row && resign.row.name }}</strong> will disappear from every
+                        name dropdown in the system. Their record, emp ID and PIN stay on file, and
+                        past inspections are untouched. You can undo this at any time.
+                    </p>
+                    <div class="field">
+                        <label class="label">Last day</label>
+                        <input type="date" v-model="resign.date" class="input">
+                    </div>
+                    <div v-if="resign.error" class="warn mt-4">{{ resign.error }}</div>
+                </div>
+                <div class="modal-card__foot">
+                    <button @click="resign.open = false" class="btn btn--secondary">Cancel</button>
+                    <button @click="doResign" class="btn" :disabled="resign.saving">
+                        {{ resign.saving ? 'Saving…' : 'Mark resigned' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const api = axios.create({
+                    baseURL: `${window.APP_CONFIG.url}/rest/v1`,
+                    headers: {
+                        'apikey': window.APP_CONFIG.key,
+                        'Authorization': `Bearer ${window.APP_CONFIG.key}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const rows = ref([]);
+                const loading = ref(false);
+                const loadError = ref('');
+                const search = ref('');
+                const deptFilter = ref('');
+                const showResigned = ref(false);
+
+                // Whoever is signed in, for resigned_by. Same sessionStorage keys index.html
+                // sets on login — the denormalised-name pattern used across this system.
+                const currentUser = () =>
+                    sessionStorage.getItem('userId') || 'unknown';
+
+                const todayMYT = () => {
+                    const d = new Date(Date.now() + 8 * 3600 * 1000);
+                    return d.toISOString().slice(0, 10);
+                };
+
+                // Matching key for the duplicate check: the same "ignore punctuation and case"
+                // rule the rest of the system uses on typed names.
+                const key = (s) => String(s || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+
+                const load = async () => {
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const res = await api.get('/EmployeeTable', {
+                            params: { select: '*', order: 'name.asc' }
+                        });
+                        rows.value = res.data || [];
+                    } catch (err) {
+                        console.error('EmployeeTable fetch failed', err);
+                        loadError.value = err?.response?.data?.message
+                            || 'Could not load the roster — is the 2026-08-17 migration run?';
+                        rows.value = [];
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const distinct = (field) => computed(() =>
+                    [...new Set(rows.value.map(r => r[field]).filter(Boolean))].sort());
+
+                const departments = distinct('department');
+                const positions = distinct('position');
+                const nations = distinct('nation');
+
+                const activeCount = computed(() => rows.value.filter(r => !r.resigned_on).length);
+                const resignedCount = computed(() => rows.value.filter(r => r.resigned_on).length);
+
+                const visible = computed(() => {
+                    const q = key(search.value);
+                    return rows.value.filter(r => {
+                        if (!showResigned.value && r.resigned_on) return false;
+                        if (deptFilter.value && r.department !== deptFilter.value) return false;
+                        if (!q) return true;
+                        return key(r.name).includes(q)
+                            || key(r.empID).includes(q)
+                            || key(r.position).includes(q);
+                    });
+                });
+
+                const deptClass = (d) => {
+                    const s = String(d || '').toUpperCase();
+                    if (s.includes('QA') || s.includes('QC')) return 'tag--qa';
+                    if (s.includes('PRODUCTION')) return 'tag--prod';
+                    return 'tag--other';
+                };
+
+                // ---- add / edit ----
+                const form = reactive({
+                    open: false, saving: false, error: '',
+                    id: null, name: '', empID: '', position: '',
+                    department: '', nation: '', pin: '',
+                    hadPin: false, clearPin: false
+                });
+
+                const resetForm = () => {
+                    Object.assign(form, {
+                        saving: false, error: '', id: null, name: '', empID: '',
+                        position: '', department: '', nation: '', pin: '',
+                        hadPin: false, clearPin: false
+                    });
+                };
+
+                const openAdd = () => { resetForm(); form.open = true; };
+
+                const openEdit = (e) => {
+                    resetForm();
+                    Object.assign(form, {
+                        id: e.id,
+                        name: e.name || '',
+                        empID: e.empID || '',
+                        position: e.position || '',
+                        department: e.department || '',
+                        nation: e.nation || '',
+                        pin: '',                 // never shown back; blank means "unchanged"
+                        hadPin: !!e.pin,
+                        open: true
+                    });
+                };
+
+                const save = async () => {
+                    form.error = '';
+                    const name = String(form.name || '').trim();
+                    if (!name) { form.error = 'A name is required.'; return; }
+
+                    // Two active people with the same name make every dropdown ambiguous, and
+                    // the name is what lands in the inspection record — so nobody could tell
+                    // afterwards which of them signed it.
+                    const clash = rows.value.find(r =>
+                        r.id !== form.id && !r.resigned_on && key(r.name) === key(name));
+                    if (clash) {
+                        form.error = `${clash.name} is already on the active roster (emp ID ${clash.empID || '—'}). `
+                            + 'Two active people with the same name cannot be told apart on an inspection record.';
+                        return;
+                    }
+
+                    const payload = {
+                        name,
+                        empID: String(form.empID || '').trim() || null,
+                        position: String(form.position || '').trim() || null,
+                        department: String(form.department || '').trim() || null,
+                        nation: String(form.nation || '').trim() || null
+                    };
+
+                    const pin = String(form.pin || '').trim();
+                    if (pin) payload.pin = pin;
+                    else if (form.clearPin) payload.pin = null;
+                    else if (!form.id) payload.pin = null;
+
+                    form.saving = true;
+                    try {
+                        if (form.id) {
+                            await api.patch(`/EmployeeTable?id=eq.${form.id}`, payload);
+                        } else {
+                            await api.post('/EmployeeTable', payload);
+                        }
+                        form.open = false;
+                        await load();
+                    } catch (err) {
+                        console.error('Employee save failed', err);
+                        form.error = err?.response?.data?.message || 'Could not save. Check the connection.';
+                    } finally {
+                        form.saving = false;
+                    }
+                };
+
+                // ---- resign / reinstate ----
+                const resign = reactive({ open: false, saving: false, error: '', row: null, date: todayMYT() });
+
+                const askResign = (e) => {
+                    Object.assign(resign, { open: true, saving: false, error: '', row: e, date: todayMYT() });
+                };
+
+                const doResign = async () => {
+                    resign.error = '';
+                    if (!resign.date) { resign.error = 'Pick a last day.'; return; }
+                    resign.saving = true;
+                    try {
+                        await api.patch(`/EmployeeTable?id=eq.${resign.row.id}`, {
+                            resigned_on: resign.date,
+                            resigned_by: currentUser()
+                        });
+                        resign.open = false;
+                        await load();
+                    } catch (err) {
+                        console.error('Resign failed', err);
+                        resign.error = err?.response?.data?.message || 'Could not save. Check the connection.';
+                    } finally {
+                        resign.saving = false;
+                    }
+                };
+
+                const reinstate = async (e) => {
+                    try {
+                        await api.patch(`/EmployeeTable?id=eq.${e.id}`, {
+                            resigned_on: null, resigned_by: null
+                        });
+                        await load();
+                    } catch (err) {
+                        console.error('Reinstate failed', err);
+                        loadError.value = err?.response?.data?.message || 'Could not reinstate. Check the connection.';
+                    }
+                };
+
+                onMounted(load);
+
+                return {
+                    rows, loading, loadError, search, deptFilter, showResigned,
+                    departments, positions, nations, activeCount, resignedCount,
+                    visible, deptClass, load,
+                    form, openAdd, openEdit, save,
+                    resign, askResign, doResign, reinstate
+                };
+            }
+        }).mount('#app');
+    </script>
+    <div class="footer">© 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.</div>
+</body>
+
+</html>

@@ -594,8 +594,10 @@
               api.get("/InspectionSchedule?select=*"),
               api.get("/InspectionGuide?select=*"),
               api.get("/InspectionGuideDetails?select=*"),
-              // Inspection staff come from the HR-owned EmployeeTable, QA/QC department only
-              api.get("/EmployeeTable?select=name&department=eq.QA%2FQC&order=name.asc"),
+              // Inspection staff come from the HR-owned EmployeeTable, QA/QC department
+              // only, and only those still employed — a leaver is marked resigned in the
+              // Employee Register rather than deleted.
+              api.get("/EmployeeTable?select=name&department=eq.QA%2FQC&resigned_on=is.null&order=name.asc"),
             ]);
             allRecords.value = resRec.data;
             scheduleRecords.value = resSch.data;

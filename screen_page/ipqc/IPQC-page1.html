@@ -1474,11 +1474,14 @@
         });
 
         try {
-          // Inspection staff come from the HR-owned EmployeeTable, QA/QC department only.
+          // Inspection staff come from the HR-owned EmployeeTable, QA/QC department only,
+          // and only those still employed — a leaver is marked resigned rather than
+          // deleted, so their past inspections keep resolving to a person.
           const { data, error } = await supabaseClient
             .from('EmployeeTable')
             .select('name, empID, position')
             .eq('department', 'QA/QC')
+            .is('resigned_on', null)
             .order('name', { ascending: true });
           if (error) { console.error('EmployeeTable fetch error:', error); return; }
           if (!data) return;

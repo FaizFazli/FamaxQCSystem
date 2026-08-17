@@ -462,8 +462,10 @@
           live.qcByPart = Object.keys(agg).map((p) => { const a = agg[p]; return { part: p, insp: a.insp, ok: a.ok, ng: a.ng, rate: a.insp ? (a.ok / a.insp * 100).toFixed(1) + '%' : '—' }; }).sort((x, y) => y.insp - x.insp).slice(0, 8);
         }).catch(() => {}));
 
-        // Users  <-  EmployeeTable
-        tasks.push(this.sbGet('EmployeeTable?order=id.asc&limit=60').then((rows) => {
+        // Users  <-  EmployeeTable. Leavers are marked resigned in the Employee Register
+        // rather than deleted, so the roster filters them out — which is also what makes
+        // the hardcoded status:'Active' below true rather than merely optimistic.
+        tasks.push(this.sbGet('EmployeeTable?resigned_on=is.null&order=id.asc&limit=60').then((rows) => {
           const roleC = (p) => { const s = String(p || '').toLowerCase(); if (/admin|manager|head|exec/.test(s)) return { c: '#3730A3', b: '#EEF0FF' }; if (/qa|quality|inspect/.test(s)) return { c: '#0369A1', b: '#EAF6FF' }; if (/eng/.test(s)) return { c: '#B45309', b: '#FCF1DE' }; if (/oper|tech|production/.test(s)) return { c: '#16A34A', b: '#E7F6EC' }; return { c: '#64748B', b: '#EEF0F4' }; };
           live.users = rows.map((r) => { const m = roleC(r.position); return { name: r.name || '—', emp: r.empID || '—', role: r.position || '—', status: 'Active', last: '—', rc: m.c, rb: m.b, stc: '#16A34A', stb: '#E7F6EC' }; });
         }).catch(() => {}));
