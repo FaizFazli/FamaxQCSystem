@@ -683,7 +683,7 @@
                     <span class="text-sm text-gray-500 ml-auto" style="text-align:right">
                         {{ visible.length }} of {{ rows.length }} shown
                         <span class="block text-xs" style="color:var(--text-faint)">
-                            Soonest due first · NO is the position on the printed form
+                            Soonest due first · retired equipment is under “Not required / retired”
                         </span>
                     </span>
                 </div>
@@ -736,8 +736,13 @@
                                     Nothing matches this filter.
                                 </td>
                             </tr>
-                            <tr v-for="r in visible" :key="r.id">
-                                <td class="text-gray-400">{{ r.line_no }}</td>
+                            <!-- NO counts the rows on screen, 1..N, so the column always
+                                 reads as a series however the list is sorted or filtered.
+                                 It is a position in this view, not an identity - the
+                                 printed form has its own numbering from the view's
+                                 line_no, and that is the one REC-QAS010-05 carries. -->
+                            <tr v-for="(r, i) in visible" :key="r.id">
+                                <td class="text-gray-400">{{ i + 1 }}</td>
                                 <td class="font-bold">{{ r.equipment_code }}</td>
                                 <td class="desc">{{ r.description }}</td>
                                 <td class="mono">{{ r.serial_no || '—' }}</td>
@@ -1444,7 +1449,13 @@
                 // problem than one whose certificate lapsed last week, and giving
                 // it its own quiet bucket is how it would get overlooked.
                 const inBucket = (r, key) => {
-                    if (key === 'ALL') return true;
+                    // "All equipment" means all equipment in service. A scrapped gauge is
+                    // not part of the working set and it carries a stale due date from its
+                    // last certificate, so leaving it in the default view only invites
+                    // somebody to book a calibration for something that no longer exists.
+                    // It stays reachable — and printable in its history — under
+                    // "Not required / retired", which is the only bucket that shows it.
+                    if (key === 'ALL') return r.cal_status !== 'INACTIVE';
                     if (key === 'OVERDUE') return r.cal_status === 'OVERDUE' || r.cal_status === 'NEVER_CALIBRATED';
                     if (key === 'OTHER') return r.cal_status === 'NOT_REQUIRED' || r.cal_status === 'INACTIVE';
                     return r.cal_status === key;
@@ -2033,8 +2044,11 @@
                         return '"' + s.replace(/"/g, '""') + '"';
                     };
                     const lines = [head.map(cell).join(',')];
-                    visible.value.forEach(r => lines.push([
-                        r.line_no, r.equipment_code, r.description, r.serial_no, r.brand,
+                    // NO counts the exported rows, matching what the screen shows — the
+                    // export is a copy of this view, and a CSV whose NO column jumped
+                    // 1, 2, 11, 12 would look like rows had been lost in the download.
+                    visible.value.forEach((r, i) => lines.push([
+                        i + 1, r.equipment_code, r.description, r.serial_no, r.brand,
                         r.location, fmtDate(r.last_cal_date), fmtDate(r.next_due_date),
                         r.accepted_criteria, r.condition, statusLabel(r),
                         r.days_to_due === null ? '' : r.days_to_due,
