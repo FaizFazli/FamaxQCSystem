@@ -298,6 +298,16 @@ stored there would be readable by anyone who can load the site. *How many days o
 warning* is a setting and lives in the database, where QA can change it. *Where
 to send it* is a credential and lives on the server.
 
+### `config/config.js` is per-machine and is not in git
+
+It is listed in `.gitignore`, so a `git pull` never touches it and never brings
+another machine's settings over yours. `config/config.example.js` is the tracked
+template showing the full structure.
+
+Two consequences: a fresh clone has no `config/config.js` and will not start
+until you copy the example and fill it in; and when a pull changes the *example*,
+that new setting is not in your file — compare the two.
+
 ---
 
 ## 6. Add the recipients, and test
@@ -329,6 +339,12 @@ place. One person can hold two roles by having two rows.
 
 The button covers the days somebody opens the page. This covers the rest.
 
+> **Setting this up on the production server?** Follow
+> **`docs/external-calibration-production.md`** instead of this section. It has
+> the same task settings plus the things that only bite on a server: backing up
+> `config/config.js` before pulling, checking the Supabase key, loading the data,
+> and choosing which account the task runs as.
+
 **Task Scheduler → Create Task** (not *Create Basic Task* — you need the
 security options):
 
@@ -336,13 +352,14 @@ security options):
 |-----|---------|
 | General | Name: `Famax — Calibration Alert`. **Run whether user is logged on or not**. |
 | Triggers | Daily, `07:30`. |
-| Actions | Start a program → `C:\Users\Faiz Ikhwani\Desktop\FamaxQCSystem\Run-CalibrationAlert.bat` <br> **Start in:** `C:\Users\Faiz Ikhwani\Desktop\FamaxQCSystem` |
+| Actions | Start a program → `<repo folder>\Run-CalibrationAlert.bat` <br> **Start in:** `<repo folder>` |
 | Conditions | Untick *Start the task only if the computer is on AC power*. |
 | Settings | Tick *Run task as soon as possible after a scheduled start is missed*. |
 
 **"Start in" is not optional.** Without it the task runs from `system32`, the
 script cannot find `config/config.js`, and it fails every morning with a
-path error.
+path error. Type the path with no quotation marks — Task Scheduler treats them
+as part of it.
 
 ### Try it first
 
@@ -517,6 +534,8 @@ landscape. If the page breaks in the wrong place, `rows_per_page` is the dial.
 | `sql/2026-08-25_external_calibration_certificate_upload.sql` | The `calibration_certificate` storage bucket, its policies, and `cert_storage_path`. |
 | `sql/2026-08-25_external_calibration_certificate_pdf.sql` | Widens that bucket's allow-list to accept PDF. |
 | `assets/calibration-certificate.js` | The allow-list, size limit and upload, shared by both screens. |
+| `config/config.example.js` | Template for the per-machine `config/config.js`, which is not in git. |
+| `docs/external-calibration-production.md` | Runbook for deploying and scheduling this on the production server. |
 | `screen_page/calibration/external_calibration_masterlist.html` | The list, filters, print, alerts. |
 | `screen_page/calibration/external_calibration_form.html` | Entering one certificate. |
 | `assets/calibration-alert.js` | The card and the email. Shared by the page and the task. |

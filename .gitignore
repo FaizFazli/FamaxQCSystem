@@ -2,3 +2,7 @@ assets/app-config.js
 
 # Scratch. Run-CalibrationAlert.bat writes its run log here.
 temp/
+
+# Per-machine: document folders, Supabase key, webhook URLs, APP_URL.
+# Copy config/config.example.js to config/config.js and fill it in.
+config/config.js
