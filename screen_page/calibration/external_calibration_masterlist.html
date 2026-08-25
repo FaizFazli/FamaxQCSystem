@@ -683,7 +683,7 @@
                     <span class="text-sm text-gray-500 ml-auto" style="text-align:right">
                         {{ visible.length }} of {{ rows.length }} shown
                         <span class="block text-xs" style="color:var(--text-faint)">
-                            Soonest due first · retired equipment is under “Not required / retired”
+                            Latest calibration first · retired equipment is under “Not required / retired”
                         </span>
                     </span>
                 </div>
@@ -1472,24 +1472,21 @@
                 const locations = computed(() =>
                     [...new Set(rows.value.map(r => r.location).filter(Boolean))].sort());
 
-                /* ---- Screen order: whatever falls due next, first ------------
-                   Three bands, because a plain sort on the date cannot place a
-                   row that has no date:
+                /* ---- Screen order: most recently calibrated first ------------
+                   Four bands, because a plain sort on the date cannot place a row
+                   that has no date at all:
 
                      0  NEVER_CALIBRATED — in service, no certificate at all.
                         Ahead of everything: it is not a milder problem than a
-                        certificate that lapsed last week, and giving it a date
-                        of "none" would sort it to the bottom where it would be
-                        overlooked forever.
-                     1  Everything with a due date, earliest first — so the most
-                        overdue is at the top and the rest count down to it.
-                     2  In service but never falls due: the microscope lamp. Still
-                        active equipment, so it stays above the retired rows.
-                     3  Obsolete and scrapped. Below every active row, always.
-                        They keep a due date from their last certificate — the
-                        retired thread gauges read 255 days overdue — and banding
-                        them separately is what stops that stale date sorting them
-                        to the top of a list meant to show what to chase next.
+                        certificate that lapsed last week, and having no date it
+                        would otherwise fall to the bottom and stay there.
+                     1  Everything with a calibration date, NEWEST FIRST — the
+                        instrument that came back from the lab most recently is at
+                        the top, and the list reads backwards through the year.
+                     2  In service but never calibrated by design: the microscope
+                        lamp. Still active equipment, so it stays above the retired.
+                     3  Obsolete and scrapped. Below every active row, always,
+                        whatever their dates say.
 
                    Dates compare as plain 'YYYY-MM-DD' strings. No Date object,
                    so no timezone can shift one across a day boundary mid-sort.
@@ -1497,21 +1494,22 @@
                    This is the SCREEN order only. The printed form is numbered by
                    the view's line_no and printPages sorts by it explicitly, so
                    REC-QAS010-05 keeps its own running order whatever is done
-                   here — which is the point: what you chase next and what the
-                   controlled record is numbered by are different questions. */
+                   here — the record's numbering and the order you happen to be
+                   reading in are different questions. */
                 const dueBand = r =>
                     r.cal_status === 'INACTIVE' ? 3
                         : r.cal_status === 'NEVER_CALIBRATED' ? 0
-                            : (!r.next_due_date || r.cal_status === 'NOT_REQUIRED') ? 2
+                            : (!r.last_cal_date || r.cal_status === 'NOT_REQUIRED') ? 2
                                 : 1;
 
-                function byNearestDue(a, b) {
+                function byLatestCalibration(a, b) {
                     const ba = dueBand(a), bb = dueBand(b);
                     if (ba !== bb) return ba - bb;
-                    // Inside a band, whichever has a date goes by date — that orders the
-                    // retired rows by their last certificate too, not just the live ones.
-                    if (a.next_due_date && b.next_due_date && a.next_due_date !== b.next_due_date) {
-                        return a.next_due_date < b.next_due_date ? -1 : 1;
+                    // Inside a band, newest calibration first — descending, so the
+                    // comparison is reversed against the due-date sort this replaced.
+                    // Retired rows order among themselves the same way.
+                    if (a.last_cal_date && b.last_cal_date && a.last_cal_date !== b.last_cal_date) {
+                        return a.last_cal_date < b.last_cal_date ? 1 : -1;
                     }
                     // sort_order, not line_no — line_no is null on retired rows, and
                     // a null tiebreak lets equal rows swap places between renders.
@@ -1592,7 +1590,7 @@
                         : baseFiltered.value;
                     // slice() because baseFiltered's array is a cached computed value —
                     // sorting it in place would reorder what every other reader sees.
-                    return list.slice().sort(byNearestDue);
+                    return list.slice().sort(byLatestCalibration);
                 });
 
                 const statusPill = s => ({
