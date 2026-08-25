@@ -67,6 +67,7 @@
     <script src="../../assets/app-config.js"></script>
     <script src="../../assets/signer.js"></script>
     <script src="../../assets/calibration-alert.js"></script>
+    <script src="../../assets/calibration-certificate.js"></script>
     <style>
         body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
@@ -684,6 +685,11 @@
             bootFailed('assets/signer.js did not load, so the record could not be signed.');
             throw new Error('Signer missing');
         }
+        if (!window.CalibrationCertificate) {
+            bootFailed('assets/calibration-certificate.js did not load, so a certificate image '
+                + 'could not be uploaded.');
+            throw new Error('CalibrationCertificate missing');
+        }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -692,30 +698,13 @@
         // Same grant as the masterlist and as AdminLogin's btn-cal-external.
         const WRITE_ROLES = ['ALL', 'QUALITY'];
 
-        /* ---- Certificate upload ------------------------------------------
-           The bucket and these two constants have to agree. The bucket declares
-           the same list and the same limit (see
-           sql/2026-08-25_external_calibration_certificate_upload.sql), and it is
-           the bucket that actually enforces them — anyone holding the anon key
-           can POST straight at storage without going through this page. What is
-           here is so somebody choosing a file is told immediately, rather than
-           after a save and a 400 from a service they have never heard of.
-
-           Widening one without the other gives you a page that offers a file the
-           bucket refuses, or a bucket that accepts one the page never offers. */
-        const CERT_BUCKET = 'calibration_certificate';
-        const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-        const MAX_CERT_BYTES = 10 * 1024 * 1024;   // 10 MB, as the bucket declares
-
-        /* Safari hands over a .heic with an empty file.type, and an empty
-           contentType is rejected by a bucket that declares an allow-list. The
-           extension is the only thing left to go on at that point. */
-        const EXT_TYPES = {
-            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-            webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
-        };
-        const extOf = name => (String(name).split('.').pop() || '').toLowerCase();
-        const mimeOf = file => file.type || EXT_TYPES[extOf(file.name)] || '';
+        /* The allow-list, the size limit and the upload itself live in
+           assets/calibration-certificate.js, shared with the masterlist's
+           equipment editor. One copy, because the list has to match what the
+           bucket declares and two copies is how one screen ends up offering a
+           file the bucket refuses. */
+        const CC = window.CalibrationCertificate;
+        const ACCEPT_TYPES = CC.ACCEPT_TYPES;
 
         const app = createApp({
             setup() {
@@ -745,9 +734,7 @@
                 const certPreview = ref('');
                 const certError = ref('');
 
-                const kb = n => n < 1024 * 1024
-                    ? Math.round(n / 1024) + ' KB'
-                    : (n / 1024 / 1024).toFixed(1) + ' MB';
+                const kb = CC.kb;
 
                 function clearCert() {
                     // The blob URL holds the file in memory until it is revoked. On a form used
@@ -766,17 +753,10 @@
                     if (!file) return;
                     certError.value = '';
 
-                    const type = mimeOf(file);
-                    if (!ACCEPT_TYPES.includes(type)) {
+                    const check = CC.validate(file);
+                    if (!check.ok) {
                         clearCert();
-                        certError.value = type
-                            ? `${file.name} is a ${type} — the certificate has to be a JPG, PNG, WEBP or HEIC image.`
-                            : `${file.name} is not a recognised image.`;
-                        return;
-                    }
-                    if (file.size > MAX_CERT_BYTES) {
-                        clearCert();
-                        certError.value = `${file.name} is ${kb(file.size)} — the limit is 10 MB.`;
+                        certError.value = check.error;
                         return;
                     }
 
@@ -786,15 +766,6 @@
                     // An uploaded file IS the certificate link. Leaving a stale typed path in the
                     // field would put two different answers in one column.
                     form.cert_url = '';
-                }
-
-                /* One object per certificate, keyed by instrument and calibration date so the
-                   bucket listing can be read by a person: 11/2026-08-20-1724... .jpg. The
-                   timestamp is there because a certificate can be replaced, and overwriting the
-                   old object would silently rewrite what an earlier record points at. */
-                function certKey(equipmentId, calDate, file) {
-                    const ext = EXT_TYPES[extOf(file.name)] ? extOf(file.name) : 'jpg';
-                    return `${equipmentId}/${calDate}-${Date.now()}.${ext}`;
                 }
 
                 const CA = window.CalibrationAlert;
@@ -952,20 +923,13 @@
                            catch below removes. */
                         let certUrl = form.cert_url || null;
                         if (certFile.value) {
-                            const path = certKey(picked.value.id, form.cal_date, certFile.value);
-                            const { error: upErr } = await _supabase.storage
-                                .from(CERT_BUCKET)
-                                .upload(path, certFile.value, {
-                                    upsert: false,
-                                    contentType: mimeOf(certFile.value),
-                                });
-                            if (upErr) {
-                                throw new Error('The certificate image could not be uploaded: '
-                                    + upErr.message + ' — nothing has been saved.');
-                            }
-                            uploadedPath = path;
-                            const { data: pub } = _supabase.storage.from(CERT_BUCKET).getPublicUrl(path);
-                            certUrl = pub.publicUrl;
+                            const put = await CC.upload(_supabase, {
+                                file: certFile.value,
+                                equipmentId: picked.value.id,
+                                calDate: form.cal_date,
+                            });
+                            uploadedPath = put.path;
+                            certUrl = put.url;
                         }
 
                         const { error } = await _supabase.from('ext_cal_event').insert({
@@ -1023,16 +987,7 @@
                         // The insert failed after the image went up. Take it back out, or the
                         // bucket keeps a file that no certificate will ever point at — and
                         // cert_storage_path exists precisely so orphans are avoidable.
-                        if (uploadedPath) {
-                            try {
-                                await _supabase.storage.from(CERT_BUCKET).remove([uploadedPath]);
-                            } catch (rmErr) {
-                                // Worth a line in the console, not worth replacing the real error
-                                // with a cleanup failure the person can do nothing about.
-                                console.error('Could not remove the orphaned certificate image',
-                                    uploadedPath, rmErr);
-                            }
-                        }
+                        await CC.remove(_supabase, uploadedPath);
                         formError.value = /duplicate key/.test(e.message || '')
                             ? 'A calibration is already recorded for this equipment on that date. '
                               + 'Check the masterlist history before entering it again.'

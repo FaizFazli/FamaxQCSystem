@@ -73,6 +73,7 @@
     <script src="../../assets/app-config.js"></script>
     <script src="../../assets/teams-recipients.js"></script>
     <script src="../../assets/calibration-alert.js"></script>
+    <script src="../../assets/calibration-certificate.js"></script>
     <style>
         body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
@@ -243,6 +244,55 @@
         .pill--valid   { background: #d1fae5; color: #047857; }
         .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
         .pill--bad     { background: #fee2e2; color: #b91c1c; }
+
+        /* ---- Certificate upload in the equipment editor ----
+           Same control as the entry form. The native file input is hidden with
+           .sr-only rather than display:none so it keeps its place in the tab
+           order — the <label for> is the visible, keyboard-reachable control. */
+        .cert-drop {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 10px 12px;
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+        }
+        .cert-drop__btn {
+            padding: 6px 12px;
+            font-size: 12px; font-weight: 600;
+            color: var(--primary); background: var(--bg-card);
+            border: 1px solid var(--primary); border-radius: var(--radius-sm);
+            cursor: pointer; white-space: nowrap;
+        }
+        .cert-drop__btn:hover { background: var(--primary-soft); }
+        .cert-drop input:focus-visible + .cert-drop__btn {
+            outline: none; box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+        .cert-drop__or { font-size: 11px; color: var(--text-faint); }
+
+        .cert-pick, .cert-have {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+        }
+        .cert-pick__thumb, .cert-have__thumb {
+            width: 42px; height: 42px; flex-shrink: 0;
+            object-fit: cover; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--surface-muted);
+        }
+        .cert-pick__meta, .cert-have__meta { flex: 1; min-width: 0; }
+        .cert-pick__name {
+            font-size: 12px; font-weight: 600;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cert-pick__size { font-size: 11px; color: var(--text-muted); }
+        .cert-pick__x {
+            flex-shrink: 0; width: 26px; height: 26px;
+            font-size: 18px; line-height: 1; color: var(--text-muted);
+            background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .cert-pick__x:hover { color: var(--danger); background: var(--surface-muted); }
 
         /* ---- History modal rows ---- */
         /* The newest certificate is the one the masterlist reads; tinting it keeps
@@ -874,6 +924,82 @@
                         <input v-model.trim="eqForm.remarks" class="inp" />
                     </div>
 
+                    <!-- ---------- The scan of the current certificate ----------
+                         Only when editing, never when registering: a brand-new
+                         instrument has no certificate to attach anything to. All 31
+                         certificates loaded from the two workbooks arrived with no
+                         image, because the sheets never recorded one, so this is how
+                         they get their scan without re-entering the whole record. -->
+                    <div v-if="eqModal.id" style="margin-top:18px;padding-top:16px;
+                                                  border-top:1px solid var(--border)">
+                        <label class="lbl">Certificate on file</label>
+
+                        <!-- Nothing to attach to. Offering an upload here would create a
+                             file belonging to a calibration that was never recorded. -->
+                        <p v-if="!eqModal.event_id" class="text-sm" style="color:var(--text-muted)">
+                            <template v-if="eqModal.calibration_required">
+                                No calibration has been recorded for this equipment yet, so there is
+                                nothing to attach a certificate to.
+                                <button class="link-btn" @click="recordFor(eqModal)">Record a calibration</button>
+                                first — the entry form takes the scan with it.
+                            </template>
+                            <template v-else>
+                                This equipment is not calibrated, so it has no certificate.
+                            </template>
+                        </p>
+
+                        <!-- Already has one. Shown, not replaceable from here: swapping the
+                             evidence on a signed record is a different act from filling in a
+                             gap, and it belongs with a new certificate, not an equipment edit. -->
+                        <div v-else-if="eqModal.cert_url" class="cert-have">
+                            <a :href="eqModal.cert_url" target="_blank" rel="noopener">
+                                <img :src="eqModal.cert_url" alt="" class="cert-have__thumb"
+                                     @error="$event.target.style.display='none'" />
+                            </a>
+                            <div class="cert-have__meta">
+                                <div class="text-sm font-semibold">
+                                    On file for {{ fmtDate(eqModal.last_cal_date) }}
+                                </div>
+                                <a :href="eqModal.cert_url" target="_blank" rel="noopener"
+                                   class="text-xs" style="color:var(--primary)">Open the certificate</a>
+                                <div class="text-xs" style="color:var(--text-faint);margin-top:2px">
+                                    To replace it, record the next calibration.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- The case this section exists for. -->
+                        <template v-else>
+                            <div v-if="!eqCertFile" class="cert-drop">
+                                <input type="file" id="eqCertFile" class="sr-only"
+                                    :accept="CERT_ACCEPT.join(',')" @change="pickEqCert" />
+                                <label for="eqCertFile" class="cert-drop__btn">Choose an image…</label>
+                                <span class="cert-drop__or">
+                                    attaches to the {{ fmtDate(eqModal.last_cal_date) }} calibration
+                                </span>
+                            </div>
+                            <div v-else class="cert-pick">
+                                <img :src="eqCertPreview" alt="" class="cert-pick__thumb" />
+                                <div class="cert-pick__meta">
+                                    <div class="cert-pick__name">{{ eqCertFile.name }}</div>
+                                    <div class="cert-pick__size">
+                                        {{ kb(eqCertFile.size) }} · uploads when you save
+                                    </div>
+                                </div>
+                                <button type="button" class="cert-pick__x" @click="clearEqCert"
+                                    title="Remove">&times;</button>
+                            </div>
+                            <p class="text-xs" style="color:var(--text-faint);margin-top:6px">
+                                JPG, PNG, WEBP or HEIC up to 10&nbsp;MB. It is filed against the
+                                newest calibration on record, which is the one this masterlist reads.
+                            </p>
+                        </template>
+
+                        <p v-if="eqCertError" class="text-xs mt-2" style="color:var(--danger)">
+                            {{ eqCertError }}
+                        </p>
+                    </div>
+
                     <p v-if="formError" class="text-sm mt-4 font-medium" style="color:var(--danger)">{{ formError }}</p>
                 </div>
                 <div class="sheet__foot">
@@ -1120,6 +1246,11 @@
             bootFailed('assets/calibration-alert.js did not load, so the alert cannot be built.');
             throw new Error('CalibrationAlert missing');
         }
+        if (!window.CalibrationCertificate) {
+            bootFailed('assets/calibration-certificate.js did not load, so a certificate image '
+                + 'could not be uploaded.');
+            throw new Error('CalibrationCertificate missing');
+        }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -1158,6 +1289,42 @@
                 const eqForm = reactive({});
                 const saving = ref(false);
                 const formError = ref('');
+
+                /* Attaching the scan of a certificate that is already recorded. The
+                   rules and the upload itself are shared with the entry form in
+                   assets/calibration-certificate.js so the bucket's allow-list is
+                   stated once. Chosen here, uploaded on save — same as the form,
+                   and for the same reason: closing the modal must not leave a file
+                   in the bucket. */
+                const CC = window.CalibrationCertificate;
+                const CERT_ACCEPT = CC.ACCEPT_TYPES;
+                const kb = CC.kb;
+                const eqCertFile = ref(null);
+                const eqCertPreview = ref('');
+                const eqCertError = ref('');
+
+                function clearEqCert() {
+                    // Revoking matters here: the modal is opened and closed repeatedly
+                    // while working down the list, and each preview holds its file in
+                    // memory until it is released.
+                    if (eqCertPreview.value) URL.revokeObjectURL(eqCertPreview.value);
+                    eqCertPreview.value = '';
+                    eqCertFile.value = null;
+                    eqCertError.value = '';
+                }
+
+                function pickEqCert(ev) {
+                    const file = (ev.target.files || [])[0];
+                    // Cleared either way, so re-picking the same filename still fires a
+                    // change event and a rejected file does not look selected.
+                    ev.target.value = '';
+                    if (!file) return;
+                    const check = CC.validate(file);
+                    if (!check.ok) { clearEqCert(); eqCertError.value = check.error; return; }
+                    clearEqCert();
+                    eqCertFile.value = file;
+                    eqCertPreview.value = URL.createObjectURL(file);
+                }
 
                 const histModal = ref(null);
                 const history = ref([]);
@@ -1426,7 +1593,20 @@
                         cal_interval_months: 12, calibration_required: true,
                         status: 'ACTIVE', remarks: '',
                     });
-                    eqModal.value = { id: r ? r.id : null };
+                    clearEqCert();
+                    // The whole row, not just the id: the certificate section needs to
+                    // know whether there is a calibration to attach to (event_id),
+                    // whether it already has a scan (cert_url) and which date it would
+                    // be filed against (last_cal_date).
+                    eqModal.value = r
+                        ? {
+                            id: r.id,
+                            event_id: r.event_id,
+                            cert_url: r.cert_url,
+                            last_cal_date: r.last_cal_date,
+                            calibration_required: r.calibration_required,
+                        }
+                        : { id: null };
                 }
 
                 async function saveEquipment() {
@@ -1456,7 +1636,40 @@
                         updated_at: new Date().toISOString(),
                         updated_by: who,
                     };
+                    // Set once the image is in the bucket, so a later failure knows there is
+                    // something to take back out.
+                    let uploadedPath = null;
                     try {
+                        /* Upload first, exactly as the entry form does. A storage failure then
+                           stops the save with the modal still open and the file still chosen,
+                           instead of leaving a saved edit and a certificate that never arrived.
+                           If anything below throws, the catch removes the object again. */
+                        if (eqCertFile.value && eqModal.value.event_id) {
+                            const put = await CC.upload(_supabase, {
+                                file: eqCertFile.value,
+                                equipmentId: eqModal.value.id,
+                                calDate: eqModal.value.last_cal_date,
+                            });
+                            uploadedPath = put.path;
+
+                            const cert = await _supabase.from('ext_cal_event').update({
+                                cert_url: put.url,
+                                cert_storage_path: put.path,
+                            })
+                                .eq('id', eqModal.value.event_id)
+                                // Only fill a gap. If a certificate arrived on this record while
+                                // the modal was open, this matches nothing and the guard below
+                                // reports it rather than overwriting somebody else's evidence.
+                                .is('cert_url', null)
+                                .select('id');
+                            if (cert.error) throw cert.error;
+                            if (!cert.data || !cert.data.length) {
+                                throw new Error('That calibration already has a certificate on '
+                                    + 'file — it was added while this was open. Close and reopen '
+                                    + 'to see it.');
+                            }
+                        }
+
                         if (eqModal.value.id) {
                             const { error } = await _supabase.from('ext_cal_equipment')
                                 .update(payload).eq('id', eqModal.value.id);
@@ -1473,8 +1686,11 @@
                             if (error) throw error;
                         }
                         eqModal.value = null;
+                        clearEqCert();
                         await reload();
                     } catch (e) {
+                        // Nothing points at the image now, so it must not stay in the bucket.
+                        await CC.remove(_supabase, uploadedPath);
                         formError.value = /duplicate key/.test(e.message || '')
                             ? 'That equipment code and serial number are already registered.'
                             : (e.message || String(e));
@@ -1751,6 +1967,8 @@
                     search, typeFilter, locationFilter, filter, counts, locations, visible,
                     railUser, accessLevel, canWrite, accessResolved,
                     eqModal, eqForm, saving, formError,
+                    CERT_ACCEPT, kb, eqCertFile, eqCertPreview, eqCertError,
+                    pickEqCert, clearEqCert,
                     histModal, history, histLoading,
                     alertModal, cfg, recipients, newRcp, alertLog, sending, savingCfg,
                     alertMsg, alertOk, previewRows, previewSummary,
