@@ -245,6 +245,45 @@
         .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
         .pill--bad     { background: #fee2e2; color: #b91c1c; }
 
+        /* ---- Due-year buttons ---- */
+        .years {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .years__label {
+            margin-right: 2px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .years__note { margin-left: 4px; font-size: 11px; color: var(--text-faint); }
+
+        .year-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 11px;
+            font-family: var(--font-sans);
+            font-size: 12px; font-weight: 600;
+            color: var(--text-main); background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .year-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .year-btn.is-active {
+            color: var(--on-primary); background: var(--primary); border-color: var(--primary);
+        }
+        /* The count rides inside the button, so the pair can never be separated by
+           a line wrap the way a neighbouring badge could. */
+        .year-btn__n {
+            padding: 1px 6px;
+            font-size: 10px; font-weight: 700;
+            border-radius: var(--radius-full);
+            background: var(--surface-muted); color: var(--text-muted);
+        }
+        .year-btn.is-active .year-btn__n {
+            background: rgba(255, 255, 255, 0.25); color: #fff;
+        }
+
         /* ---- Certificate upload in the equipment editor ----
            Same control as the entry form. The native file input is hidden with
            .sr-only rather than display:none so it keeps its place in the tab
@@ -646,6 +685,26 @@
                         <span class="block text-xs" style="color:var(--text-faint)">
                             Soonest due first · NO is the position on the printed form
                         </span>
+                    </span>
+                </div>
+
+                <!-- ---------- Due year ----------
+                     One button per year that actually has something due in it. The
+                     counts are taken after the filters above have been applied, so a
+                     button says what you will get when you press it. -->
+                <div class="years no-print" v-if="dueYears.length">
+                    <span class="years__label">Due in</span>
+                    <button :class="['year-btn', yearFilter === '' ? 'is-active' : '']"
+                        @click="yearFilter = ''">
+                        Any year
+                    </button>
+                    <button v-for="y in dueYears" :key="y.year"
+                        :class="['year-btn', yearFilter === y.year ? 'is-active' : '']"
+                        @click="yearFilter = yearFilter === y.year ? '' : y.year">
+                        {{ y.year }}<span class="year-btn__n">{{ y.count }}</span>
+                    </button>
+                    <span v-if="yearFilter" class="years__note">
+                        Equipment with no due date is hidden while a year is picked.
                     </span>
                 </div>
 
@@ -1275,6 +1334,7 @@
                 const search = ref('');
                 const typeFilter = ref('');
                 const locationFilter = ref('');
+                const yearFilter = ref('');      // '' = every year
                 const filter = ref('ALL');
 
                 const railUser = ref('—');
@@ -1410,8 +1470,13 @@
                         overlooked forever.
                      1  Everything with a due date, earliest first — so the most
                         overdue is at the top and the rest count down to it.
-                     2  The lamp and anything retired. Nothing will ever fall due,
-                        so they sit at the end rather than salting the middle.
+                     2  In service but never falls due: the microscope lamp. Still
+                        active equipment, so it stays above the retired rows.
+                     3  Obsolete and scrapped. Below every active row, always.
+                        They keep a due date from their last certificate — the
+                        retired thread gauges read 255 days overdue — and banding
+                        them separately is what stops that stale date sorting them
+                        to the top of a list meant to show what to chase next.
 
                    Dates compare as plain 'YYYY-MM-DD' strings. No Date object,
                    so no timezone can shift one across a day boundary mid-sort.
@@ -1422,15 +1487,17 @@
                    here — which is the point: what you chase next and what the
                    controlled record is numbered by are different questions. */
                 const dueBand = r =>
-                    r.cal_status === 'NEVER_CALIBRATED' ? 0
-                        : (!r.next_due_date || r.cal_status === 'NOT_REQUIRED'
-                            || r.cal_status === 'INACTIVE') ? 2
-                            : 1;
+                    r.cal_status === 'INACTIVE' ? 3
+                        : r.cal_status === 'NEVER_CALIBRATED' ? 0
+                            : (!r.next_due_date || r.cal_status === 'NOT_REQUIRED') ? 2
+                                : 1;
 
                 function byNearestDue(a, b) {
                     const ba = dueBand(a), bb = dueBand(b);
                     if (ba !== bb) return ba - bb;
-                    if (ba === 1 && a.next_due_date !== b.next_due_date) {
+                    // Inside a band, whichever has a date goes by date — that orders the
+                    // retired rows by their last certificate too, not just the live ones.
+                    if (a.next_due_date && b.next_due_date && a.next_due_date !== b.next_due_date) {
                         return a.next_due_date < b.next_due_date ? -1 : 1;
                     }
                     // sort_order, not line_no — line_no is null on retired rows, and
@@ -1438,10 +1505,14 @@
                     return (a.sort_order || 0) - (b.sort_order || 0);
                 }
 
-                // Field-blind search on whitespace-separated tokens: every token has
-                // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
-                // both find the overdue scale.
-                const visible = computed(() => {
+                /* Everything except the year buttons. Split out so the year counts can be
+                   taken against what the OTHER filters have already narrowed to — a count
+                   on a button has to say what you get when you press it, or it is worse
+                   than no count at all. */
+                const baseFiltered = computed(() => {
+                    // Field-blind search on whitespace-separated tokens: every token has
+                    // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
+                    // both find the overdue scale.
                     const toks = search.value.toLowerCase().split(/\s+/).filter(Boolean);
                     return rows.value.filter(r => {
                         if (!inBucket(r, filter.value)) return false;
@@ -1452,9 +1523,35 @@
                                      r.location, r.type_name, r.cert_no, r.lab]
                             .filter(Boolean).join(' ').toLowerCase();
                         return toks.every(t => hay.includes(t));
-                    // Sorting in place is safe here only because filter() has already
-                    // returned a fresh array — rows.value itself is never reordered.
-                    }).sort(byNearestDue);
+                    });
+                });
+
+                /* One button per year that actually has something falling due in it, so
+                   the row grows and shrinks with the data instead of being a hardcoded
+                   list that goes stale in January.
+
+                   Equipment with no due date — the lamp, and anything never calibrated —
+                   has no year and is therefore absent from every year. That is correct:
+                   "due in 2027" is a claim about a date, and they have none. Clearing the
+                   filter is how you get back to seeing them. */
+                const dueYears = computed(() => {
+                    const acc = {};
+                    baseFiltered.value.forEach(r => {
+                        if (!r.next_due_date) return;
+                        const y = String(r.next_due_date).slice(0, 4);
+                        acc[y] = (acc[y] || 0) + 1;
+                    });
+                    return Object.keys(acc).sort().map(y => ({ year: y, count: acc[y] }));
+                });
+
+                const visible = computed(() => {
+                    const list = yearFilter.value
+                        ? baseFiltered.value.filter(
+                            r => r.next_due_date && String(r.next_due_date).slice(0, 4) === yearFilter.value)
+                        : baseFiltered.value;
+                    // slice() because baseFiltered's array is a cached computed value —
+                    // sorting it in place would reorder what every other reader sees.
+                    return list.slice().sort(byNearestDue);
                 });
 
                 const statusPill = s => ({
@@ -1965,6 +2062,7 @@
                 return {
                     CONDITIONS, buckets, rows, types, loading, loadError,
                     search, typeFilter, locationFilter, filter, counts, locations, visible,
+                    yearFilter, dueYears,
                     railUser, accessLevel, canWrite, accessResolved,
                     eqModal, eqForm, saving, formError,
                     CERT_ACCEPT, kb, eqCertFile, eqCertPreview, eqCertError,
