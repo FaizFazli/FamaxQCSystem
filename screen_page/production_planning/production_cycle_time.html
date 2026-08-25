@@ -1055,38 +1055,107 @@
             placeholder="Search part name or process..."
           />
           <div class="records-groups">
-            <div
-              v-for="g in groupedRecords"
-              :key="g.key"
-              class="part-group"
-            >
-              <div class="part-group-head">
-                <p class="pg-name">{{ g.part_name || g.part_no }}</p>
-                <span class="pg-pn">PN: {{ g.part_no || '—' }}</span>
-                <span class="pg-count">{{ g.rows.length }} process{{ g.rows.length === 1 ? '' : 'es' }}</span>
+            <div v-for="g in groupedRecords" :key="g.key" class="part-group">
+              <div class="part-group-head" :style="getStatusBg(g.status)">
+                <div style="display: flex; flex-direction: column; gap: 2px">
+                  <p class="pg-name">{{ g.part_name || g.part_no }}</p>
+                  <span class="pg-pn">PN: {{ g.part_no || '—' }}</span>
+                </div>
+
+                <div
+                  style="
+                    margin-left: auto;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                  "
+                >
+                  <!-- Progress Pill -->
+                  <span
+                    style="
+                      font-size: 11px;
+                      font-weight: 700;
+                      color: var(--text-muted);
+                    "
+                  >
+                    {{ g.recordedCount }} / {{ g.totalCount }} DONE
+                  </span>
+
+                  <!-- Status Badge -->
+                  <span
+                    :class="['existing-badge', g.status.toLowerCase().replace(' ', '-')]"
+                  >
+                    {{ g.status }}
+                  </span>
+                </div>
               </div>
+
               <div class="part-group-body">
                 <div
                   v-for="rec in g.rows"
                   :key="rec.id"
                   class="record-row is-clickable"
-                  @click="openEdit(rec)"
-                  title="Tap to edit"
+                  @click="rec.isMissing ? fillFromMissing(rec) : openEdit(rec)"
+                  :style="rec.isMissing ? 'background: #fffcf9;' : ''"
                 >
                   <div class="record-info">
                     <span class="process-tag">{{ rec.process }}</span>
-                    <span class="record-machine" v-if="rec.machine">{{ rec.machine }}</span>
-                    <span class="record-wirev" v-if="rec.wi_rev">WI: {{ rec.wi_rev }}</span>
+                    <span class="record-machine" v-if="rec.machine"
+                      >{{ rec.machine }}</span
+                    >
+                    <span
+                      v-if="rec.isMissing"
+                      style="
+                        color: #ea580c;
+                        font-size: 11px;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 4px;
+                      "
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      REQUIRED
+                    </span>
                   </div>
                   <div class="record-time">
-                    <div class="cycle-time">
-                      {{ recMinSec(rec.cycle_time_sec) }}
-                    </div>
-                    <div class="cycle-time-sec">{{ rec.cycle_time_sec }} sec</div>
+                    <template v-if="!rec.isMissing">
+                      <div class="cycle-time">
+                        {{ recMinSec(rec.cycle_time_sec) }}
+                      </div>
+                      <div class="cycle-time-sec">
+                        {{ rec.cycle_time_sec }} sec
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div
+                        class="cycle-time"
+                        style="color: #cbd5e1; font-size: 14px"
+                      >
+                        NO DATA
+                      </div>
+                    </template>
                   </div>
-                  <svg class="edit-chevron" width="16" height="16" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    class="edit-chevron"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
                 </div>
@@ -1120,32 +1189,34 @@
               No conflicts found. All cycle times are consistent.
             </div>
             <div v-else class="conflict-grid">
-            <div
-              v-for="g in attentionGroups"
-              :key="g.key"
-              class="conflict-group"
-            >
-              <div class="conflict-head">
-                <p class="cg-part">{{ g.part_name || g.part_no }}</p>
-                <span class="cg-meta">PN: {{ g.part_no }}</span>
-                <div><span class="cg-process">{{ g.process }}</span></div>
-              </div>
               <div
-                v-for="r in g.rows"
-                :key="r.id"
-                class="conflict-row"
-                :class="{ 'is-min': r.cycle_time_sec === g.minSec, 'is-max': r.cycle_time_sec === g.maxSec }"
+                v-for="g in attentionGroups"
+                :key="g.key"
+                class="conflict-group"
               >
-                <span class="cr-machine">
-                  {{ r.machine || '—' }}
-                  <template v-if="r.wi_rev"> &middot; WI {{ r.wi_rev }}</template>
-                </span>
-                <div class="cr-time">
-                  {{ recMinSec(r.cycle_time_sec) }}
-                  <span class="cr-sec">({{ r.cycle_time_sec }} sec)</span>
+                <div class="conflict-head">
+                  <p class="cg-part">{{ g.part_name || g.part_no }}</p>
+                  <span class="cg-meta">PN: {{ g.part_no }}</span>
+                  <div><span class="cg-process">{{ g.process }}</span></div>
+                </div>
+                <div
+                  v-for="r in g.rows"
+                  :key="r.id"
+                  class="conflict-row"
+                  :class="{ 'is-min': r.cycle_time_sec === g.minSec, 'is-max': r.cycle_time_sec === g.maxSec }"
+                >
+                  <span class="cr-machine">
+                    {{ r.machine || '—' }}
+                    <template v-if="r.wi_rev">
+                      &middot; WI {{ r.wi_rev }}</template
+                    >
+                  </span>
+                  <div class="cr-time">
+                    {{ recMinSec(r.cycle_time_sec) }}
+                    <span class="cr-sec">({{ r.cycle_time_sec }} sec)</span>
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
           </div>
         </div>
@@ -1157,32 +1228,58 @@
           <div class="edit-head">
             <div>
               <h3>Edit Cycle Time</h3>
-              <p>{{ editRec.part_name || editRec.part_no }} &middot; PN: {{ editRec.part_no || '—' }}</p>
+              <p>
+                {{ editRec.part_name || editRec.part_no }} &middot; PN: {{
+                editRec.part_no || '—' }}
+              </p>
             </div>
             <button class="modal-close" @click="closeEdit">&times;</button>
           </div>
           <div class="edit-body">
             <div class="form-group">
               <label>Process</label>
-              <input type="text" v-model="editForm.process" placeholder="Process step" />
+              <input
+                type="text"
+                v-model="editForm.process"
+                placeholder="Process step"
+              />
             </div>
             <div class="form-group">
               <label>Machine No.</label>
-              <input type="text" v-model="editForm.machine" placeholder="Machine number" />
+              <input
+                type="text"
+                v-model="editForm.machine"
+                placeholder="Machine number"
+              />
             </div>
             <div class="form-group">
               <label>WI Revision</label>
-              <input type="text" v-model="editForm.wi_rev" placeholder="e.g. REV 03" />
+              <input
+                type="text"
+                v-model="editForm.wi_rev"
+                placeholder="e.g. REV 03"
+              />
             </div>
             <div class="form-group">
               <label>Cycle Time</label>
               <div class="time-input-group">
                 <div class="time-unit-wrapper">
-                  <input type="number" min="0" v-model.number="editForm.minutes" placeholder="0" />
+                  <input
+                    type="number"
+                    min="0"
+                    v-model.number="editForm.minutes"
+                    placeholder="0"
+                  />
                   <span class="time-unit-label">MIN</span>
                 </div>
                 <div class="time-unit-wrapper">
-                  <input type="number" min="0" max="59" v-model.number="editForm.seconds" placeholder="0" />
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    v-model.number="editForm.seconds"
+                    placeholder="0"
+                  />
                   <span class="time-unit-label">SEC</span>
                 </div>
               </div>
@@ -1191,8 +1288,18 @@
             <div v-if="editError" class="error-msg">{{ editError }}</div>
           </div>
           <div class="edit-foot">
-            <button class="edit-cancel" @click="closeEdit" :disabled="editSaving">Cancel</button>
-            <button class="edit-save" @click="saveEdit" :disabled="editSaving || !editValid">
+            <button
+              class="edit-cancel"
+              @click="closeEdit"
+              :disabled="editSaving"
+            >
+              Cancel
+            </button>
+            <button
+              class="edit-save"
+              @click="saveEdit"
+              :disabled="editSaving || !editValid"
+            >
               {{ editSaving ? 'Saving...' : 'Save Changes' }}
             </button>
           </div>
@@ -1207,7 +1314,7 @@
         setup() {
           const SUPABASE_URL = window.APP_CONFIG.url;
           const SUPABASE_KEY =
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE";
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzg3MDIxODkxLCJleHAiOjIxMDIzODE4OTF9.2zOycIdulGiO-ksORsmDn7Rp4wZnlBSiRCy3mZ3zOzM";
 
           const api = axios.create({
             baseURL: SUPABASE_URL,
@@ -1287,6 +1394,24 @@
               .filter((p) => norm(p.Part_Name).includes(q))
               .slice(0, 10);
           });
+
+          function getStatusBg(status) {
+            if (status === "Complete") return "border-left: 4px solid #22c55e;";
+            if (status === "Semi-Complete")
+              return "border-left: 4px solid #f59e0b;";
+            return "border-left: 4px solid #cbd5e1;";
+          }
+
+          function fillFromMissing(rec) {
+            form.value.part_name = rec.part_name;
+            form.value.part_no = rec.part_no;
+            form.value.process = rec.process;
+            form.value.machine = "";
+            form.value.minutes = null;
+            form.value.seconds = null;
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+          // Don't forget to add fillFromMissing to the return { ... } object at the bottom of setup()
 
           function selectPart(part) {
             form.value.part_name = part.Part_Name;
@@ -1438,9 +1563,14 @@
             cycleRecords.value.forEach((r) => {
               const key = norm(r.part_no) || norm(r.part_name);
               if (!map[key]) {
-                map[key] = { part_no: r.part_no, part_name: r.part_name, rows: [] };
+                map[key] = {
+                  part_no: r.part_no,
+                  part_name: r.part_name,
+                  rows: [],
+                };
               }
-              if (!map[key].part_name && r.part_name) map[key].part_name = r.part_name;
+              if (!map[key].part_name && r.part_name)
+                map[key].part_name = r.part_name;
               map[key].rows.push(r);
             });
 
@@ -1448,14 +1578,18 @@
             // Sort processes inside each group, then groups by Part Name
             groups.forEach((g) =>
               g.rows.sort((a, b) =>
-                (a.process || "").toLowerCase().localeCompare((b.process || "").toLowerCase()),
+                (a.process || "")
+                  .toLowerCase()
+                  .localeCompare((b.process || "").toLowerCase()),
               ),
             );
             groups.sort((a, b) => {
               const na = (a.part_name || a.part_no || "").toLowerCase();
               const nb = (b.part_name || b.part_no || "").toLowerCase();
               if (na !== nb) return na.localeCompare(nb);
-              return (a.part_no || "").toLowerCase().localeCompare((b.part_no || "").toLowerCase());
+              return (a.part_no || "")
+                .toLowerCase()
+                .localeCompare((b.part_no || "").toLowerCase());
             });
 
             // Build a grouped sheet: part header block, then its process rows
@@ -1470,7 +1604,13 @@
               aoa.push([`PN: ${g.part_no || "—"}`, "", "", "", ""]);
               merges.push({ s: { r: pnRow, c: 0 }, e: { r: pnRow, c: 4 } });
 
-              aoa.push(["Process", "Machine", "WI Rev", "Cycle Time", "Cycle Time (sec)"]);
+              aoa.push([
+                "Process",
+                "Machine",
+                "WI Rev",
+                "Cycle Time",
+                "Cycle Time (sec)",
+              ]);
               g.rows.forEach((r) => {
                 aoa.push([
                   r.process || "",
@@ -1556,55 +1696,123 @@
           // Group the (filtered) saved records by Part No. -> box with a list
           // of its processes and cycle times.
           const groupedRecords = computed(() => {
-            const map = {};
-            filteredRecords.value.forEach((r) => {
-              const key = norm(r.part_no) || norm(r.part_name);
-              if (!map[key]) {
-                map[key] = {
-                  key,
-                  part_no: r.part_no,
-                  part_name: r.part_name,
-                  rows: [],
-                };
-              }
-              // keep a readable part name if the first row lacked one
-              if (!map[key].part_name && r.part_name) map[key].part_name = r.part_name;
-              map[key].rows.push(r);
+            const q = norm(recordSearch.value);
+
+            // 1. Filter master parts based on search
+            const filteredMaster = masterParts.value.filter((p) => {
+              if (!q) return true;
+              return (
+                norm(p.Part_Name).includes(q) || norm(p.Part_Number).includes(q)
+              );
             });
 
-            const groups = Object.values(map);
-            // Sort processes inside each group by process name
-            groups.forEach((g) =>
-              g.rows.sort((a, b) =>
-                (a.process || '').toLowerCase().localeCompare((b.process || '').toLowerCase()),
-              ),
-            );
-            // Sort groups by Part Name (fallback Part No.)
-            groups.sort((a, b) => {
-              const na = (a.part_name || a.part_no || '').toLowerCase();
-              const nb = (b.part_name || b.part_no || '').toLowerCase();
-              if (na !== nb) return na.localeCompare(nb);
-              return (a.part_no || '').toLowerCase().localeCompare((b.part_no || '').toLowerCase());
+            const results = filteredMaster
+              .map((p) => {
+                // 2. Parse required processes from Parts table
+                let requiredProcs = [];
+                try {
+                  requiredProcs =
+                    typeof p.Process === "string"
+                      ? JSON.parse(p.Process)
+                      : p.Process;
+                  if (!Array.isArray(requiredProcs)) requiredProcs = [];
+                } catch (e) {
+                  requiredProcs = [];
+                }
+
+                // 3. Get actual records from database
+                const actualRecords = cycleRecords.value.filter(
+                  (r) => norm(r.part_no) === norm(p.Part_Number),
+                );
+
+                // 4. Build rows and calculate stats
+                let recordedCount = 0;
+                const combinedRows = requiredProcs.map((procName) => {
+                  const match = actualRecords.find(
+                    (r) => norm(r.process) === norm(procName),
+                  );
+                  if (match) {
+                    recordedCount++;
+                    return { ...match, isMissing: false };
+                  }
+                  return {
+                    id: `missing-${p.Part_Number}-${procName}`,
+                    process: procName,
+                    part_no: p.Part_Number,
+                    part_name: p.Part_Name,
+                    cycle_time_sec: null,
+                    isMissing: true,
+                  };
+                });
+
+                // 5. Determine Status
+                let status = "Incomplete";
+                let statusOrder = 3; // For sorting: 1=Complete, 2=Semi, 3=Incomplete
+
+                if (
+                  recordedCount > 0 &&
+                  recordedCount === requiredProcs.length
+                ) {
+                  status = "Complete";
+                  statusOrder = 1;
+                } else if (
+                  recordedCount > 0 &&
+                  recordedCount < requiredProcs.length
+                ) {
+                  status = "Semi-Complete";
+                  statusOrder = 2;
+                } else if (
+                  requiredProcs.length === 0 &&
+                  actualRecords.length > 0
+                ) {
+                  // Fallback for parts with no master process list but have records
+                  status = "Complete";
+                  statusOrder = 1;
+                }
+
+                return {
+                  key: p.Part_Number,
+                  part_no: p.Part_Number,
+                  part_name: p.Part_Name,
+                  rows: combinedRows,
+                  status,
+                  statusOrder,
+                  recordedCount,
+                  totalCount: requiredProcs.length,
+                };
+              })
+              .filter((g) => g.rows.length > 0);
+
+            // 6. Sort by Status Order, then by Part Name
+            return results.sort((a, b) => {
+              if (a.statusOrder !== b.statusOrder)
+                return a.statusOrder - b.statusOrder;
+              return (a.part_name || "").localeCompare(b.part_name || "");
             });
-            return groups;
           });
 
           // ---------- Edit a saved record (process / machine / cycle time) ----------
           const editRec = ref(null);
-          const editForm = ref({ process: '', machine: '', wi_rev: '', minutes: null, seconds: null });
+          const editForm = ref({
+            process: "",
+            machine: "",
+            wi_rev: "",
+            minutes: null,
+            seconds: null,
+          });
           const editSaving = ref(false);
-          const editError = ref('');
+          const editError = ref("");
 
           function openEdit(rec) {
             const total = rec.cycle_time_sec || 0;
             editForm.value = {
-              process: rec.process || '',
-              machine: rec.machine || '',
-              wi_rev: rec.wi_rev || '',
+              process: rec.process || "",
+              machine: rec.machine || "",
+              wi_rev: rec.wi_rev || "",
               minutes: Math.floor(total / 60) || null,
               seconds: total % 60,
             };
-            editError.value = '';
+            editError.value = "";
             editRec.value = rec;
           }
 
@@ -1613,37 +1821,45 @@
           }
 
           const editTotalSeconds = computed(
-            () => (editForm.value.minutes || 0) * 60 + (editForm.value.seconds || 0),
+            () =>
+              (editForm.value.minutes || 0) * 60 +
+              (editForm.value.seconds || 0),
           );
 
           const editValid = computed(
-            () => (editForm.value.process || '').trim() && editTotalSeconds.value > 0,
+            () =>
+              (editForm.value.process || "").trim() &&
+              editTotalSeconds.value > 0,
           );
 
           async function saveEdit() {
             if (!editRec.value || !editValid.value) return;
             editSaving.value = true;
-            editError.value = '';
+            editError.value = "";
             try {
               const m = editForm.value.minutes || 0;
               const s = editForm.value.seconds || 0;
-              let ct = '';
+              let ct = "";
               if (m) ct += `${m}M`;
-              if (s || !m) ct += `${m ? ' ' : ''}${s}S`;
+              if (s || !m) ct += `${m ? " " : ""}${s}S`;
 
               const payload = {
-                process: (editForm.value.process || '').trim(),
-                machine: (editForm.value.machine || '').trim(),
-                wi_rev: (editForm.value.wi_rev || '').trim().toUpperCase() || null,
+                process: (editForm.value.process || "").trim(),
+                machine: (editForm.value.machine || "").trim(),
+                wi_rev:
+                  (editForm.value.wi_rev || "").trim().toUpperCase() || null,
                 cycle_time: ct.trim(),
                 cycle_time_sec: editTotalSeconds.value,
               };
-              await api.patch(`/rest/v1/cycle_time?id=eq.${editRec.value.id}`, payload);
+              await api.patch(
+                `/rest/v1/cycle_time?id=eq.${editRec.value.id}`,
+                payload,
+              );
               await fetchInitialData();
               editRec.value = null;
             } catch (err) {
               console.error(err);
-              editError.value = 'Error saving changes. Check connection.';
+              editError.value = "Error saving changes. Check connection.";
             } finally {
               editSaving.value = false;
             }
@@ -1706,6 +1922,8 @@
             form,
             cycleRecords,
             recMinSec,
+            getStatusBg,
+            fillFromMissing,
             recordSearch,
             filteredRecords,
             groupedRecords,

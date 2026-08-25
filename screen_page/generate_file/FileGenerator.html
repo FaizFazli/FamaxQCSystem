@@ -1490,7 +1490,20 @@
           }),
         });
 
-        if (!response.ok) throw new Error("Local API connection failed");
+        // The server already says exactly what went wrong (file open in Excel,
+        // template missing, upload too big...). Show that instead of a generic
+        // "connection failed" that leaves nothing to act on.
+        if (!response.ok) {
+          let detail = "";
+          try {
+            detail = (await response.json()).message || "";
+          } catch (_) {
+            // Express error pages (413, 404) come back as HTML, not JSON
+          }
+          if (!detail && response.status === 413)
+            detail = "The process images are too large to upload. Use smaller images and try again.";
+          throw new Error(detail || `Server rejected the request (HTTP ${response.status})`);
+        }
 
         showToast("Success! Redirecting...", "success");
         setTimeout(() => (window.location.href = "FilePDF.html"), 1500);
