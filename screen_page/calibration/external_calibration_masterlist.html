@@ -244,6 +244,19 @@
         .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
         .pill--bad     { background: #fee2e2; color: #b91c1c; }
 
+        /* ---- History modal rows ---- */
+        /* The newest certificate is the one the masterlist reads; tinting it keeps
+           the older rows from being read as the live due date. */
+        .hist-current > td { background: var(--primary-soft); }
+        .hist-note > td {
+            padding-top: 0; padding-bottom: 9px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px; line-height: 1.5; color: var(--text-muted);
+        }
+        /* The record and its note are one entry, so the rule between them goes. */
+        .cal-table tbody tr:has(+ .hist-note) > td { border-bottom: 0; }
+        .hist-note:hover > td { background: transparent; }
+
         .link-btn {
             font-size: 12px; font-weight: 600; color: var(--primary);
             background: none; border: 0; cursor: pointer; padding: 2px 0;
@@ -574,8 +587,15 @@
                         <option value="">All locations</option>
                         <option v-for="l in locations" :key="l" :value="l">{{ l }}</option>
                     </select>
-                    <span class="text-sm text-gray-500 ml-auto">
+                    <!-- The NO column now runs out of sequence, because the list is
+                         ordered by what falls due next rather than by form order.
+                         Saying so is cheaper than somebody deciding the numbering
+                         is broken. -->
+                    <span class="text-sm text-gray-500 ml-auto" style="text-align:right">
                         {{ visible.length }} of {{ rows.length }} shown
+                        <span class="block text-xs" style="color:var(--text-faint)">
+                            Soonest due first · NO is the position on the printed form
+                        </span>
                     </span>
                 </div>
 
@@ -890,24 +910,43 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="h in history" :key="h.id">
-                                <td class="whitespace-nowrap">{{ fmtDate(h.cal_date) }}</td>
-                                <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
-                                <td class="mono">
-                                    <a v-if="h.cert_url" :href="h.cert_url" target="_blank" rel="noopener"
-                                        style="color:var(--primary)">{{ h.cert_no || 'certificate' }}</a>
-                                    <span v-else>{{ h.cert_no || '—' }}</span>
-                                </td>
-                                <td>{{ h.lab || '—' }}</td>
-                                <td>
-                                    <span v-if="h.result"
-                                        :class="['pill', h.result === 'PASS' ? 'pill--valid' : 'pill--bad']">
-                                        {{ h.result }}</span>
-                                    <span v-else class="text-gray-400">—</span>
-                                </td>
-                                <td>{{ h.condition || '—' }}</td>
-                                <td class="text-gray-500">{{ h.recorded_by || '—' }}</td>
-                            </tr>
+                            <!-- Two rows per certificate: the record, then its note. A template
+                                 wrapper because a <tr> cannot contain another <tr>. -->
+                            <template v-for="(h, hi) in history" :key="h.id">
+                                <tr :class="hi === 0 ? 'hist-current' : ''">
+                                    <td class="whitespace-nowrap">
+                                        {{ fmtDate(h.cal_date) }}
+                                        <!-- The newest certificate is the one the masterlist reads.
+                                             Saying so stops the older rows being mistaken for the
+                                             live due date. -->
+                                        <span v-if="hi === 0" class="pill pill--valid"
+                                              style="margin-left:6px">Current</span>
+                                    </td>
+                                    <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
+                                    <td class="mono">
+                                        <a v-if="h.cert_url" :href="h.cert_url" target="_blank" rel="noopener"
+                                            style="color:var(--primary)">{{ h.cert_no || 'certificate' }}</a>
+                                        <span v-else>{{ h.cert_no || '—' }}</span>
+                                    </td>
+                                    <td>{{ h.lab || '—' }}</td>
+                                    <td>
+                                        <span v-if="h.result"
+                                            :class="['pill', h.result === 'PASS' ? 'pill--valid' : 'pill--bad']">
+                                            {{ h.result }}</span>
+                                        <span v-else class="text-gray-400">—</span>
+                                    </td>
+                                    <td>{{ h.condition || '—' }}</td>
+                                    <td class="text-gray-500">{{ h.recorded_by || '—' }}</td>
+                                </tr>
+                                <!-- The remark is where a loaded certificate says which sheet it
+                                     came from, and where the two serial-number judgement calls are
+                                     recorded. Kept out of a column because it is a sentence, not a
+                                     field, and squeezing it into an eighth column made every other
+                                     one unreadable. -->
+                                <tr v-if="h.remarks" class="hist-note">
+                                    <td colspan="7">{{ h.remarks }}</td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
@@ -1193,6 +1232,45 @@
                 const locations = computed(() =>
                     [...new Set(rows.value.map(r => r.location).filter(Boolean))].sort());
 
+                /* ---- Screen order: whatever falls due next, first ------------
+                   Three bands, because a plain sort on the date cannot place a
+                   row that has no date:
+
+                     0  NEVER_CALIBRATED — in service, no certificate at all.
+                        Ahead of everything: it is not a milder problem than a
+                        certificate that lapsed last week, and giving it a date
+                        of "none" would sort it to the bottom where it would be
+                        overlooked forever.
+                     1  Everything with a due date, earliest first — so the most
+                        overdue is at the top and the rest count down to it.
+                     2  The lamp and anything retired. Nothing will ever fall due,
+                        so they sit at the end rather than salting the middle.
+
+                   Dates compare as plain 'YYYY-MM-DD' strings. No Date object,
+                   so no timezone can shift one across a day boundary mid-sort.
+
+                   This is the SCREEN order only. The printed form is numbered by
+                   the view's line_no and printPages sorts by it explicitly, so
+                   REC-QAS010-05 keeps its own running order whatever is done
+                   here — which is the point: what you chase next and what the
+                   controlled record is numbered by are different questions. */
+                const dueBand = r =>
+                    r.cal_status === 'NEVER_CALIBRATED' ? 0
+                        : (!r.next_due_date || r.cal_status === 'NOT_REQUIRED'
+                            || r.cal_status === 'INACTIVE') ? 2
+                            : 1;
+
+                function byNearestDue(a, b) {
+                    const ba = dueBand(a), bb = dueBand(b);
+                    if (ba !== bb) return ba - bb;
+                    if (ba === 1 && a.next_due_date !== b.next_due_date) {
+                        return a.next_due_date < b.next_due_date ? -1 : 1;
+                    }
+                    // sort_order, not line_no — line_no is null on retired rows, and
+                    // a null tiebreak lets equal rows swap places between renders.
+                    return (a.sort_order || 0) - (b.sort_order || 0);
+                }
+
                 // Field-blind search on whitespace-separated tokens: every token has
                 // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
                 // both find the overdue scale.
@@ -1207,7 +1285,9 @@
                                      r.location, r.type_name, r.cert_no, r.lab]
                             .filter(Boolean).join(' ').toLowerCase();
                         return toks.every(t => hay.includes(t));
-                    });
+                    // Sorting in place is safe here only because filter() has already
+                    // returned a fresh array — rows.value itself is never reordered.
+                    }).sort(byNearestDue);
                 });
 
                 const statusPill = s => ({
