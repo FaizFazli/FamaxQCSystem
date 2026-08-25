@@ -1724,24 +1724,29 @@
                     return !!s && y >= s.from && y <= s.to;
                 };
 
-                /* How far back the buttons go: last year, and forward as far as any
-                   due date reaches.
+                /* The buttons start at 2024 and run forward as far as any due date
+                   reaches.
 
-                   Without a floor the row ran 2021 to 2027, and the four buttons from
-                   2021 to 2024 existed for one reason — the six MICRON block gauges
-                   are on a five-year certificate, so their span drags the range back
-                   four years in which nothing at all falls due. Four buttons that each
-                   showed the same six gauges.
+                   2024 is where the records begin: MASTERLIST EXTERNAL CALIBRATION
+                   2024 - 2025.xlsx is the oldest revision loaded, and its certificates
+                   are dated from December 2024. Nothing before that is a year anybody
+                   can ask a question about.
 
-                   Anchored to the current year rather than fixed at 2025, so the row
-                   keeps meaning "recent" instead of slowly growing a longer tail every
-                   January. Raise YEARS_BACK to look further back; the filtering itself
-                   is unchanged, so a clipped year is only a button you are not offered,
-                   never a row that stops matching. */
-                const YEARS_BACK = 1;
+                   Without a floor the row ran from 2021, because the six MICRON block
+                   gauges are on a five-year certificate and their span drags the range
+                   back through four years in which nothing falls due — four buttons
+                   that each showed the same six gauges.
+
+                   Fixed rather than rolling, so the row does not quietly drop 2024 next
+                   January. It does mean one more button each year; if that ever gets
+                   long, this is the one line to change.
+
+                   The filtering itself is untouched: a clipped year is a button you are
+                   not offered, never a row that stops matching. */
+                const EARLIEST_YEAR = 2024;
 
                 const calYears = computed(() => {
-                    const floor = new Date().getFullYear() - YEARS_BACK;
+                    const floor = EARLIEST_YEAR;
                     const acc = {};
                     baseFiltered.value.forEach(r => {
                         const s = yearSpan(r);
