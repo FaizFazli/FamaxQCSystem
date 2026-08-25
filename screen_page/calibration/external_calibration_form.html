@@ -439,10 +439,34 @@
                                         ? '  (S/N ' + e.serial_no + ')' : '' }}
                             </option>
                         </select>
-                        <p class="hint">
-                            Only equipment marked as requiring calibration is listed. If something is
-                            missing, register it on the masterlist first.
+                        <!-- Every row that is not in the dropdown is accounted for here.
+                             Registering equipment and then not finding it is the obvious
+                             way to lose ten minutes, and the reason is a checkbox on a
+                             different page. -->
+                        <p class="hint" v-if="!excluded.notRequired.length && !excluded.retired.length">
+                            All {{ options.length }} registered instruments are listed. If something
+                            is missing, register it on the masterlist first.
                         </p>
+                        <p class="hint" v-else>
+                            Showing {{ options.length }} of {{ all.length }}.
+                            <template v-if="excluded.notRequired.length">
+                                <strong>{{ excluded.notRequired.length }}</strong>
+                                {{ excluded.notRequired.length === 1 ? 'is' : 'are' }} marked as not
+                                requiring calibration<template v-if="excluded.notRequired.length <= 4">
+                                    ({{ excluded.notRequired.map(e => e.equipment_code).join(', ') }})</template>.
+                            </template>
+                            <template v-if="excluded.retired.length">
+                                <strong>{{ excluded.retired.length }}</strong>
+                                {{ excluded.retired.length === 1 ? 'is' : 'are' }} obsolete or scrapped.
+                            </template>
+                            Open one on the masterlist and tick “Requires external calibration”
+                            if it should be here.
+                        </p>
+
+                        <div v-if="preselectNote" class="rounded-xl border p-4 mt-3"
+                             style="border-color:#fde68a;background:#fffbeb">
+                            <p class="text-sm text-gray-700">{{ preselectNote }}</p>
+                        </div>
 
                         <div v-if="picked" class="ctx" style="margin-top:16px">
                             <div>
@@ -794,8 +818,25 @@
                 // offering it here would only invite a row that contradicts its own
                 // calibration_required flag. Scrapped and obsolete are out for the
                 // same reason: the record is closed.
-                const options = computed(() =>
-                    all.value.filter(e => e.calibration_required && e.status === 'ACTIVE'));
+                const eligible = e => e.calibration_required && e.status === 'ACTIVE';
+                const options = computed(() => all.value.filter(eligible));
+
+                /* What was left out, and why. Registering equipment and then not finding
+                   it in this dropdown is the obvious way to lose ten minutes: the reason
+                   is a checkbox at the bottom of a modal on a different page, and the
+                   form used to say nothing at all. Now it accounts for every row it is
+                   not showing. */
+                const excluded = computed(() => {
+                    const out = all.value.filter(e => !eligible(e));
+                    return {
+                        notRequired: out.filter(e => !e.calibration_required && e.status === 'ACTIVE'),
+                        retired: out.filter(e => e.status !== 'ACTIVE'),
+                    };
+                });
+
+                // Set when ?equipment= names something real that cannot be selected, so
+                // the page explains instead of showing a blank dropdown.
+                const preselectNote = ref('');
 
                 const picked = computed(() =>
                     all.value.find(e => String(e.id) === String(equipmentId.value)) || null);
@@ -1038,14 +1079,35 @@
                     // chosen, so nobody has to find it among 18 and risk filing the
                     // certificate against the wrong counting scale.
                     const q = new URLSearchParams(window.location.search).get('equipment');
-                    if (q && all.value.some(e => String(e.id) === String(q))) {
+                    if (!q) return;
+
+                    // Checked against the OPTIONS, not against every row. Checking `all`
+                    // set equipmentId to something the <select> had no option for, which
+                    // left the dropdown blank while the rest of the form filled itself in
+                    // from `picked` — a form that looked ready to submit against
+                    // equipment it was not actually offering.
+                    if (options.value.some(e => String(e.id) === String(q))) {
                         equipmentId.value = q;
                         onPick();
+                        return;
                     }
+
+                    const known = all.value.find(e => String(e.id) === String(q));
+                    if (!known) return;
+                    const name = known.equipment_code
+                        + (known.serial_no && known.serial_no.toUpperCase() !== 'N/A'
+                            ? ' (S/N ' + known.serial_no + ')' : '');
+                    preselectNote.value = known.status !== 'ACTIVE'
+                        ? `${name} is ${known.status.toLowerCase()}, so no new calibration can be `
+                          + 'recorded against it. Its history is still on the masterlist.'
+                        : `${name} is marked as not requiring external calibration, so it is not `
+                          + 'in the list. Open it on the masterlist and tick “Requires external '
+                          + 'calibration” if that is wrong.';
                 });
 
                 return {
                     CONDITIONS, ACCEPT_TYPES, all, options, picked, equipmentId, loadError,
+                    excluded, preselectNote,
                     form, saving, formError, savedFor,
                     railUser, accessLevel, canWrite, accessResolved, signerName,
                     knownLabs, criteriaChanged, resultConflict,

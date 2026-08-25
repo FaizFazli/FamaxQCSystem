@@ -807,7 +807,16 @@
                                 </td>
                                 <td class="no-print">
                                     <div class="flex flex-col items-start gap-0.5">
-                                        <button class="link-btn" @click="recordFor(r)">Record calibration</button>
+                                        <!-- Offered only where the entry form will actually
+                                             accept it. The form lists equipment that requires
+                                             calibration and is in service; sending somebody
+                                             there for anything else produced a page that could
+                                             not do what the button promised. -->
+                                        <button v-if="r.calibration_required && r.status === 'ACTIVE'"
+                                            class="link-btn" @click="recordFor(r)">Record calibration</button>
+                                        <span v-else class="text-xs" style="color:var(--text-faint)">
+                                            {{ r.status !== 'ACTIVE' ? 'Retired' : 'Not calibrated' }}
+                                        </span>
                                         <div class="flex gap-3">
                                             <button class="link-btn" @click="openEquipment(r)">Edit</button>
                                             <button class="link-btn" @click="openHistory(r)">
