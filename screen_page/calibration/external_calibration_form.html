@@ -244,6 +244,15 @@
             border: 1px solid var(--border);
             background: var(--surface-muted);
         }
+        /* Stands in for the thumbnail when the file is a PDF — same footprint, so
+           the row does not change shape depending on what was chosen. */
+        .cert-doc {
+            width: 42px; height: 42px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+            color: #b91c1c; background: #fee2e2;
+            border: 1px solid #fecaca; border-radius: var(--radius-sm);
+        }
         .cert-pick__meta { flex: 1; min-width: 0; }
         .cert-pick__name {
             font-size: 12px; font-weight: 600;
@@ -377,15 +386,17 @@
                      success message on its own would say the same thing either way. -->
                 <div v-if="savedFor.cert_url" style="margin-top:18px">
                     <a :href="savedFor.cert_url" target="_blank" rel="noopener">
-                        <img v-if="savedFor.has_image" :src="savedFor.cert_url" alt="Certificate"
+                        <img v-if="savedFor.has_image && !isPdfUrl(savedFor.cert_url)"
+                            :src="savedFor.cert_url" alt="Certificate"
                             style="max-height:150px;max-width:100%;border:1px solid var(--border);
                                    border-radius:var(--radius-sm);object-fit:contain" />
                         <span v-else style="color:var(--primary);font-size:13px;font-weight:600">
                             Open the certificate</span>
                     </a>
                     <div style="margin-top:6px;font-size:11px;color:var(--text-faint)">
-                        {{ savedFor.has_image ? 'Certificate image stored — click to open full size.'
-                                              : 'Certificate link recorded.' }}
+                        {{ !savedFor.has_image ? 'Certificate link recorded.'
+                             : isPdfUrl(savedFor.cert_url) ? 'Certificate PDF stored — click to open it.'
+                             : 'Certificate image stored — click to open full size.' }}
                     </div>
                 </div>
                 <div class="flex gap-2 justify-center flex-wrap" style="margin-top:22px">
@@ -536,12 +547,14 @@
                                 <div v-if="!certFile" class="cert-drop">
                                     <input type="file" id="certFile" class="sr-only"
                                         :accept="ACCEPT_TYPES.join(',')" @change="pickCert" />
-                                    <label for="certFile" class="cert-drop__btn">Choose an image…</label>
+                                    <label for="certFile" class="cert-drop__btn">Choose a file…</label>
                                     <span class="cert-drop__or">or paste a link below</span>
                                 </div>
 
                                 <div v-else class="cert-pick">
-                                    <img :src="certPreview" alt="" class="cert-pick__thumb" />
+                                    <!-- No blob URL renders a PDF in an <img>. -->
+                                    <span v-if="certIsPdf" class="cert-doc">PDF</span>
+                                    <img v-else :src="certPreview" alt="" class="cert-pick__thumb" />
                                     <div class="cert-pick__meta">
                                         <div class="cert-pick__name">{{ certFile.name }}</div>
                                         <div class="cert-pick__size">{{ kb(certFile.size) }}</div>
@@ -555,9 +568,9 @@
                                     :placeholder="certFile ? 'Filled in from the upload on save'
                                                            : '…or a path/URL to the scan'" />
                                 <p class="hint">
-                                    JPG, PNG, WEBP or HEIC up to 10&nbsp;MB. The image is stored in
-                                    the system, so the record does not depend on a network path
-                                    staying where it is.
+                                    PDF, or a JPG, PNG, WEBP or HEIC image, up to 10&nbsp;MB. The
+                                    file is stored in the system, so the record does not depend on a
+                                    network path staying where it is.
                                 </p>
                                 <p v-if="certError" class="hint" style="color:var(--danger)">{{ certError }}</p>
                             </div>
@@ -733,6 +746,8 @@
                 const certFile = ref(null);
                 const certPreview = ref('');
                 const certError = ref('');
+                const certIsPdf = computed(() => !!certFile.value && CC.isPdfFile(certFile.value));
+                const isPdfUrl = CC.isPdfUrl;
 
                 const kb = CC.kb;
 
@@ -762,7 +777,8 @@
 
                     clearCert();
                     certFile.value = file;
-                    certPreview.value = URL.createObjectURL(file);
+                    // Only images are previewed, so only images need an object URL.
+                    certPreview.value = CC.isPdfFile(file) ? '' : URL.createObjectURL(file);
                     // An uploaded file IS the certificate link. Leaving a stale typed path in the
                     // field would put two different answers in one column.
                     form.cert_url = '';
@@ -1034,6 +1050,7 @@
                     railUser, accessLevel, canWrite, accessResolved, signerName,
                     knownLabs, criteriaChanged, resultConflict,
                     certFile, certPreview, certError, pickCert, clearCert, kb,
+                    certIsPdf, isPdfUrl,
                     fmtDate, duePhrase, oneLine, statusPill,
                     onPick, suggestDue, submit, recordAnother,
                 };

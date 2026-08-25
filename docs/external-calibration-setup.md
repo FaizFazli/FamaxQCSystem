@@ -57,7 +57,7 @@ and the one somebody triggers by hand at 14:00 cannot say different things.
 
 ## 1. The database  *(already applied on 25 Aug 2026)*
 
-Five files, in this order:
+Six files, in this order:
 
 ```bash
 docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
@@ -74,13 +74,16 @@ docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1
 
 docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
     < sql/2026-08-25_external_calibration_certificate_upload.sql
+
+docker exec -i supabase-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+    < sql/2026-08-25_external_calibration_certificate_pdf.sql
 ```
 
 The order matters. The seed needs the schema; the 2024–2025 backfill needs both
 the seed (it attaches prior certificates to instruments the seed created) and
 the form-settings migration (which changes how `line_no` is numbered).
 
-All five are safe to run again — the schema uses `create table if not exists`,
+All six are safe to run again — the schema uses `create table if not exists`,
 the seed matches on equipment code + serial number, and the backfill repairs its
 own earlier rows rather than duplicating them.
 
@@ -400,10 +403,10 @@ into being wrong.
 
 ### Attaching the certificate
 
-The **Certificate** field takes an image — JPG, PNG, WEBP or HEIC, up to 10 MB.
-It is stored in the `calibration_certificate` bucket inside the system, so the
-record does not depend on a network path staying where somebody left it. A phone
-photo of the lab's certificate is exactly what it is for.
+The **Certificate** field takes a **PDF**, or an image — JPG, PNG, WEBP or HEIC —
+up to 10 MB. It is stored in the `calibration_certificate` bucket inside the
+system, so the record does not depend on a network path staying where somebody
+left it. The lab's PDF, or a phone photo of the printout: either works.
 
 The old free-text field is still there underneath for a link, and anything
 already recorded that way keeps working. Choosing a file disables it — an
@@ -421,12 +424,13 @@ After saving you get the image back as a thumbnail. That is deliberate: a
 thumbnail that renders is the only thing that proves the file both reached the
 bucket and can be read out of it again.
 
-**PDF certificates are refused.** Most labs issue PDFs, so this will probably
-come up. It is two lines to change — the bucket's allow-list and `ACCEPT_TYPES`
-in the entry form, and they must move together. `NOTE 1` in
-`sql/2026-08-25_external_calibration_certificate_upload.sql` has the statement.
+**Seeing a certificate.** Every row with one has a **View certificate** button,
+and the certificate numbers in the History modal open the same viewer. Images
+show inline, PDFs embed, and either way there is an **Open in a new tab** button
+— an embedded PDF is at the mercy of the browser's built-in viewer and some
+builds refuse to embed one at all.
 
-**One image per certificate.** A multi-page certificate needs either the best
+**One file per certificate.** A multi-page certificate needs either the best
 page photographed or the pages combined first. If that turns out to be a real
 nuisance, multiple files per certificate is an additive change — a small table
 alongside `ext_cal_event`, the way `subcon_do_image` already works.
@@ -496,7 +500,7 @@ landscape. If the page breaks in the wrong place, `rows_per_page` is the dial.
 | Printed form breaks in the wrong place | `ext_cal_form_settings.rows_per_page` — it is 10, matching the workbook. |
 | Printed form is portrait, or cut off at the right | The browser's print dialog is not on A4 landscape. The page asks for it via `@page`, but a printer setting overrides that. |
 | An instrument is missing from the print | It is not `ACTIVE`. Retired instruments are not on the form by design — check its Record status. |
-| "mime type application/pdf is not supported" | The bucket takes images only. See *Attaching the certificate*. |
+| "mime type application/pdf is not supported" | The PDF migration has not been run on that database. See section 1. |
 | "The object exceeded the maximum allowed size" | Over 10 MB. Photograph it again at a lower resolution, or raise `file_size_limit` on the bucket. |
 | Certificate thumbnail is a broken image | The bucket is not public, or its SELECT policy is missing. Re-run the certificate-upload migration. |
 
@@ -511,6 +515,8 @@ landscape. If the page breaks in the wrong place, `rows_per_page` is the dial.
 | `sql/2026-08-25_external_calibration_form_settings.sql` | The printed form's masthead/signatures/footer, and `line_no` numbering only active rows. |
 | `sql/data/2026-08-25_external_calibration_2024_2025.sql` | The 2024–2025 sheet, loaded as history. Every identity decision is stated in its header. |
 | `sql/2026-08-25_external_calibration_certificate_upload.sql` | The `calibration_certificate` storage bucket, its policies, and `cert_storage_path`. |
+| `sql/2026-08-25_external_calibration_certificate_pdf.sql` | Widens that bucket's allow-list to accept PDF. |
+| `assets/calibration-certificate.js` | The allow-list, size limit and upload, shared by both screens. |
 | `screen_page/calibration/external_calibration_masterlist.html` | The list, filters, print, alerts. |
 | `screen_page/calibration/external_calibration_form.html` | Entering one certificate. |
 | `assets/calibration-alert.js` | The card and the email. Shared by the page and the task. |

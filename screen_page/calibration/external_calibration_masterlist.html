@@ -245,6 +245,41 @@
         .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
         .pill--bad     { background: #fee2e2; color: #b91c1c; }
 
+        /* ---- View certificate ---- */
+        .cert-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            margin-top: 2px; padding: 3px 9px 3px 7px;
+            font-family: var(--font-sans);
+            font-size: 11px; font-weight: 600;
+            color: var(--primary); background: var(--primary-soft);
+            border: 1px solid transparent; border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition);
+        }
+        .cert-btn:hover { background: var(--bg-card); border-color: var(--primary); }
+        .cert-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+        .cert-view__meta {
+            display: grid; gap: 14px; margin-bottom: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            padding: 14px 16px;
+            background: var(--surface-muted); border-radius: var(--radius);
+        }
+        /* A fixed viewport rather than letting the file set the height: a tall scan
+           would otherwise push the footer — and the "open in a new tab" escape
+           hatch with it — off the bottom of the modal. */
+        .cert-view__frame {
+            display: flex; align-items: center; justify-content: center;
+            height: 62vh; min-height: 320px;
+            padding: 8px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: auto;
+        }
+        .cert-view__pdf { width: 100%; height: 100%; border: 0; background: #fff; }
+        .cert-view__img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
         /* ---- Due-year buttons ---- */
         .years {
             display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -319,6 +354,15 @@
             width: 42px; height: 42px; flex-shrink: 0;
             object-fit: cover; border-radius: var(--radius-sm);
             border: 1px solid var(--border); background: var(--surface-muted);
+        }
+        /* Stands in for the thumbnail when the file is a PDF — same footprint, so
+           the row does not change shape depending on what was chosen. */
+        .cert-doc {
+            width: 42px; height: 42px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+            color: #b91c1c; background: #fee2e2;
+            border: 1px solid #fecaca; border-radius: var(--radius-sm);
         }
         .cert-pick__meta, .cert-have__meta { flex: 1; min-width: 0; }
         .cert-pick__name {
@@ -770,6 +814,18 @@
                                                 History<span v-if="r.event_count"> ({{ r.event_count }})</span>
                                             </button>
                                         </div>
+                                        <!-- Only where there is one to see. A permanently
+                                             disabled button on 31 of 31 rows would just be
+                                             clutter that teaches people to ignore the column. -->
+                                        <button v-if="r.cert_url" class="cert-btn"
+                                            @click="openCert(r)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
+                                                    fill="none" stroke="currentColor" stroke-width="2"
+                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            View certificate
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -1018,16 +1074,16 @@
                              evidence on a signed record is a different act from filling in a
                              gap, and it belongs with a new certificate, not an equipment edit. -->
                         <div v-else-if="eqModal.cert_url" class="cert-have">
-                            <a :href="eqModal.cert_url" target="_blank" rel="noopener">
-                                <img :src="eqModal.cert_url" alt="" class="cert-have__thumb"
-                                     @error="$event.target.style.display='none'" />
-                            </a>
+                            <!-- A PDF has no thumbnail to show, so it gets a document tile
+                                 instead of a broken image. -->
+                            <span v-if="isPdfUrl(eqModal.cert_url)" class="cert-doc">PDF</span>
+                            <img v-else :src="eqModal.cert_url" alt="" class="cert-have__thumb"
+                                 @error="$event.target.style.display='none'" />
                             <div class="cert-have__meta">
                                 <div class="text-sm font-semibold">
                                     On file for {{ fmtDate(eqModal.last_cal_date) }}
                                 </div>
-                                <a :href="eqModal.cert_url" target="_blank" rel="noopener"
-                                   class="text-xs" style="color:var(--primary)">Open the certificate</a>
+                                <button class="link-btn" @click="openCert(eqModal)">View certificate</button>
                                 <div class="text-xs" style="color:var(--text-faint);margin-top:2px">
                                     To replace it, record the next calibration.
                                 </div>
@@ -1045,7 +1101,10 @@
                                 </span>
                             </div>
                             <div v-else class="cert-pick">
-                                <img :src="eqCertPreview" alt="" class="cert-pick__thumb" />
+                                <!-- No blob URL renders a PDF in an <img>, so a chosen PDF
+                                     shows a document tile rather than a broken thumbnail. -->
+                                <span v-if="eqCertIsPdf" class="cert-doc">PDF</span>
+                                <img v-else :src="eqCertPreview" alt="" class="cert-pick__thumb" />
                                 <div class="cert-pick__meta">
                                     <div class="cert-pick__name">{{ eqCertFile.name }}</div>
                                     <div class="cert-pick__size">
@@ -1056,8 +1115,9 @@
                                     title="Remove">&times;</button>
                             </div>
                             <p class="text-xs" style="color:var(--text-faint);margin-top:6px">
-                                JPG, PNG, WEBP or HEIC up to 10&nbsp;MB. It is filed against the
-                                newest calibration on record, which is the one this masterlist reads.
+                                PDF, or a JPG, PNG, WEBP or HEIC image, up to 10&nbsp;MB. It is
+                                filed against the newest calibration on record, which is the one
+                                this masterlist reads.
                             </p>
                         </template>
 
@@ -1116,8 +1176,11 @@
                                     </td>
                                     <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
                                     <td class="mono">
-                                        <a v-if="h.cert_url" :href="h.cert_url" target="_blank" rel="noopener"
-                                            style="color:var(--primary)">{{ h.cert_no || 'certificate' }}</a>
+                                        <!-- Same viewer as the list. A certificate is worth
+                                             seeing from wherever it is referenced, and history
+                                             is where the superseded ones live. -->
+                                        <button v-if="h.cert_url" class="link-btn"
+                                            @click="openCert(h)">{{ h.cert_no || 'certificate' }}</button>
                                         <span v-else>{{ h.cert_no || '—' }}</span>
                                     </td>
                                     <td>{{ h.lab || '—' }}</td>
@@ -1145,6 +1208,66 @@
                 <div class="sheet__foot">
                     <button class="btn btn--secondary" @click="histModal = null">Close</button>
                     <button class="btn" @click="recordFor(histModal)">Record calibration</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Certificate viewer =================
+             One modal for both kinds of file. A PDF cannot go in an <img> and an
+             image in an <iframe> loses the page background, so the branch is on
+             the file itself rather than on a stored flag — which means the 31
+             certificates uploaded before PDFs were allowed still render exactly
+             as they did.
+
+             "Open in a new tab" stays regardless: an embedded PDF is at the mercy
+             of the browser's built-in viewer, and some builds refuse to embed one
+             at all. The link is the escape hatch that always works. -->
+        <div v-if="certModal" class="ov" @click.self="certModal = null">
+            <div class="sheet" style="max-width:980px">
+                <div class="sheet__head">
+                    <span class="sheet__title">
+                        Certificate — {{ certModal.equipment_code }}
+                        <span class="font-normal text-gray-500" v-if="certModal.serial_no">
+                            · {{ certModal.serial_no }}</span>
+                    </span>
+                    <button class="link-btn" @click="certModal = null">Close</button>
+                </div>
+                <div class="sheet__body">
+                    <div class="cert-view__meta">
+                        <div>
+                            <div class="ctx__k">Calibrated</div>
+                            <div class="ctx__v">{{ fmtDate(certModal.last_cal_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Due</div>
+                            <div class="ctx__v">{{ fmtDate(certModal.next_due_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Certificate no.</div>
+                            <div class="ctx__v">{{ certModal.cert_no || '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Lab</div>
+                            <div class="ctx__v">{{ certModal.lab || '—' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="cert-view__frame">
+                        <iframe v-if="isPdfUrl(certModal.cert_url)" :src="certModal.cert_url"
+                            title="Certificate" class="cert-view__pdf"></iframe>
+                        <img v-else :src="certModal.cert_url" alt="Certificate"
+                            class="cert-view__img" @error="certViewFailed = true" />
+                    </div>
+
+                    <p v-if="certViewFailed" class="text-sm mt-3" style="color:var(--warning)">
+                        The file could not be displayed here. Open it in a new tab — the link is
+                        below, and it will say whether the file is missing or just not previewable.
+                    </p>
+                </div>
+                <div class="sheet__foot">
+                    <a :href="certModal.cert_url" target="_blank" rel="noopener"
+                        class="btn btn--secondary" style="text-decoration:none">Open in a new tab</a>
+                    <button class="btn" @click="certModal = null">Close</button>
                 </div>
             </div>
         </div>
@@ -1369,6 +1492,7 @@
                 const eqCertFile = ref(null);
                 const eqCertPreview = ref('');
                 const eqCertError = ref('');
+                const eqCertIsPdf = computed(() => !!eqCertFile.value && CC.isPdfFile(eqCertFile.value));
 
                 function clearEqCert() {
                     // Revoking matters here: the modal is opened and closed repeatedly
@@ -1390,12 +1514,39 @@
                     if (!check.ok) { clearEqCert(); eqCertError.value = check.error; return; }
                     clearEqCert();
                     eqCertFile.value = file;
-                    eqCertPreview.value = URL.createObjectURL(file);
+                    // Only images are previewed, so only images need an object URL. Creating
+                    // one for a PDF would allocate a blob nothing reads, and clearEqCert would
+                    // then have to remember to revoke it.
+                    eqCertPreview.value = CC.isPdfFile(file) ? '' : URL.createObjectURL(file);
                 }
 
                 const histModal = ref(null);
                 const history = ref([]);
                 const histLoading = ref(false);
+
+                // ---- certificate viewer ----
+                const certModal = ref(null);
+                const certViewFailed = ref(false);
+                const isPdfUrl = CC.isPdfUrl;
+
+                /* Takes any row that carries the four certificate fields — a masterlist
+                   row, or one of the certificates in the history modal — so the same
+                   viewer serves both without either needing to know about the other. */
+                function openCert(r) {
+                    if (!r || !r.cert_url) return;
+                    certViewFailed.value = false;
+                    certModal.value = {
+                        equipment_code: r.equipment_code || (histModal.value && histModal.value.equipment_code),
+                        serial_no: r.serial_no || (histModal.value && histModal.value.serial_no),
+                        cert_url: r.cert_url,
+                        cert_no: r.cert_no,
+                        lab: r.lab,
+                        // A history row calls them cal_date/due_date; a masterlist row
+                        // calls them last_cal_date/next_due_date. Same two dates.
+                        last_cal_date: r.last_cal_date || r.cal_date,
+                        next_due_date: r.next_due_date || r.due_date,
+                    };
+                }
 
                 const alertModal = ref(false);
                 const cfg = reactive({
@@ -2118,8 +2269,9 @@
                     yearFilter, calYears,
                     railUser, accessLevel, canWrite, accessResolved,
                     eqModal, eqForm, saving, formError,
-                    CERT_ACCEPT, kb, eqCertFile, eqCertPreview, eqCertError,
+                    CERT_ACCEPT, kb, eqCertFile, eqCertPreview, eqCertError, eqCertIsPdf,
                     pickEqCert, clearEqCert,
+                    certModal, certViewFailed, isPdfUrl, openCert,
                     histModal, history, histLoading,
                     alertModal, cfg, recipients, newRcp, alertLog, sending, savingCfg,
                     alertMsg, alertOk, previewRows, previewSummary,
