@@ -184,7 +184,42 @@ CALIBRATION_ALERT: {
   address people on the floor actually type. **Not `localhost`** — on somebody's
   phone, `localhost` means the phone.
 
-### 3.3 Restart the server
+### 3.3 The restart is also a security fix — do not skip it
+
+Until 25 Aug 2026 the server handed out its own application folder to anyone who
+asked. These all returned **200** on `192.168.0.5`, in a plain browser, with no
+sign-in:
+
+```
+http://192.168.0.5/config/config.js      both webhook URLs, sig= and all, plus the Supabase key
+http://192.168.0.5/.git/config           the whole repository, so every credential ever committed
+http://192.168.0.5/controllers/…         server logic
+http://192.168.0.5/sql/…                 every migration
+```
+
+`server.js` now refuses to serve `config`, `controllers`, `routes`, `utils`,
+`scripts`, `sql`, `migrations`, `node_modules`, `temp`, anything beginning with a
+dot, and `server.js` / `package*.json` — through either mount, and through
+`/FamaxQCSystem/…` as well.
+
+**That fix only takes effect when `server.js` restarts.** Until then the folder
+is still being served, whatever the file on disk now says.
+
+After restarting, confirm from another machine:
+
+```bat
+curl -o nul -w "%%{http_code}\n" http://192.168.0.5/config/config.js
+curl -o nul -w "%%{http_code}\n" http://192.168.0.5/.git/HEAD
+```
+
+Both must print **404**. If either prints 200, the old process is still running.
+
+Because `.git` was readable on the LAN, treat both Power Automate webhook URLs as
+having been exposed and **regenerate them** — in Power Automate, remove and
+re-add the HTTP trigger to get a new `sig=`, then paste the new URLs here. The
+anon key is public by design and needs nothing.
+
+### 3.4 Restart the server
 
 `config.js` is read once when `server.js` starts, so nothing you just typed is
 live until you restart it. Close the QC server window and start it again the
@@ -439,7 +474,8 @@ confirm once more the next morning that it fired on its own at 07:30.
 | `EMAIL is enabled but no active CALIBRATION recipients exist` | Section 6. |
 | `Teams webhook is not configured` | `TEAMS_WEBHOOK_URL` is empty in `config\config.js`. |
 | Teams says sent, no card in the channel | Power Automate returned 202 and the flow failed afterwards. Its run history says why. |
-| "Send alert now" on the page says not configured, but the task works | The server was not restarted after editing `config.js`. Section 3.3. |
+| "Send alert now" on the page says not configured, but the task works | The server was not restarted after editing `config.js`. Section 3.4. |
+| `http://<server>/config/config.js` returns 200 | The old `server.js` process is still running. Restart it — section 3.3. |
 
 ---
 

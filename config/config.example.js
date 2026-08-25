@@ -36,9 +36,14 @@ module.exports = {
     // channel as "not configured" rather than pretending it sent.
     //
     // These are URLs with a `sig=` in them: anyone holding one can post to the
-    // channel or send mail as the flow owner. That is why they live here,
-    // server-side, and not in ext_cal_alert_config where the anon key would
-    // reach them. How MANY days of warning is a setting; this is a credential.
+    // channel or send mail as the flow owner. They live here rather than in
+    // ext_cal_alert_config because that table is readable with the anon key, and
+    // how MANY days of warning is a setting while this is a credential.
+    //
+    // "Server-side" is only true because server.js now refuses to serve this
+    // folder. It did serve it — http://<server>/config/config.js returned this
+    // file, sig= and all, to anyone who could reach the machine. If that guard is
+    // ever removed, this is public again.
     //
     // TEAMS may be pointed at TEAMS_WEBHOOK_URL above to reuse the existing
     // channel. It is separate so calibration can be sent somewhere quieter
