@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record External Calibration</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page, deliberately. Captures anything that fails
+           afterwards — including a CDN <script> that 404s — so a failure can
+           never present as a blank page with no explanation. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617'
+                        },
+                        blue: {
+                            50: '#e6f2fb', 100: '#cce4f6', 200: '#b3d7f2', 300: '#8cc2ec',
+                            400: '#59a7e3', 500: '#268cda', 600: '#0078d4', 700: '#0067b8',
+                            800: '#00589c', 900: '#004881', 950: '#003965'
+                        },
+                        green: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b'
+                        },
+                        orange: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#f59e0b', 500: '#d97706', 600: '#b45309', 700: '#92400e',
+                            800: '#78350f', 900: '#451a03'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <script src="../../assets/signer.js"></script>
+    <script src="../../assets/calibration-alert.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+
+        #app.shell { display: flex; align-items: flex-start; }
+        #app[v-cloak] { display: none; }
+        .column { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        .rail {
+            position: sticky; top: 0; flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh; padding: 28px 24px;
+            background: var(--text-main); color: #fff; overflow-y: auto;
+        }
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+        .rail__mark {
+            width: 36px; height: 36px; border-radius: 10px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+        .rail__name { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; line-height: 1; color: #fff; }
+        .rail__sub {
+            display: block; margin-top: 2px; font-size: 9px; font-weight: 700;
+            letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .identity {
+            margin-top: 28px; padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius); background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px; border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3); padding: 4px 10px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary); border-radius: var(--radius-full);
+        }
+        .access-level--read { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.14); }
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px; border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+        .rail__spacer { flex: 1; min-height: 20px; }
+        .rail__back {
+            display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+            width: 100%; padding: 11px 16px; margin-top: 8px;
+            font-family: var(--font-sans); font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius); cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* ---- Steps ---- */
+        .step {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); margin-bottom: 18px; overflow: hidden;
+        }
+        .step__head {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 22px; border-bottom: 1px solid var(--border);
+        }
+        .step__num {
+            width: 26px; height: 26px; border-radius: var(--radius-full);
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 700; flex-shrink: 0;
+        }
+        .step__title { font-size: var(--fs-base); font-weight: 700; }
+        .step__body { padding: 22px; }
+
+        .lbl {
+            display: block; margin-bottom: 5px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .inp {
+            width: 100%; padding: 9px 11px;
+            font-family: var(--font-sans); font-size: 13px; color: var(--text-main);
+            background: var(--bg-card); border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+        }
+        .inp:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .inp:disabled { background: var(--surface-muted); color: var(--text-muted); }
+        textarea.inp { min-height: 84px; resize: vertical; font-family: var(--font-sans); }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+        @media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+        .hint { margin-top: 5px; font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+
+        /* ---- Equipment context ---- */
+        .ctx {
+            display: grid; gap: 14px; padding: 16px 18px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            background: var(--surface-muted); border-radius: var(--radius);
+        }
+        .ctx__k {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .ctx__v { margin-top: 3px; font-size: 13px; font-weight: 600; white-space: pre-line; }
+
+        .pill {
+            display: inline-block; padding: 3px 9px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+            border-radius: var(--radius-full); white-space: nowrap;
+        }
+        .pill--overdue { background: #fee2e2; color: #b91c1c; }
+        .pill--urgent  { background: #ffedd5; color: #9a3412; }
+        .pill--soon    { background: #fef3c7; color: #92400e; }
+        .pill--valid   { background: #d1fae5; color: #047857; }
+        .pill--none    { background: #e2e8f0; color: #475569; }
+        .pill--bad     { background: #fee2e2; color: #b91c1c; }
+
+        /* ---- Certificate upload ----
+           The native file input is hidden rather than styled: it cannot be made
+           to match .inp across browsers, and a <label for> is a real, keyboard
+           reachable control, which a styled <div> would not be. .sr-only keeps
+           it focusable — display:none would take it out of the tab order and
+           make the field unreachable without a mouse. */
+        .cert-drop {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 10px 12px;
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+        }
+        .cert-drop__btn {
+            padding: 6px 12px;
+            font-size: 12px; font-weight: 600;
+            color: var(--primary); background: var(--bg-card);
+            border: 1px solid var(--primary); border-radius: var(--radius-sm);
+            cursor: pointer; white-space: nowrap;
+        }
+        .cert-drop__btn:hover { background: var(--primary-soft); }
+        /* Keyboard focus lands on the hidden input, so the ring has to be drawn
+           on the label that stands in for it. */
+        .cert-drop input:focus-visible + .cert-drop__btn {
+            outline: none; box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+        .cert-drop__or { font-size: 11px; color: var(--text-faint); }
+
+        .cert-pick {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+        }
+        .cert-pick__thumb {
+            width: 42px; height: 42px; flex-shrink: 0;
+            object-fit: cover; border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--surface-muted);
+        }
+        .cert-pick__meta { flex: 1; min-width: 0; }
+        .cert-pick__name {
+            font-size: 12px; font-weight: 600;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cert-pick__size { font-size: 11px; color: var(--text-muted); }
+        .cert-pick__x {
+            flex-shrink: 0; width: 26px; height: 26px;
+            font-size: 18px; line-height: 1; color: var(--text-muted);
+            background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .cert-pick__x:hover { color: var(--danger); background: var(--surface-muted); }
+
+        .locked {
+            max-width: 620px; margin: 90px auto; padding: 32px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); text-align: center;
+        }
+        .done {
+            max-width: 640px; margin: 60px auto; padding: 34px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail { position: static; width: 100%; height: auto; padding: 16px 20px; }
+            .identity { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <div id="boot" style="max-width:760px;margin:64px auto;padding:24px;border:1px solid #e2e8f0;
+                          background:#fff;border-radius:16px;font-family:system-ui,sans-serif">
+        <h1 style="margin:0 0 8px;font-size:16px;font-weight:700;color:#1e293b">Starting…</h1>
+        <p id="boot-msg" style="margin:0;font-size:14px;color:#475569;line-height:1.6">
+            Loading Vue, the Supabase client and the app config. If this message stays,
+            one of them did not load — the detail will appear below.
+        </p>
+        <pre id="boot-detail" style="display:none;margin:12px 0 0;padding:12px;background:#f1f5f9;
+             border-radius:8px;font-size:12px;color:#64748b;white-space:pre-wrap"></pre>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">
+            This page must be served over http:// — opening the .html from disk cannot reach the database.
+        </p>
+    </div>
+
+    <div id="app" v-cloak class="shell">
+
+        <aside class="rail">
+            <div class="rail__brand">
+                <div class="rail__mark"><img src="../../assets/Famax%20Falcon.png" alt="" /></div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">Calibration Entry</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span v-if="canWrite" class="access-level">{{ accessLevel || '—' }}</span>
+                <span v-else class="access-level access-level--read">No access</span>
+            </div>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__back" onclick="window.location.href='external_calibration_masterlist.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Masterlist
+            </button>
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+
+            <!-- ---------- Not permitted ---------- -->
+            <div v-if="accessResolved && !canWrite" class="locked">
+                <div style="font-size:34px;line-height:1">🔒</div>
+                <h1 style="margin:14px 0 8px;font-size:19px;font-weight:700">Restricted page</h1>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.6">
+                    Recording an external calibration is limited to
+                    <strong>Admin (ALL)</strong> and <strong>Quality</strong> accounts.
+                    <span v-if="railUser !== '—'">
+                        You are signed in as <strong>{{ railUser }}</strong><span
+                            v-if="accessLevel"> with {{ accessLevel }} access</span>.
+                    </span>
+                    <span v-else>No session was found — sign in first.</span>
+                </p>
+                <button class="btn" style="margin-top:20px"
+                    onclick="window.location.href='../../AdminLogin.html'">Back to Dashboard</button>
+            </div>
+
+            <!-- ---------- Saved ---------- -->
+            <div v-else-if="savedFor" class="done">
+                <div style="font-size:38px;line-height:1">✅</div>
+                <h1 style="margin:14px 0 8px;font-size:19px;font-weight:700">Calibration recorded</h1>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.7">
+                    <strong>{{ savedFor.equipment_code }}</strong>
+                    <span v-if="savedFor.serial_no"> · {{ savedFor.serial_no }}</span><br>
+                    Calibrated {{ fmtDate(savedFor.cal_date) }} · next due
+                    <strong>{{ fmtDate(savedFor.due_date) }}</strong><br>
+                    Signed by {{ savedFor.recorded_by }}.
+                </p>
+
+                <!-- The uploaded image, shown back. A thumbnail that renders is the only
+                     proof that the file reached the bucket AND is readable from it — a
+                     success message on its own would say the same thing either way. -->
+                <div v-if="savedFor.cert_url" style="margin-top:18px">
+                    <a :href="savedFor.cert_url" target="_blank" rel="noopener">
+                        <img v-if="savedFor.has_image" :src="savedFor.cert_url" alt="Certificate"
+                            style="max-height:150px;max-width:100%;border:1px solid var(--border);
+                                   border-radius:var(--radius-sm);object-fit:contain" />
+                        <span v-else style="color:var(--primary);font-size:13px;font-weight:600">
+                            Open the certificate</span>
+                    </a>
+                    <div style="margin-top:6px;font-size:11px;color:var(--text-faint)">
+                        {{ savedFor.has_image ? 'Certificate image stored — click to open full size.'
+                                              : 'Certificate link recorded.' }}
+                    </div>
+                </div>
+                <div class="flex gap-2 justify-center flex-wrap" style="margin-top:22px">
+                    <button class="btn btn--secondary"
+                        onclick="window.location.href='external_calibration_masterlist.html'">
+                        Back to masterlist
+                    </button>
+                    <button class="btn" @click="recordAnother">Record another</button>
+                </div>
+            </div>
+
+            <main v-else-if="canWrite" class="max-w-[900px] w-full mx-auto px-6 py-6">
+
+                <div class="mb-5">
+                    <h1 class="text-xl font-bold tracking-tight text-gray-900">Record External Calibration</h1>
+                    <p class="text-sm text-gray-500 mt-0.5">
+                        One certificate, one record. The masterlist reads the newest one — nothing is overwritten.
+                    </p>
+                </div>
+
+                <div v-if="loadError" class="rounded-2xl border p-5 mb-5"
+                     style="border-color:#fecaca;background:#fef2f2">
+                    <h2 class="text-base font-bold text-gray-900 mb-1">The equipment list could not load</h2>
+                    <p class="text-sm text-gray-600">{{ loadError }}</p>
+                </div>
+
+                <!-- ---------- 1. Equipment ---------- -->
+                <section class="step">
+                    <div class="step__head">
+                        <span class="step__num">1</span>
+                        <span class="step__title">Which equipment</span>
+                    </div>
+                    <div class="step__body">
+                        <label class="lbl">Equipment *</label>
+                        <select v-model="equipmentId" class="inp" @change="onPick">
+                            <option value="">Select equipment…</option>
+                            <option v-for="e in options" :key="e.id" :value="e.id">
+                                {{ e.line_no }}. {{ e.equipment_code }} — {{ oneLine(e.description) }}{{
+                                    e.serial_no && e.serial_no.toUpperCase() !== 'N/A'
+                                        ? '  (S/N ' + e.serial_no + ')' : '' }}
+                            </option>
+                        </select>
+                        <p class="hint">
+                            Only equipment marked as requiring calibration is listed. If something is
+                            missing, register it on the masterlist first.
+                        </p>
+
+                        <div v-if="picked" class="ctx" style="margin-top:16px">
+                            <div>
+                                <div class="ctx__k">Brand</div>
+                                <div class="ctx__v">{{ picked.brand || '—' }}</div>
+                            </div>
+                            <div>
+                                <div class="ctx__k">Location</div>
+                                <div class="ctx__v">{{ picked.location || '—' }}</div>
+                            </div>
+                            <div>
+                                <div class="ctx__k">Last calibration</div>
+                                <div class="ctx__v">{{ fmtDate(picked.last_cal_date) }}</div>
+                            </div>
+                            <div>
+                                <div class="ctx__k">Current due date</div>
+                                <div class="ctx__v">{{ fmtDate(picked.next_due_date) }}</div>
+                            </div>
+                            <div>
+                                <div class="ctx__k">Status</div>
+                                <div class="ctx__v">
+                                    <span :class="['pill', statusPill(picked.cal_status)]">
+                                        {{ picked.cal_status === 'NEVER_CALIBRATED'
+                                            ? 'No certificate' : duePhrase(picked.days_to_due) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="ctx__k">Condition on record</div>
+                                <div class="ctx__v">
+                                    <span :class="['pill', picked.condition === 'GOOD' ? 'pill--valid' : 'pill--bad']">
+                                        {{ picked.condition }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ---------- 2. Certificate ---------- -->
+                <section class="step" v-if="picked">
+                    <div class="step__head">
+                        <span class="step__num">2</span>
+                        <span class="step__title">The certificate</span>
+                    </div>
+                    <div class="step__body">
+                        <div class="grid2">
+                            <div>
+                                <label class="lbl">Calibration date *</label>
+                                <input type="date" v-model="form.cal_date" class="inp" @change="suggestDue" />
+                            </div>
+                            <div>
+                                <label class="lbl">Next due date *</label>
+                                <input type="date" v-model="form.due_date" class="inp" />
+                                <p class="hint">
+                                    Pre-filled at {{ picked.cal_interval_months }} months, but the
+                                    certificate's own date wins — type over it if the lab dated it
+                                    differently.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid3" style="margin-top:14px">
+                            <div>
+                                <label class="lbl">Certificate number</label>
+                                <input v-model.trim="form.cert_no" class="inp" placeholder="e.g. CAL-2026-0417" />
+                            </div>
+                            <div>
+                                <label class="lbl">Calibration lab *</label>
+                                <input v-model.trim="form.lab" class="inp" list="lab-list"
+                                    placeholder="Who calibrated it" />
+                                <datalist id="lab-list">
+                                    <option v-for="l in knownLabs" :key="l" :value="l"></option>
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="lbl">Result</label>
+                                <select v-model="form.result" class="inp">
+                                    <option value="">—</option>
+                                    <option value="PASS">PASS</option>
+                                    <option value="FAIL">FAIL</option>
+                                    <option value="LIMITED">LIMITED — usable with restrictions</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid2" style="margin-top:14px">
+                            <div>
+                                <label class="lbl">Condition after calibration *</label>
+                                <select v-model="form.condition" class="inp">
+                                    <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
+                                </select>
+                                <p class="hint">
+                                    This also becomes the equipment's condition on the masterlist.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="lbl">Certificate</label>
+                                <!-- Chosen now, uploaded on save. Picking a file must not put
+                                     anything in the bucket: abandoning this form half-filled is
+                                     ordinary, and it would leave an image belonging to a
+                                     certificate that was never recorded. -->
+                                <div v-if="!certFile" class="cert-drop">
+                                    <input type="file" id="certFile" class="sr-only"
+                                        :accept="ACCEPT_TYPES.join(',')" @change="pickCert" />
+                                    <label for="certFile" class="cert-drop__btn">Choose an image…</label>
+                                    <span class="cert-drop__or">or paste a link below</span>
+                                </div>
+
+                                <div v-else class="cert-pick">
+                                    <img :src="certPreview" alt="" class="cert-pick__thumb" />
+                                    <div class="cert-pick__meta">
+                                        <div class="cert-pick__name">{{ certFile.name }}</div>
+                                        <div class="cert-pick__size">{{ kb(certFile.size) }}</div>
+                                    </div>
+                                    <button type="button" class="cert-pick__x" @click="clearCert"
+                                        title="Remove">&times;</button>
+                                </div>
+
+                                <input v-model.trim="form.cert_url" class="inp" style="margin-top:8px"
+                                    :disabled="!!certFile"
+                                    :placeholder="certFile ? 'Filled in from the upload on save'
+                                                           : '…or a path/URL to the scan'" />
+                                <p class="hint">
+                                    JPG, PNG, WEBP or HEIC up to 10&nbsp;MB. The image is stored in
+                                    the system, so the record does not depend on a network path
+                                    staying where it is.
+                                </p>
+                                <p v-if="certError" class="hint" style="color:var(--danger)">{{ certError }}</p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:14px">
+                            <label class="lbl">Accepted criteria</label>
+                            <textarea v-model="form.criteria" class="inp"></textarea>
+                            <p class="hint">
+                                Copied from the masterlist and stored on this certificate as it reads
+                                today, so revising the criteria later never rewrites a past record.
+                            </p>
+                            <label v-if="criteriaChanged" class="flex items-start gap-2 mt-3 text-sm cursor-pointer">
+                                <input type="checkbox" v-model="form.updateMasterCriteria" style="margin-top:3px" />
+                                <span>
+                                    <strong>Also update the masterlist criteria</strong>
+                                    <span class="block text-xs text-gray-500 mt-0.5">
+                                        You changed the criteria. Tick this if the new tolerances are
+                                        permanent; leave it clear if they apply to this certificate only.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div style="margin-top:14px">
+                            <label class="lbl">Remarks</label>
+                            <input v-model.trim="form.remarks" class="inp" />
+                        </div>
+
+                        <!-- A FAIL that leaves the instrument on the floor marked GOOD is the
+                             failure mode this record exists to prevent, so the two are checked
+                             against each other before anything is saved. -->
+                        <div v-if="resultConflict" class="rounded-xl border p-4 mt-4"
+                             style="border-color:#fde68a;background:#fffbeb">
+                            <p class="text-sm text-gray-700">
+                                <strong>The result and the condition disagree.</strong>
+                                The certificate says <strong>{{ form.result }}</strong> but the
+                                condition is <strong>GOOD</strong>. If the instrument came back out
+                                of tolerance it should not be recorded as good — change one of them,
+                                or say why in the remarks.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ---------- 3. Sign ---------- -->
+                <section class="step" v-if="picked">
+                    <div class="step__head">
+                        <span class="step__num">3</span>
+                        <span class="step__title">Sign the record</span>
+                    </div>
+                    <div class="step__body">
+                        <p class="text-sm text-gray-600 mb-3">
+                            The record is signed by the account at this keyboard. Re-type
+                            <strong>{{ signerName || 'your' }}</strong>'s password to confirm it.
+                        </p>
+                        <div class="grid2">
+                            <div>
+                                <label class="lbl">Password *</label>
+                                <input type="password" v-model="form.password" class="inp"
+                                    autocomplete="current-password" @keyup.enter="submit" />
+                            </div>
+                            <div>
+                                <label class="lbl">Will be recorded as</label>
+                                <input class="inp" :value="signerName || '—'" disabled />
+                            </div>
+                        </div>
+
+                        <p v-if="formError" class="text-sm mt-4 font-medium" style="color:var(--danger)">
+                            {{ formError }}
+                        </p>
+
+                        <div class="flex gap-2 justify-end mt-5 flex-wrap">
+                            <button class="btn btn--secondary"
+                                onclick="window.location.href='external_calibration_masterlist.html'">
+                                Cancel
+                            </button>
+                            <button class="btn" :disabled="saving" @click="submit">
+                                {{ saving ? 'Saving…' : 'Save calibration record' }}
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="footer" style="margin-top:26px">
+                    © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        function bootFailed(what, detail) {
+            const box = document.getElementById('boot');
+            if (!box) return;
+            box.style.borderColor = '#fde68a';
+            box.style.background = '#fffbeb';
+            const h = box.querySelector('h1');
+            if (h) h.textContent = 'This page could not start';
+            const msg = document.getElementById('boot-msg');
+            if (msg) msg.textContent = what;
+            const errs = (window.__bootErrors || []).join('\n');
+            const body = [detail, errs].filter(Boolean).join('\n\n');
+            const pre = document.getElementById('boot-detail');
+            if (pre && body) { pre.style.display = 'block'; pre.textContent = body; }
+            console.error('Calibration form could not start:', what, body);
+        }
+        window.__bootReport = function () {
+            if (!document.getElementById('boot')) return;
+            bootFailed('Something failed to load before the page could start.');
+        };
+        if (typeof Vue === 'undefined') {
+            bootFailed('Vue did not load. It comes from unpkg.com — check the network tab.');
+            throw new Error('Vue missing');
+        }
+        if (typeof supabase === 'undefined') {
+            bootFailed('The Supabase client did not load. It comes from unpkg.com.');
+            throw new Error('supabase missing');
+        }
+        if (!window.APP_CONFIG) {
+            bootFailed('assets/app-config.js did not load, so there is no database address.');
+            throw new Error('APP_CONFIG missing');
+        }
+        if (!window.Signer) {
+            bootFailed('assets/signer.js did not load, so the record could not be signed.');
+            throw new Error('Signer missing');
+        }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        // Same grant as the masterlist and as AdminLogin's btn-cal-external.
+        const WRITE_ROLES = ['ALL', 'QUALITY'];
+
+        /* ---- Certificate upload ------------------------------------------
+           The bucket and these two constants have to agree. The bucket declares
+           the same list and the same limit (see
+           sql/2026-08-25_external_calibration_certificate_upload.sql), and it is
+           the bucket that actually enforces them — anyone holding the anon key
+           can POST straight at storage without going through this page. What is
+           here is so somebody choosing a file is told immediately, rather than
+           after a save and a 400 from a service they have never heard of.
+
+           Widening one without the other gives you a page that offers a file the
+           bucket refuses, or a bucket that accepts one the page never offers. */
+        const CERT_BUCKET = 'calibration_certificate';
+        const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+        const MAX_CERT_BYTES = 10 * 1024 * 1024;   // 10 MB, as the bucket declares
+
+        /* Safari hands over a .heic with an empty file.type, and an empty
+           contentType is rejected by a bucket that declares an allow-list. The
+           extension is the only thing left to go on at that point. */
+        const EXT_TYPES = {
+            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+            webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
+        };
+        const extOf = name => (String(name).split('.').pop() || '').toLowerCase();
+        const mimeOf = file => file.type || EXT_TYPES[extOf(file.name)] || '';
+
+        const app = createApp({
+            setup() {
+                const CONDITIONS = ['GOOD', 'OUT OF SPEC', 'UNDER REPAIR', 'DAMAGED'];
+
+                const all = ref([]);
+                const loadError = ref('');
+                const equipmentId = ref('');
+                const saving = ref(false);
+                const formError = ref('');
+                const savedFor = ref(null);
+
+                const railUser = ref('—');
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+                const accessResolved = ref(false);
+                const signerName = ref('');
+
+                const form = reactive({
+                    cal_date: '', due_date: '', cert_no: '', lab: '',
+                    result: '', condition: 'GOOD', criteria: '', cert_url: '',
+                    remarks: '', password: '', updateMasterCriteria: false,
+                });
+
+                // Chosen, not uploaded. Nothing reaches the bucket until submit().
+                const certFile = ref(null);
+                const certPreview = ref('');
+                const certError = ref('');
+
+                const kb = n => n < 1024 * 1024
+                    ? Math.round(n / 1024) + ' KB'
+                    : (n / 1024 / 1024).toFixed(1) + ' MB';
+
+                function clearCert() {
+                    // The blob URL holds the file in memory until it is revoked. On a form used
+                    // all afternoon, picking and discarding photos would otherwise accumulate.
+                    if (certPreview.value) URL.revokeObjectURL(certPreview.value);
+                    certPreview.value = '';
+                    certFile.value = null;
+                    certError.value = '';
+                }
+
+                function pickCert(ev) {
+                    const file = (ev.target.files || [])[0];
+                    // Always cleared, so re-picking the same filename still fires a change event
+                    // and a rejected file does not sit in the input looking selected.
+                    ev.target.value = '';
+                    if (!file) return;
+                    certError.value = '';
+
+                    const type = mimeOf(file);
+                    if (!ACCEPT_TYPES.includes(type)) {
+                        clearCert();
+                        certError.value = type
+                            ? `${file.name} is a ${type} — the certificate has to be a JPG, PNG, WEBP or HEIC image.`
+                            : `${file.name} is not a recognised image.`;
+                        return;
+                    }
+                    if (file.size > MAX_CERT_BYTES) {
+                        clearCert();
+                        certError.value = `${file.name} is ${kb(file.size)} — the limit is 10 MB.`;
+                        return;
+                    }
+
+                    clearCert();
+                    certFile.value = file;
+                    certPreview.value = URL.createObjectURL(file);
+                    // An uploaded file IS the certificate link. Leaving a stale typed path in the
+                    // field would put two different answers in one column.
+                    form.cert_url = '';
+                }
+
+                /* One object per certificate, keyed by instrument and calibration date so the
+                   bucket listing can be read by a person: 11/2026-08-20-1724... .jpg. The
+                   timestamp is there because a certificate can be replaced, and overwriting the
+                   old object would silently rewrite what an earlier record points at. */
+                function certKey(equipmentId, calDate, file) {
+                    const ext = EXT_TYPES[extOf(file.name)] ? extOf(file.name) : 'jpg';
+                    return `${equipmentId}/${calDate}-${Date.now()}.${ext}`;
+                }
+
+                const CA = window.CalibrationAlert;
+                const fmtDate = CA ? CA.fmtDate : (s => s || '—');
+                const duePhrase = CA ? CA.duePhrase : (d => String(d));
+
+                const oneLine = s => String(s || '').replace(/\s*\n\s*/g, ' ').trim();
+
+                // Equipment that is never calibrated has no certificate to record, so
+                // offering it here would only invite a row that contradicts its own
+                // calibration_required flag. Scrapped and obsolete are out for the
+                // same reason: the record is closed.
+                const options = computed(() =>
+                    all.value.filter(e => e.calibration_required && e.status === 'ACTIVE'));
+
+                const picked = computed(() =>
+                    all.value.find(e => String(e.id) === String(equipmentId.value)) || null);
+
+                // Labs already used, so the fourth certificate from the same lab is
+                // picked rather than retyped — and does not become a fourth spelling.
+                const knownLabs = ref([]);
+
+                const criteriaChanged = computed(() =>
+                    !!picked.value && (form.criteria || '') !== (picked.value.accepted_criteria || ''));
+
+                const resultConflict = computed(() =>
+                    (form.result === 'FAIL' || form.result === 'LIMITED') && form.condition === 'GOOD');
+
+                const statusPill = s => ({
+                    OVERDUE: 'pill--overdue', NEVER_CALIBRATED: 'pill--overdue',
+                    DUE_URGENT: 'pill--urgent', DUE_SOON: 'pill--soon', VALID: 'pill--valid'
+                })[s] || 'pill--none';
+
+                // ---- access ----------------------------------------------------
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (!userId) { accessResolved.value = true; return; }
+                    railUser.value = userId;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) {
+                        console.error('Access lookup failed', e);
+                    } finally {
+                        accessResolved.value = true;
+                    }
+                }
+
+                // ---- load ------------------------------------------------------
+                async function load() {
+                    try {
+                        const { data, error } = await _supabase
+                            .from('v_ext_cal_masterlist').select('*').order('line_no');
+                        if (error) throw error;
+                        all.value = data || [];
+
+                        const labs = await _supabase.from('ext_cal_event')
+                            .select('lab').not('lab', 'is', null).limit(500);
+                        knownLabs.value = [...new Set((labs.data || [])
+                            .map(r => r.lab).filter(Boolean))].sort();
+                    } catch (e) {
+                        loadError.value = e.message || String(e);
+                    }
+                }
+
+                // ---- date help -------------------------------------------------
+                //
+                // Adding months by setMonth alone overshoots: 31 Jan + 1 month lands on
+                // 3 March, because February has no 31st. The date is clamped back to
+                // the last day of the target month, which is what "twelve months from
+                // the 31st" means to everyone who is not a Date object.
+                function addMonths(iso, months) {
+                    const p = String(iso).slice(0, 10).split('-').map(Number);
+                    if (p.length !== 3 || p.some(isNaN)) return '';
+                    const y = p[0], m = p[1] - 1, d = p[2];
+                    const target = new Date(Date.UTC(y, m + months, 1));
+                    const lastDay = new Date(Date.UTC(
+                        target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+                    target.setUTCDate(Math.min(d, lastDay));
+                    return target.toISOString().slice(0, 10);
+                }
+
+                // The last date this page filled in by itself. Remembered so a due date
+                // the user typed can be told apart from one nobody has touched.
+                let lastSuggested = '';
+
+                function suggestDue() {
+                    if (!form.cal_date || !picked.value) return;
+                    // Only ever a suggestion. Once the due date has been typed over,
+                    // changing the calibration date must not silently undo that edit.
+                    if (!form.due_date || form.due_date === lastSuggested) {
+                        const next = addMonths(form.cal_date, picked.value.cal_interval_months || 12);
+                        form.due_date = next;
+                        lastSuggested = next;
+                    }
+                }
+
+                function onPick() {
+                    formError.value = '';
+                    if (!picked.value) return;
+                    form.criteria = picked.value.accepted_criteria || '';
+                    form.condition = picked.value.condition || 'GOOD';
+                    form.updateMasterCriteria = false;
+                    if (!form.cal_date) form.cal_date = new Date().toISOString().slice(0, 10);
+                    lastSuggested = '';
+                    form.due_date = '';
+                    suggestDue();
+                }
+
+                // ---- save ------------------------------------------------------
+                async function submit() {
+                    formError.value = '';
+                    if (!canWrite.value) return formError.value = 'Your access level cannot record calibrations.';
+                    if (!picked.value) return formError.value = 'Pick the equipment first.';
+                    if (!form.cal_date) return formError.value = 'The calibration date is required.';
+                    if (!form.due_date) return formError.value = 'The next due date is required.';
+                    if (form.due_date < form.cal_date) {
+                        return formError.value = 'The due date cannot be before the calibration date.';
+                    }
+                    if (!form.lab) return formError.value = 'Record which lab calibrated it.';
+
+                    // A certificate dated next month is a typo, and it would park the
+                    // instrument in a bucket nothing chases until that date arrives.
+                    const today = new Date().toISOString().slice(0, 10);
+                    if (form.cal_date > today) {
+                        return formError.value = 'The calibration date is in the future.';
+                    }
+
+                    if (resultConflict.value && !(form.remarks || '').trim()) {
+                        return formError.value = 'A ' + form.result + ' result with a GOOD condition '
+                            + 'needs an explanation in the remarks.';
+                    }
+
+                    const auth = await Signer.verify(form.password);
+                    if (!auth.ok) return formError.value = auth.error;
+
+                    saving.value = true;
+                    // Set once the object is in the bucket, so a failed insert below knows there
+                    // is something to clean up.
+                    let uploadedPath = null;
+                    try {
+                        /* Upload BEFORE the insert, on purpose.
+
+                           The other order — save the record, then upload — leaves a saved
+                           certificate with no image and no way to attach one, because this form
+                           only ever creates. Uploading first means a storage failure stops the
+                           save while the person is still looking at the form and can retry.
+
+                           The cost is an orphaned object if the insert then fails, and the insert
+                           that realistically fails is the same-day duplicate. That is what the
+                           catch below removes. */
+                        let certUrl = form.cert_url || null;
+                        if (certFile.value) {
+                            const path = certKey(picked.value.id, form.cal_date, certFile.value);
+                            const { error: upErr } = await _supabase.storage
+                                .from(CERT_BUCKET)
+                                .upload(path, certFile.value, {
+                                    upsert: false,
+                                    contentType: mimeOf(certFile.value),
+                                });
+                            if (upErr) {
+                                throw new Error('The certificate image could not be uploaded: '
+                                    + upErr.message + ' — nothing has been saved.');
+                            }
+                            uploadedPath = path;
+                            const { data: pub } = _supabase.storage.from(CERT_BUCKET).getPublicUrl(path);
+                            certUrl = pub.publicUrl;
+                        }
+
+                        const { error } = await _supabase.from('ext_cal_event').insert({
+                            equipment_id: picked.value.id,
+                            cal_date: form.cal_date,
+                            due_date: form.due_date,
+                            cert_no: form.cert_no || null,
+                            lab: form.lab,
+                            result: form.result || null,
+                            condition: form.condition,
+                            criteria: form.criteria || null,
+                            cert_url: certUrl,
+                            cert_storage_path: uploadedPath,
+                            remarks: form.remarks || null,
+                            recorded_by: auth.name,
+                            recorded_by_position: auth.position || null,
+                        });
+                        if (error) throw error;
+                        // Committed. From here a failure must not delete the image.
+                        uploadedPath = null;
+
+                        // The certificate is in. The equipment's live condition follows
+                        // it, and the criteria only if this was flagged as a permanent
+                        // revision — the event already holds what applied on the day.
+                        const patch = {
+                            condition: form.condition,
+                            updated_at: new Date().toISOString(),
+                            updated_by: auth.name,
+                        };
+                        if (criteriaChanged.value && form.updateMasterCriteria) {
+                            patch.accepted_criteria = form.criteria || null;
+                        }
+                        const up = await _supabase.from('ext_cal_equipment')
+                            .update(patch).eq('id', picked.value.id);
+                        // Reported, not thrown. The certificate is already saved and is
+                        // the record that matters; losing the condition update is worth
+                        // saying out loud but is not worth implying the save failed.
+                        if (up.error) {
+                            console.error('Condition update failed', up.error);
+                            formError.value = 'The certificate was saved, but the equipment condition '
+                                + 'could not be updated: ' + up.error.message;
+                        }
+
+                        savedFor.value = {
+                            equipment_code: picked.value.equipment_code,
+                            serial_no: picked.value.serial_no,
+                            cal_date: form.cal_date,
+                            due_date: form.due_date,
+                            recorded_by: auth.name,
+                            cert_url: certUrl,
+                            has_image: !!certFile.value,
+                        };
+                        clearCert();
+                    } catch (e) {
+                        // The insert failed after the image went up. Take it back out, or the
+                        // bucket keeps a file that no certificate will ever point at — and
+                        // cert_storage_path exists precisely so orphans are avoidable.
+                        if (uploadedPath) {
+                            try {
+                                await _supabase.storage.from(CERT_BUCKET).remove([uploadedPath]);
+                            } catch (rmErr) {
+                                // Worth a line in the console, not worth replacing the real error
+                                // with a cleanup failure the person can do nothing about.
+                                console.error('Could not remove the orphaned certificate image',
+                                    uploadedPath, rmErr);
+                            }
+                        }
+                        formError.value = /duplicate key/.test(e.message || '')
+                            ? 'A calibration is already recorded for this equipment on that date. '
+                              + 'Check the masterlist history before entering it again.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                async function recordAnother() {
+                    savedFor.value = null;
+                    equipmentId.value = '';
+                    Object.assign(form, {
+                        cal_date: '', due_date: '', cert_no: '', lab: '', result: '',
+                        condition: 'GOOD', criteria: '', cert_url: '', remarks: '',
+                        password: '', updateMasterCriteria: false,
+                    });
+                    clearCert();
+                    lastSuggested = '';
+                    // The list is stale the moment a certificate is saved — the row just
+                    // recorded now has a new due date and a different bucket.
+                    await load();
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    if (!canWrite.value) return;
+                    await load();
+
+                    const who = await Signer.current();
+                    if (who.ok) signerName.value = who.name;
+
+                    // Arrived from a row on the masterlist: the instrument is already
+                    // chosen, so nobody has to find it among 18 and risk filing the
+                    // certificate against the wrong counting scale.
+                    const q = new URLSearchParams(window.location.search).get('equipment');
+                    if (q && all.value.some(e => String(e.id) === String(q))) {
+                        equipmentId.value = q;
+                        onPick();
+                    }
+                });
+
+                return {
+                    CONDITIONS, ACCEPT_TYPES, all, options, picked, equipmentId, loadError,
+                    form, saving, formError, savedFor,
+                    railUser, accessLevel, canWrite, accessResolved, signerName,
+                    knownLabs, criteriaChanged, resultConflict,
+                    certFile, certPreview, certError, pickCert, clearCert, kb,
+                    fmtDate, duePhrase, oneLine, statusPill,
+                    onPick, suggestDue, submit, recordAnother,
+                };
+            }
+        });
+
+        try {
+            app.config.errorHandler = (err) => {
+                console.error('Calibration form:', err);
+                bootFailed('The page hit an error while rendering.', String(err && err.stack || err));
+            };
+            app.mount('#app');
+            const boot = document.getElementById('boot');
+            if (boot) boot.remove();
+        } catch (err) {
+            console.error('Calibration form: mount failed', err);
+            bootFailed('Vue could not mount the page.', String(err && err.stack || err));
+        }
+    </script>
+</body>
+
+</html>

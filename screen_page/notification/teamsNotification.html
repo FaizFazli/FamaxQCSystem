@@ -681,10 +681,14 @@
                 </div>
                 <input type="hidden" id="recipient-id" />
                 <div style="display:grid; grid-template-columns:130px 1fr 1fr auto; gap:8px; align-items:center;">
+                    <!-- Every role NotificationRecipient can hold must be listed. A select set
+                         to a value with no matching option goes blank, and the row can then no
+                         longer be saved — CALIBRATION recipients are edited here too. -->
                     <select id="recipient-role" class="rcp-input">
                         <option value="QA">QA</option>
                         <option value="ENG">ENG</option>
                         <option value="MANAGEMENT">MANAGEMENT</option>
+                        <option value="CALIBRATION">CALIBRATION</option>
                     </select>
                     <input type="text" id="recipient-name" class="rcp-input" placeholder="Display name" />
                     <input type="email" id="recipient-email" class="rcp-input" placeholder="name@company.com" />

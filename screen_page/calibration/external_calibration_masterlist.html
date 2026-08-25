@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External Calibration Masterlist</title>
+    <link rel="icon" type="png" href="../../assets/LogoRound.png?v=2">
+    <script>
+        /* FIRST script on the page, deliberately. Captures anything that fails
+           afterwards — including a CDN <script> that 404s — so a failure can
+           never present as a blank page with no explanation. */
+        window.__bootErrors = [];
+        window.addEventListener('error', function (e) {
+            window.__bootErrors.push(
+                e.message
+                    ? (e.message + (e.filename ? '  (' + e.filename + ':' + e.lineno + ')' : ''))
+                    : ('Failed to load: ' + ((e.target && (e.target.src || e.target.href)) || 'unknown'))
+            );
+            if (window.__bootReport) window.__bootReport();
+        }, true);   // capture phase: resource load errors do not bubble
+        window.addEventListener('unhandledrejection', function (e) {
+            window.__bootErrors.push('Unhandled promise rejection: ' + (e.reason && e.reason.message || e.reason));
+            if (window.__bootReport) window.__bootReport();
+        });
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        /* Same palette remap as the gauge masterlist — the Play CDN injects its
+           sheet at runtime, after theme.css, so utilities win. Remapping here
+           keeps this page on the design tokens without touching markup. */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                            400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                            800: '#1e293b', 900: '#0f172a', 950: '#020617'
+                        },
+                        blue: {
+                            50: '#e6f2fb', 100: '#cce4f6', 200: '#b3d7f2', 300: '#8cc2ec',
+                            400: '#59a7e3', 500: '#268cda', 600: '#0078d4', 700: '#0067b8',
+                            800: '#00589c', 900: '#004881', 950: '#003965'
+                        },
+                        green: {
+                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                            400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                            800: '#065f46', 900: '#064e3b'
+                        },
+                        orange: {
+                            50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                            400: '#f59e0b', 500: '#d97706', 600: '#b45309', 700: '#92400e',
+                            800: '#78350f', 900: '#451a03'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Relative, not /assets/… — an absolute path only resolves when the page
+         is served from the app root. ../../ resolves under /, under
+         /FamaxQCSystem, and from file://. -->
+    <link rel="stylesheet" href="../../assets/theme.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../../assets/app-config.js"></script>
+    <script src="../../assets/teams-recipients.js"></script>
+    <script src="../../assets/calibration-alert.js"></script>
+    <style>
+        body { font-family: var(--font-sans); }
+        [v-cloak] { display: none; }
+
+        /* ---- Shell: identity rail + content column (mirrors the gauge
+               masterlist, which mirrors AdminLogin). ---- */
+        #app.shell { display: flex; align-items: flex-start; }
+
+        /* Must out-specify #app.shell, or its display:flex beats the plain
+           [v-cloak] rule and the uncompiled template flashes before Vue mounts. */
+        #app[v-cloak] { display: none; }
+
+        .column { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+
+        .rail {
+            position: sticky; top: 0;
+            flex-shrink: 0;
+            display: flex; flex-direction: column;
+            width: 284px; height: 100vh;
+            padding: 28px 24px;
+            background: var(--text-main);
+            color: #fff;
+            overflow-y: auto;
+        }
+        .rail__brand { display: flex; align-items: center; gap: var(--space-3); }
+        .rail__mark {
+            width: 36px; height: 36px; border-radius: 10px; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; overflow: hidden;
+        }
+        .rail__mark img { width: 100%; height: 100%; object-fit: contain; }
+        .rail__name { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; line-height: 1; color: #fff; }
+        .rail__sub {
+            display: block; margin-top: 2px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.16em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+
+        .identity {
+            margin-top: 28px; padding: var(--space-4);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .identity__label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .identity__row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .identity__avatar {
+            width: 32px; height: 32px; border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12);
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .identity__avatar svg { width: 17px; height: 17px; fill: rgba(255, 255, 255, 0.75); }
+        .user-name {
+            font-size: 15px; font-weight: 700; letter-spacing: -0.1px; color: #fff;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .access-level {
+            display: inline-block; margin-top: var(--space-3); padding: 4px 10px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--on-primary); background: var(--primary); border-radius: var(--radius-full);
+        }
+        .access-level--read { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.14); }
+
+        .session {
+            display: flex; align-items: center; gap: var(--space-2);
+            margin-top: 16px; padding-left: 2px;
+            font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.6);
+        }
+        .session::before {
+            content: ""; width: 7px; height: 7px; border-radius: var(--radius-full);
+            background: var(--success); flex-shrink: 0;
+        }
+
+        .rail-nav { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+        .rail-nav__label {
+            margin-bottom: 8px; padding-left: 2px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase; color: rgba(255, 255, 255, 0.45);
+        }
+        .rail-nav__item {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px;
+            font-family: var(--font-sans);
+            font-size: 13px; font-weight: 600; text-align: left;
+            color: rgba(255, 255, 255, 0.65);
+            background: none; border: 0; border-radius: var(--radius-sm);
+            cursor: pointer; transition: background var(--transition), color var(--transition);
+        }
+        .rail-nav__item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+        .rail-nav__item.is-active { background: var(--primary); color: var(--on-primary); }
+        .rail-nav__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .rail-nav__code {
+            flex-shrink: 0; padding: 2px 6px;
+            font-size: 9px; font-weight: 700; letter-spacing: 0.04em;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.65);
+        }
+        .rail-nav__item.is-active .rail-nav__code { background: rgba(255, 255, 255, 0.22); color: #fff; }
+        /* The overdue count has to read as a problem even when its bucket is not
+           the one selected — that is the whole point of putting it in the rail. */
+        .rail-nav__code--alarm { background: rgba(239, 68, 68, 0.85); color: #fff; }
+
+        .rail__spacer { flex: 1; min-height: 20px; }
+
+        .rail__back {
+            display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+            width: 100%; padding: 11px 16px;
+            font-family: var(--font-sans);
+            font-size: var(--fs-base); font-weight: 600; color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: var(--radius); cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .rail__back:hover { background: var(--primary); border-color: var(--primary); }
+        .rail__back svg { width: 15px; height: 15px; }
+
+        /* ---- Status tiles ---- */
+        .tiles {
+            display: grid; gap: 12px; margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }
+        .tile {
+            padding: 14px 16px; border: 1px solid var(--border);
+            border-radius: var(--radius); background: var(--bg-card);
+            cursor: pointer; text-align: left;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        .tile:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+        .tile.is-active { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        .tile__value { font-size: 26px; font-weight: 700; line-height: 1.1; letter-spacing: -0.5px; }
+        .tile__label {
+            margin-top: 4px; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+        }
+
+        /* ---- Table ---- */
+        .cal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cal-table th {
+            position: sticky; top: 0; z-index: 1;
+            padding: 10px 12px; text-align: left;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+            color: var(--text-muted); background: var(--surface-muted);
+            border-bottom: 2px solid var(--border-strong); white-space: nowrap;
+        }
+        .cal-table td {
+            padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top;
+        }
+        .cal-table tbody tr:hover { background: var(--surface-muted); }
+        /* The spreadsheet wrote criteria over two and four lines and the meaning
+           is in the line breaks — "MINOR DIAMETER / GO … / PITCH DIAMETR / GO …"
+           collapses into gibberish on one line. */
+        .criteria { white-space: pre-line; font-size: 12px; color: var(--text-muted); max-width: 260px; }
+        .desc { white-space: pre-line; font-weight: 600; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+        .pill {
+            display: inline-block; padding: 3px 9px;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+            border-radius: var(--radius-full); white-space: nowrap;
+        }
+        .pill--overdue { background: #fee2e2; color: #b91c1c; }
+        .pill--urgent  { background: #ffedd5; color: #9a3412; }
+        .pill--soon    { background: #fef3c7; color: #92400e; }
+        .pill--valid   { background: #d1fae5; color: #047857; }
+        .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
+        .pill--bad     { background: #fee2e2; color: #b91c1c; }
+
+        .link-btn {
+            font-size: 12px; font-weight: 600; color: var(--primary);
+            background: none; border: 0; cursor: pointer; padding: 2px 0;
+        }
+        .link-btn:hover { text-decoration: underline; }
+        .link-btn--danger { color: var(--danger); }
+
+        /* ---- Modal ---- */
+        .ov {
+            position: fixed; inset: 0; z-index: var(--z-modal);
+            background: rgba(15, 23, 42, 0.45);
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 40px 16px; overflow-y: auto;
+        }
+        .sheet {
+            width: 100%; max-width: 820px; background: var(--bg-card);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+        }
+        .sheet__head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+        }
+        .sheet__title { font-size: var(--fs-md); font-weight: 700; }
+        .sheet__body { padding: 22px; }
+        .sheet__foot {
+            display: flex; justify-content: flex-end; gap: 10px;
+            padding: 16px 22px; border-top: 1px solid var(--border);
+        }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+        .lbl {
+            display: block; margin-bottom: 5px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .inp {
+            width: 100%; padding: 9px 11px;
+            font-family: var(--font-sans); font-size: 13px; color: var(--text-main);
+            background: var(--bg-card); border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+        }
+        .inp:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+        textarea.inp { min-height: 76px; resize: vertical; font-family: var(--font-sans); }
+
+        /* ---- Locked (wrong role) ---- */
+        .locked {
+            max-width: 620px; margin: 90px auto; padding: 32px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            #app.shell { flex-direction: column; align-items: stretch; }
+            .rail { position: static; width: 100%; height: auto; padding: 16px 20px; }
+            .identity, .rail-nav { margin-top: 16px; }
+            .identity__label, .session { display: none; }
+            .rail-nav { flex-direction: row; flex-wrap: wrap; align-items: center; }
+            .rail-nav__label { width: 100%; margin-bottom: 0; }
+            .rail-nav__item { width: auto; }
+            .rail__spacer { display: none; }
+            .rail__back { width: auto; margin-top: 16px; }
+        }
+
+        /* ==================================================================
+           REC-QAS010-05, as the workbook draws it
+           ==================================================================
+           This is not the screen table with the chrome hidden. It is a
+           separate rendering that reproduces MASTERLIST EXTERNAL CALIBRATION
+           2025 - 2026.xlsx: A4 landscape, columns A-J at the widths the sheet
+           sets, Times New Roman throughout, ten instruments per page, each
+           instrument two rows tall, masthead and signature block and footer
+           repeated on every page.
+
+           It is separate because the two cannot be the same thing. The screen
+           has a status column, a days-to-due badge and a row of buttons that
+           have never been on the form, and the form has empty ruled slots,
+           a signature block and a page count that would be noise on screen.
+           Trying to serve both from one table is how a printed controlled
+           document ends up with a "Record calibration" button on it.
+
+           COLUMN WIDTHS are the sheet's own, converted to percentages:
+             A 5.00  B 15.71  C 33.71  D 20.71  E 20.71
+             F 24.71 G 20.71  H 20.71  I 25.71  J 24.71   (212.39 total)
+           so C is 33.71/212.39 = 15.872%, and so on. Percentages rather than
+           millimetres so the form still lines up if somebody prints Letter.
+
+           TEN PER PAGE is not a guess either. In the source workbook page 1
+           holds rows 6-25 and page 2 restarts at row 39 - twenty rows, two per
+           instrument. It is ext_cal_form_settings.rows_per_page, so it can be
+           changed without touching this file. */
+
+        .sheet-form { display: none; }
+
+        .xl-page {
+            font-family: 'Times New Roman', Times, serif;
+            color: #000;
+            page-break-after: always;
+            break-after: page;
+        }
+        .xl-page:last-child { page-break-after: auto; break-after: auto; }
+
+        .xl-page table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+        /* Masthead: A:B logo, C:E company, F:J title — the sheet's three merges. */
+        .xl-head td {
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            height: 16mm;
+            padding: 1mm 2mm;
+        }
+        .xl-logo img { max-height: 12mm; max-width: 100%; object-fit: contain; }
+        .xl-company, .xl-title { font-weight: 700; font-size: 10.5pt; line-height: 1.25; }
+
+        /* The grid. Every cell ruled, centred both ways, exactly as the sheet. */
+        .xl-grid th, .xl-grid td {
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            padding: 0.6mm 1mm;
+            font-size: 7pt;
+            line-height: 1.2;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+        }
+        .xl-grid th { font-weight: 700; height: 8mm; }
+        .xl-grid td { height: 12.4mm; }
+        /* The criteria column carries its line breaks — "MINOR DIAMETER / GO… /
+           PITCH DIAMETR / GO…" is four lines on the form and unreadable as one.
+           A point smaller, which is what the sheet does for the split rows. */
+        .xl-grid .xl-crit { white-space: pre-line; font-size: 6.5pt; }
+        .xl-grid .xl-desc { white-space: pre-line; }
+        /* Padding slots. The sheet rules ten boxes whether or not ten
+           instruments exist — page 2 of the source has eight rows and ten
+           boxes. An unruled gap would read as the form having been cut. */
+        .xl-grid td.xl-empty { height: 12.4mm; }
+
+        /* Signature block: columns A-F empty, G:H prepared, I:J approved. */
+        .xl-sign { margin-top: 4mm; }
+        .xl-sign td {
+            border: 1px solid #000;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 8pt;
+            padding: 0.8mm;
+        }
+        .xl-sign td.xl-void { border: 0; }
+        .xl-sign .xl-sign-head { font-weight: 700; height: 6mm; }
+        .xl-sign .xl-sign-space { height: 13mm; }
+        .xl-sign .xl-sign-name, .xl-sign .xl-sign-date { height: 6mm; text-align: left; padding-left: 3mm; }
+
+        .xl-foot {
+            margin-top: 2.5mm;
+            text-align: right;
+            font-size: 7.5pt;
+            white-space: pre;
+        }
+
+        @media print {
+            /* Landscape A4, matching the sheet's own page setup. The workbook
+               sets every margin to 0 and centres the print area; a browser
+               cannot reliably print to the sheet edge, so this takes the
+               smallest margin drivers generally honour and centres inside it. */
+            @page { size: A4 landscape; margin: 6mm; }
+
+            html, body {
+                background: #fff !important;
+                margin: 0; padding: 0;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            /* Everything the screen needs and the form does not. `.ov` is in the
+               list because Ctrl+P with a modal open would otherwise print the
+               modal over the form — it is position:fixed, so it lands on every
+               page. */
+            .rail, .no-print, main, .locked, .ov { display: none !important; }
+            #app.shell { display: block !important; }
+            .column { min-height: 0; display: block; }
+
+            .sheet-form { display: block !important; }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <!-- Visible from the first byte and removed only once Vue has mounted. The
+         old failure mode was the reverse — everything hidden by [v-cloak] until
+         success — so any error produced a blank white page. -->
+    <div id="boot" style="max-width:760px;margin:64px auto;padding:24px;border:1px solid #e2e8f0;
+                          background:#fff;border-radius:16px;font-family:system-ui,sans-serif">
+        <h1 style="margin:0 0 8px;font-size:16px;font-weight:700;color:#1e293b">Starting…</h1>
+        <p id="boot-msg" style="margin:0;font-size:14px;color:#475569;line-height:1.6">
+            Loading Vue, the Supabase client and the app config. If this message stays,
+            one of them did not load — the detail will appear below.
+        </p>
+        <pre id="boot-detail" style="display:none;margin:12px 0 0;padding:12px;background:#f1f5f9;
+             border-radius:8px;font-size:12px;color:#64748b;white-space:pre-wrap"></pre>
+        <p style="margin:12px 0 0;font-size:12px;color:#94a3b8">
+            This page must be served over http:// — opening the .html from disk cannot reach the database.
+            Try <strong>http://127.0.0.1/screen_page/calibration/external_calibration_masterlist.html</strong>
+        </p>
+    </div>
+
+    <div id="app" v-cloak class="shell">
+
+        <!-- ---------- Identity rail ---------- -->
+        <aside class="rail">
+            <div class="rail__brand">
+                <div class="rail__mark"><img src="../../assets/Famax%20Falcon.png" alt="" /></div>
+                <div>
+                    <span class="rail__name">FAMAX</span>
+                    <span class="rail__sub">External Calibration</span>
+                </div>
+            </div>
+
+            <div class="identity">
+                <div class="identity__label">Signed in as</div>
+                <div class="identity__row">
+                    <span class="identity__avatar" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                        </svg>
+                    </span>
+                    <span class="user-name">{{ railUser }}</span>
+                </div>
+                <span v-if="canWrite" class="access-level">{{ accessLevel || '—' }}</span>
+                <span v-else class="access-level access-level--read">No access</span>
+            </div>
+
+            <div class="session" v-if="railUser !== '—'">Session active</div>
+
+            <nav class="rail-nav" v-if="canWrite">
+                <div class="rail-nav__label">Show</div>
+                <button v-for="b in buckets" :key="b.key" @click="filter = b.key"
+                    :class="['rail-nav__item', filter === b.key ? 'is-active' : '']">
+                    <span class="rail-nav__name">{{ b.label }}</span>
+                    <span :class="['rail-nav__code',
+                                   b.alarm && counts[b.key] ? 'rail-nav__code--alarm' : '']">
+                        {{ counts[b.key] || 0 }}
+                    </span>
+                </button>
+            </nav>
+
+            <div class="rail__spacer"></div>
+
+            <button class="rail__back" onclick="window.location.href='../../AdminLogin.html'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to Dashboard
+            </button>
+        </aside>
+
+        <div class="column">
+
+            <!-- ---------- Not permitted ----------
+                 Rendered instead of the page, not over it: nothing below this
+                 point loads for a role that has no business here, so the data
+                 never reaches the browser at all. -->
+            <div v-if="accessResolved && !canWrite" class="locked">
+                <div style="font-size:34px;line-height:1">🔒</div>
+                <h1 style="margin:14px 0 8px;font-size:19px;font-weight:700">Restricted page</h1>
+                <p style="color:var(--text-muted);font-size:14px;line-height:1.6">
+                    The external calibration masterlist is limited to
+                    <strong>Admin (ALL)</strong> and <strong>Quality</strong> accounts.
+                    <span v-if="railUser !== '—'">
+                        You are signed in as <strong>{{ railUser }}</strong><span
+                            v-if="accessLevel"> with {{ accessLevel }} access</span>.
+                    </span>
+                    <span v-else>No session was found — sign in first.</span>
+                </p>
+                <button class="btn" style="margin-top:20px"
+                    onclick="window.location.href='../../AdminLogin.html'">Back to Dashboard</button>
+            </div>
+
+            <main v-else-if="canWrite" class="max-w-[1600px] w-full mx-auto px-6 py-6">
+
+                <div class="mb-5 flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-gray-900">
+                            External Calibration Masterlist
+                        </h1>
+                        <p class="text-sm text-gray-500 mt-0.5">
+                            Inspection, Measuring &amp; Test Equipment Master List (EXTERNAL) — REC-QAS010-05
+                        </p>
+                    </div>
+                    <div class="flex gap-2 no-print flex-wrap">
+                        <button class="btn btn--secondary" @click="exportCsv">Export CSV</button>
+                        <button class="btn btn--secondary" @click="window.print()">Print</button>
+                        <button class="btn btn--secondary" @click="openAlert">Alerts</button>
+                        <button class="btn" @click="openEquipment()">+ Equipment</button>
+                    </div>
+                </div>
+
+                <div v-if="loadError" class="rounded-2xl border p-5 mb-5"
+                     style="border-color:#fecaca;background:#fef2f2">
+                    <h2 class="text-base font-bold text-gray-900 mb-1">The masterlist could not load</h2>
+                    <p class="text-sm text-gray-600">{{ loadError }}</p>
+                    <p class="text-sm text-gray-600 mt-2">
+                        If this reads <code class="font-mono">relation … does not exist</code>, run
+                        <code class="font-mono font-bold">sql/2026-08-25_external_calibration.sql</code>
+                        and then <code class="font-mono font-bold">sql/data/2026-08-25_external_calibration_seed.sql</code>.
+                    </p>
+                </div>
+
+                <!-- ---------- Status tiles ---------- -->
+                <div class="tiles no-print">
+                    <button v-for="b in buckets" :key="'t-' + b.key"
+                        :class="['tile', filter === b.key ? 'is-active' : '']"
+                        @click="filter = b.key">
+                        <div class="tile__value" :style="{ color: b.colour }">{{ counts[b.key] || 0 }}</div>
+                        <div class="tile__label">{{ b.label }}</div>
+                    </button>
+                </div>
+
+                <!-- ---------- Toolbar ---------- -->
+                <div class="flex gap-3 items-center mb-4 flex-wrap no-print">
+                    <input v-model="search" class="inp" style="max-width:340px"
+                        placeholder="Search equipment, serial, brand, location…" />
+                    <select v-model="typeFilter" class="inp" style="max-width:220px">
+                        <option value="">All equipment types</option>
+                        <option v-for="t in types" :key="t.code" :value="t.code">
+                            {{ t.code }} — {{ t.name }}
+                        </option>
+                    </select>
+                    <select v-model="locationFilter" class="inp" style="max-width:220px">
+                        <option value="">All locations</option>
+                        <option v-for="l in locations" :key="l" :value="l">{{ l }}</option>
+                    </select>
+                    <span class="text-sm text-gray-500 ml-auto">
+                        {{ visible.length }} of {{ rows.length }} shown
+                    </span>
+                </div>
+
+                <!-- ---------- The list ---------- -->
+                <div class="rounded-xl border border-gray-200 bg-white overflow-x-auto">
+                    <table class="cal-table">
+                        <thead>
+                            <tr>
+                                <th style="width:44px">No</th>
+                                <th>Equipment</th>
+                                <th>Description</th>
+                                <th>Serial number</th>
+                                <th>Brand</th>
+                                <th>Location</th>
+                                <th>Calibration</th>
+                                <th>Due date</th>
+                                <th>Accepted criteria</th>
+                                <th>Condition</th>
+                                <th class="no-print" style="width:150px">Status</th>
+                                <th class="no-print" style="width:170px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="loading">
+                                <td colspan="12" class="text-center text-gray-500" style="padding:32px">Loading…</td>
+                            </tr>
+                            <tr v-else-if="!visible.length">
+                                <td colspan="12" class="text-center text-gray-500" style="padding:32px">
+                                    Nothing matches this filter.
+                                </td>
+                            </tr>
+                            <tr v-for="r in visible" :key="r.id">
+                                <td class="text-gray-400">{{ r.line_no }}</td>
+                                <td class="font-bold">{{ r.equipment_code }}</td>
+                                <td class="desc">{{ r.description }}</td>
+                                <td class="mono">{{ r.serial_no || '—' }}</td>
+                                <td>{{ r.brand || '—' }}</td>
+                                <td>{{ r.location || '—' }}</td>
+                                <td class="whitespace-nowrap">{{ fmtDate(r.last_cal_date) }}</td>
+                                <td class="whitespace-nowrap font-semibold">{{ fmtDate(r.next_due_date) }}</td>
+                                <td class="criteria">{{ r.accepted_criteria || '—' }}</td>
+                                <td>
+                                    <span :class="['pill', r.condition === 'GOOD' ? 'pill--valid' : 'pill--bad']">
+                                        {{ r.condition }}
+                                    </span>
+                                </td>
+                                <td class="no-print">
+                                    <span :class="['pill', statusPill(r.cal_status)]">{{ statusLabel(r) }}</span>
+                                </td>
+                                <td class="no-print">
+                                    <div class="flex flex-col items-start gap-0.5">
+                                        <button class="link-btn" @click="recordFor(r)">Record calibration</button>
+                                        <div class="flex gap-3">
+                                            <button class="link-btn" @click="openEquipment(r)">Edit</button>
+                                            <button class="link-btn" @click="openHistory(r)">
+                                                History<span v-if="r.event_count"> ({{ r.event_count }})</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="footer no-print" style="margin-top:26px">
+                    © 2025 Famax Technology (M) Sdn. Bhd. All rights reserved.
+                </div>
+            </main>
+        </div>
+
+        <!-- ==================================================================
+             REC-QAS010-05 — the printed form
+             ==================================================================
+             Display:none until @media print. It sits outside <main> so hiding
+             the whole screen layout for printing cannot take it with it.
+
+             It always prints the complete ACTIVE list, never the current
+             filter. The form is a controlled record of every externally
+             calibrated instrument; a copy of it showing only what somebody had
+             typed in the search box would be indistinguishable from the real
+             thing and wrong. Retired instruments are absent for the same
+             reason — they are not on the form, which is why the view gives
+             them no line number. -->
+        <div class="sheet-form" v-if="canWrite" aria-hidden="true">
+            <section v-for="(pg, pi) in printPages" :key="'pg' + pi" class="xl-page">
+
+                <!-- A:B logo · C:E company · F:J title — the sheet's three merges -->
+                <table class="xl-head">
+                    <colgroup>
+                        <col style="width:9.751%"><col style="width:35.374%"><col style="width:54.875%">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td class="xl-logo"><img src="../../assets/Famax.png" alt="" /></td>
+                            <td class="xl-company">{{ formCfg.company_line }}</td>
+                            <td class="xl-title">
+                                {{ formCfg.form_title }}<br />(Page: {{ pi + 1 }}/{{ printPages.length }})
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="xl-grid">
+                    <colgroup>
+                        <col style="width:2.354%"><col style="width:7.397%"><col style="width:15.872%">
+                        <col style="width:9.751%"><col style="width:9.751%"><col style="width:11.634%">
+                        <col style="width:9.751%"><col style="width:9.751%"><col style="width:12.105%">
+                        <col style="width:11.634%">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>NO</th><th>EQUIPMENT</th><th>DESCRIPTION</th><th>SERIAL NUMBER</th>
+                            <th>BRAND</th><th>LOCATION</th><th>CALIBRATION</th><th>DUE DATE</th>
+                            <th>ACCEPTED CRITERIA</th><th>CONDITION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(r, ri) in pg" :key="'r' + pi + '-' + ri">
+                            <template v-if="r">
+                                <td>{{ r.line_no }}</td>
+                                <td>{{ r.equipment_code }}</td>
+                                <td class="xl-desc">{{ r.description }}</td>
+                                <td>{{ r.serial_no || 'N/A' }}</td>
+                                <td>{{ r.brand || 'N/A' }}</td>
+                                <td>{{ r.location }}</td>
+                                <!-- The sheet writes NA, not a blank, for the lamp: a blank date
+                                     column reads as an oversight, NA reads as a decision. -->
+                                <td>{{ r.calibration_required ? fmtDate(r.last_cal_date) : 'NA' }}</td>
+                                <td>{{ r.calibration_required ? fmtDate(r.next_due_date) : 'NA' }}</td>
+                                <td class="xl-crit">{{ r.accepted_criteria }}</td>
+                                <td>{{ r.condition }}</td>
+                            </template>
+                            <template v-else>
+                                <td class="xl-empty" v-for="n in 10" :key="'e' + n"></td>
+                            </template>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- A:F empty · G:H prepared · I:J approved -->
+                <table class="xl-sign">
+                    <colgroup>
+                        <col style="width:56.759%"><col style="width:19.502%"><col style="width:23.739%">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <td class="xl-void"></td>
+                            <td class="xl-sign-head">PREPARED BY</td>
+                            <td class="xl-sign-head">APPROVED BY</td>
+                        </tr>
+                        <tr>
+                            <td class="xl-void"></td>
+                            <td class="xl-sign-space"></td>
+                            <td class="xl-sign-space"></td>
+                        </tr>
+                        <tr>
+                            <td class="xl-void"></td>
+                            <!-- A name nobody has set prints a rule to sign by hand, which is what
+                                 the 2024-2025 sheet did — not the word "null". -->
+                            <td class="xl-sign-name">NAME: {{ formCfg.prepared_by || '________________' }}</td>
+                            <td class="xl-sign-name">NAME: {{ formCfg.approved_by || '________________' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="xl-void"></td>
+                            <td class="xl-sign-date">Date :</td>
+                            <td class="xl-sign-date">Date :</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="xl-foot">RETENTION PERIOD: {{ formCfg.retention_period }}          EFFECTIVE DATE: {{ formCfg.effective_date }}          {{ formCfg.doc_no }}</div>
+            </section>
+        </div>
+
+        <!-- ================= Equipment modal ================= -->
+        <div v-if="eqModal" class="ov" @click.self="eqModal = null">
+            <div class="sheet">
+                <div class="sheet__head">
+                    <span class="sheet__title">{{ eqModal.id ? 'Edit equipment' : 'Register equipment' }}</span>
+                    <button class="link-btn" @click="eqModal = null">Close</button>
+                </div>
+                <div class="sheet__body">
+                    <div class="grid2">
+                        <div>
+                            <label class="lbl">Equipment code *</label>
+                            <input v-model.trim="eqForm.equipment_code" class="inp" placeholder="e.g. VMM02" />
+                            <p class="text-xs text-gray-400 mt-1">
+                                The marking on the asset — this is what prints in the EQUIPMENT column.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="lbl">Type</label>
+                            <select v-model="eqForm.type_code" class="inp">
+                                <option value="">—</option>
+                                <option v-for="t in types" :key="t.code" :value="t.code">
+                                    {{ t.code }} — {{ t.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px">
+                        <label class="lbl">Description *</label>
+                        <textarea v-model="eqForm.description" class="inp" style="min-height:56px"
+                            placeholder="e.g. DIGITAL COUNTING SCALE&#10;(6000g x 0.2g)"></textarea>
+                    </div>
+
+                    <div class="grid2" style="margin-top:14px">
+                        <div>
+                            <label class="lbl">Serial number</label>
+                            <input v-model.trim="eqForm.serial_no" class="inp" />
+                        </div>
+                        <div>
+                            <label class="lbl">Brand</label>
+                            <input v-model.trim="eqForm.brand" class="inp" />
+                        </div>
+                        <div>
+                            <label class="lbl">Location</label>
+                            <input v-model.trim="eqForm.location" class="inp" list="loc-list" />
+                            <datalist id="loc-list">
+                                <option v-for="l in locations" :key="'d' + l" :value="l"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="lbl">Condition</label>
+                            <select v-model="eqForm.condition" class="inp">
+                                <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:14px">
+                        <label class="lbl">Accepted criteria</label>
+                        <textarea v-model="eqForm.accepted_criteria" class="inp"
+                            placeholder="One tolerance per line, e.g.&#10;DCL : ± 0.12µm&#10;VL : ± 0.10µm"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">
+                            Line breaks are kept. Each certificate copies these as they read on the
+                            day it was issued, so revising them here never rewrites a past record.
+                        </p>
+                    </div>
+
+                    <div class="grid2" style="margin-top:14px">
+                        <div>
+                            <label class="lbl">Calibration interval (months)</label>
+                            <input v-model.number="eqForm.cal_interval_months" type="number" min="1" max="120"
+                                class="inp" :disabled="!eqForm.calibration_required" />
+                            <p class="text-xs text-gray-400 mt-1">
+                                Only pre-fills the due date on the entry form. The certificate's own
+                                date always wins.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="lbl">Record status</label>
+                            <select v-model="eqForm.status" class="inp">
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="OBSOLETE">OBSOLETE</option>
+                                <option value="SCRAPPED">SCRAPPED</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <label class="flex items-start gap-2 mt-4 text-sm cursor-pointer">
+                        <input type="checkbox" v-model="eqForm.calibration_required" style="margin-top:3px" />
+                        <span>
+                            <strong>Requires external calibration</strong>
+                            <span class="block text-xs text-gray-500 mt-0.5">
+                                Clear this for equipment that is never calibrated — the microscope lamp,
+                                for example. It then reports “Not required” instead of ageing into overdue.
+                            </span>
+                        </span>
+                    </label>
+
+                    <div style="margin-top:14px">
+                        <label class="lbl">Remarks</label>
+                        <input v-model.trim="eqForm.remarks" class="inp" />
+                    </div>
+
+                    <p v-if="formError" class="text-sm mt-4 font-medium" style="color:var(--danger)">{{ formError }}</p>
+                </div>
+                <div class="sheet__foot">
+                    <button v-if="eqModal.id" class="btn btn--danger" @click="removeEquipment">Delete</button>
+                    <button class="btn btn--secondary" @click="eqModal = null">Cancel</button>
+                    <button class="btn" :disabled="saving" @click="saveEquipment">
+                        {{ saving ? 'Saving…' : 'Save' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= History modal ================= -->
+        <div v-if="histModal" class="ov" @click.self="histModal = null">
+            <div class="sheet">
+                <div class="sheet__head">
+                    <span class="sheet__title">
+                        Calibration history — {{ histModal.equipment_code }}
+                        <span class="font-normal text-gray-500" v-if="histModal.serial_no">
+                            · {{ histModal.serial_no }}</span>
+                    </span>
+                    <button class="link-btn" @click="histModal = null">Close</button>
+                </div>
+                <div class="sheet__body">
+                    <p v-if="histLoading" class="text-sm text-gray-500">Loading…</p>
+                    <p v-else-if="!history.length" class="text-sm text-gray-500">
+                        No certificate has been recorded for this equipment yet.
+                    </p>
+                    <table v-else class="cal-table">
+                        <thead>
+                            <tr>
+                                <th>Calibrated</th><th>Due</th><th>Certificate</th>
+                                <th>Lab</th><th>Result</th><th>Condition</th><th>Recorded by</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="h in history" :key="h.id">
+                                <td class="whitespace-nowrap">{{ fmtDate(h.cal_date) }}</td>
+                                <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
+                                <td class="mono">
+                                    <a v-if="h.cert_url" :href="h.cert_url" target="_blank" rel="noopener"
+                                        style="color:var(--primary)">{{ h.cert_no || 'certificate' }}</a>
+                                    <span v-else>{{ h.cert_no || '—' }}</span>
+                                </td>
+                                <td>{{ h.lab || '—' }}</td>
+                                <td>
+                                    <span v-if="h.result"
+                                        :class="['pill', h.result === 'PASS' ? 'pill--valid' : 'pill--bad']">
+                                        {{ h.result }}</span>
+                                    <span v-else class="text-gray-400">—</span>
+                                </td>
+                                <td>{{ h.condition || '—' }}</td>
+                                <td class="text-gray-500">{{ h.recorded_by || '—' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="sheet__foot">
+                    <button class="btn btn--secondary" @click="histModal = null">Close</button>
+                    <button class="btn" @click="recordFor(histModal)">Record calibration</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Alerts modal ================= -->
+        <div v-if="alertModal" class="ov" @click.self="alertModal = false">
+            <div class="sheet">
+                <div class="sheet__head">
+                    <span class="sheet__title">Calibration alerts</span>
+                    <button class="link-btn" @click="alertModal = false">Close</button>
+                </div>
+                <div class="sheet__body">
+
+                    <h3 class="text-sm font-bold mb-3">When to warn</h3>
+                    <div class="grid2">
+                        <div>
+                            <label class="lbl">First warning (days before due)</label>
+                            <input v-model.number="cfg.lead_days" type="number" min="1" max="365" class="inp" />
+                        </div>
+                        <div>
+                            <label class="lbl">Urgent window (days before due)</label>
+                            <input v-model.number="cfg.second_lead_days" type="number" min="1" max="365" class="inp" />
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-5 mt-4 text-sm">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="cfg.teams_enabled" /> Post to Teams
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="cfg.email_enabled" /> Send email
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" v-model="cfg.include_not_due" /> Include in-date equipment
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">
+                        These thresholds also drive the badges on the list, so the alert and the
+                        screen can never disagree about what “due soon” means.
+                    </p>
+
+                    <h3 class="text-sm font-bold mt-7 mb-1">Who gets told</h3>
+                    <p class="text-xs text-gray-500 mb-3">
+                        Recipients under the <strong>CALIBRATION</strong> role. The same rows supply
+                        the email addresses and the Teams @mentions, so the name shown and the person
+                        pinged are always the same person.
+                    </p>
+                    <table class="cal-table" v-if="recipients.length">
+                        <thead><tr><th>Name</th><th>Email</th><th>Active</th><th style="width:60px"></th></tr></thead>
+                        <tbody>
+                            <tr v-for="p in recipients" :key="p.id">
+                                <td>{{ p.display_name }}</td>
+                                <td class="mono">{{ p.email }}</td>
+                                <td>
+                                    <span :class="['pill', p.active ? 'pill--valid' : 'pill--none']">
+                                        {{ p.active ? 'Active' : 'Off' }}</span>
+                                </td>
+                                <td>
+                                    <button class="link-btn link-btn--danger" @click="removeRecipient(p)">Remove</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-else class="text-sm" style="color:var(--warning)">
+                        Nobody is listed yet — the alert has no one to send to.
+                    </p>
+
+                    <div class="flex gap-2 mt-3 flex-wrap">
+                        <input v-model.trim="newRcp.display_name" class="inp" style="max-width:200px"
+                            placeholder="Name (as in Teams)" />
+                        <input v-model.trim="newRcp.email" class="inp" style="max-width:260px"
+                            placeholder="name@fmefamax.com" />
+                        <button class="btn btn--secondary" @click="addRecipient">Add</button>
+                    </div>
+
+                    <h3 class="text-sm font-bold mt-7 mb-2">What would be sent right now</h3>
+                    <div class="rounded-xl border border-gray-200 p-4" style="background:var(--surface-muted)">
+                        <p class="text-sm font-semibold">{{ previewSummary }}</p>
+                        <ul class="text-sm text-gray-600 mt-2" style="list-style:disc;padding-left:20px">
+                            <li v-for="(r, i) in previewRows" :key="'p' + i">
+                                {{ alertLabel(r) }} — {{ duePhrase(r.days_to_due) }}
+                            </li>
+                        </ul>
+                        <p v-if="!previewRows.length" class="text-sm text-gray-500 mt-1">
+                            Nothing is overdue or inside the warning window.
+                        </p>
+                    </div>
+
+                    <p v-if="alertMsg" class="text-sm mt-4 font-medium"
+                       :style="{ color: alertOk ? 'var(--success)' : 'var(--danger)' }">{{ alertMsg }}</p>
+
+                    <h3 class="text-sm font-bold mt-7 mb-2">Recent sends</h3>
+                    <p v-if="!alertLog.length" class="text-sm text-gray-500">Nothing has been sent yet.</p>
+                    <table v-else class="cal-table">
+                        <thead><tr><th>When</th><th>Channel</th><th>Trigger</th><th>Result</th><th>By</th></tr></thead>
+                        <tbody>
+                            <tr v-for="l in alertLog" :key="l.id">
+                                <td class="whitespace-nowrap">{{ fmtStamp(l.sent_at) }}</td>
+                                <td>{{ l.channel }}</td>
+                                <td class="text-gray-500">{{ l.trigger_source }}</td>
+                                <td>
+                                    <span :class="['pill', l.ok ? 'pill--valid' : 'pill--bad']">
+                                        {{ l.ok ? 'Sent' : 'Failed' }}</span>
+                                    <span class="text-gray-500 ml-2">
+                                        {{ l.overdue_count }} overdue / {{ l.due_soon_count }} soon</span>
+                                </td>
+                                <td class="text-gray-500">{{ l.sent_by || '—' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="sheet__foot">
+                    <button class="btn btn--secondary" @click="alertModal = false">Close</button>
+                    <button class="btn btn--secondary" :disabled="savingCfg" @click="saveConfig">
+                        {{ savingCfg ? 'Saving…' : 'Save settings' }}
+                    </button>
+                    <button class="btn" :disabled="sending" @click="sendAlert">
+                        {{ sending ? 'Sending…' : 'Send alert now' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Writes into the #boot panel that is already on screen, rather than
+           trying to un-hide #app. #boot is removed only on a successful mount,
+           so there is no path that ends in a blank page. */
+        function bootFailed(what, detail) {
+            const box = document.getElementById('boot');
+            if (!box) return;
+            box.style.borderColor = '#fde68a';
+            box.style.background = '#fffbeb';
+            const h = box.querySelector('h1');
+            if (h) h.textContent = 'This page could not start';
+            const msg = document.getElementById('boot-msg');
+            if (msg) msg.textContent = what;
+            const errs = (window.__bootErrors || []).join('\n');
+            const body = [detail, errs].filter(Boolean).join('\n\n');
+            const pre = document.getElementById('boot-detail');
+            if (pre && body) { pre.style.display = 'block'; pre.textContent = body; }
+            console.error('Calibration masterlist could not start:', what, body);
+        }
+
+        window.__bootReport = function () {
+            if (!document.getElementById('boot')) return;   // already mounted fine
+            bootFailed('Something failed to load before the page could start.');
+        };
+
+        // Named so the message says which one, rather than "undefined is not an object".
+        if (typeof Vue === 'undefined') {
+            bootFailed('Vue did not load. It comes from unpkg.com — check the network tab, ' +
+                'or whether this machine can reach that CDN.');
+            throw new Error('Vue missing');
+        }
+        if (typeof supabase === 'undefined') {
+            bootFailed('The Supabase client did not load. It comes from unpkg.com — check the ' +
+                'network tab, or whether this machine can reach that CDN.');
+            throw new Error('supabase missing');
+        }
+        if (!window.APP_CONFIG) {
+            bootFailed('assets/app-config.js did not load, so there is no database address.');
+            throw new Error('APP_CONFIG missing');
+        }
+        if (!window.CalibrationAlert) {
+            bootFailed('assets/calibration-alert.js did not load, so the alert cannot be built.');
+            throw new Error('CalibrationAlert missing');
+        }
+
+        const { createClient } = supabase;
+        const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        /* Mirrors AdminLogin's grant for btn-cal-external exactly: ALL and QUALITY.
+           Keep the two in step — a role that cannot see the card must not be able
+           to reach the page by typing its URL. Unlike the gauge masterlist, there
+           is no read-only tier here: the record carries serial numbers and
+           certificate references, and nobody outside quality has a reason to
+           browse it. */
+        const WRITE_ROLES = ['ALL', 'QUALITY'];
+
+        const app = createApp({
+            setup() {
+                const CONDITIONS = ['GOOD', 'OUT OF SPEC', 'UNDER REPAIR', 'DAMAGED'];
+
+                const rows = ref([]);
+                const types = ref([]);
+                const loading = ref(true);
+                const loadError = ref('');
+                const search = ref('');
+                const typeFilter = ref('');
+                const locationFilter = ref('');
+                const filter = ref('ALL');
+
+                const railUser = ref('—');
+                const accessLevel = ref('');
+                const canWrite = ref(false);
+                // Gates the locked panel. Without it the "Restricted page" card
+                // flashes for everyone during the access round-trip, including
+                // the people who do have access.
+                const accessResolved = ref(false);
+
+                const eqModal = ref(null);
+                const eqForm = reactive({});
+                const saving = ref(false);
+                const formError = ref('');
+
+                const histModal = ref(null);
+                const history = ref([]);
+                const histLoading = ref(false);
+
+                const alertModal = ref(false);
+                const cfg = reactive({
+                    lead_days: 30, second_lead_days: 7,
+                    teams_enabled: true, email_enabled: true, include_not_due: false
+                });
+
+                /* The printed form's masthead, signatures and footer. Defaults
+                   match the source workbook, so a form printed before the
+                   settings row has ever loaded is still the right form rather
+                   than one full of blanks. */
+                const formCfg = reactive({
+                    company_line: 'FAMAX TECHNOLOGY (M) SDN. BHD.     200601028954 (748710-K)',
+                    form_title: 'Inspection, Measuring & Test Equipment  Master List (EXTERNAL)',
+                    doc_no: 'REC-QAS010-05',
+                    effective_date: '01 MARCH 2024',
+                    retention_period: '2 YEARS',
+                    prepared_by: '', approved_by: '',
+                    rows_per_page: 10,
+                });
+                const recipients = ref([]);
+                const newRcp = reactive({ display_name: '', email: '' });
+                const alertLog = ref([]);
+                const sending = ref(false);
+                const savingCfg = ref(false);
+                const alertMsg = ref('');
+                const alertOk = ref(false);
+
+                const CA = window.CalibrationAlert;
+                const fmtDate = CA.fmtDate;
+                const duePhrase = CA.duePhrase;
+                const alertLabel = CA.label;
+
+                // ---- buckets --------------------------------------------------
+                // Order is worst-first so the rail reads top-down as a priority
+                // list. `alarm` marks the two that must stand out even unselected.
+                const buckets = [
+                    { key: 'ALL',      label: 'All equipment', colour: 'var(--text-main)' },
+                    { key: 'OVERDUE',  label: 'Overdue',       colour: '#b91c1c', alarm: true },
+                    { key: 'DUE_URGENT', label: 'Due this week', colour: '#9a3412', alarm: true },
+                    { key: 'DUE_SOON', label: 'Due soon',      colour: '#92400e' },
+                    { key: 'VALID',    label: 'In date',       colour: '#047857' },
+                    // Two states with one thing in common: no due date is ever
+                    // chased for them. The lamp, and anything marked obsolete or
+                    // scrapped. Labelled for both, because a bucket called "Not
+                    // required" that quietly also holds retired equipment is where
+                    // a scrapped CMM goes to be forgotten.
+                    { key: 'OTHER',    label: 'Not required / retired', colour: 'var(--text-muted)' },
+                ];
+
+                // NEVER_CALIBRATED counts as overdue everywhere on this page. An
+                // instrument in service with no certificate at all is not a milder
+                // problem than one whose certificate lapsed last week, and giving
+                // it its own quiet bucket is how it would get overlooked.
+                const inBucket = (r, key) => {
+                    if (key === 'ALL') return true;
+                    if (key === 'OVERDUE') return r.cal_status === 'OVERDUE' || r.cal_status === 'NEVER_CALIBRATED';
+                    if (key === 'OTHER') return r.cal_status === 'NOT_REQUIRED' || r.cal_status === 'INACTIVE';
+                    return r.cal_status === key;
+                };
+
+                const counts = computed(() => {
+                    const c = {};
+                    buckets.forEach(b => { c[b.key] = rows.value.filter(r => inBucket(r, b.key)).length; });
+                    return c;
+                });
+
+                const locations = computed(() =>
+                    [...new Set(rows.value.map(r => r.location).filter(Boolean))].sort());
+
+                // Field-blind search on whitespace-separated tokens: every token has
+                // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
+                // both find the overdue scale.
+                const visible = computed(() => {
+                    const toks = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+                    return rows.value.filter(r => {
+                        if (!inBucket(r, filter.value)) return false;
+                        if (typeFilter.value && r.type_code !== typeFilter.value) return false;
+                        if (locationFilter.value && r.location !== locationFilter.value) return false;
+                        if (!toks.length) return true;
+                        const hay = [r.equipment_code, r.description, r.serial_no, r.brand,
+                                     r.location, r.type_name, r.cert_no, r.lab]
+                            .filter(Boolean).join(' ').toLowerCase();
+                        return toks.every(t => hay.includes(t));
+                    });
+                });
+
+                const statusPill = s => ({
+                    OVERDUE: 'pill--overdue', NEVER_CALIBRATED: 'pill--overdue',
+                    DUE_URGENT: 'pill--urgent', DUE_SOON: 'pill--soon',
+                    VALID: 'pill--valid'
+                })[s] || 'pill--none';
+
+                const statusLabel = r => {
+                    if (r.cal_status === 'NOT_REQUIRED') return 'Not required';
+                    if (r.cal_status === 'INACTIVE') return r.status;
+                    if (r.cal_status === 'NEVER_CALIBRATED') return 'No certificate';
+                    return duePhrase(r.days_to_due);
+                };
+
+                /* ---- The printed form -------------------------------------
+                   Active equipment only, in form order, chunked into pages and
+                   each page padded out to a full set of ruled slots.
+
+                   Sorted by line_no, which the view has already computed across
+                   ACTIVE rows only — so this cannot disagree with the numbers
+                   printed in the NO column, however the screen is filtered or
+                   sorted at the time. */
+                const printPages = computed(() => {
+                    const per = Math.max(1, formCfg.rows_per_page || 10);
+                    const list = rows.value
+                        .filter(r => r.status === 'ACTIVE')
+                        .slice()
+                        .sort((a, b) => (a.line_no || 0) - (b.line_no || 0));
+
+                    const pages = [];
+                    // An empty list still prints one blank form. Somebody asking
+                    // for a form they can fill in by hand is a real thing, and a
+                    // print that produces nothing at all looks broken.
+                    for (let i = 0; i < Math.max(list.length, 1); i += per) {
+                        const page = list.slice(i, i + per);
+                        while (page.length < per) page.push(null);   // ruled but empty
+                        pages.push(page);
+                    }
+                    return pages;
+                });
+
+                const fmtStamp = iso => {
+                    if (!iso) return '—';
+                    const d = new Date(iso);
+                    return fmtDate(iso.slice(0, 10)) + ' ' +
+                        String(d.getHours()).padStart(2, '0') + ':' +
+                        String(d.getMinutes()).padStart(2, '0');
+                };
+
+                // ---- access ----------------------------------------------------
+                async function resolveAccess() {
+                    const userId = sessionStorage.getItem('userId');
+                    if (!userId) { accessResolved.value = true; return; }
+                    railUser.value = userId;
+                    try {
+                        const { data } = await _supabase
+                            .from('AdminCredential').select('Access').eq('UserId', userId).limit(1);
+                        if (data && data.length) {
+                            accessLevel.value = data[0].Access;
+                            canWrite.value = WRITE_ROLES.includes(data[0].Access);
+                        }
+                    } catch (e) {
+                        console.error('Access lookup failed', e);
+                    } finally {
+                        // In the finally block on purpose: a failed lookup must still
+                        // resolve, or a database hiccup leaves the page on a spinner
+                        // forever rather than saying access could not be confirmed.
+                        accessResolved.value = true;
+                    }
+                }
+
+                // ---- load ------------------------------------------------------
+                async function reload() {
+                    loading.value = true;
+                    loadError.value = '';
+                    try {
+                        const [list, ty] = await Promise.all([
+                            _supabase.from('v_ext_cal_masterlist').select('*').order('line_no'),
+                            _supabase.from('ext_cal_equipment_type').select('*')
+                                .eq('is_active', true).order('sort_order'),
+                        ]);
+                        if (list.error) throw list.error;
+                        rows.value = list.data || [];
+                        types.value = ty.data || [];
+
+                        /* Printed-form settings. Deliberately not fatal and not
+                           part of the Promise.all above: the masterlist is
+                           useful without them, they only matter at print time,
+                           and the defaults in formCfg are the source workbook's
+                           own values. A missing settings table — the migration
+                           not yet run — must not blank the screen. */
+                        const fs = await _supabase.from('ext_cal_form_settings')
+                            .select('*').eq('id', 1).limit(1);
+                        if (fs.data && fs.data.length) Object.assign(formCfg, fs.data[0]);
+                        else if (fs.error) console.warn('Form settings unavailable', fs.error.message);
+                    } catch (e) {
+                        loadError.value = e.message || String(e);
+                    } finally {
+                        loading.value = false;
+                    }
+                }
+
+                async function loadAlertBits() {
+                    try {
+                        const [c, log] = await Promise.all([
+                            _supabase.from('ext_cal_alert_config').select('*').eq('id', 1).limit(1),
+                            _supabase.from('ext_cal_alert_log').select('*')
+                                .order('sent_at', { ascending: false }).limit(12),
+                        ]);
+                        if (c.data && c.data.length) Object.assign(cfg, c.data[0]);
+                        alertLog.value = log.data || [];
+                        await TeamsRecipients.load();
+                        recipients.value = (await TeamsRecipients.loadAll())
+                            .filter(r => (r.role || '').toUpperCase() === 'CALIBRATION');
+                    } catch (e) {
+                        console.error('Alert settings failed to load', e);
+                    }
+                }
+
+                // ---- equipment -------------------------------------------------
+                function openEquipment(r) {
+                    formError.value = '';
+                    Object.keys(eqForm).forEach(k => delete eqForm[k]);
+                    Object.assign(eqForm, r ? {
+                        equipment_code: r.equipment_code, type_code: r.type_code || '',
+                        description: r.description, serial_no: r.serial_no || '',
+                        brand: r.brand || '', location: r.location || '',
+                        accepted_criteria: r.accepted_criteria || '', condition: r.condition,
+                        cal_interval_months: r.cal_interval_months,
+                        calibration_required: r.calibration_required,
+                        status: r.status, remarks: r.remarks || '',
+                    } : {
+                        equipment_code: '', type_code: '', description: '', serial_no: '',
+                        brand: '', location: '', accepted_criteria: '', condition: 'GOOD',
+                        cal_interval_months: 12, calibration_required: true,
+                        status: 'ACTIVE', remarks: '',
+                    });
+                    eqModal.value = { id: r ? r.id : null };
+                }
+
+                async function saveEquipment() {
+                    formError.value = '';
+                    if (!eqForm.equipment_code) return formError.value = 'Equipment code is required.';
+                    if (!eqForm.description) return formError.value = 'Description is required.';
+
+                    saving.value = true;
+                    const who = sessionStorage.getItem('userId') || 'unknown';
+                    // Empty strings, not nulls, would defeat the partial unique index —
+                    // it excludes '' precisely so blank serials do not collide, and a
+                    // stored '' on one row and a null on another are the same asset
+                    // described two ways.
+                    const payload = {
+                        equipment_code: eqForm.equipment_code,
+                        type_code: eqForm.type_code || null,
+                        description: eqForm.description,
+                        serial_no: eqForm.serial_no || null,
+                        brand: eqForm.brand || null,
+                        location: eqForm.location || null,
+                        accepted_criteria: eqForm.accepted_criteria || null,
+                        condition: eqForm.condition,
+                        cal_interval_months: eqForm.cal_interval_months || 12,
+                        calibration_required: !!eqForm.calibration_required,
+                        status: eqForm.status,
+                        remarks: eqForm.remarks || null,
+                        updated_at: new Date().toISOString(),
+                        updated_by: who,
+                    };
+                    try {
+                        if (eqModal.value.id) {
+                            const { error } = await _supabase.from('ext_cal_equipment')
+                                .update(payload).eq('id', eqModal.value.id);
+                            if (error) throw error;
+                        } else {
+                            // New rows go to the end of the printed list. sort_order is
+                            // spaced by 10 so a row can be slotted between two others
+                            // later without renumbering the sheet.
+                            const maxOrder = rows.value.reduce(
+                                (m, r) => Math.max(m, r.sort_order || 0), 0);
+                            payload.sort_order = maxOrder + 10;
+                            payload.created_by = who;
+                            const { error } = await _supabase.from('ext_cal_equipment').insert(payload);
+                            if (error) throw error;
+                        }
+                        eqModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = /duplicate key/.test(e.message || '')
+                            ? 'That equipment code and serial number are already registered.'
+                            : (e.message || String(e));
+                    } finally { saving.value = false; }
+                }
+
+                async function removeEquipment() {
+                    const n = (rows.value.find(r => r.id === eqModal.value.id) || {}).event_count || 0;
+                    // Deleting cascades to every certificate. Saying how many is the
+                    // difference between an informed confirmation and a reflex OK —
+                    // and marking it OBSOLETE is nearly always what was actually meant.
+                    const warn = n
+                        ? `This will also delete ${n} calibration record${n === 1 ? '' : 's'}. `
+                          + 'Setting the status to OBSOLETE keeps the history. Delete anyway?'
+                        : 'Delete this equipment?';
+                    if (!confirm(warn)) return;
+                    saving.value = true;
+                    try {
+                        const { error } = await _supabase.from('ext_cal_equipment')
+                            .delete().eq('id', eqModal.value.id);
+                        if (error) throw error;
+                        eqModal.value = null;
+                        await reload();
+                    } catch (e) {
+                        formError.value = e.message || String(e);
+                    } finally { saving.value = false; }
+                }
+
+                // ---- history ---------------------------------------------------
+                async function openHistory(r) {
+                    histModal.value = r;
+                    histLoading.value = true;
+                    history.value = [];
+                    try {
+                        const { data, error } = await _supabase.from('ext_cal_event')
+                            .select('*').eq('equipment_id', r.id)
+                            .order('cal_date', { ascending: false }).order('id', { ascending: false });
+                        if (error) throw error;
+                        history.value = data || [];
+                    } catch (e) {
+                        console.error('History failed', e);
+                    } finally { histLoading.value = false; }
+                }
+
+                // The entry form is a separate page, reached with the instrument
+                // already chosen — so nobody has to find it in a dropdown of 18 and
+                // risk logging a certificate against the wrong counting scale.
+                function recordFor(r) {
+                    window.location.href = 'external_calibration_form.html?equipment=' + r.id;
+                }
+
+                // ---- alerts ----------------------------------------------------
+                function openAlert() {
+                    alertMsg.value = '';
+                    alertModal.value = true;
+                    loadAlertBits();
+                }
+
+                const previewRows = computed(() => {
+                    const g = CA.bucket(rows.value);
+                    return [...g.OVERDUE, ...g.NEVER_CALIBRATED, ...g.DUE_URGENT, ...g.DUE_SOON];
+                });
+                const previewSummary = computed(() => CA.summaryLine(CA.bucket(rows.value)));
+
+                async function saveConfig() {
+                    savingCfg.value = true;
+                    alertMsg.value = '';
+                    try {
+                        if (cfg.second_lead_days > cfg.lead_days) {
+                            throw new Error('The urgent window cannot be longer than the first warning.');
+                        }
+                        const { error } = await _supabase.from('ext_cal_alert_config').update({
+                            lead_days: cfg.lead_days,
+                            second_lead_days: cfg.second_lead_days,
+                            teams_enabled: cfg.teams_enabled,
+                            email_enabled: cfg.email_enabled,
+                            include_not_due: cfg.include_not_due,
+                            updated_at: new Date().toISOString(),
+                            updated_by: sessionStorage.getItem('userId') || 'unknown',
+                        }).eq('id', 1);
+                        if (error) throw error;
+                        // The thresholds live inside v_ext_cal_masterlist, so the
+                        // badges are stale the moment they change. Re-read rather than
+                        // recompute — the view is the only thing allowed to bucket.
+                        await reload();
+                        alertOk.value = true;
+                        alertMsg.value = 'Settings saved. The list has been re-checked against the new window.';
+                    } catch (e) {
+                        alertOk.value = false;
+                        alertMsg.value = e.message || String(e);
+                    } finally { savingCfg.value = false; }
+                }
+
+                async function addRecipient() {
+                    if (!newRcp.display_name || !newRcp.email) {
+                        alertOk.value = false;
+                        alertMsg.value = 'A name and an email address are both needed.';
+                        return;
+                    }
+                    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(newRcp.email)) {
+                        alertOk.value = false;
+                        alertMsg.value = 'That does not look like an email address.';
+                        return;
+                    }
+                    try {
+                        await TeamsRecipients.create({
+                            role: 'CALIBRATION',
+                            display_name: newRcp.display_name,
+                            email: newRcp.email,
+                            active: true,
+                            sort_order: recipients.value.length,
+                        });
+                        newRcp.display_name = ''; newRcp.email = '';
+                        alertMsg.value = '';
+                        await loadAlertBits();
+                    } catch (e) {
+                        alertOk.value = false;
+                        alertMsg.value = e.message || String(e);
+                    }
+                }
+
+                async function removeRecipient(p) {
+                    if (!confirm(`Remove ${p.display_name} from calibration alerts?`)) return;
+                    try {
+                        await TeamsRecipients.remove(p.id);
+                        await loadAlertBits();
+                    } catch (e) {
+                        alertOk.value = false;
+                        alertMsg.value = e.message || String(e);
+                    }
+                }
+
+                async function sendAlert() {
+                    sending.value = true;
+                    alertMsg.value = '';
+                    try {
+                        if (!cfg.teams_enabled && !cfg.email_enabled) {
+                            throw new Error('Both channels are switched off — nothing would be sent.');
+                        }
+                        const groups = CA.bucket(rows.value);
+                        if (!groups.actionable && !cfg.include_not_due) {
+                            throw new Error('Nothing is due, so there is nothing to send. '
+                                + 'Tick “Include in-date equipment” to send a full status list anyway.');
+                        }
+
+                        const who = sessionStorage.getItem('userId') || 'Famax QC System';
+                        const appUrl = window.location.href.split('?')[0];
+                        const to = recipients.value.filter(r => r.active).map(r => r.email);
+
+                        if (cfg.email_enabled && !to.length) {
+                            throw new Error('Email is switched on but nobody is listed under CALIBRATION.');
+                        }
+
+                        const body = {};
+                        if (cfg.teams_enabled) {
+                            body.teams = CA.buildTeamsCard({
+                                groups, cfg,
+                                mentionText: TeamsRecipients.mentionText('CALIBRATION'),
+                                entities: TeamsRecipients.entities('CALIBRATION'),
+                                sender: who, appUrl,
+                            });
+                        }
+                        if (cfg.email_enabled) {
+                            body.email = CA.buildEmail({ groups, cfg, to, sender: who, appUrl });
+                        }
+
+                        const res = await fetch(
+                            window.APP_CONFIG.host + '/FamaxQCSystem/api/calibration-alert',
+                            {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body),
+                            });
+                        const out = await res.json();
+
+                        // One log row per channel, written from what the relay actually
+                        // reported. A channel that was never attempted gets no row —
+                        // an absent row means "not sent", which is true, and a row
+                        // saying ok:false means "tried and failed", which is different.
+                        const od = groups.OVERDUE.length + groups.NEVER_CALIBRATED.length;
+                        const soon = groups.DUE_URGENT.length + groups.DUE_SOON.length;
+                        const logs = [];
+                        [['TEAMS', out.teams], ['EMAIL', out.email]].forEach(([ch, r]) => {
+                            if (!r) return;
+                            logs.push({
+                                trigger_source: 'MANUAL', channel: ch, ok: !!r.ok,
+                                overdue_count: od, due_soon_count: soon,
+                                detail: r, sent_by: who,
+                            });
+                        });
+                        if (logs.length) await _supabase.from('ext_cal_alert_log').insert(logs);
+                        await _supabase.from('ext_cal_alert_config').update({
+                            last_run_at: new Date().toISOString(),
+                            last_run_summary: CA.summaryLine(groups),
+                        }).eq('id', 1);
+
+                        alertOk.value = !!out.ok;
+                        alertMsg.value = out.ok
+                            ? describeSend(out) + ' — ' + CA.summaryLine(groups) + '.'
+                            : describeFailure(out);
+                        await loadAlertBits();
+                    } catch (e) {
+                        alertOk.value = false;
+                        alertMsg.value = e.message || String(e);
+                    } finally { sending.value = false; }
+                }
+
+                // Power Automate answers 202 the moment it has QUEUED the run, before
+                // any step has executed. Reporting that as "sent" is how a broken flow
+                // stays invisible, so a queued-only result says so in as many words.
+                function describeSend(out) {
+                    const parts = [];
+                    if (out.teams) parts.push(out.teams.queuedOnly ? 'Teams (queued)' : 'Teams');
+                    if (out.email) parts.push(out.email.queuedOnly ? 'email (queued)' : 'email');
+                    const queued = (out.teams && out.teams.queuedOnly) || (out.email && out.email.queuedOnly);
+                    return 'Sent to ' + parts.join(' and ')
+                        + (queued ? '. Power Automate accepted it — check the flow run history '
+                                    + 'to confirm it was actually delivered' : '');
+                }
+
+                function describeFailure(out) {
+                    const bits = [];
+                    [['Teams', out.teams], ['Email', out.email]].forEach(([n, r]) => {
+                        if (!r) return;
+                        if (r.ok) bits.push(n + ': sent');
+                        else if (r.configured === false) {
+                            bits.push(n + ': no webhook configured — paste the URL into '
+                                + 'config/config.js under CALIBRATION_ALERT');
+                        } else bits.push(n + ': ' + (r.message || 'failed'));
+                    });
+                    return bits.join('  ·  ') || (out.error || 'The alert could not be sent.');
+                }
+
+                // ---- export ----------------------------------------------------
+                function exportCsv() {
+                    const head = ['NO', 'EQUIPMENT', 'DESCRIPTION', 'SERIAL NUMBER', 'BRAND',
+                        'LOCATION', 'CALIBRATION', 'DUE DATE', 'ACCEPTED CRITERIA', 'CONDITION',
+                        'STATUS', 'DAYS TO DUE'];
+                    const cell = v => {
+                        const s = v === null || v === undefined ? '' : String(v);
+                        // Always quoted. Criteria carry embedded newlines and
+                        // descriptions carry commas, and Excel needs both inside quotes.
+                        return '"' + s.replace(/"/g, '""') + '"';
+                    };
+                    const lines = [head.map(cell).join(',')];
+                    visible.value.forEach(r => lines.push([
+                        r.line_no, r.equipment_code, r.description, r.serial_no, r.brand,
+                        r.location, fmtDate(r.last_cal_date), fmtDate(r.next_due_date),
+                        r.accepted_criteria, r.condition, statusLabel(r),
+                        r.days_to_due === null ? '' : r.days_to_due,
+                    ].map(cell).join(',')));
+
+                    // BOM first: without it Excel reads the file as the system codepage
+                    // and every ± and µm in the criteria column arrives as mojibake.
+                    const blob = new Blob(['﻿' + lines.join('\r\n')],
+                        { type: 'text/csv;charset=utf-8;' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'external-calibration-masterlist-'
+                        + new Date().toISOString().slice(0, 10) + '.csv';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                }
+
+                onMounted(async () => {
+                    await resolveAccess();
+                    if (!canWrite.value) { loading.value = false; return; }
+                    await reload();
+                    await loadAlertBits();
+                });
+
+                return {
+                    CONDITIONS, buckets, rows, types, loading, loadError,
+                    search, typeFilter, locationFilter, filter, counts, locations, visible,
+                    railUser, accessLevel, canWrite, accessResolved,
+                    eqModal, eqForm, saving, formError,
+                    histModal, history, histLoading,
+                    alertModal, cfg, recipients, newRcp, alertLog, sending, savingCfg,
+                    alertMsg, alertOk, previewRows, previewSummary,
+                    formCfg, printPages,
+                    fmtDate, fmtStamp, duePhrase, alertLabel, statusPill, statusLabel,
+                    openEquipment, saveEquipment, removeEquipment,
+                    openHistory, recordFor,
+                    openAlert, saveConfig, addRecipient, removeRecipient, sendAlert,
+                    exportCsv, window,
+                };
+            }
+        });
+
+        try {
+            app.config.errorHandler = (err) => {
+                console.error('Calibration masterlist:', err);
+                bootFailed('The page hit an error while rendering.', String(err && err.stack || err));
+            };
+            app.mount('#app');
+            // Mounted. Only now is it safe to take the panel away.
+            const boot = document.getElementById('boot');
+            if (boot) boot.remove();
+        } catch (err) {
+            console.error('Calibration masterlist: mount failed', err);
+            bootFailed('Vue could not mount the page.', String(err && err.stack || err));
+        }
+    </script>
+</body>
+
+</html>

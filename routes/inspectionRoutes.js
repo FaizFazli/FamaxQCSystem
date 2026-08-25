@@ -30,4 +30,8 @@ router.post("/saveInspectionPdf", upload.single("pdf"), qcController.saveInspect
 // This will be at http://IP/FamaxQCSystem/api/teams
 router.post("/api/teams", qcController.relayToTeams);
 
+// Calibration due/overdue digest. Separate from /api/teams because it fans out to two
+// channels and reports each one's delivery separately — see relayCalibrationAlert.
+router.post("/api/calibration-alert", qcController.relayCalibrationAlert);
+
 module.exports = router;

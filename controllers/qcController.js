@@ -294,3 +294,64 @@ exports.saveProcessFlowPdf = (req, res) => {
     }
 };
 
+
+// 8. External calibration alert
+//
+// One request, two independent channels. They are relayed separately and reported separately,
+// because "the alert went out" is not one fact: the Teams flow can accept while the mail flow is
+// switched off, and a QA lead who sees the card has no way to know the plant manager never got
+// the mail. Each channel returns its own ok, and the caller writes one ext_cal_alert_log row per
+// channel from what comes back.
+//
+// The delivery test is the one relayToTeams already uses, and for the same two reasons: a classic
+// O365 connector answers 200 with an error STRING in the body, and Power Automate answers 202 as
+// soon as it has queued the run - before any step of the flow has executed. So a 2xx alone is not
+// delivery, and 202 is flagged queuedOnly so the page can say "queued" instead of "sent".
+
+// The relay itself lives in utils/webhookRelay.js, because scripts/calibration-alert.js needs
+// exactly the same delivery test and runs with no server in the picture. See that file for why a
+// 2xx is not proof of delivery.
+const { relayOneChannel } = require("../utils/webhookRelay");
+
+exports.relayCalibrationAlert = async (req, res) => {
+    const { teams, email } = req.body || {};
+
+    // Nothing to send is a caller mistake, not a quiet success. Returning ok here would have the
+    // page log an alert that never had a payload.
+    if (!teams && !email) {
+        return res.status(400).json({
+            ok: false,
+            error: "Nothing to send - the request carried neither a teams nor an email payload",
+        });
+    }
+
+    // Guard the mail flow rather than the mail server: a Send an email (V2) step with an empty To
+    // fails inside Power Automate, where nobody is watching, and the run history is the only
+    // place it shows up.
+    if (email && !(Array.isArray(email.to) && email.to.length)) {
+        return res.status(400).json({
+            ok: false,
+            error: "The email payload has no recipients - add someone under the CALIBRATION role",
+        });
+    }
+
+    const cfg = config.CALIBRATION_ALERT || {};
+
+    // Both at once. They do not depend on each other, and a Teams flow that takes 15 seconds to
+    // answer should not delay the mail by 15 seconds.
+    const [teamsResult, emailResult] = await Promise.all([
+        teams ? relayOneChannel("Teams", cfg.TEAMS_WEBHOOK_URL, teams) : null,
+        email ? relayOneChannel("Email", cfg.EMAIL_WEBHOOK_URL, email) : null,
+    ]);
+
+    // ok means every channel that was ASKED for got through. A caller that sent only a card is
+    // not marked down for the mail flow being unconfigured.
+    const attempted = [teamsResult, emailResult].filter(Boolean);
+    const ok = attempted.length > 0 && attempted.every((r) => r.ok);
+
+    res.status(ok ? 200 : 502).json({
+        ok,
+        teams: teamsResult,
+        email: emailResult,
+    });
+};

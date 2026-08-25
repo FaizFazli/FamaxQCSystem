@@ -962,7 +962,7 @@
             <div class="group-head">
               <span class="group-dot" style="background: #0f766e"></span>
               <h2 class="group-title">Quality</h2>
-              <span class="group-count">3</span>
+              <span class="group-count">4</span>
             </div>
             <div class="module-list">
               <div
@@ -1007,6 +1007,37 @@
                   <span class="card-desc"
                     >Register gauges and browse the thread, pin, ring and
                     special gauge</span
+                  >
+                </div>
+                <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+              </div>
+
+              <!-- REC-QAS010-05, the externally calibrated equipment. Granted to
+                   ALL and QUALITY only, and the page repeats that check for
+                   itself — a card that is merely hidden is still a URL. -->
+              <div
+                id="btn-cal-external"
+                class="dashboard-card"
+                onclick="
+                  navigateTo(
+                    'screen_page/calibration/external_calibration_masterlist.html'
+                  )
+                "
+              >
+                <div class="icon-box tint-quality">
+                  <svg class="card-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
+                    />
+                  </svg>
+                </div>
+                <div class="card-text">
+                  <span class="card-title">External Calibration</span>
+                  <span class="card-desc"
+                    >Masterlist of externally calibrated equipment, with due-date
+                    alerts</span
                   >
                 </div>
                 <svg class="card-go" viewBox="0 0 24 24" aria-hidden="true">
@@ -1800,6 +1831,7 @@
           "btn-dms",
           "btn-gv",
           "btn-gauge-masterlist",
+          "btn-cal-external",
           "btn-tooling-masterlist",
           "btn-tooling-txn",
           "btn-tooling-assign",
@@ -1885,6 +1917,7 @@
               "btn-do-report",
               "btn-gv",
               "btn-gauge-masterlist",
+              "btn-cal-external",
               "btn-tooling-masterlist",
               "btn-tooling-txn",
               "btn-tooling-assign",

@@ -142,7 +142,13 @@
       return true;
     },
 
-    ROLES: ["QA", "ENG", "MANAGEMENT"],
+    // Must match NotificationRecipient_role_check. Any editor that renders a role dropdown has
+    // to list every role the table can hold: setting a <select> to a value with no matching
+    // option leaves it empty, and a `required` select then blocks the save — so a recipient in
+    // the missing role simply cannot be edited. That is the bug user.html documents for
+    // MANAGEMENT, and it is why CALIBRATION was added here and to the notification page's
+    // dropdown in the same change as the database constraint.
+    ROLES: ["QA", "ENG", "MANAGEMENT", "CALIBRATION"],
   };
 
   window.TeamsRecipients = TeamsRecipients;

@@ -1,1 +1,4 @@
 assets/app-config.js
+
+# Scratch. Run-CalibrationAlert.bat writes its run log here.
+temp/
