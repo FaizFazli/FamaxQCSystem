@@ -1564,20 +1564,31 @@
                     return !!s && y >= s.from && y <= s.to;
                 };
 
-                /* One button per year any certificate touches, so the row grows and
-                   shrinks with the data instead of being a hardcoded list that goes
-                   stale in January.
+                /* How far back the buttons go: last year, and forward as far as any
+                   due date reaches.
 
-                   Equipment with no dates — the lamp, and anything never calibrated —
-                   spans no years and is absent from all of them. That is correct: it
-                   has no certificate to cover a year with. Clearing the filter is how
-                   you get back to seeing them. */
+                   Without a floor the row ran 2021 to 2027, and the four buttons from
+                   2021 to 2024 existed for one reason — the six MICRON block gauges
+                   are on a five-year certificate, so their span drags the range back
+                   four years in which nothing at all falls due. Four buttons that each
+                   showed the same six gauges.
+
+                   Anchored to the current year rather than fixed at 2025, so the row
+                   keeps meaning "recent" instead of slowly growing a longer tail every
+                   January. Raise YEARS_BACK to look further back; the filtering itself
+                   is unchanged, so a clipped year is only a button you are not offered,
+                   never a row that stops matching. */
+                const YEARS_BACK = 1;
+
                 const calYears = computed(() => {
+                    const floor = new Date().getFullYear() - YEARS_BACK;
                     const acc = {};
                     baseFiltered.value.forEach(r => {
                         const s = yearSpan(r);
                         if (!s) return;
-                        for (let y = s.from; y <= s.to; y++) {
+                        // Start the walk at the floor, not at s.from — a certificate
+                        // issued in 2021 still covers 2025, and it should count there.
+                        for (let y = Math.max(s.from, floor); y <= s.to; y++) {
                             acc[y] = (acc[y] || 0) + 1;
                         }
                     });
