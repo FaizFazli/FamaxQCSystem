@@ -1,5 +1,5 @@
 assets/app-config.js
-
+node_modules/
 # Scratch. Run-CalibrationAlert.bat writes its run log here.
 temp/
 
