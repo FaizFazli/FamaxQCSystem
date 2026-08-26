@@ -1,8 +1,17 @@
-assets/app-config.js
 node_modules/
+
+# Per-machine config: document folders, Supabase key, webhook URLs.
+# Copy .env.example to .env and fill it in.
+.env
+.env.*
+!.env.example
+
+# Per-machine: see config/config.example.js
+config/config.js
+assets/app-config.js
+
 # Scratch. Run-CalibrationAlert.bat writes its run log here.
 temp/
 
-# Per-machine: document folders, Supabase key, webhook URLs, APP_URL.
-# Copy config/config.example.js to config/config.js and fill it in.
-config/config.js
+*.log
+*.csv
