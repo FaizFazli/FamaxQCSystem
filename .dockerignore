@@ -1,0 +1,19 @@
+node_modules
+.env
+.env.*
+.git
+.gitignore
+.claude
+.impeccable
+temp
+out.csv
+out_excel.csv
+*.log
+npm-debug.log
+docs
+Master_Document
+User Manual Document
+migrations
+sql
+*.bat
+createFolder.php

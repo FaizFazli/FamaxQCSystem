@@ -625,18 +625,18 @@
         // 4. Send to Server
         const pdfBlob = doc.output("blob");
         const formData = new FormData();
-        // const partDescRaw = localStorage.getItem("partDescription") || "Report";
 
-        const partNo = localStorage.getItem("partNo") || "NA";
+        const partNo = localStorage.getItem("partNo") || "";
         const partDescRaw = localStorage.getItem("partDescription") || "Report";
         const safeFolderName = partDescRaw.trim().replace(/[\\/:\*\?"<>\|]/g, "_");
 
         const filename = `Process_Flow_${safeFolderName}.pdf`;
 
+        // Send the description and part number separately - the server's
+        // partFolder() builds the folder name, the same call the Excel files use.
         formData.append("pdf", pdfBlob, filename);
-        formData.append("partDescription", safeFolderName);
-        formData.append("partNo", localStorage.getItem("partNo") || "");
-        formData.append("folderPath", `C:\\Users\\FamaxQC_Doc\\${safeFolderName}`);
+        formData.append("partDescription", partDescRaw);
+        formData.append("partNo", partNo);
         formData.append("documentType", "ProcessFlow");
 
         const response = await fetch(`${window.APP_CONFIG.host}/FamaxQCSystem/savePdf`, {
