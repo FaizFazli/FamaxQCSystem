@@ -741,7 +741,7 @@
                     <span class="years__label">In calibration during</span>
                     <button :class="['year-btn', yearFilter === '' ? 'is-active' : '']"
                         @click="yearFilter = ''">
-                        Any year
+                        All
                     </button>
                     <button v-for="y in calYears" :key="y.year"
                         :class="['year-btn', yearFilter === y.year ? 'is-active' : '']"

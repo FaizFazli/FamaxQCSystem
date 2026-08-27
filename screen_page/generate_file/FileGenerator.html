@@ -1428,7 +1428,7 @@
       document.getElementById("loading-overlay").style.display = "flex";
       const fullPartName = `${partDesc} (${partNo})`;
       const sanitizedFolder = sanitizeName(fullPartName);
-      localStorage.setItem("partDescription", fullPartName);
+      localStorage.setItem("partDescription", partDesc);
       localStorage.setItem("folderName", sanitizedFolder); // <--- ADD THIS LINE
       localStorage.setItem("partNo", partNo);
       localStorage.setItem("rawMaterial", rawMat);
@@ -1476,7 +1476,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            folderPath: `C:\\Users\\FamaxQC_Doc\\${sanitizedFolder}`,
+            // folderPath: `C:\\Users\\FamaxQC_Doc\\${sanitizedFolder}`,
             partDescription: partDesc,
             partNo,
             rawMaterial: rawMat,
@@ -1553,7 +1553,7 @@
 
       document.getElementById("loading-overlay").style.display = "flex";
       const fullPartName = `${partDesc} (${partNo})`;
-      localStorage.setItem("partDescription", fullPartName);
+      localStorage.setItem("partDescription", partDesc);
       localStorage.setItem("partNo", partNo);
       localStorage.setItem("rawMaterial", rawMat);
       localStorage.setItem("rawMaterialGrade", matGrade);

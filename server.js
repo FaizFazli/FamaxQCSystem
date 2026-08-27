@@ -119,6 +119,7 @@ function lanAddress() {
     return (real[0] || found[0] || {}).address || "localhost";
 }
 
-app.listen(80, () => {
+const PORT = process.env.PORT || 80;
+app.listen(PORT, () => {
     console.log(`✅ Server running at http://${lanAddress()}/FamaxQCSystem`);
 });
