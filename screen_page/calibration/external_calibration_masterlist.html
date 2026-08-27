@@ -73,6 +73,7 @@
     <script src="../../assets/app-config.js"></script>
     <script src="../../assets/teams-recipients.js"></script>
     <script src="../../assets/calibration-alert.js"></script>
+    <script src="../../assets/calibration-certificate.js"></script>
     <style>
         body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
@@ -243,6 +244,151 @@
         .pill--valid   { background: #d1fae5; color: #047857; }
         .pill--none    { background: var(--surface-muted); color: var(--text-muted); }
         .pill--bad     { background: #fee2e2; color: #b91c1c; }
+
+        /* ---- View certificate ---- */
+        .cert-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            margin-top: 2px; padding: 3px 9px 3px 7px;
+            font-family: var(--font-sans);
+            font-size: 11px; font-weight: 600;
+            color: var(--primary); background: var(--primary-soft);
+            border: 1px solid transparent; border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition);
+        }
+        .cert-btn:hover { background: var(--bg-card); border-color: var(--primary); }
+        .cert-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+        .cert-view__meta {
+            display: grid; gap: 14px; margin-bottom: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            padding: 14px 16px;
+            background: var(--surface-muted); border-radius: var(--radius);
+        }
+        /* A fixed viewport rather than letting the file set the height: a tall scan
+           would otherwise push the footer — and the "open in a new tab" escape
+           hatch with it — off the bottom of the modal. */
+        .cert-view__frame {
+            display: flex; align-items: center; justify-content: center;
+            height: 62vh; min-height: 320px;
+            padding: 8px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: auto;
+        }
+        .cert-view__pdf { width: 100%; height: 100%; border: 0; background: #fff; }
+        .cert-view__img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* ---- Due-year buttons ---- */
+        .years {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .years__label {
+            margin-right: 2px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--text-muted);
+        }
+        .years__note { margin-left: 4px; font-size: 11px; color: var(--text-faint); }
+
+        .year-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 11px;
+            font-family: var(--font-sans);
+            font-size: 12px; font-weight: 600;
+            color: var(--text-main); background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .year-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .year-btn.is-active {
+            color: var(--on-primary); background: var(--primary); border-color: var(--primary);
+        }
+        /* The count rides inside the button, so the pair can never be separated by
+           a line wrap the way a neighbouring badge could. */
+        .year-btn__n {
+            padding: 1px 6px;
+            font-size: 10px; font-weight: 700;
+            border-radius: var(--radius-full);
+            background: var(--surface-muted); color: var(--text-muted);
+        }
+        .year-btn.is-active .year-btn__n {
+            background: rgba(255, 255, 255, 0.25); color: #fff;
+        }
+
+        /* ---- Certificate upload in the equipment editor ----
+           Same control as the entry form. The native file input is hidden with
+           .sr-only rather than display:none so it keeps its place in the tab
+           order — the <label for> is the visible, keyboard-reachable control. */
+        .cert-drop {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            padding: 10px 12px;
+            border: 1px dashed var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+        }
+        .cert-drop__btn {
+            padding: 6px 12px;
+            font-size: 12px; font-weight: 600;
+            color: var(--primary); background: var(--bg-card);
+            border: 1px solid var(--primary); border-radius: var(--radius-sm);
+            cursor: pointer; white-space: nowrap;
+        }
+        .cert-drop__btn:hover { background: var(--primary-soft); }
+        .cert-drop input:focus-visible + .cert-drop__btn {
+            outline: none; box-shadow: 0 0 0 3px var(--primary-ring);
+        }
+        .cert-drop__or { font-size: 11px; color: var(--text-faint); }
+
+        .cert-pick, .cert-have {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+        }
+        .cert-pick__thumb, .cert-have__thumb {
+            width: 42px; height: 42px; flex-shrink: 0;
+            object-fit: cover; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--surface-muted);
+        }
+        /* Stands in for the thumbnail when the file is a PDF — same footprint, so
+           the row does not change shape depending on what was chosen. */
+        .cert-doc {
+            width: 42px; height: 42px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+            color: #b91c1c; background: #fee2e2;
+            border: 1px solid #fecaca; border-radius: var(--radius-sm);
+        }
+        .cert-pick__meta, .cert-have__meta { flex: 1; min-width: 0; }
+        .cert-pick__name {
+            font-size: 12px; font-weight: 600;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cert-pick__size { font-size: 11px; color: var(--text-muted); }
+        .cert-pick__x {
+            flex-shrink: 0; width: 26px; height: 26px;
+            font-size: 18px; line-height: 1; color: var(--text-muted);
+            background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+        }
+        .cert-pick__x:hover { color: var(--danger); background: var(--surface-muted); }
+
+        /* ---- History modal rows ---- */
+        /* The newest certificate is the one the masterlist reads; tinting it keeps
+           the older rows from being read as the live due date. */
+        .hist-current > td { background: var(--primary-soft); }
+        .hist-note > td {
+            padding-top: 0; padding-bottom: 9px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px; line-height: 1.5; color: var(--text-muted);
+        }
+        /* The record and its note are one entry, so the rule between them goes. */
+        .cal-table tbody tr:has(+ .hist-note) > td { border-bottom: 0; }
+        .hist-note:hover > td { background: transparent; }
 
         .link-btn {
             font-size: 12px; font-weight: 600; color: var(--primary);
@@ -574,8 +720,37 @@
                         <option value="">All locations</option>
                         <option v-for="l in locations" :key="l" :value="l">{{ l }}</option>
                     </select>
-                    <span class="text-sm text-gray-500 ml-auto">
+                    <!-- The NO column now runs out of sequence, because the list is
+                         ordered by what falls due next rather than by form order.
+                         Saying so is cheaper than somebody deciding the numbering
+                         is broken. -->
+                    <span class="text-sm text-gray-500 ml-auto" style="text-align:right">
                         {{ visible.length }} of {{ rows.length }} shown
+                        <span class="block text-xs" style="color:var(--text-faint)">
+                            Latest calibration first · retired equipment is under “Not required / retired”
+                        </span>
+                    </span>
+                </div>
+
+                <!-- ---------- Calibration year ----------
+                     A year matches when the certificate COVERS it, not when it expires
+                     in it — a gauge calibrated in 2021 and due in 2026 answers to all
+                     six. The counts are taken after the filters above and before this
+                     one, so a button says what you will get when you press it. -->
+                <div class="years no-print" v-if="calYears.length">
+                    <span class="years__label">In calibration during</span>
+                    <button :class="['year-btn', yearFilter === '' ? 'is-active' : '']"
+                        @click="yearFilter = ''">
+                        Any year
+                    </button>
+                    <button v-for="y in calYears" :key="y.year"
+                        :class="['year-btn', yearFilter === y.year ? 'is-active' : '']"
+                        @click="yearFilter = yearFilter === y.year ? '' : y.year">
+                        {{ y.year }}<span class="year-btn__n">{{ y.count }}</span>
+                    </button>
+                    <span v-if="yearFilter" class="years__note">
+                        Covering {{ yearFilter }} — from the calibration date to the due date.
+                        Equipment with no certificate is hidden.
                     </span>
                 </div>
 
@@ -607,8 +782,13 @@
                                     Nothing matches this filter.
                                 </td>
                             </tr>
-                            <tr v-for="r in visible" :key="r.id">
-                                <td class="text-gray-400">{{ r.line_no }}</td>
+                            <!-- NO counts the rows on screen, 1..N, so the column always
+                                 reads as a series however the list is sorted or filtered.
+                                 It is a position in this view, not an identity - the
+                                 printed form has its own numbering from the view's
+                                 line_no, and that is the one REC-QAS010-05 carries. -->
+                            <tr v-for="(r, i) in visible" :key="r.id">
+                                <td class="text-gray-400">{{ i + 1 }}</td>
                                 <td class="font-bold">{{ r.equipment_code }}</td>
                                 <td class="desc">{{ r.description }}</td>
                                 <td class="mono">{{ r.serial_no || '—' }}</td>
@@ -627,13 +807,34 @@
                                 </td>
                                 <td class="no-print">
                                     <div class="flex flex-col items-start gap-0.5">
-                                        <button class="link-btn" @click="recordFor(r)">Record calibration</button>
+                                        <!-- Offered only where the entry form will actually
+                                             accept it. The form lists equipment that requires
+                                             calibration and is in service; sending somebody
+                                             there for anything else produced a page that could
+                                             not do what the button promised. -->
+                                        <button v-if="r.calibration_required && r.status === 'ACTIVE'"
+                                            class="link-btn" @click="recordFor(r)">Record calibration</button>
+                                        <span v-else class="text-xs" style="color:var(--text-faint)">
+                                            {{ r.status !== 'ACTIVE' ? 'Retired' : 'Not calibrated' }}
+                                        </span>
                                         <div class="flex gap-3">
                                             <button class="link-btn" @click="openEquipment(r)">Edit</button>
                                             <button class="link-btn" @click="openHistory(r)">
                                                 History<span v-if="r.event_count"> ({{ r.event_count }})</span>
                                             </button>
                                         </div>
+                                        <!-- Only where there is one to see. A permanently
+                                             disabled button on 31 of 31 rows would just be
+                                             clutter that teaches people to ignore the column. -->
+                                        <button v-if="r.cert_url" class="cert-btn"
+                                            @click="openCert(r)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
+                                                    fill="none" stroke="currentColor" stroke-width="2"
+                                                    stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            View certificate
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -854,6 +1055,86 @@
                         <input v-model.trim="eqForm.remarks" class="inp" />
                     </div>
 
+                    <!-- ---------- The scan of the current certificate ----------
+                         Only when editing, never when registering: a brand-new
+                         instrument has no certificate to attach anything to. All 31
+                         certificates loaded from the two workbooks arrived with no
+                         image, because the sheets never recorded one, so this is how
+                         they get their scan without re-entering the whole record. -->
+                    <div v-if="eqModal.id" style="margin-top:18px;padding-top:16px;
+                                                  border-top:1px solid var(--border)">
+                        <label class="lbl">Certificate on file</label>
+
+                        <!-- Nothing to attach to. Offering an upload here would create a
+                             file belonging to a calibration that was never recorded. -->
+                        <p v-if="!eqModal.event_id" class="text-sm" style="color:var(--text-muted)">
+                            <template v-if="eqModal.calibration_required">
+                                No calibration has been recorded for this equipment yet, so there is
+                                nothing to attach a certificate to.
+                                <button class="link-btn" @click="recordFor(eqModal)">Record a calibration</button>
+                                first — the entry form takes the scan with it.
+                            </template>
+                            <template v-else>
+                                This equipment is not calibrated, so it has no certificate.
+                            </template>
+                        </p>
+
+                        <!-- Already has one. Shown, not replaceable from here: swapping the
+                             evidence on a signed record is a different act from filling in a
+                             gap, and it belongs with a new certificate, not an equipment edit. -->
+                        <div v-else-if="eqModal.cert_url" class="cert-have">
+                            <!-- A PDF has no thumbnail to show, so it gets a document tile
+                                 instead of a broken image. -->
+                            <span v-if="isPdfUrl(eqModal.cert_url)" class="cert-doc">PDF</span>
+                            <img v-else :src="eqModal.cert_url" alt="" class="cert-have__thumb"
+                                 @error="$event.target.style.display='none'" />
+                            <div class="cert-have__meta">
+                                <div class="text-sm font-semibold">
+                                    On file for {{ fmtDate(eqModal.last_cal_date) }}
+                                </div>
+                                <button class="link-btn" @click="openCert(eqModal)">View certificate</button>
+                                <div class="text-xs" style="color:var(--text-faint);margin-top:2px">
+                                    To replace it, record the next calibration.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- The case this section exists for. -->
+                        <template v-else>
+                            <div v-if="!eqCertFile" class="cert-drop">
+                                <input type="file" id="eqCertFile" class="sr-only"
+                                    :accept="CERT_ACCEPT.join(',')" @change="pickEqCert" />
+                                <label for="eqCertFile" class="cert-drop__btn">Choose an image…</label>
+                                <span class="cert-drop__or">
+                                    attaches to the {{ fmtDate(eqModal.last_cal_date) }} calibration
+                                </span>
+                            </div>
+                            <div v-else class="cert-pick">
+                                <!-- No blob URL renders a PDF in an <img>, so a chosen PDF
+                                     shows a document tile rather than a broken thumbnail. -->
+                                <span v-if="eqCertIsPdf" class="cert-doc">PDF</span>
+                                <img v-else :src="eqCertPreview" alt="" class="cert-pick__thumb" />
+                                <div class="cert-pick__meta">
+                                    <div class="cert-pick__name">{{ eqCertFile.name }}</div>
+                                    <div class="cert-pick__size">
+                                        {{ kb(eqCertFile.size) }} · uploads when you save
+                                    </div>
+                                </div>
+                                <button type="button" class="cert-pick__x" @click="clearEqCert"
+                                    title="Remove">&times;</button>
+                            </div>
+                            <p class="text-xs" style="color:var(--text-faint);margin-top:6px">
+                                PDF, or a JPG, PNG, WEBP or HEIC image, up to 10&nbsp;MB. It is
+                                filed against the newest calibration on record, which is the one
+                                this masterlist reads.
+                            </p>
+                        </template>
+
+                        <p v-if="eqCertError" class="text-xs mt-2" style="color:var(--danger)">
+                            {{ eqCertError }}
+                        </p>
+                    </div>
+
                     <p v-if="formError" class="text-sm mt-4 font-medium" style="color:var(--danger)">{{ formError }}</p>
                 </div>
                 <div class="sheet__foot">
@@ -890,30 +1171,112 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="h in history" :key="h.id">
-                                <td class="whitespace-nowrap">{{ fmtDate(h.cal_date) }}</td>
-                                <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
-                                <td class="mono">
-                                    <a v-if="h.cert_url" :href="h.cert_url" target="_blank" rel="noopener"
-                                        style="color:var(--primary)">{{ h.cert_no || 'certificate' }}</a>
-                                    <span v-else>{{ h.cert_no || '—' }}</span>
-                                </td>
-                                <td>{{ h.lab || '—' }}</td>
-                                <td>
-                                    <span v-if="h.result"
-                                        :class="['pill', h.result === 'PASS' ? 'pill--valid' : 'pill--bad']">
-                                        {{ h.result }}</span>
-                                    <span v-else class="text-gray-400">—</span>
-                                </td>
-                                <td>{{ h.condition || '—' }}</td>
-                                <td class="text-gray-500">{{ h.recorded_by || '—' }}</td>
-                            </tr>
+                            <!-- Two rows per certificate: the record, then its note. A template
+                                 wrapper because a <tr> cannot contain another <tr>. -->
+                            <template v-for="(h, hi) in history" :key="h.id">
+                                <tr :class="hi === 0 ? 'hist-current' : ''">
+                                    <td class="whitespace-nowrap">
+                                        {{ fmtDate(h.cal_date) }}
+                                        <!-- The newest certificate is the one the masterlist reads.
+                                             Saying so stops the older rows being mistaken for the
+                                             live due date. -->
+                                        <span v-if="hi === 0" class="pill pill--valid"
+                                              style="margin-left:6px">Current</span>
+                                    </td>
+                                    <td class="whitespace-nowrap">{{ fmtDate(h.due_date) }}</td>
+                                    <td class="mono">
+                                        <!-- Same viewer as the list. A certificate is worth
+                                             seeing from wherever it is referenced, and history
+                                             is where the superseded ones live. -->
+                                        <button v-if="h.cert_url" class="link-btn"
+                                            @click="openCert(h)">{{ h.cert_no || 'certificate' }}</button>
+                                        <span v-else>{{ h.cert_no || '—' }}</span>
+                                    </td>
+                                    <td>{{ h.lab || '—' }}</td>
+                                    <td>
+                                        <span v-if="h.result"
+                                            :class="['pill', h.result === 'PASS' ? 'pill--valid' : 'pill--bad']">
+                                            {{ h.result }}</span>
+                                        <span v-else class="text-gray-400">—</span>
+                                    </td>
+                                    <td>{{ h.condition || '—' }}</td>
+                                    <td class="text-gray-500">{{ h.recorded_by || '—' }}</td>
+                                </tr>
+                                <!-- The remark is where a loaded certificate says which sheet it
+                                     came from, and where the two serial-number judgement calls are
+                                     recorded. Kept out of a column because it is a sentence, not a
+                                     field, and squeezing it into an eighth column made every other
+                                     one unreadable. -->
+                                <tr v-if="h.remarks" class="hist-note">
+                                    <td colspan="7">{{ h.remarks }}</td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
                 <div class="sheet__foot">
                     <button class="btn btn--secondary" @click="histModal = null">Close</button>
                     <button class="btn" @click="recordFor(histModal)">Record calibration</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= Certificate viewer =================
+             One modal for both kinds of file. A PDF cannot go in an <img> and an
+             image in an <iframe> loses the page background, so the branch is on
+             the file itself rather than on a stored flag — which means the 31
+             certificates uploaded before PDFs were allowed still render exactly
+             as they did.
+
+             "Open in a new tab" stays regardless: an embedded PDF is at the mercy
+             of the browser's built-in viewer, and some builds refuse to embed one
+             at all. The link is the escape hatch that always works. -->
+        <div v-if="certModal" class="ov" @click.self="certModal = null">
+            <div class="sheet" style="max-width:980px">
+                <div class="sheet__head">
+                    <span class="sheet__title">
+                        Certificate — {{ certModal.equipment_code }}
+                        <span class="font-normal text-gray-500" v-if="certModal.serial_no">
+                            · {{ certModal.serial_no }}</span>
+                    </span>
+                    <button class="link-btn" @click="certModal = null">Close</button>
+                </div>
+                <div class="sheet__body">
+                    <div class="cert-view__meta">
+                        <div>
+                            <div class="ctx__k">Calibrated</div>
+                            <div class="ctx__v">{{ fmtDate(certModal.last_cal_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Due</div>
+                            <div class="ctx__v">{{ fmtDate(certModal.next_due_date) }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Certificate no.</div>
+                            <div class="ctx__v">{{ certModal.cert_no || '—' }}</div>
+                        </div>
+                        <div>
+                            <div class="ctx__k">Lab</div>
+                            <div class="ctx__v">{{ certModal.lab || '—' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="cert-view__frame">
+                        <iframe v-if="isPdfUrl(certModal.cert_url)" :src="certModal.cert_url"
+                            title="Certificate" class="cert-view__pdf"></iframe>
+                        <img v-else :src="certModal.cert_url" alt="Certificate"
+                            class="cert-view__img" @error="certViewFailed = true" />
+                    </div>
+
+                    <p v-if="certViewFailed" class="text-sm mt-3" style="color:var(--warning)">
+                        The file could not be displayed here. Open it in a new tab — the link is
+                        below, and it will say whether the file is missing or just not previewable.
+                    </p>
+                </div>
+                <div class="sheet__foot">
+                    <a :href="certModal.cert_url" target="_blank" rel="noopener"
+                        class="btn btn--secondary" style="text-decoration:none">Open in a new tab</a>
+                    <button class="btn" @click="certModal = null">Close</button>
                 </div>
             </div>
         </div>
@@ -1081,6 +1444,11 @@
             bootFailed('assets/calibration-alert.js did not load, so the alert cannot be built.');
             throw new Error('CalibrationAlert missing');
         }
+        if (!window.CalibrationCertificate) {
+            bootFailed('assets/calibration-certificate.js did not load, so a certificate image '
+                + 'could not be uploaded.');
+            throw new Error('CalibrationCertificate missing');
+        }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -1105,6 +1473,7 @@
                 const search = ref('');
                 const typeFilter = ref('');
                 const locationFilter = ref('');
+                const yearFilter = ref('');      // '' = every year
                 const filter = ref('ALL');
 
                 const railUser = ref('—');
@@ -1120,9 +1489,73 @@
                 const saving = ref(false);
                 const formError = ref('');
 
+                /* Attaching the scan of a certificate that is already recorded. The
+                   rules and the upload itself are shared with the entry form in
+                   assets/calibration-certificate.js so the bucket's allow-list is
+                   stated once. Chosen here, uploaded on save — same as the form,
+                   and for the same reason: closing the modal must not leave a file
+                   in the bucket. */
+                const CC = window.CalibrationCertificate;
+                const CERT_ACCEPT = CC.ACCEPT_TYPES;
+                const kb = CC.kb;
+                const eqCertFile = ref(null);
+                const eqCertPreview = ref('');
+                const eqCertError = ref('');
+                const eqCertIsPdf = computed(() => !!eqCertFile.value && CC.isPdfFile(eqCertFile.value));
+
+                function clearEqCert() {
+                    // Revoking matters here: the modal is opened and closed repeatedly
+                    // while working down the list, and each preview holds its file in
+                    // memory until it is released.
+                    if (eqCertPreview.value) URL.revokeObjectURL(eqCertPreview.value);
+                    eqCertPreview.value = '';
+                    eqCertFile.value = null;
+                    eqCertError.value = '';
+                }
+
+                function pickEqCert(ev) {
+                    const file = (ev.target.files || [])[0];
+                    // Cleared either way, so re-picking the same filename still fires a
+                    // change event and a rejected file does not look selected.
+                    ev.target.value = '';
+                    if (!file) return;
+                    const check = CC.validate(file);
+                    if (!check.ok) { clearEqCert(); eqCertError.value = check.error; return; }
+                    clearEqCert();
+                    eqCertFile.value = file;
+                    // Only images are previewed, so only images need an object URL. Creating
+                    // one for a PDF would allocate a blob nothing reads, and clearEqCert would
+                    // then have to remember to revoke it.
+                    eqCertPreview.value = CC.isPdfFile(file) ? '' : URL.createObjectURL(file);
+                }
+
                 const histModal = ref(null);
                 const history = ref([]);
                 const histLoading = ref(false);
+
+                // ---- certificate viewer ----
+                const certModal = ref(null);
+                const certViewFailed = ref(false);
+                const isPdfUrl = CC.isPdfUrl;
+
+                /* Takes any row that carries the four certificate fields — a masterlist
+                   row, or one of the certificates in the history modal — so the same
+                   viewer serves both without either needing to know about the other. */
+                function openCert(r) {
+                    if (!r || !r.cert_url) return;
+                    certViewFailed.value = false;
+                    certModal.value = {
+                        equipment_code: r.equipment_code || (histModal.value && histModal.value.equipment_code),
+                        serial_no: r.serial_no || (histModal.value && histModal.value.serial_no),
+                        cert_url: r.cert_url,
+                        cert_no: r.cert_no,
+                        lab: r.lab,
+                        // A history row calls them cal_date/due_date; a masterlist row
+                        // calls them last_cal_date/next_due_date. Same two dates.
+                        last_cal_date: r.last_cal_date || r.cal_date,
+                        next_due_date: r.next_due_date || r.due_date,
+                    };
+                }
 
                 const alertModal = ref(false);
                 const cfg = reactive({
@@ -1178,7 +1611,13 @@
                 // problem than one whose certificate lapsed last week, and giving
                 // it its own quiet bucket is how it would get overlooked.
                 const inBucket = (r, key) => {
-                    if (key === 'ALL') return true;
+                    // "All equipment" means all equipment in service. A scrapped gauge is
+                    // not part of the working set and it carries a stale due date from its
+                    // last certificate, so leaving it in the default view only invites
+                    // somebody to book a calibration for something that no longer exists.
+                    // It stays reachable — and printable in its history — under
+                    // "Not required / retired", which is the only bucket that shows it.
+                    if (key === 'ALL') return r.cal_status !== 'INACTIVE';
                     if (key === 'OVERDUE') return r.cal_status === 'OVERDUE' || r.cal_status === 'NEVER_CALIBRATED';
                     if (key === 'OTHER') return r.cal_status === 'NOT_REQUIRED' || r.cal_status === 'INACTIVE';
                     return r.cal_status === key;
@@ -1193,10 +1632,58 @@
                 const locations = computed(() =>
                     [...new Set(rows.value.map(r => r.location).filter(Boolean))].sort());
 
-                // Field-blind search on whitespace-separated tokens: every token has
-                // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
-                // both find the overdue scale.
-                const visible = computed(() => {
+                /* ---- Screen order: most recently calibrated first ------------
+                   Four bands, because a plain sort on the date cannot place a row
+                   that has no date at all:
+
+                     0  NEVER_CALIBRATED — in service, no certificate at all.
+                        Ahead of everything: it is not a milder problem than a
+                        certificate that lapsed last week, and having no date it
+                        would otherwise fall to the bottom and stay there.
+                     1  Everything with a calibration date, NEWEST FIRST — the
+                        instrument that came back from the lab most recently is at
+                        the top, and the list reads backwards through the year.
+                     2  In service but never calibrated by design: the microscope
+                        lamp. Still active equipment, so it stays above the retired.
+                     3  Obsolete and scrapped. Below every active row, always,
+                        whatever their dates say.
+
+                   Dates compare as plain 'YYYY-MM-DD' strings. No Date object,
+                   so no timezone can shift one across a day boundary mid-sort.
+
+                   This is the SCREEN order only. The printed form is numbered by
+                   the view's line_no and printPages sorts by it explicitly, so
+                   REC-QAS010-05 keeps its own running order whatever is done
+                   here — the record's numbering and the order you happen to be
+                   reading in are different questions. */
+                const dueBand = r =>
+                    r.cal_status === 'INACTIVE' ? 3
+                        : r.cal_status === 'NEVER_CALIBRATED' ? 0
+                            : (!r.last_cal_date || r.cal_status === 'NOT_REQUIRED') ? 2
+                                : 1;
+
+                function byLatestCalibration(a, b) {
+                    const ba = dueBand(a), bb = dueBand(b);
+                    if (ba !== bb) return ba - bb;
+                    // Inside a band, newest calibration first — descending, so the
+                    // comparison is reversed against the due-date sort this replaced.
+                    // Retired rows order among themselves the same way.
+                    if (a.last_cal_date && b.last_cal_date && a.last_cal_date !== b.last_cal_date) {
+                        return a.last_cal_date < b.last_cal_date ? 1 : -1;
+                    }
+                    // sort_order, not line_no — line_no is null on retired rows, and
+                    // a null tiebreak lets equal rows swap places between renders.
+                    return (a.sort_order || 0) - (b.sort_order || 0);
+                }
+
+                /* Everything except the year buttons. Split out so the year counts can be
+                   taken against what the OTHER filters have already narrowed to — a count
+                   on a button has to say what you get when you press it, or it is worse
+                   than no count at all. */
+                const baseFiltered = computed(() => {
+                    // Field-blind search on whitespace-separated tokens: every token has
+                    // to appear somewhere in the row, so "cs weighcom" and "weighcom cs"
+                    // both find the overdue scale.
                     const toks = search.value.toLowerCase().split(/\s+/).filter(Boolean);
                     return rows.value.filter(r => {
                         if (!inBucket(r, filter.value)) return false;
@@ -1208,6 +1695,78 @@
                             .filter(Boolean).join(' ').toLowerCase();
                         return toks.every(t => hay.includes(t));
                     });
+                });
+
+                /* The years a certificate COVERS, not the single year it expires in.
+                   A block gauge calibrated 7 DEC 2021 and due 7 DEC 2026 was in
+                   calibration for all six of those years, and asking "what was
+                   certified in 2023" has to find it. Keying on the due year alone
+                   would file it under 2026 and nothing else — so the six MICRON
+                   gauges would vanish from every year between, which is exactly the
+                   span an auditor asks about.
+
+                   The span is taken from the certificate the ROW SHOWS — its newest
+                   one — not from the whole history. A row that appeared under 2024 on
+                   the strength of a superseded certificate while displaying its
+                   2025-2026 dates would be unreadable. Older certificates are still
+                   there under History. */
+                function yearSpan(r) {
+                    if (!r.last_cal_date || !r.next_due_date) return null;
+                    const from = parseInt(String(r.last_cal_date).slice(0, 4), 10);
+                    const to = parseInt(String(r.next_due_date).slice(0, 4), 10);
+                    if (isNaN(from) || isNaN(to) || to < from) return null;
+                    return { from, to };
+                }
+
+                const coversYear = (r, year) => {
+                    const s = yearSpan(r);
+                    const y = parseInt(year, 10);
+                    return !!s && y >= s.from && y <= s.to;
+                };
+
+                /* The buttons start at 2024 and run forward as far as any due date
+                   reaches.
+
+                   2024 is where the records begin: MASTERLIST EXTERNAL CALIBRATION
+                   2024 - 2025.xlsx is the oldest revision loaded, and its certificates
+                   are dated from December 2024. Nothing before that is a year anybody
+                   can ask a question about.
+
+                   Without a floor the row ran from 2021, because the six MICRON block
+                   gauges are on a five-year certificate and their span drags the range
+                   back through four years in which nothing falls due — four buttons
+                   that each showed the same six gauges.
+
+                   Fixed rather than rolling, so the row does not quietly drop 2024 next
+                   January. It does mean one more button each year; if that ever gets
+                   long, this is the one line to change.
+
+                   The filtering itself is untouched: a clipped year is a button you are
+                   not offered, never a row that stops matching. */
+                const EARLIEST_YEAR = 2024;
+
+                const calYears = computed(() => {
+                    const floor = EARLIEST_YEAR;
+                    const acc = {};
+                    baseFiltered.value.forEach(r => {
+                        const s = yearSpan(r);
+                        if (!s) return;
+                        // Start the walk at the floor, not at s.from — a certificate
+                        // issued in 2021 still covers 2025, and it should count there.
+                        for (let y = Math.max(s.from, floor); y <= s.to; y++) {
+                            acc[y] = (acc[y] || 0) + 1;
+                        }
+                    });
+                    return Object.keys(acc).sort().map(y => ({ year: y, count: acc[y] }));
+                });
+
+                const visible = computed(() => {
+                    const list = yearFilter.value
+                        ? baseFiltered.value.filter(r => coversYear(r, yearFilter.value))
+                        : baseFiltered.value;
+                    // slice() because baseFiltered's array is a cached computed value —
+                    // sorting it in place would reorder what every other reader sees.
+                    return list.slice().sort(byLatestCalibration);
                 });
 
                 const statusPill = s => ({
@@ -1346,7 +1905,20 @@
                         cal_interval_months: 12, calibration_required: true,
                         status: 'ACTIVE', remarks: '',
                     });
-                    eqModal.value = { id: r ? r.id : null };
+                    clearEqCert();
+                    // The whole row, not just the id: the certificate section needs to
+                    // know whether there is a calibration to attach to (event_id),
+                    // whether it already has a scan (cert_url) and which date it would
+                    // be filed against (last_cal_date).
+                    eqModal.value = r
+                        ? {
+                            id: r.id,
+                            event_id: r.event_id,
+                            cert_url: r.cert_url,
+                            last_cal_date: r.last_cal_date,
+                            calibration_required: r.calibration_required,
+                        }
+                        : { id: null };
                 }
 
                 async function saveEquipment() {
@@ -1376,7 +1948,40 @@
                         updated_at: new Date().toISOString(),
                         updated_by: who,
                     };
+                    // Set once the image is in the bucket, so a later failure knows there is
+                    // something to take back out.
+                    let uploadedPath = null;
                     try {
+                        /* Upload first, exactly as the entry form does. A storage failure then
+                           stops the save with the modal still open and the file still chosen,
+                           instead of leaving a saved edit and a certificate that never arrived.
+                           If anything below throws, the catch removes the object again. */
+                        if (eqCertFile.value && eqModal.value.event_id) {
+                            const put = await CC.upload(_supabase, {
+                                file: eqCertFile.value,
+                                equipmentId: eqModal.value.id,
+                                calDate: eqModal.value.last_cal_date,
+                            });
+                            uploadedPath = put.path;
+
+                            const cert = await _supabase.from('ext_cal_event').update({
+                                cert_url: put.url,
+                                cert_storage_path: put.path,
+                            })
+                                .eq('id', eqModal.value.event_id)
+                                // Only fill a gap. If a certificate arrived on this record while
+                                // the modal was open, this matches nothing and the guard below
+                                // reports it rather than overwriting somebody else's evidence.
+                                .is('cert_url', null)
+                                .select('id');
+                            if (cert.error) throw cert.error;
+                            if (!cert.data || !cert.data.length) {
+                                throw new Error('That calibration already has a certificate on '
+                                    + 'file — it was added while this was open. Close and reopen '
+                                    + 'to see it.');
+                            }
+                        }
+
                         if (eqModal.value.id) {
                             const { error } = await _supabase.from('ext_cal_equipment')
                                 .update(payload).eq('id', eqModal.value.id);
@@ -1393,8 +1998,11 @@
                             if (error) throw error;
                         }
                         eqModal.value = null;
+                        clearEqCert();
                         await reload();
                     } catch (e) {
+                        // Nothing points at the image now, so it must not stay in the bucket.
+                        await CC.remove(_supabase, uploadedPath);
                         formError.value = /duplicate key/.test(e.message || '')
                             ? 'That equipment code and serial number are already registered.'
                             : (e.message || String(e));
@@ -1640,8 +2248,11 @@
                         return '"' + s.replace(/"/g, '""') + '"';
                     };
                     const lines = [head.map(cell).join(',')];
-                    visible.value.forEach(r => lines.push([
-                        r.line_no, r.equipment_code, r.description, r.serial_no, r.brand,
+                    // NO counts the exported rows, matching what the screen shows — the
+                    // export is a copy of this view, and a CSV whose NO column jumped
+                    // 1, 2, 11, 12 would look like rows had been lost in the download.
+                    visible.value.forEach((r, i) => lines.push([
+                        i + 1, r.equipment_code, r.description, r.serial_no, r.brand,
                         r.location, fmtDate(r.last_cal_date), fmtDate(r.next_due_date),
                         r.accepted_criteria, r.condition, statusLabel(r),
                         r.days_to_due === null ? '' : r.days_to_due,
@@ -1669,8 +2280,12 @@
                 return {
                     CONDITIONS, buckets, rows, types, loading, loadError,
                     search, typeFilter, locationFilter, filter, counts, locations, visible,
+                    yearFilter, calYears,
                     railUser, accessLevel, canWrite, accessResolved,
                     eqModal, eqForm, saving, formError,
+                    CERT_ACCEPT, kb, eqCertFile, eqCertPreview, eqCertError, eqCertIsPdf,
+                    pickEqCert, clearEqCert,
+                    certModal, certViewFailed, isPdfUrl, openCert,
                     histModal, history, histLoading,
                     alertModal, cfg, recipients, newRcp, alertLog, sending, savingCfg,
                     alertMsg, alertOk, previewRows, previewSummary,

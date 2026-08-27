@@ -67,6 +67,7 @@
     <script src="../../assets/app-config.js"></script>
     <script src="../../assets/signer.js"></script>
     <script src="../../assets/calibration-alert.js"></script>
+    <script src="../../assets/calibration-certificate.js"></script>
     <style>
         body { font-family: var(--font-sans); }
         [v-cloak] { display: none; }
@@ -243,6 +244,15 @@
             border: 1px solid var(--border);
             background: var(--surface-muted);
         }
+        /* Stands in for the thumbnail when the file is a PDF — same footprint, so
+           the row does not change shape depending on what was chosen. */
+        .cert-doc {
+            width: 42px; height: 42px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+            color: #b91c1c; background: #fee2e2;
+            border: 1px solid #fecaca; border-radius: var(--radius-sm);
+        }
         .cert-pick__meta { flex: 1; min-width: 0; }
         .cert-pick__name {
             font-size: 12px; font-weight: 600;
@@ -376,15 +386,17 @@
                      success message on its own would say the same thing either way. -->
                 <div v-if="savedFor.cert_url" style="margin-top:18px">
                     <a :href="savedFor.cert_url" target="_blank" rel="noopener">
-                        <img v-if="savedFor.has_image" :src="savedFor.cert_url" alt="Certificate"
+                        <img v-if="savedFor.has_image && !isPdfUrl(savedFor.cert_url)"
+                            :src="savedFor.cert_url" alt="Certificate"
                             style="max-height:150px;max-width:100%;border:1px solid var(--border);
                                    border-radius:var(--radius-sm);object-fit:contain" />
                         <span v-else style="color:var(--primary);font-size:13px;font-weight:600">
                             Open the certificate</span>
                     </a>
                     <div style="margin-top:6px;font-size:11px;color:var(--text-faint)">
-                        {{ savedFor.has_image ? 'Certificate image stored — click to open full size.'
-                                              : 'Certificate link recorded.' }}
+                        {{ !savedFor.has_image ? 'Certificate link recorded.'
+                             : isPdfUrl(savedFor.cert_url) ? 'Certificate PDF stored — click to open it.'
+                             : 'Certificate image stored — click to open full size.' }}
                     </div>
                 </div>
                 <div class="flex gap-2 justify-center flex-wrap" style="margin-top:22px">
@@ -427,10 +439,34 @@
                                         ? '  (S/N ' + e.serial_no + ')' : '' }}
                             </option>
                         </select>
-                        <p class="hint">
-                            Only equipment marked as requiring calibration is listed. If something is
-                            missing, register it on the masterlist first.
+                        <!-- Every row that is not in the dropdown is accounted for here.
+                             Registering equipment and then not finding it is the obvious
+                             way to lose ten minutes, and the reason is a checkbox on a
+                             different page. -->
+                        <p class="hint" v-if="!excluded.notRequired.length && !excluded.retired.length">
+                            All {{ options.length }} registered instruments are listed. If something
+                            is missing, register it on the masterlist first.
                         </p>
+                        <p class="hint" v-else>
+                            Showing {{ options.length }} of {{ all.length }}.
+                            <template v-if="excluded.notRequired.length">
+                                <strong>{{ excluded.notRequired.length }}</strong>
+                                {{ excluded.notRequired.length === 1 ? 'is' : 'are' }} marked as not
+                                requiring calibration<template v-if="excluded.notRequired.length <= 4">
+                                    ({{ excluded.notRequired.map(e => e.equipment_code).join(', ') }})</template>.
+                            </template>
+                            <template v-if="excluded.retired.length">
+                                <strong>{{ excluded.retired.length }}</strong>
+                                {{ excluded.retired.length === 1 ? 'is' : 'are' }} obsolete or scrapped.
+                            </template>
+                            Open one on the masterlist and tick “Requires external calibration”
+                            if it should be here.
+                        </p>
+
+                        <div v-if="preselectNote" class="rounded-xl border p-4 mt-3"
+                             style="border-color:#fde68a;background:#fffbeb">
+                            <p class="text-sm text-gray-700">{{ preselectNote }}</p>
+                        </div>
 
                         <div v-if="picked" class="ctx" style="margin-top:16px">
                             <div>
@@ -535,12 +571,14 @@
                                 <div v-if="!certFile" class="cert-drop">
                                     <input type="file" id="certFile" class="sr-only"
                                         :accept="ACCEPT_TYPES.join(',')" @change="pickCert" />
-                                    <label for="certFile" class="cert-drop__btn">Choose an image…</label>
+                                    <label for="certFile" class="cert-drop__btn">Choose a file…</label>
                                     <span class="cert-drop__or">or paste a link below</span>
                                 </div>
 
                                 <div v-else class="cert-pick">
-                                    <img :src="certPreview" alt="" class="cert-pick__thumb" />
+                                    <!-- No blob URL renders a PDF in an <img>. -->
+                                    <span v-if="certIsPdf" class="cert-doc">PDF</span>
+                                    <img v-else :src="certPreview" alt="" class="cert-pick__thumb" />
                                     <div class="cert-pick__meta">
                                         <div class="cert-pick__name">{{ certFile.name }}</div>
                                         <div class="cert-pick__size">{{ kb(certFile.size) }}</div>
@@ -554,9 +592,9 @@
                                     :placeholder="certFile ? 'Filled in from the upload on save'
                                                            : '…or a path/URL to the scan'" />
                                 <p class="hint">
-                                    JPG, PNG, WEBP or HEIC up to 10&nbsp;MB. The image is stored in
-                                    the system, so the record does not depend on a network path
-                                    staying where it is.
+                                    PDF, or a JPG, PNG, WEBP or HEIC image, up to 10&nbsp;MB. The
+                                    file is stored in the system, so the record does not depend on a
+                                    network path staying where it is.
                                 </p>
                                 <p v-if="certError" class="hint" style="color:var(--danger)">{{ certError }}</p>
                             </div>
@@ -684,6 +722,11 @@
             bootFailed('assets/signer.js did not load, so the record could not be signed.');
             throw new Error('Signer missing');
         }
+        if (!window.CalibrationCertificate) {
+            bootFailed('assets/calibration-certificate.js did not load, so a certificate image '
+                + 'could not be uploaded.');
+            throw new Error('CalibrationCertificate missing');
+        }
 
         const { createClient } = supabase;
         const _supabase = createClient(window.APP_CONFIG.url, window.APP_CONFIG.key);
@@ -692,30 +735,13 @@
         // Same grant as the masterlist and as AdminLogin's btn-cal-external.
         const WRITE_ROLES = ['ALL', 'QUALITY'];
 
-        /* ---- Certificate upload ------------------------------------------
-           The bucket and these two constants have to agree. The bucket declares
-           the same list and the same limit (see
-           sql/2026-08-25_external_calibration_certificate_upload.sql), and it is
-           the bucket that actually enforces them — anyone holding the anon key
-           can POST straight at storage without going through this page. What is
-           here is so somebody choosing a file is told immediately, rather than
-           after a save and a 400 from a service they have never heard of.
-
-           Widening one without the other gives you a page that offers a file the
-           bucket refuses, or a bucket that accepts one the page never offers. */
-        const CERT_BUCKET = 'calibration_certificate';
-        const ACCEPT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
-        const MAX_CERT_BYTES = 10 * 1024 * 1024;   // 10 MB, as the bucket declares
-
-        /* Safari hands over a .heic with an empty file.type, and an empty
-           contentType is rejected by a bucket that declares an allow-list. The
-           extension is the only thing left to go on at that point. */
-        const EXT_TYPES = {
-            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-            webp: 'image/webp', heic: 'image/heic', heif: 'image/heif',
-        };
-        const extOf = name => (String(name).split('.').pop() || '').toLowerCase();
-        const mimeOf = file => file.type || EXT_TYPES[extOf(file.name)] || '';
+        /* The allow-list, the size limit and the upload itself live in
+           assets/calibration-certificate.js, shared with the masterlist's
+           equipment editor. One copy, because the list has to match what the
+           bucket declares and two copies is how one screen ends up offering a
+           file the bucket refuses. */
+        const CC = window.CalibrationCertificate;
+        const ACCEPT_TYPES = CC.ACCEPT_TYPES;
 
         const app = createApp({
             setup() {
@@ -744,10 +770,10 @@
                 const certFile = ref(null);
                 const certPreview = ref('');
                 const certError = ref('');
+                const certIsPdf = computed(() => !!certFile.value && CC.isPdfFile(certFile.value));
+                const isPdfUrl = CC.isPdfUrl;
 
-                const kb = n => n < 1024 * 1024
-                    ? Math.round(n / 1024) + ' KB'
-                    : (n / 1024 / 1024).toFixed(1) + ' MB';
+                const kb = CC.kb;
 
                 function clearCert() {
                     // The blob URL holds the file in memory until it is revoked. On a form used
@@ -766,35 +792,20 @@
                     if (!file) return;
                     certError.value = '';
 
-                    const type = mimeOf(file);
-                    if (!ACCEPT_TYPES.includes(type)) {
+                    const check = CC.validate(file);
+                    if (!check.ok) {
                         clearCert();
-                        certError.value = type
-                            ? `${file.name} is a ${type} — the certificate has to be a JPG, PNG, WEBP or HEIC image.`
-                            : `${file.name} is not a recognised image.`;
-                        return;
-                    }
-                    if (file.size > MAX_CERT_BYTES) {
-                        clearCert();
-                        certError.value = `${file.name} is ${kb(file.size)} — the limit is 10 MB.`;
+                        certError.value = check.error;
                         return;
                     }
 
                     clearCert();
                     certFile.value = file;
-                    certPreview.value = URL.createObjectURL(file);
+                    // Only images are previewed, so only images need an object URL.
+                    certPreview.value = CC.isPdfFile(file) ? '' : URL.createObjectURL(file);
                     // An uploaded file IS the certificate link. Leaving a stale typed path in the
                     // field would put two different answers in one column.
                     form.cert_url = '';
-                }
-
-                /* One object per certificate, keyed by instrument and calibration date so the
-                   bucket listing can be read by a person: 11/2026-08-20-1724... .jpg. The
-                   timestamp is there because a certificate can be replaced, and overwriting the
-                   old object would silently rewrite what an earlier record points at. */
-                function certKey(equipmentId, calDate, file) {
-                    const ext = EXT_TYPES[extOf(file.name)] ? extOf(file.name) : 'jpg';
-                    return `${equipmentId}/${calDate}-${Date.now()}.${ext}`;
                 }
 
                 const CA = window.CalibrationAlert;
@@ -807,8 +818,25 @@
                 // offering it here would only invite a row that contradicts its own
                 // calibration_required flag. Scrapped and obsolete are out for the
                 // same reason: the record is closed.
-                const options = computed(() =>
-                    all.value.filter(e => e.calibration_required && e.status === 'ACTIVE'));
+                const eligible = e => e.calibration_required && e.status === 'ACTIVE';
+                const options = computed(() => all.value.filter(eligible));
+
+                /* What was left out, and why. Registering equipment and then not finding
+                   it in this dropdown is the obvious way to lose ten minutes: the reason
+                   is a checkbox at the bottom of a modal on a different page, and the
+                   form used to say nothing at all. Now it accounts for every row it is
+                   not showing. */
+                const excluded = computed(() => {
+                    const out = all.value.filter(e => !eligible(e));
+                    return {
+                        notRequired: out.filter(e => !e.calibration_required && e.status === 'ACTIVE'),
+                        retired: out.filter(e => e.status !== 'ACTIVE'),
+                    };
+                });
+
+                // Set when ?equipment= names something real that cannot be selected, so
+                // the page explains instead of showing a blank dropdown.
+                const preselectNote = ref('');
 
                 const picked = computed(() =>
                     all.value.find(e => String(e.id) === String(equipmentId.value)) || null);
@@ -952,20 +980,13 @@
                            catch below removes. */
                         let certUrl = form.cert_url || null;
                         if (certFile.value) {
-                            const path = certKey(picked.value.id, form.cal_date, certFile.value);
-                            const { error: upErr } = await _supabase.storage
-                                .from(CERT_BUCKET)
-                                .upload(path, certFile.value, {
-                                    upsert: false,
-                                    contentType: mimeOf(certFile.value),
-                                });
-                            if (upErr) {
-                                throw new Error('The certificate image could not be uploaded: '
-                                    + upErr.message + ' — nothing has been saved.');
-                            }
-                            uploadedPath = path;
-                            const { data: pub } = _supabase.storage.from(CERT_BUCKET).getPublicUrl(path);
-                            certUrl = pub.publicUrl;
+                            const put = await CC.upload(_supabase, {
+                                file: certFile.value,
+                                equipmentId: picked.value.id,
+                                calDate: form.cal_date,
+                            });
+                            uploadedPath = put.path;
+                            certUrl = put.url;
                         }
 
                         const { error } = await _supabase.from('ext_cal_event').insert({
@@ -1023,16 +1044,7 @@
                         // The insert failed after the image went up. Take it back out, or the
                         // bucket keeps a file that no certificate will ever point at — and
                         // cert_storage_path exists precisely so orphans are avoidable.
-                        if (uploadedPath) {
-                            try {
-                                await _supabase.storage.from(CERT_BUCKET).remove([uploadedPath]);
-                            } catch (rmErr) {
-                                // Worth a line in the console, not worth replacing the real error
-                                // with a cleanup failure the person can do nothing about.
-                                console.error('Could not remove the orphaned certificate image',
-                                    uploadedPath, rmErr);
-                            }
-                        }
+                        await CC.remove(_supabase, uploadedPath);
                         formError.value = /duplicate key/.test(e.message || '')
                             ? 'A calibration is already recorded for this equipment on that date. '
                               + 'Check the masterlist history before entering it again.'
@@ -1067,18 +1079,40 @@
                     // chosen, so nobody has to find it among 18 and risk filing the
                     // certificate against the wrong counting scale.
                     const q = new URLSearchParams(window.location.search).get('equipment');
-                    if (q && all.value.some(e => String(e.id) === String(q))) {
+                    if (!q) return;
+
+                    // Checked against the OPTIONS, not against every row. Checking `all`
+                    // set equipmentId to something the <select> had no option for, which
+                    // left the dropdown blank while the rest of the form filled itself in
+                    // from `picked` — a form that looked ready to submit against
+                    // equipment it was not actually offering.
+                    if (options.value.some(e => String(e.id) === String(q))) {
                         equipmentId.value = q;
                         onPick();
+                        return;
                     }
+
+                    const known = all.value.find(e => String(e.id) === String(q));
+                    if (!known) return;
+                    const name = known.equipment_code
+                        + (known.serial_no && known.serial_no.toUpperCase() !== 'N/A'
+                            ? ' (S/N ' + known.serial_no + ')' : '');
+                    preselectNote.value = known.status !== 'ACTIVE'
+                        ? `${name} is ${known.status.toLowerCase()}, so no new calibration can be `
+                          + 'recorded against it. Its history is still on the masterlist.'
+                        : `${name} is marked as not requiring external calibration, so it is not `
+                          + 'in the list. Open it on the masterlist and tick “Requires external '
+                          + 'calibration” if that is wrong.';
                 });
 
                 return {
                     CONDITIONS, ACCEPT_TYPES, all, options, picked, equipmentId, loadError,
+                    excluded, preselectNote,
                     form, saving, formError, savedFor,
                     railUser, accessLevel, canWrite, accessResolved, signerName,
                     knownLabs, criteriaChanged, resultConflict,
                     certFile, certPreview, certError, pickCert, clearCert, kb,
+                    certIsPdf, isPdfUrl,
                     fmtDate, duePhrase, oneLine, statusPill,
                     onPick, suggestDue, submit, recordAnother,
                 };
