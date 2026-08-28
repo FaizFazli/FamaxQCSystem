@@ -14,10 +14,19 @@ exports.findMasterDocument = (documentType) => {
 };
 
 exports.insertImageIntoSheet = (workbook, sheet) => {
-    const famaxPath = "C:\\Users\\Acer\\IPQC_Project\\FamaxQCSystem\\assets\\Famax.png";
-    const confPath = "C:\\Users\\Acer\\IPQC_Project\\FamaxQCSystem\\assets\\Confidential.png";
+    // Relative to this file, like findMasterDocument above. These used to be absolute paths
+    // into C:\Users\Acer\IPQC_Project\FamaxQCSystem — the machine the app was first written on.
+    // They stopped resolving the moment the app moved, and stopped being resolvable at all once
+    // it ran in a Linux container, where a C:\ path cannot exist. The workbook still generated;
+    // it just came out with no logos, because the guard below returns without saying anything.
+    const famaxPath = path.join(__dirname, "..", "assets", "Famax.png");
+    const confPath = path.join(__dirname, "..", "assets", "Confidential.png");
 
-    if (!fs.existsSync(famaxPath) || !fs.existsSync(confPath)) return;
+    if (!fs.existsSync(famaxPath) || !fs.existsSync(confPath)) {
+        // Loud, because silence here is what let the logos go missing unnoticed.
+        console.warn(`[excel] logo missing, generating without it: ${famaxPath} / ${confPath}`);
+        return;
+    }
 
     const logoFamax = workbook.addImage({ filename: famaxPath, extension: "png" });
     const logoConf = workbook.addImage({ filename: confPath, extension: "png" });
