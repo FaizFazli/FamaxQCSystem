@@ -22,7 +22,11 @@ exports.insertImageIntoSheet = (workbook, sheet) => {
     const famaxPath = path.join(__dirname, "..", "assets", "Famax.png");
     const confPath = path.join(__dirname, "..", "assets", "Confidential.png");
 
-    if (!fs.existsSync(famaxPath) || !fs.existsSync(confPath)) return;
+    if (!fs.existsSync(famaxPath) || !fs.existsSync(confPath)) {
+        // Loud, because silence here is what let the logos go missing unnoticed.
+        console.warn(`[excel] logo missing, generating without it: ${famaxPath} / ${confPath}`);
+        return;
+    }
 
     const logoFamax = workbook.addImage({ filename: famaxPath, extension: "png" });
     const logoConf = workbook.addImage({ filename: confPath, extension: "png" });
