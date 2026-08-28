@@ -108,6 +108,11 @@ exports.createFolder = async (req, res) => {
         });
       }
 
+      // Drop the #VALUE! the template's in-cell logos leave behind once ExcelJS has read
+      // them, then draw both logos back as floating images. Order matters only in that the
+      // clear has to happen while the sheet still belongs to us - see clearInCellImageErrors.
+      excelUtil.clearInCellImageErrors(sheet);
+
       // Insert Recurring Logos & Page Breaks
       excelUtil.insertImageIntoSheet(workbook, sheet);
 
